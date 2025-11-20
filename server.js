@@ -28,22 +28,22 @@ if (cluster.isMaster) {
     const app = express();
     const server = http.createServer(app);
     const io = socketIo(server);
-    
+
     // Socket.io setup
     const apiIo = io.of('/digilabs/dmap/api/socket');
-    
+
     apiIo.on('connection', (socket) => {
-      // console.log(`✅ User connected to API namespace: ${socket.id}`);
-    
-      socket.on('disconnect', () => {
-        // console.log(`❌ User disconnected: ${socket.id}`);
-      });
+        // console.log(`✅ User connected to API namespace: ${socket.id}`);
+
+        socket.on('disconnect', () => {
+            // console.log(`❌ User disconnected: ${socket.id}`);
+        });
     });
-    
+
     // Make io accessible in routes
     app.set('io', io);
     app.set('apiIo', apiIo);
-    
+
     // Middleware
     app.use(helmet());
     app.use(cors());
@@ -78,12 +78,12 @@ if (cluster.isMaster) {
     });
 
     const PORT = process.env.PORT || 1005;
-    
+
     // Connect to database
     connectDB();
-    
+
     server.listen(PORT, () => {
-      console.log(`Worker ${process.pid} started, server running on port ${PORT}`);
+        console.log(`Worker ${process.pid} started, server running on port ${PORT}`);
     });
 
     module.exports = app;

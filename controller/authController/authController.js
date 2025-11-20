@@ -3,6 +3,7 @@ const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
 const { User, Sales } = require('../../models');
 const { generateAccessToken, generateRefreshToken, verifyRefreshToken } = require('../../middleware/jwtMiddleware');
+const { logUserActivity, extractRequestDetails } = require('../../services/elasticsearchService');
 
 // Initiate registration
 const initiateRegistration = async (req, res) => {
@@ -10,17 +11,35 @@ const initiateRegistration = async (req, res) => {
         const { email } = req.body;
 
         if (!email) {
+            await logUserActivity({
+                event: 'initiate_registration_failed',
+                reason: 'email_required',
+                email: null,
+                ...extractRequestDetails(req)
+            });
             return res.status(400).json({ success: false, error: 'Email is required' });
         }
 
         // Validate email domain
         if (!email.endsWith('@alembic.co.in')) {
+            await logUserActivity({
+                event: 'initiate_registration_failed',
+                reason: 'invalid_domain',
+                email,
+                ...extractRequestDetails(req)
+            });
             return res.status(400).json({ success: false, error: 'Only @alembic.co.in email addresses are allowed' });
         }
 
         // Check if user exists in sales table first
         const existingSalesUser = await Sales.findOne({ where: { email_id: email } });
         if (existingSalesUser) {
+            await logUserActivity({
+                event: 'initiate_registration_failed',
+                reason: 'user_exists_in_sales',
+                email,
+                ...extractRequestDetails(req)
+            });
             return res.status(400).json({
                 success: false,
                 error: 'User already exists in sales records. Please contact administrator.',
@@ -32,6 +51,12 @@ const initiateRegistration = async (req, res) => {
         let existingUser = await User.findOne({ where: { email } });
         if (existingUser) {
             if (existingUser.email_verified_status === 1) {
+                await logUserActivity({
+                    event: 'initiate_registration_failed',
+                    reason: 'user_already_verified',
+                    email,
+                    ...extractRequestDetails(req)
+                });
                 return res.status(400).json({
                     success: false,
                     error: 'User already exists and is verified. Please login instead.',
@@ -55,6 +80,11 @@ const initiateRegistration = async (req, res) => {
                     html
                 });
 
+                await logUserActivity({
+                    event: 'verification_email_resent',
+                    email,
+                    ...extractRequestDetails(req)
+                });
                 return res.json({
                     success: true,
                     message: 'Verification email sent again. Please check your email.',
@@ -93,9 +123,21 @@ const initiateRegistration = async (req, res) => {
             html
         });
 
+        await logUserActivity({
+            event: 'initiate_registration_success',
+            email,
+            ...extractRequestDetails(req)
+        });
         res.json({ success: true, message: 'Verification email sent successfully' });
     } catch (error) {
         console.error('Error initiating registration:', error);
+        await logUserActivity({
+            event: 'initiate_registration_failed',
+            reason: 'server_error',
+            email: req.body?.email || null,
+            error: error.message,
+            ...extractRequestDetails(req)
+        });
         res.status(500).json({ success: false, error: 'Failed to send verification email' });
     }
 };
@@ -108,6 +150,12 @@ const verifyEmail = async (req, res) => {
         // Check if user exists
         const existingUser = await User.findOne({ where: { email } });
         if (!existingUser) {
+            await logUserActivity({
+                event: 'verify_email_failed',
+                reason: 'user_not_found',
+                email,
+                ...extractRequestDetails(req)
+            });
             // Emit error via socket
             const apiIo = req.app.get('apiIo');
             apiIo.emit('verificationError', {
@@ -124,6 +172,12 @@ const verifyEmail = async (req, res) => {
 
         // Check if already verified
         if (existingUser.email_verified_status === 1) {
+            await logUserActivity({
+                event: 'verify_email_failed',
+                reason: 'already_verified',
+                email,
+                ...extractRequestDetails(req)
+            });
             // Emit error via socket
             const apiIo = req.app.get('apiIo');
             apiIo.emit('verificationError', {
@@ -146,6 +200,13 @@ const verifyEmail = async (req, res) => {
             );
         } catch (updateError) {
             console.error('Error updating user verification status:', updateError);
+            await logUserActivity({
+                event: 'verify_email_failed',
+                reason: 'update_failed',
+                email,
+                error: updateError.message,
+                ...extractRequestDetails(req)
+            });
             // Emit error via socket
             const apiIo = req.app.get('apiIo');
             apiIo.emit('verificationError', {
@@ -167,10 +228,21 @@ const verifyEmail = async (req, res) => {
             message: 'Email verified successfully. Please complete your registration.'
         });
 
+        await logUserActivity({
+            event: 'verify_email_success',
+            email,
+            ...extractRequestDetails(req)
+        });
         res.json({ success: true, message: 'Email verified successfully', email });
     } catch (error) {
         console.error('Error verifying email:', error);
-
+        await logUserActivity({
+            event: 'verify_email_failed',
+            reason: 'server_error',
+            email: req.user?.email || 'unknown',
+            error: error.message,
+            ...extractRequestDetails(req)
+        });
         // Emit error via socket
         const apiIo = req.app.get('apiIo');
         apiIo.emit('verificationError', {
@@ -190,12 +262,24 @@ const login = async (req, res) => {
         // Find user
         const user = await User.findOne({ where: { email } });
         if (!user) {
+            await logUserActivity({
+                event: 'login_failed',
+                reason: 'user_not_found',
+                email,
+                ...extractRequestDetails(req)
+            });
             return res.status(401).json({ success: false, error: 'Invalid credentials' });
         }
 
         // Check password (implement proper password checking)
         // For now, just check if password matches
         if (user.password !== password) { // This should use bcrypt
+            await logUserActivity({
+                event: 'login_failed',
+                reason: 'invalid_password',
+                email,
+                ...extractRequestDetails(req)
+            });
             return res.status(401).json({ success: false, error: 'Invalid credentials' });
         }
 
@@ -203,6 +287,12 @@ const login = async (req, res) => {
         const accessToken = generateAccessToken({ id: user.id, email: user.email });
         const refreshToken = generateRefreshToken({ id: user.id, email: user.email });
 
+        await logUserActivity({
+            event: 'login_success',
+            email,
+            userId: user.id,
+            ...extractRequestDetails(req)
+        });
         res.json({
             success: true,
             accessToken,
@@ -215,6 +305,13 @@ const login = async (req, res) => {
         });
     } catch (error) {
         console.error('Error logging in:', error);
+        await logUserActivity({
+            event: 'login_failed',
+            reason: 'server_error',
+            email: req.body?.email || null,
+            error: error.message,
+            ...extractRequestDetails(req)
+        });
         res.status(500).json({ success: false, error: 'Login failed' });
     }
 };
@@ -225,15 +322,32 @@ const refreshToken = async (req, res) => {
         const { refreshToken: token } = req.body;
 
         if (!token) {
+            await logUserActivity({
+                event: 'refresh_token_failed',
+                reason: 'token_required',
+                ...extractRequestDetails(req)
+            });
             return res.status(400).json({ success: false, error: 'Refresh token required' });
         }
 
         const user = verifyRefreshToken(token);
         const newAccessToken = generateAccessToken({ id: user.id, email: user.email });
 
+        await logUserActivity({
+            event: 'refresh_token_success',
+            userId: user.id,
+            email: user.email,
+            ...extractRequestDetails(req)
+        });
         res.json({ success: true, accessToken: newAccessToken });
     } catch (error) {
         console.error('Error refreshing token:', error);
+        await logUserActivity({
+            event: 'refresh_token_failed',
+            reason: 'invalid_token',
+            error: error.message,
+            ...extractRequestDetails(req)
+        });
         res.status(401).json({ success: false, error: 'Invalid refresh token' });
     }
 };
@@ -246,6 +360,12 @@ const register = async (req, res) => {
         // Check if user already exists
         const existingUser = await User.findOne({ where: { email } });
         if (existingUser) {
+            await logUserActivity({
+                event: 'register_failed',
+                reason: 'user_already_exists',
+                email,
+                ...extractRequestDetails(req)
+            });
             return res.status(400).json({ success: false, error: 'User already exists' });
         }
 
@@ -265,6 +385,12 @@ const register = async (req, res) => {
         const accessToken = generateAccessToken({ id: user.id, email: user.email });
         const refreshToken = generateRefreshToken({ id: user.id, email: user.email });
 
+        await logUserActivity({
+            event: 'register_success',
+            email,
+            userId: user.id,
+            ...extractRequestDetails(req)
+        });
         res.status(201).json({
             success: true,
             message: 'User registered successfully',
@@ -278,6 +404,13 @@ const register = async (req, res) => {
         });
     } catch (error) {
         console.error('Error registering user:', error);
+        await logUserActivity({
+            event: 'register_failed',
+            reason: 'server_error',
+            email: req.body?.email || null,
+            error: error.message,
+            ...extractRequestDetails(req)
+        });
         res.status(500).json({ success: false, error: 'Registration failed' });
     }
 };
