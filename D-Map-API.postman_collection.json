@@ -1,0 +1,135 @@
+{
+  "info": {
+    "name": "D-Map API",
+    "description": "API collection for D-Map application",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/digilabs/dmap/api/health",
+          "host": ["{{base_url}}"],
+          "path": ["digilabs", "dmap", "api", "health"]
+        }
+      }
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Initiate Registration",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@alembic.co.in\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/digilabs/dmap/api/auth/initiate-registration",
+              "host": ["{{base_url}}"],
+              "path": ["digilabs", "dmap", "api", "auth", "initiate-registration"]
+            }
+          }
+        },
+        {
+          "name": "Verify Email",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/digilabs/dmap/api/auth/verify-email?token=your_jwt_token_here",
+              "host": ["{{base_url}}"],
+              "path": ["digilabs", "dmap", "api", "auth", "verify-email"],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "your_jwt_token_here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@alembic.co.in\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/digilabs/dmap/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["digilabs", "dmap", "api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"your_refresh_token_here\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/digilabs/dmap/api/auth/refresh-token",
+              "host": ["{{base_url}}"],
+              "path": ["digilabs", "dmap", "api", "auth", "refresh-token"]
+            }
+          }
+        },
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@alembic.co.in\",\n  \"name\": \"John Doe\",\n  \"password\": \"password123\",\n  \"departmentId\": 1,\n  \"divisionId\": 1,\n  \"jobRoleId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/digilabs/dmap/api/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["digilabs", "dmap", "api", "auth", "register"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:1005",
+      "type": "string"
+    }
+  ]
+}
