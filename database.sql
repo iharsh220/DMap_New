@@ -41,12 +41,15 @@ CREATE TABLE `department` (
 --
 
 INSERT INTO `department` (`id`, `department_name`, `description`, `status`, `created_at`, `updated_at`) VALUES
-(1, 'Marketing', 'Marketing Department', 'Active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(2, 'Medical', 'Medical Department', 'Active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(3, 'Business Enablers', 'All Other Alembic Divisions', 'Active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(4, 'IBU', 'Vadodara Departments', 'Active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(5, 'Senior Leadership', 'Leadership From Departments', 'Active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(6, 'Digilabs', 'All Verticals Within Digilabs', 'Active', '2025-11-12 06:04:52', '2025-11-12 06:04:52');
+(1, 'Marketing', 'All marketing divisions of the company', 'Active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(2, 'Medical', 'All medical division employees of the company', 'Active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(3, 'Legal', 'All legal division employees of the company', 'Active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(4, 'CQA', 'All CQA division employees of the company', 'Active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(5, 'Business Enablers', 'All the other divisions of the company', 'Active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(6, 'IBU', 'Any divisions from company''s Vadodara HQ', 'Active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(7, 'Leadership', 'All employees with AGM & above designation', 'Active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(8, 'Corporate Communication', 'All verticals within Corp Comm', 'Active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(9, 'Digilabs', 'All verticals within Digilabs', 'Active', '2025-11-12 06:04:52', '2025-11-12 06:04:52');
 
 -- --------------------------------------------------------
 
@@ -68,18 +71,18 @@ CREATE TABLE `division` (
 --
 
 INSERT INTO `division` (`id`, `title`, `department_id`, `description`, `created_at`, `updated_at`) VALUES
-(1, 'Graphic', 6, 'Graphic design and visual creation', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(2, 'Video', 6, 'Video production and editing', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(3, 'Shoot', 6, 'Photography and shooting services', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(4, 'Content', 6, 'Content writing and creation', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(5, 'Web Application', 6, 'Web application development', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(6, 'Corporate Communication', 3, 'Corporate Communication Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(1, 'Graphic', 9, 'Graphic design and visual creation', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(2, 'Video', 9, 'Video production and editing', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(3, 'Shoot', 9, 'Photography and shooting services', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(4, 'Content', 9, 'Content writing and creation', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(5, 'Web Application', 9, 'Web application development', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(6, 'Corporate Communication', 8, 'Corporate Communication Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
 (7, 'Legal & Compliance', 3, 'Legal & Compliance Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(8, 'Coporate Quality Assurance', 3, 'Coporate Quality Assurance Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(9, 'HR', 3, 'HR Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(10, 'Business Excellence', 3, 'Business Excellence Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(11, 'IT', 3, 'IT Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(12, 'SEAT', 3, 'SEAT Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(8, 'Coporate Quality Assurance', 4, 'Coporate Quality Assurance Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(9, 'HR', 5, 'HR Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(10, 'Business Excellence', 5, 'Business Excellence Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(11, 'IT', 5, 'IT Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(12, 'SEAT', 5, 'SEAT Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
 (13, 'IBU', 4, 'IBU Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
 (14, 'Alcare', 1, 'Alcare Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
 (15, 'Algrow', 1, 'Algrow Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
@@ -130,12 +133,24 @@ CREATE TABLE `job_role` (
 --
 
 INSERT INTO `job_role` (`id`, `role_title`, `level`, `description`, `department_id`, `created_at`, `updated_at`) VALUES
-(1, 'Super Admin', 'Senior', 'system administrators', 6, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(2, 'Creative Manager', 'Mid', 'Creative Media managers (Graphic, Video, Content, Web App)', 6, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(3, 'Creative User', 'Low', 'Designer, Video Editor, Copywriter, Developer', 6, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(4, 'Marketing Manager', 'Mid', 'Marketing Manager', 1, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(5, 'Marketing User', 'Low', 'Brand Manager, Marketing Manager, Division Head', 1, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(6, 'Senior Leadership', 'Mid', 'Leadership, DH, CH', 5, '2025-11-12 06:04:52', '2025-11-12 06:04:52');
+(1, 'Super Admin', 'Senior', 'System administrators', 9, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(2, 'Creative Manager', 'Mid', 'Creative media managers ( for Graphic, Video, Content, Web App divisions)', 9, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(3, 'Creative User', 'Low', 'All subject matter experts such as designers, video editors, copywriters, developers, etc', 9, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(4, 'Marketing Manager', 'Mid', 'Marketing manager', 1, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(5, 'Marketing User', 'Low', 'All product manager levels', 1, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(6, 'Senior Leadership', 'Mid', 'Any user under Leadership department', 7, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(7, 'Other User', 'Low', 'Any user under Business Enabler department', 5, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(8, 'Medical Manager', 'Mid', 'Level 3 user of medical team', 2, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(9, 'Medical Senior', 'Low', 'Level 2 user of medical team', 2, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(10, 'Medical User', 'Low', 'Level 1 user of medical team', 2, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(11, 'Legal Manager', 'Mid', 'Level 3 user of legal team', 3, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(12, 'Legal Senior', 'Low', 'Level 2 user of legal team', 3, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(13, 'Lega User', 'Low', 'Level 1 user of legal team', 3, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(14, 'CQA Manager', 'Mid', 'Level 3 user of CQA team', 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(15, 'CQA Senior', 'Low', 'Level 2 user of CQA team', 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(16, 'CQA User', 'Low', 'Level 1 user of CQA team', 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(17, 'CComm Manager', 'Mid', 'Managers and up of corp comm division', 8, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(18, 'CComm User', 'Low', 'All users of corporate communication division', 8, '2025-11-12 06:04:52', '2025-11-12 06:04:52');
 
 --
 -- Table structure for table `designation`
@@ -196,13 +211,13 @@ CREATE TABLE `designation_departments` (
 --
 
 INSERT INTO `designation_departments` (`id`, `designation_id`, `department_id`, `created_at`, `updated_at`) VALUES
-(1, 1, 5, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(2, 2, 5, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(3, 3, 5, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(4, 4, 5, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(5, 5, 5, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(6, 6, 5, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(7, 7, 5, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(1, 1, 7, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(2, 2, 7, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(3, 3, 7, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(4, 4, 7, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(5, 5, 7, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(6, 6, 7, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(7, 7, 7, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
 (8, 8, 1, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
 (9, 9, 1, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
 (10, 10, 1, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
@@ -210,43 +225,94 @@ INSERT INTO `designation_departments` (`id`, `designation_id`, `department_id`, 
 (12, 12, 1, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
 (13, 13, 1, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
 (14, 14, 1, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(15, 15, 6, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(16, 15, 2, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(17, 15, 3, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(18, 15, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(19, 16, 6, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(20, 16, 2, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(21, 16, 3, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(22, 16, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(23, 17, 6, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(24, 17, 2, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(25, 17, 3, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(26, 17, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(27, 18, 6, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(28, 18, 2, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(29, 18, 3, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(30, 18, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(31, 19, 6, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(32, 19, 2, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(33, 19, 3, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(34, 19, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(35, 20, 6, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(36, 20, 2, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(37, 20, 3, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(38, 20, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(39, 21, 6, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(40, 21, 2, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(41, 21, 3, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(42, 21, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(43, 22, 6, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(44, 22, 2, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(45, 22, 3, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(46, 22, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52');
+(15, 15, 2, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(16, 15, 3, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(17, 15, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(18, 15, 5, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(19, 15, 6, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(20, 15, 8, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(21, 15, 9, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(22, 16, 2, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(23, 16, 3, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(24, 16, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(25, 16, 5, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(26, 16, 6, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(27, 16, 8, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(28, 16, 9, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(29, 17, 2, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(30, 17, 3, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(31, 17, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(32, 17, 5, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(33, 17, 6, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(34, 17, 8, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(35, 17, 9, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(36, 18, 2, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(37, 18, 3, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(38, 18, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(39, 18, 5, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(40, 18, 6, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(41, 18, 8, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(42, 18, 9, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(43, 19, 2, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(44, 19, 3, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(45, 19, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(46, 19, 5, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(47, 19, 6, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(48, 19, 8, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(49, 19, 9, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(50, 20, 2, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(51, 20, 3, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(52, 20, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(53, 20, 5, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(54, 20, 6, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(55, 20, 8, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(56, 20, 9, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(57, 21, 2, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(58, 21, 3, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(59, 21, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(60, 21, 5, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(61, 21, 6, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(62, 21, 8, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(63, 21, 9, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(64, 22, 2, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(65, 22, 3, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(66, 22, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(67, 22, 5, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(68, 22, 6, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(69, 22, 8, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(70, 22, 9, '2025-11-12 06:04:52', '2025-11-12 06:04:52');
 
 -- --------------------------------------------------------
 -- --------------------------------------------------------
 -- --------------------------------------------------------
 
+-- --------------------------------------------------------
+
+
+-- Table structure for table `designation_jobroles`
+--
+
+CREATE TABLE `designation_jobroles` (
+  `id` int(11) NOT NULL,
+  `designation_id` int(11) NOT NULL,
+  `jobrole_id` int(11) NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Dumping data for table `designation_jobroles`
+--
+
+INSERT INTO `designation_jobroles` (`id`, `designation_id`, `jobrole_id`, `created_at`, `updated_at`) VALUES
+(1, 1, 1, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(2, 8, 2, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(3, 14, 3, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(4, 8, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(5, 14, 5, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(6, 1, 6, '2025-11-12 06:04:52', '2025-11-12 06:04:52');
+
+-- --------------------------------------------------------
 --
 -- Table structure for table `location`
 --
@@ -521,6 +587,15 @@ ALTER TABLE `designation_departments`
   ADD KEY `department_id` (`department_id`);
 
 --
+-- Indexes for table `designation_jobroles`
+--
+ALTER TABLE `designation_jobroles`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_designation_jobrole` (`designation_id`,`jobrole_id`),
+  ADD KEY `designation_id` (`designation_id`),
+  ADD KEY `jobrole_id` (`jobrole_id`);
+
+--
 -- Indexes for table `job_role`
 --
 ALTER TABLE `job_role`
@@ -633,7 +708,13 @@ ALTER TABLE `designation`
 -- AUTO_INCREMENT for table `designation_departments`
 --
 ALTER TABLE `designation_departments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=47;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=71;
+
+--
+-- AUTO_INCREMENT for table `designation_jobroles`
+--
+ALTER TABLE `designation_jobroles`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `job_role`
@@ -722,6 +803,13 @@ ALTER TABLE `tasks`
 ALTER TABLE `designation_departments`
   ADD CONSTRAINT `designation_departments_ibfk_1` FOREIGN KEY (`designation_id`) REFERENCES `designation` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `designation_departments_ibfk_2` FOREIGN KEY (`department_id`) REFERENCES `department` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `designation_jobroles`
+--
+ALTER TABLE `designation_jobroles`
+  ADD CONSTRAINT `designation_jobroles_ibfk_1` FOREIGN KEY (`designation_id`) REFERENCES `designation` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `designation_jobroles_ibfk_2` FOREIGN KEY (`jobrole_id`) REFERENCES `job_role` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `job_role`

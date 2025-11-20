@@ -6,6 +6,7 @@ const Division = require('./Division/Division');
 const JobRole = require('./JobRole/JobRole');
 const Designation = require('./Designation/Designation');
 const DesignationDepartment = require('./DesignationDepartment/DesignationDepartment');
+const DesignationJobRole = require('./DesignationJobRole/DesignationJobRole');
 const Location = require('./Location/Location');
 const User = require('./User/User');
 const Sales = require('./Sales/Sales');
@@ -24,6 +25,9 @@ JobRole.belongsTo(Department, { foreignKey: 'department_id' });
 
 Designation.belongsToMany(Department, { through: DesignationDepartment, foreignKey: 'designation_id' });
 Department.belongsToMany(Designation, { through: DesignationDepartment, foreignKey: 'department_id' });
+
+Designation.belongsToMany(JobRole, { through: DesignationJobRole, foreignKey: 'designation_id' });
+JobRole.belongsToMany(Designation, { through: DesignationJobRole, foreignKey: 'jobrole_id' });
 
 User.belongsTo(Department, { foreignKey: 'department_id' });
 User.belongsTo(Division, { foreignKey: 'division_id' });
@@ -56,6 +60,7 @@ module.exports = {
   JobRole,
   Designation,
   DesignationDepartment,
+  DesignationJobRole,
   Location,
   User,
   Sales,
