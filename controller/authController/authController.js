@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
-const { User } = require('../../models');
+const { User, Sales } = require('../../models');
 const { generateAccessToken, generateRefreshToken, verifyRefreshToken } = require('../../middleware/jwtMiddleware');
 
 // Initiate registration
@@ -18,10 +18,63 @@ const initiateRegistration = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Only @alembic.co.in email addresses are allowed' });
         }
 
-        // Check if user exists
-        const existingUser = await User.findOne({ where: { email } });
+        // Check if user exists in sales table first
+        const existingSalesUser = await Sales.findOne({ where: { email_id: email } });
+        if (existingSalesUser) {
+            return res.status(400).json({
+                success: false,
+                error: 'User already exists in sales records. Please contact administrator.',
+                action: 'contact_admin'
+            });
+        }
+
+        // Check if user exists in users table
+        let existingUser = await User.findOne({ where: { email } });
         if (existingUser) {
-            return res.status(400).json({ success: false, error: 'User already exists' });
+            if (existingUser.email_verified_status === 1) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'User already exists and is verified. Please login instead.',
+                    action: 'login'
+                });
+            } else {
+                // User exists but not verified, resend verification email
+                // Generate JWT token
+                const token = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: process.env.EMAIL_VERIFICATION_TOKEN_EXPIRES_IN });
+
+                // Create verification URL
+                const verificationUrl = `${process.env.FRONTEND_URL}/verifyemailtab?token=${token}`;
+
+                // Render email template
+                const html = renderTemplate('emailVerification', { verificationUrl });
+
+                // Send email via BullMQ queue
+                await sendMail({
+                    to: email,
+                    subject: 'D-Map Email Verification',
+                    html
+                });
+
+                return res.json({
+                    success: true,
+                    message: 'Verification email sent again. Please check your email.',
+                    action: 'check_email'
+                });
+            }
+        }
+
+        // Create user entry with email_verified_status = 0
+        try {
+            await User.create({
+                email,
+                email_verified_status: 0
+            });
+        } catch (error) {
+            console.error('Error creating user:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Failed to initiate registration'
+            });
         }
 
         // Generate JWT token
@@ -49,43 +102,84 @@ const initiateRegistration = async (req, res) => {
 
 // Verify email
 const verifyEmail = async (req, res) => {
-    try {
-        const { email } = req.user;
+  try {
+    const { email } = req.user;
 
-        // Check if user exists
-        const existingUser = await User.findOne({ where: { email } });
-        if (existingUser) {
-            // Emit error via socket
-            const apiIo = req.app.get('apiIo');
-            apiIo.emit('verificationError', {
-                email,
-                message: 'User already exists'
-            });
+    // Check if user exists
+    const existingUser = await User.findOne({ where: { email } });
+    if (!existingUser) {
+      // Emit error via socket
+      const apiIo = req.app.get('apiIo');
+      apiIo.emit('verificationError', {
+        email,
+        message: 'User not found. Please initiate registration first.'
+      });
 
-            return res.status(400).json({ success: false, error: 'User already exists' });
-        }
-
-        // Emit success via socket
-        const apiIo = req.app.get('apiIo');
-        apiIo.emit('emailVerified', {
-            success: true,
-            email,
-            message: 'Email verified successfully. Please complete your registration.'
-        });
-
-        res.json({ success: true, message: 'Email verified successfully', email });
-    } catch (error) {
-        console.error('Error verifying email:', error);
-
-        // Emit error via socket
-        const apiIo = req.app.get('apiIo');
-        apiIo.emit('verificationError', {
-            email: req.user?.email || 'unknown',
-            message: 'Verification failed'
-        });
-
-        res.status(500).json({ success: false, error: 'Verification failed' });
+      return res.status(400).json({
+        success: false,
+        error: 'User not found. Please initiate registration first.',
+        action: 'initiate_registration'
+      });
     }
+
+    // Check if already verified
+    if (existingUser.email_verified_status === 1) {
+      // Emit error via socket
+      const apiIo = req.app.get('apiIo');
+      apiIo.emit('verificationError', {
+        email,
+        message: 'Email already verified. Please login.'
+      });
+
+      return res.status(400).json({
+        success: false,
+        error: 'Email already verified. Please login.',
+        action: 'login'
+      });
+    }
+
+    // Update user's email_verified_status to 1
+    try {
+      await User.update(
+        { email_verified_status: 1 },
+        { where: { email } }
+      );
+    } catch (updateError) {
+      console.error('Error updating user verification status:', updateError);
+      // Emit error via socket
+      const apiIo = req.app.get('apiIo');
+      apiIo.emit('verificationError', {
+        email,
+        message: 'Failed to update verification status'
+      });
+
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to update verification status'
+      });
+    }
+
+    // Emit success via socket
+    const apiIo = req.app.get('apiIo');
+    apiIo.emit('emailVerified', {
+      success: true,
+      email,
+      message: 'Email verified successfully. Please complete your registration.'
+    });
+
+    res.json({ success: true, message: 'Email verified successfully', email });
+  } catch (error) {
+    console.error('Error verifying email:', error);
+
+    // Emit error via socket
+    const apiIo = req.app.get('apiIo');
+    apiIo.emit('verificationError', {
+      email: req.user?.email || 'unknown',
+      message: 'Verification failed'
+    });
+
+    res.status(500).json({ success: false, error: 'Verification failed' });
+  }
 };
 
 // Login
