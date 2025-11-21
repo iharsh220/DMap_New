@@ -27,7 +27,13 @@ if (cluster.isMaster) {
 
     const app = express();
     const server = http.createServer(app);
-    const io = socketIo(server);
+    const io = socketIo(server, {
+        cors: {
+            origin: "*",
+            methods: ["GET", "POST"],
+            credentials: true
+        }
+    });
 
     // Socket.io setup
     const apiIo = io.of('/digilabs/dmap/api/socket');
@@ -45,8 +51,18 @@ if (cluster.isMaster) {
     app.set('apiIo', apiIo);
 
     // Middleware
-    app.use(helmet());
-    app.use(cors());
+    app.use(helmet({
+        crossOriginResourcePolicy: false,
+        crossOriginEmbedderPolicy: false,
+        crossOriginOpenerPolicy: false,
+        contentSecurityPolicy: false
+    }));
+    app.use(cors({
+        origin: "*",
+        methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+        credentials: true,
+        allowedHeaders: ["Content-Type", "Authorization"]
+    }));
     app.use(compression());
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
