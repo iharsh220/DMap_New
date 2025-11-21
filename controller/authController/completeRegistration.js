@@ -1,6 +1,8 @@
 const bcrypt = require('bcryptjs');
 const { User } = require('../../models');
 const { logUserActivity, extractRequestDetails } = require('../../services/elasticsearchService');
+const { sendMail } = require('../../services/mailService');
+const { renderTemplate } = require('../../services/templateService');
 
 // Complete registration
 const completeRegistration = async (req, res) => {
@@ -37,6 +39,22 @@ const completeRegistration = async (req, res) => {
             password_changed_at: now,
             password_expires_at: passwordExpiresAt
         }, { where: { email } });
+
+        // Send registration success email
+        try {
+            const html = renderTemplate('registrationSuccess', {
+                name,
+                email
+            });
+            await sendMail({
+                to: email,
+                subject: 'Registration Successful - D-Map',
+                html
+            });
+        } catch (emailError) {
+            console.error('Error sending registration success email:', emailError);
+            // Don't fail registration if email fails
+        }
 
         await logUserActivity({
             event: 'complete_registration_success',
