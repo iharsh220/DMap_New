@@ -371,6 +371,13 @@ CREATE TABLE `sales` (
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
+--
+-- Dumping data for table `sales`
+--
+
+INSERT INTO `sales` (`id`, `emp_code`, `emp_name`, `level`, `hq`, `region`, `zone`, `division_id`, `sap_code`, `mobile_number`, `email_id`, `user_type`, `email_verified_status`, `password`, `account_status`, `last_login`, `login_attempts`, `lock_until`, `password_changed_at`, `password_expires_at`, `created_at`, `updated_at`) VALUES
+(1, 12345, 'Demo Sales User', 'Junior', 'Mumbai', 'West', 'Zone A', 14, 67890, '9876543210', 'demo.sales@alembic.co.in', 'sales', 1, '$2b$10$demo.hash.for.sales.user.password123', 'active', NULL, 0, NULL, '2025-11-21 07:24:00', '2026-02-19 07:24:00', '2025-11-21 07:24:00', '2025-11-21 07:24:00');
+
 -- --------------------------------------------------------
 
 --
