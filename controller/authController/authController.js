@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
 const { User, Sales } = require('../../models');
-const { generateAccessToken, generateRefreshToken, verifyRefreshToken } = require('../../middleware/jwtMiddleware');
+const { generateAccessToken, generateRefreshToken, verifyRefreshToken, generateEmailVerificationToken, verifyEmailVerificationToken } = require('../../middleware/jwtMiddleware');
 const { logUserActivity, extractRequestDetails } = require('../../services/elasticsearchService');
 
 // Initiate registration
@@ -64,8 +64,8 @@ const initiateRegistration = async (req, res) => {
                 });
             } else {
                 // User exists but not verified, resend verification email
-                // Generate JWT token
-                const token = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: process.env.EMAIL_VERIFICATION_TOKEN_EXPIRES_IN });
+                // Generate encrypted JWT token
+                const token = await generateEmailVerificationToken(email);
 
                 // Create verification URL
                 const verificationUrl = `${process.env.FRONTEND_URL}/verifyemailtab?token=${token}`;
@@ -107,8 +107,8 @@ const initiateRegistration = async (req, res) => {
             });
         }
 
-        // Generate JWT token
-        const token = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: process.env.EMAIL_VERIFICATION_TOKEN_EXPIRES_IN });
+        // Generate encrypted JWT token
+        const token = await generateEmailVerificationToken(email);
 
         // Create verification URL
         const verificationUrl = `${process.env.FRONTEND_URL}/verifyemailtab?token=${token}`;
@@ -284,8 +284,8 @@ const login = async (req, res) => {
         }
 
         // Generate tokens
-        const accessToken = generateAccessToken({ id: user.id, email: user.email });
-        const refreshToken = generateRefreshToken({ id: user.id, email: user.email });
+        const accessToken = await generateAccessToken({ id: user.id, email: user.email });
+        const refreshToken = await generateRefreshToken({ id: user.id, email: user.email });
 
         await logUserActivity({
             event: 'login_success',
@@ -330,8 +330,8 @@ const refreshToken = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Refresh token required' });
         }
 
-        const user = verifyRefreshToken(token);
-        const newAccessToken = generateAccessToken({ id: user.id, email: user.email });
+        const user = await verifyRefreshToken(token);
+        const newAccessToken = await generateAccessToken({ id: user.id, email: user.email });
 
         await logUserActivity({
             event: 'refresh_token_success',
@@ -382,8 +382,8 @@ const register = async (req, res) => {
         });
 
         // Generate tokens
-        const accessToken = generateAccessToken({ id: user.id, email: user.email });
-        const refreshToken = generateRefreshToken({ id: user.id, email: user.email });
+        const accessToken = await generateAccessToken({ id: user.id, email: user.email });
+        const refreshToken = await generateRefreshToken({ id: user.id, email: user.email });
 
         await logUserActivity({
             event: 'register_success',

@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
+const { EncryptJWT, jwtDecrypt } = require('jose');
 
-const authenticateToken = (req, res, next) => {
+const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
@@ -8,16 +9,17 @@ const authenticateToken = (req, res, next) => {
     return res.status(401).json({ error: 'Access token required' });
   }
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) {
-      return res.status(403).json({ error: 'Invalid or expired token' });
-    }
-    req.user = user;
+  try {
+    const keyBytes = Uint8Array.from(Buffer.from(process.env.JWT_ENCRYPTION_KEY, 'base64'));
+    const { payload } = await jwtDecrypt(token, keyBytes);
+    req.user = payload;
     next();
-  });
+  } catch (error) {
+    return res.status(403).json({ error: 'Invalid or expired token' });
+  }
 };
 
-const verifyToken = (req, res, next) => {
+const verifyToken = async (req, res, next) => {
   const { token } = req.query;
 
   if (!token) {
@@ -25,28 +27,52 @@ const verifyToken = (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    const keyBytes = Uint8Array.from(Buffer.from(process.env.JWT_ENCRYPTION_KEY, 'base64'));
+    console.log(keyBytes);
+    const { payload } = await jwtDecrypt(token, keyBytes);
+    req.user = payload;
     next();
   } catch (error) {
     return res.status(400).json({ success: false, error: 'Invalid or expired token' });
   }
 };
 
-const generateAccessToken = (user) => {
-  return jwt.sign(user, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '15m' });
+const generateToken = async (payload, key, expiresIn) => {
+  const keyBytes = Uint8Array.from(Buffer.from(key, 'base64'));
+  return await new EncryptJWT(payload)
+    .setProtectedHeader({ alg: 'dir', enc: 'A256GCM' })
+    .setExpirationTime(expiresIn)
+    .encrypt(keyBytes);
 };
 
-const generateRefreshToken = (user) => {
-  return jwt.sign(user, process.env.REFRESH_TOKEN_SECRET, { expiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN || '7d' });
-};
-
-const verifyRefreshToken = (token) => {
+const decryptToken = async (token, key) => {
   try {
-    return jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+    const keyBytes = Uint8Array.from(Buffer.from(key, 'base64'));
+    const { payload } = await jwtDecrypt(token, keyBytes);
+    return payload;
   } catch (error) {
-    throw new Error('Invalid refresh token');
+    throw new Error('Invalid token');
   }
+};
+
+const generateAccessToken = async (user) => {
+  return await generateToken(user, process.env.JWT_ENCRYPTION_KEY, process.env.JWT_EXPIRES_IN || '15m');
+};
+
+const generateRefreshToken = async (user) => {
+  return await generateToken(user, process.env.REFRESH_ENCRYPTION_KEY, process.env.REFRESH_TOKEN_EXPIRES_IN || '7d');
+};
+
+const verifyRefreshToken = async (token) => {
+  return await decryptToken(token, process.env.REFRESH_ENCRYPTION_KEY);
+};
+
+const generateEmailVerificationToken = async (email) => {
+  return await generateToken({ email }, process.env.JWT_ENCRYPTION_KEY, process.env.EMAIL_VERIFICATION_TOKEN_EXPIRES_IN || '24h');
+};
+
+const verifyEmailVerificationToken = async (token) => {
+  return await decryptToken(token, process.env.JWT_ENCRYPTION_KEY);
 };
 
 module.exports = {
@@ -54,5 +80,7 @@ module.exports = {
   verifyToken,
   generateAccessToken,
   generateRefreshToken,
-  verifyRefreshToken
+  verifyRefreshToken,
+  generateEmailVerificationToken,
+  verifyEmailVerificationToken
 };
