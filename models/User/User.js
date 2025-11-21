@@ -40,6 +40,10 @@ const User = sequelize.define('User', {
     type: DataTypes.INTEGER,
     allowNull: true,
   },
+  designation_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
   email_verified_status: {
     type: DataTypes.TINYINT,
     defaultValue: 0,

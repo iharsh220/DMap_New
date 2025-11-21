@@ -32,6 +32,7 @@ CREATE TABLE `department` (
   `department_name` varchar(100) NOT NULL,
   `description` text DEFAULT NULL,
   `status` enum('Active','Inactive') DEFAULT 'Active',
+  `state` enum('active','inactive') DEFAULT 'active',
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
@@ -62,6 +63,7 @@ CREATE TABLE `division` (
   `title` varchar(100) NOT NULL,
   `department_id` int(11) NOT NULL,
   `description` text DEFAULT NULL,
+  `state` enum('active','inactive') DEFAULT 'active',
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
@@ -124,6 +126,7 @@ CREATE TABLE `job_role` (
   `level` varchar(50) DEFAULT NULL,
   `description` text DEFAULT NULL,
   `department_id` int(11) DEFAULT NULL,
+  `state` enum('active','inactive') DEFAULT 'active',
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
@@ -160,6 +163,7 @@ CREATE TABLE `designation` (
   `id` int(11) NOT NULL,
   `designation_name` varchar(100) NOT NULL,
   `designation_category` varchar(50) NOT NULL,
+  `state` enum('active','inactive') DEFAULT 'active',
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
@@ -322,6 +326,7 @@ CREATE TABLE `location` (
   `location_name` varchar(100) NOT NULL,
   `type` enum('HO','HQ','Field','Other') NOT NULL,
   `description` text DEFAULT NULL,
+  `state` enum('active','inactive') DEFAULT 'active',
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
@@ -428,6 +433,7 @@ CREATE TABLE `users` (
   `division_id` int(11) DEFAULT NULL,
   `job_role_id` int(11) DEFAULT NULL,
   `location_id` int(11) DEFAULT NULL,
+  `designation_id` int(11) DEFAULT NULL,
   `email_verified_status` tinyint(1) DEFAULT 0,
   `account_status` enum('pending','active','inactive','locked','rejected','vacant') DEFAULT 'pending',
   `last_login` datetime DEFAULT NULL,
@@ -443,12 +449,12 @@ CREATE TABLE `users` (
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `name`, `email`, `phone`, `password`, `department_id`, `division_id`, `job_role_id`, `location_id`, `email_verified_status`, `account_status`, `last_login`, `login_attempts`, `lock_until`, `password_changed_at`, `password_expires_at`, `created_at`, `updated_at`) VALUES
-(1, 'System Admin', 'admin@alembic.co.in', '8080302041', '$2a$12$/.rT3avNPO1l0ZjqSRS/Ru09mKVNuIRSLaHjBDeMwLHscVLq1ETY6', 2, 1, 1, 1, 1, 'active', '2025-11-12 06:04:52', 0, NULL, '2025-11-12 06:04:52', '2026-02-10 06:04:52', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(2, 'Harsh Gohil', 'harsh.gohil@alembic.co.in', '8080302042', '$2b$10$GJmBy5B8VE9lQH5hOgzMb.xP6VEP10IwtD80di3Uniu3aaazcU8yy', 2, 5, 3, 1, 1, 'active', NULL, 0, NULL, '2025-11-12 06:06:13', '2026-02-10 06:06:13', '2025-11-12 06:04:58', '2025-11-12 06:06:13'),
-(3, 'Nikhil Nadkar', 'nikhil.nadkar@alembic.co.in', '8080302042', '$2b$10$i7Z7bTmqBpmyPRcxrqoX1OE7upFSVXqFXiYzQqoIW7pt8M2FD6.Uq', 1, 20, 4, 1, 1, 'active', '2025-11-12 06:35:08', 0, NULL, '2025-11-12 06:11:11', '2026-02-10 06:11:11', '2025-11-12 06:10:01', '2025-11-12 06:35:08'),
-(4, 'Mohanish Padwal', 'mohanish.padwal@alembic.co.in', NULL, '$2b$10$Ji2xiG/5vdtbeUc3.FdcIOAymaHhMB1hBrOwoFawALpGc7VX10fD.', 2, 5, 2, 1, 1, 'active', NULL, 0, NULL, '2025-11-19 08:12:00', '2026-02-17 08:12:00', '2025-11-19 08:12:00', '2025-11-19 08:12:00'),
-(5, 'Bhagwan Parab', 'bhagwan.parab@alembic.co.in', NULL, '$2b$10$mSvKWrDwZCZyM5LR7zLWgOkqRUebR76dmXyiCnSUr.Y6Ft1njZKum', 2, 5, 2, 1, 1, 'active', NULL, 0, NULL, '2025-11-19 08:12:00', '2026-02-17 08:12:00', '2025-11-19 08:12:00', '2025-11-19 08:12:00');
+INSERT INTO `users` (`id`, `name`, `email`, `phone`, `password`, `department_id`, `division_id`, `job_role_id`, `location_id`, `designation_id`, `email_verified_status`, `account_status`, `last_login`, `login_attempts`, `lock_until`, `password_changed_at`, `password_expires_at`, `created_at`, `updated_at`) VALUES
+(1, 'System Admin', 'admin@alembic.co.in', '8080302041', '$2a$12$/.rT3avNPO1l0ZjqSRS/Ru09mKVNuIRSLaHjBDeMwLHscVLq1ETY6', 2, 1, 1, 1, NULL, 1, 'active', '2025-11-12 06:04:52', 0, NULL, '2025-11-12 06:04:52', '2026-02-10 06:04:52', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(2, 'Harsh Gohil', 'harsh.gohil@alembic.co.in', '8080302042', '$2b$10$GJmBy5B8VE9lQH5hOgzMb.xP6VEP10IwtD80di3Uniu3aaazcU8yy', 2, 5, 3, 1, NULL, 1, 'active', NULL, 0, NULL, '2025-11-12 06:06:13', '2026-02-10 06:06:13', '2025-11-12 06:04:58', '2025-11-12 06:06:13'),
+(3, 'Nikhil Nadkar', 'nikhil.nadkar@alembic.co.in', '8080302042', '$2b$10$i7Z7bTmqBpmyPRcxrqoX1OE7upFSVXqFXiYzQqoIW7pt8M2FD6.Uq', 1, 20, 4, 1, NULL, 1, 'active', '2025-11-12 06:35:08', 0, NULL, '2025-11-12 06:11:11', '2026-02-10 06:11:11', '2025-11-12 06:10:01', '2025-11-12 06:35:08'),
+(4, 'Mohanish Padwal', 'mohanish.padwal@alembic.co.in', NULL, '$2b$10$Ji2xiG/5vdtbeUc3.FdcIOAymaHhMB1hBrOwoFawALpGc7VX10fD.', 2, 5, 2, 1, NULL, 1, 'active', NULL, 0, NULL, '2025-11-19 08:12:00', '2026-02-17 08:12:00', '2025-11-19 08:12:00', '2025-11-19 08:12:00'),
+(5, 'Bhagwan Parab', 'bhagwan.parab@alembic.co.in', NULL, '$2b$10$mSvKWrDwZCZyM5LR7zLWgOkqRUebR76dmXyiCnSUr.Y6Ft1njZKum', 2, 5, 2, 1, NULL, 1, 'active', NULL, 0, NULL, '2025-11-19 08:12:00', '2026-02-17 08:12:00', '2025-11-19 08:12:00', '2025-11-19 08:12:00');
 
 -- --------------------------------------------------------
 
@@ -638,7 +644,8 @@ ALTER TABLE `users`
   ADD KEY `department_id` (`department_id`),
   ADD KEY `division_id` (`division_id`),
   ADD KEY `job_role_id` (`job_role_id`),
-  ADD KEY `location_id` (`location_id`);
+  ADD KEY `location_id` (`location_id`),
+  ADD KEY `designation_id` (`designation_id`);
 
 --
 -- Indexes for table `user_divisions`
@@ -824,7 +831,8 @@ ALTER TABLE `users`
   ADD CONSTRAINT `users_ibfk_1` FOREIGN KEY (`department_id`) REFERENCES `department` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `users_ibfk_2` FOREIGN KEY (`division_id`) REFERENCES `division` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `users_ibfk_3` FOREIGN KEY (`job_role_id`) REFERENCES `job_role` (`id`) ON DELETE SET NULL,
-  ADD CONSTRAINT `users_ibfk_4` FOREIGN KEY (`location_id`) REFERENCES `location` (`id`) ON DELETE SET NULL;
+  ADD CONSTRAINT `users_ibfk_4` FOREIGN KEY (`location_id`) REFERENCES `location` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `users_ibfk_5` FOREIGN KEY (`designation_id`) REFERENCES `designation` (`id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `user_divisions`

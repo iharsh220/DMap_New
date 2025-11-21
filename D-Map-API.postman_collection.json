@@ -12,8 +12,15 @@
         "header": [],
         "url": {
           "raw": "{{base_url}}/digilabs/dmap/api/health",
-          "host": ["{{base_url}}"],
-          "path": ["digilabs", "dmap", "api", "health"]
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "digilabs",
+            "dmap",
+            "api",
+            "health"
+          ]
         }
       }
     },
@@ -36,8 +43,16 @@
             },
             "url": {
               "raw": "{{base_url}}/digilabs/dmap/api/auth/initiate-registration",
-              "host": ["{{base_url}}"],
-              "path": ["digilabs", "dmap", "api", "auth", "initiate-registration"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "digilabs",
+                "dmap",
+                "api",
+                "auth",
+                "initiate-registration"
+              ]
             }
           }
         },
@@ -48,8 +63,16 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/digilabs/dmap/api/auth/verify-email?token=your_jwt_token_here",
-              "host": ["{{base_url}}"],
-              "path": ["digilabs", "dmap", "api", "auth", "verify-email"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "digilabs",
+                "dmap",
+                "api",
+                "auth",
+                "verify-email"
+              ],
               "query": [
                 {
                   "key": "token",
@@ -75,8 +98,16 @@
             },
             "url": {
               "raw": "{{base_url}}/digilabs/dmap/api/auth/login",
-              "host": ["{{base_url}}"],
-              "path": ["digilabs", "dmap", "api", "auth", "login"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "digilabs",
+                "dmap",
+                "api",
+                "auth",
+                "login"
+              ]
             }
           }
         },
@@ -96,8 +127,16 @@
             },
             "url": {
               "raw": "{{base_url}}/digilabs/dmap/api/auth/refresh-token",
-              "host": ["{{base_url}}"],
-              "path": ["digilabs", "dmap", "api", "auth", "refresh-token"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "digilabs",
+                "dmap",
+                "api",
+                "auth",
+                "refresh-token"
+              ]
             }
           }
         },
@@ -117,9 +156,42 @@
             },
             "url": {
               "raw": "{{base_url}}/digilabs/dmap/api/auth/register",
-              "host": ["{{base_url}}"],
-              "path": ["digilabs", "dmap", "api", "auth", "register"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "digilabs",
+                "dmap",
+                "api",
+                "auth",
+                "register"
+              ]
             }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Departments",
+      "item": [
+        {
+          "name": "Get All Departments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/digilabs/dmap/api/departments",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "digilabs",
+                "dmap",
+                "api",
+                "departments"
+              ]
+            },
+            "description": "Get all departments with nested divisions and designations"
           }
         }
       ]

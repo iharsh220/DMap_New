@@ -1,6 +1,5 @@
 const { Queue, Worker } = require('bullmq');
 const transporter = require('../config/mailConfig');
-const { renderTemplate } = require('./templateService');
 
 // Create mail queue
 const mailQueue = new Queue('mail-queue', {

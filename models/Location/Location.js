@@ -19,6 +19,10 @@ const Location = sequelize.define('Location', {
     type: DataTypes.TEXT,
     allowNull: true,
   },
+  state: {
+    type: DataTypes.ENUM('active','inactive'),
+    defaultValue: 'active',
+  },
   created_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,
