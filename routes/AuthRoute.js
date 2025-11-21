@@ -3,9 +3,8 @@ const { verifyToken } = require('../middleware/jwtMiddleware');
 const {
   initiateRegistration,
   verifyEmail,
-  login,
   refreshToken,
-  register
+  completeRegistration
 } = require('../controller/authController/authController');
 
 const router = express.Router();
@@ -16,8 +15,6 @@ router.get('/verify-email', verifyToken, verifyEmail);
 
 router.post('/refresh-token', refreshToken);
 
-router.post('/register', register);
-
-router.post('/login', login);
+router.post('/complete-registration', completeRegistration);
 
 module.exports = router;

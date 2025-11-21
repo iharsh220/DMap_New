@@ -39,7 +39,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"user@alembic.co.in\"\n}"
+              "raw": "{\n  \"email\": \"harsh.gohil@alembic.co.in\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/digilabs/dmap/api/auth/initiate-registration",
@@ -83,35 +83,6 @@
           }
         },
         {
-          "name": "Login",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"user@alembic.co.in\",\n  \"password\": \"password123\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/digilabs/dmap/api/auth/login",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "digilabs",
-                "dmap",
-                "api",
-                "auth",
-                "login"
-              ]
-            }
-          }
-        },
-        {
           "name": "Refresh Token",
           "request": {
             "method": "POST",
@@ -141,7 +112,7 @@
           }
         },
         {
-          "name": "Register User",
+          "name": "Complete Registration",
           "request": {
             "method": "POST",
             "header": [
@@ -152,10 +123,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"user@alembic.co.in\",\n  \"name\": \"John Doe\",\n  \"password\": \"password123\",\n  \"departmentId\": 1,\n  \"divisionId\": 1,\n  \"jobRoleId\": 1\n}"
+              "raw": "{\n  \"email\": \"harsh.gohil@alembic.co.in\",\n  \"name\": \"John Doe\",\n  \"password\": \"password123\",\n  \"phone\": \"1234567890\",\n  \"department_id\": 1,\n  \"division_id\": 1,\n  \"designation_id\": 1,\n  \"location_id\": 1\n}"
             },
             "url": {
-              "raw": "{{base_url}}/digilabs/dmap/api/auth/register",
+              "raw": "{{base_url}}/digilabs/dmap/api/auth/complete-registration",
               "host": [
                 "{{base_url}}"
               ],
@@ -164,7 +135,7 @@
                 "dmap",
                 "api",
                 "auth",
-                "register"
+                "complete-registration"
               ]
             }
           }

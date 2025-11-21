@@ -28,7 +28,6 @@ const verifyToken = async (req, res, next) => {
 
   try {
     const keyBytes = Uint8Array.from(Buffer.from(process.env.JWT_ENCRYPTION_KEY, 'base64'));
-    console.log(keyBytes);
     const { payload } = await jwtDecrypt(token, keyBytes);
     req.user = payload;
     next();

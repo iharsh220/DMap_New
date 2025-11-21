@@ -1,7 +1,8 @@
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
-const { User, Sales } = require('../../models');
+const { User, Sales, UserDivisions } = require('../../models');
 const { generateAccessToken, generateRefreshToken, verifyRefreshToken, generateEmailVerificationToken, verifyEmailVerificationToken } = require('../../middleware/jwtMiddleware');
 const { logUserActivity, extractRequestDetails } = require('../../services/elasticsearchService');
 
@@ -254,68 +255,6 @@ const verifyEmail = async (req, res) => {
     }
 };
 
-// Login
-const login = async (req, res) => {
-    try {
-        const { email, password } = req.body;
-
-        // Find user
-        const user = await User.findOne({ where: { email } });
-        if (!user) {
-            await logUserActivity({
-                event: 'login_failed',
-                reason: 'user_not_found',
-                email,
-                ...extractRequestDetails(req)
-            });
-            return res.status(401).json({ success: false, error: 'Invalid credentials' });
-        }
-
-        // Check password (implement proper password checking)
-        // For now, just check if password matches
-        if (user.password !== password) { // This should use bcrypt
-            await logUserActivity({
-                event: 'login_failed',
-                reason: 'invalid_password',
-                email,
-                ...extractRequestDetails(req)
-            });
-            return res.status(401).json({ success: false, error: 'Invalid credentials' });
-        }
-
-        // Generate tokens
-        const accessToken = await generateAccessToken({ id: user.id, email: user.email });
-        const refreshToken = await generateRefreshToken({ id: user.id, email: user.email });
-
-        await logUserActivity({
-            event: 'login_success',
-            email,
-            userId: user.id,
-            ...extractRequestDetails(req)
-        });
-        res.json({
-            success: true,
-            accessToken,
-            refreshToken,
-            user: {
-                id: user.id,
-                name: user.name,
-                email: user.email
-            }
-        });
-    } catch (error) {
-        console.error('Error logging in:', error);
-        await logUserActivity({
-            event: 'login_failed',
-            reason: 'server_error',
-            email: req.body?.email || null,
-            error: error.message,
-            ...extractRequestDetails(req)
-        });
-        res.status(500).json({ success: false, error: 'Login failed' });
-    }
-};
-
 // Refresh token
 const refreshToken = async (req, res) => {
     try {
@@ -352,73 +291,61 @@ const refreshToken = async (req, res) => {
     }
 };
 
-// Register (complete registration after email verification)
-const register = async (req, res) => {
+// Complete registration
+const completeRegistration = async (req, res) => {
     try {
-        const { email, name, password, departmentId, divisionId, jobRoleId } = req.body;
+        const { email, name, password, phone, department_id, division_id, designation_id, location_id } = req.body;
 
-        // Check if user already exists
-        const existingUser = await User.findOne({ where: { email } });
-        if (existingUser) {
+        // Find user
+        const user = await User.findOne({ where: { email } });
+        if (!user || user.email_verified_status !== 1) {
             await logUserActivity({
-                event: 'register_failed',
-                reason: 'user_already_exists',
+                event: 'complete_registration_failed',
+                reason: 'user_not_verified',
                 email,
                 ...extractRequestDetails(req)
             });
-            return res.status(400).json({ success: false, error: 'User already exists' });
+            return res.status(400).json({ success: false, error: 'User not found or email not verified' });
         }
 
-        // Create user
-        const user = await User.create({
-            name,
-            email,
-            password, // Should hash password
-            department_id: departmentId,
-            division_id: divisionId,
-            job_role_id: jobRoleId,
-            email_verified_status: 1,
-            account_status: 'active'
-        });
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Generate tokens
-        const accessToken = await generateAccessToken({ id: user.id, email: user.email });
-        const refreshToken = await generateRefreshToken({ id: user.id, email: user.email });
+        // Update user
+        await User.update({
+            name,
+            password: hashedPassword,
+            phone,
+            department_id,
+            division_id,
+            designation_id,
+            location_id,
+            account_status: 'active'
+        }, { where: { email } });
 
         await logUserActivity({
-            event: 'register_success',
+            event: 'complete_registration_success',
             email,
             userId: user.id,
             ...extractRequestDetails(req)
         });
-        res.status(201).json({
-            success: true,
-            message: 'User registered successfully',
-            accessToken,
-            refreshToken,
-            user: {
-                id: user.id,
-                name: user.name,
-                email: user.email
-            }
-        });
+        res.json({ success: true, message: 'Registration completed successfully' });
     } catch (error) {
-        console.error('Error registering user:', error);
+        console.error('Error completing registration:', error);
         await logUserActivity({
-            event: 'register_failed',
+            event: 'complete_registration_failed',
             reason: 'server_error',
             email: req.body?.email || null,
             error: error.message,
             ...extractRequestDetails(req)
         });
-        res.status(500).json({ success: false, error: 'Registration failed' });
+        res.status(500).json({ success: false, error: 'Registration completion failed' });
     }
 };
 
 module.exports = {
     initiateRegistration,
     verifyEmail,
-    login,
     refreshToken,
-    register
+    completeRegistration
 };
