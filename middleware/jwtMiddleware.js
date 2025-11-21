@@ -1,4 +1,3 @@
-const jwt = require('jsonwebtoken');
 const { EncryptJWT, jwtDecrypt } = require('jose');
 
 const authenticateToken = async (req, res, next) => {

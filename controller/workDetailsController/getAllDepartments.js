@@ -1,5 +1,5 @@
-const CrudService = require('../services/crudService');
-const { Department, Division, Designation, DesignationDepartment, JobRole, Location } = require('../models');
+const CrudService = require('../../services/crudService');
+const { Department, Division, Designation, DesignationDepartment, JobRole, Location } = require('../../models');
 
 // Create service instances
 const departmentService = new CrudService(Department);
@@ -74,7 +74,4 @@ const getAllDepartments = async (req, res) => {
     }
 };
 
-
-module.exports = {
-    getAllDepartments
-};
+module.exports = getAllDepartments;
