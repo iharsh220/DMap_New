@@ -23,6 +23,8 @@ const completeRegistration = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // Update user
+        const now = new Date();
+        const passwordExpiresAt = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000); // 90 days from now
         await User.update({
             name,
             password: hashedPassword,
@@ -31,7 +33,9 @@ const completeRegistration = async (req, res) => {
             division_id,
             designation_id,
             location_id,
-            account_status: 'active'
+            account_status: 'active',
+            password_changed_at: now,
+            password_expires_at: passwordExpiresAt
         }, { where: { email } });
 
         await logUserActivity({

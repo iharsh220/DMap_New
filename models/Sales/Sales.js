@@ -54,7 +54,7 @@ const Sales = sequelize.define('Sales', {
     type: DataTypes.ENUM('sales'),
     defaultValue: 'sales',
   },
-  email_verified: {
+  email_verified_status: {
     type: DataTypes.TINYINT,
     defaultValue: 0,
   },

@@ -359,7 +359,7 @@ CREATE TABLE `sales` (
   `mobile_number` varchar(15) DEFAULT NULL,
   `email_id` varchar(100) NOT NULL,
   `user_type` enum('sales') DEFAULT 'sales',
-  `email_verified` tinyint(1) DEFAULT 0,
+  `email_verified_status` tinyint(1) DEFAULT 0,
   `password` varchar(255) DEFAULT NULL,
   `account_status` enum('pending','active','inactive','locked','rejected','vacant') DEFAULT 'pending',
   `last_login` datetime DEFAULT NULL,
