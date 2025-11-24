@@ -9,7 +9,7 @@ const workRequestService = new CrudService(WorkRequests);
 // Create work request
 const createWorkRequest = async (req, res) => {
     try {
-        const { project_name, brand, work_medium_id, project_details, priority = 'medium', remarks } = req.body;
+        const { project_name, brand, work_medium_id, project_details, priority = 'medium', remarks, isdraft = 'false' } = req.body;
         const user_id = req.user.id; // From JWT middleware
 
         // Validate required fields
@@ -62,7 +62,7 @@ const createWorkRequest = async (req, res) => {
             work_medium_id,
             project_details,
             priority,
-            status: 'pending',
+            status: isdraft === 'true' ? 'draft' : 'pending',
             requested_manager_id: manager.id,
             requested_at: new Date(),
             remarks
@@ -116,7 +116,7 @@ const createWorkRequest = async (req, res) => {
                 { model: require('../../models').Designation, as: 'Designation' }
             ]
         });
-        if (user && manager) {
+        if (isdraft === 'false' && user && manager) {
             // Email to user
             // Email to user
             const userEmailHtml = renderTemplate('workRequestUserConfirmation', {
