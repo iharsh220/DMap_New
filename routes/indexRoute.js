@@ -6,10 +6,8 @@ const path = require('path');
 const authRoutes = require('./authRoute/authRoute');
 const departmentRoutes = require('./workDetailsRoutes/departmentRoutes');
 const workMediumRoutes = require('./workDetailsRoutes/workMediumRoutes');
-const workRequestRoutes = require('./workDetailsRoutes/workRequestRoutes');
+const workRequestRoutes = require('./workRequestRoutes/workRequestRoutes');
 
-// Base route
-const baseRoute = process.env.BASE_ROUTE || '/digilabs/dmap/api';
 
 // Use routes
 router.use('/auth', authRoutes);

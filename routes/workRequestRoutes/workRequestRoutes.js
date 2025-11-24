@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createWorkRequest, getMyWorkRequests, getWorkRequestById } = require('../../controller/workDetailsController/workRequestController');
+const { createWorkRequest, getMyWorkRequests, getWorkRequestById } = require('../../controller/workRequestController/workRequestController');
 const { authenticateToken } = require('../../middleware/jwtMiddleware');
 const path = require('path');
 const fs = require('fs');
