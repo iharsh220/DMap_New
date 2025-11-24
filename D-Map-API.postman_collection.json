@@ -163,7 +163,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"harsh.gohil@alembic.co.in\",\n  \"name\": \"John Doe\",\n  \"password\": \"password123\",\n  \"phone\": \"1234567890\",\n  \"department_id\": 1,\n  \"division_id\": 1,\n  \"designation_id\": 1,\n  \"location_id\": 1\n}"
+              "raw": "{\n  \"email\": \"harsh.gohil@alembic.co.in\",\n  \"name\": \"John Doe\",\n  \"password\": \"password123\",\n  \"phone\": \"1234567890\",\n  \"department_id\": 1,\n  \"division_ids\": [1,2],\n  \"designation_id\": 1,\n  \"location_id\": 1\n}"
             },
             "url": {
               "raw": "{{base_url}}/digilabs/dmap/api/auth/complete-registration",

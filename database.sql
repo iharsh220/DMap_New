@@ -309,20 +309,28 @@ CREATE TABLE `designation_jobroles` (
 --
 
 INSERT INTO `designation_jobroles` (`id`, `designation_id`, `jobrole_id`, `created_at`, `updated_at`) VALUES
-(1, 15, 2, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(2, 16, 2, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(3, 17, 2, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(4, 18, 2, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(5, 19, 3, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(6, 20, 3, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(7, 21, 3, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(8, 22, 3, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(9, 8, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(10, 9, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(11, 10, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(12, 11, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(13, 13, 5, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(14, 14, 5, '2025-11-12 06:04:52', '2025-11-12 06:04:52');
+(1, 1, 7, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(2, 2, 7, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(3, 3, 7, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(4, 4, 7, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(5, 5, 7, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(6, 6, 7, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(7, 7, 7, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(8, 8, 5, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(9, 9, 6, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(10, 10, 6, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(11, 11, 6, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(12, 12, 6, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(13, 13, 6, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(14, 14, 6, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(15, 15, 2, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(16, 16, 2, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(17, 17, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(18, 18, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(19, 19, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(20, 20, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(21, 21, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(22, 22, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52');
 
 -- --------------------------------------------------------
 --
@@ -445,7 +453,6 @@ CREATE TABLE `users` (
   `phone` varchar(15) DEFAULT NULL,
   `password` varchar(255) DEFAULT NULL,
   `department_id` int(11) DEFAULT NULL,
-  `division_id` int(11) DEFAULT NULL,
   `job_role_id` int(11) DEFAULT NULL,
   `location_id` int(11) DEFAULT NULL,
   `designation_id` int(11) DEFAULT NULL,
@@ -464,12 +471,12 @@ CREATE TABLE `users` (
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `name`, `email`, `phone`, `password`, `department_id`, `division_id`, `job_role_id`, `location_id`, `designation_id`, `email_verified_status`, `account_status`, `last_login`, `login_attempts`, `lock_until`, `password_changed_at`, `password_expires_at`, `created_at`, `updated_at`) VALUES
-(1, 'System Admin', 'admin@alembic.co.in', '8080302041', '$2a$12$/.rT3avNPO1l0ZjqSRS/Ru09mKVNuIRSLaHjBDeMwLHscVLq1ETY6', 2, 1, 1, 1, NULL, 1, 'active', '2025-11-12 06:04:52', 0, NULL, '2025-11-12 06:04:52', '2026-02-10 06:04:52', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(2, 'Harsh Gohil', 'harsh.gohil@alembic.co.in', '8080302042', '$2b$10$GJmBy5B8VE9lQH5hOgzMb.xP6VEP10IwtD80di3Uniu3aaazcU8yy', 2, 5, 3, 1, NULL, 1, 'active', NULL, 0, NULL, '2025-11-12 06:06:13', '2026-02-10 06:06:13', '2025-11-12 06:04:58', '2025-11-12 06:06:13'),
-(3, 'Nikhil Nadkar', 'nikhil.nadkar@alembic.co.in', '8080302042', '$2b$10$i7Z7bTmqBpmyPRcxrqoX1OE7upFSVXqFXiYzQqoIW7pt8M2FD6.Uq', 1, 20, 4, 1, NULL, 1, 'active', '2025-11-12 06:35:08', 0, NULL, '2025-11-12 06:11:11', '2026-02-10 06:11:11', '2025-11-12 06:10:01', '2025-11-12 06:35:08'),
-(4, 'Mohanish Padwal', 'mohanish.padwal@alembic.co.in', NULL, '$2b$10$Ji2xiG/5vdtbeUc3.FdcIOAymaHhMB1hBrOwoFawALpGc7VX10fD.', 2, 5, 2, 1, NULL, 1, 'active', NULL, 0, NULL, '2025-11-19 08:12:00', '2026-02-17 08:12:00', '2025-11-19 08:12:00', '2025-11-19 08:12:00'),
-(5, 'Bhagwan Parab', 'bhagwan.parab@alembic.co.in', NULL, '$2b$10$mSvKWrDwZCZyM5LR7zLWgOkqRUebR76dmXyiCnSUr.Y6Ft1njZKum', 2, 5, 2, 1, NULL, 1, 'active', NULL, 0, NULL, '2025-11-19 08:12:00', '2026-02-17 08:12:00', '2025-11-19 08:12:00', '2025-11-19 08:12:00');
+INSERT INTO `users` (`id`, `name`, `email`, `phone`, `password`, `department_id`, `job_role_id`, `location_id`, `designation_id`, `email_verified_status`, `account_status`, `last_login`, `login_attempts`, `lock_until`, `password_changed_at`, `password_expires_at`, `created_at`, `updated_at`) VALUES
+(1, 'System Admin', 'admin@alembic.co.in', '8080302041', '$2a$12$/.rT3avNPO1l0ZjqSRS/Ru09mKVNuIRSLaHjBDeMwLHscVLq1ETY6', 2, 1, 1, NULL, 1, 'active', '2025-11-12 06:04:52', 0, NULL, '2025-11-12 06:04:52', '2026-02-10 06:04:52', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(2, 'Harsh Gohil', 'harsh.gohil@alembic.co.in', '8080302042', '$2b$10$GJmBy5B8VE9lQH5hOgzMb.xP6VEP10IwtD80di3Uniu3aaazcU8yy', 2, 3, 1, NULL, 1, 'active', NULL, 0, NULL, '2025-11-12 06:06:13', '2026-02-10 06:06:13', '2025-11-12 06:04:58', '2025-11-12 06:06:13'),
+(3, 'Nikhil Nadkar', 'nikhil.nadkar@alembic.co.in', '8080302042', '$2b$10$i7Z7bTmqBpmyPRcxrqoX1OE7upFSVXqFXiYzQqoIW7pt8M2FD6.Uq', 1, 4, 1, NULL, 1, 'active', '2025-11-12 06:35:08', 0, NULL, '2025-11-12 06:11:11', '2026-02-10 06:11:11', '2025-11-12 06:10:01', '2025-11-12 06:35:08'),
+(4, 'Mohanish Padwal', 'mohanish.padwal@alembic.co.in', NULL, '$2b$10$Ji2xiG/5vdtbeUc3.FdcIOAymaHhMB1hBrOwoFawALpGc7VX10fD.', 2, 2, 1, NULL, 1, 'active', NULL, 0, NULL, '2025-11-19 08:12:00', '2026-02-17 08:12:00', '2025-11-19 08:12:00', '2025-11-19 08:12:00'),
+(5, 'Bhagwan Parab', 'bhagwan.parab@alembic.co.in', NULL, '$2b$10$mSvKWrDwZCZyM5LR7zLWgOkqRUebR76dmXyiCnSUr.Y6Ft1njZKum', 2, 2, 1, NULL, 1, 'active', NULL, 0, NULL, '2025-11-19 08:12:00', '2026-02-17 08:12:00', '2025-11-19 08:12:00', '2025-11-19 08:12:00');
 
 -- --------------------------------------------------------
 
@@ -491,7 +498,11 @@ CREATE TABLE `user_divisions` (
 
 INSERT INTO `user_divisions` (`id`, `user_id`, `division_id`, `created_at`, `updated_at`) VALUES
 (1, 2, 5, '2025-11-12 06:06:13', '2025-11-12 06:06:13'),
-(2, 2, 4, '2025-11-12 06:06:13', '2025-11-12 06:06:13');
+(2, 2, 4, '2025-11-12 06:06:13', '2025-11-12 06:06:13'),
+(3, 1, 1, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(4, 3, 20, '2025-11-12 06:10:01', '2025-11-12 06:10:01'),
+(5, 4, 5, '2025-11-19 08:12:00', '2025-11-19 08:12:00'),
+(6, 5, 5, '2025-11-19 08:12:00', '2025-11-19 08:12:00');
 
 -- --------------------------------------------------------
 
@@ -657,7 +668,6 @@ ALTER TABLE `users`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `unique_email` (`email`),
   ADD KEY `department_id` (`department_id`),
-  ADD KEY `division_id` (`division_id`),
   ADD KEY `job_role_id` (`job_role_id`),
   ADD KEY `location_id` (`location_id`),
   ADD KEY `designation_id` (`designation_id`);
@@ -736,7 +746,7 @@ ALTER TABLE `designation_departments`
 -- AUTO_INCREMENT for table `designation_jobroles`
 --
 ALTER TABLE `designation_jobroles`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
 
 --
 -- AUTO_INCREMENT for table `job_role`
@@ -772,7 +782,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `user_divisions`
 --
 ALTER TABLE `user_divisions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 
 --
@@ -844,8 +854,7 @@ ALTER TABLE `job_role`
 --
 ALTER TABLE `users`
   ADD CONSTRAINT `users_ibfk_1` FOREIGN KEY (`department_id`) REFERENCES `department` (`id`) ON DELETE SET NULL,
-  ADD CONSTRAINT `users_ibfk_2` FOREIGN KEY (`division_id`) REFERENCES `division` (`id`) ON DELETE SET NULL,
-  ADD CONSTRAINT `users_ibfk_3` FOREIGN KEY (`job_role_id`) REFERENCES `job_role` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `users_ibfk_2` FOREIGN KEY (`job_role_id`) REFERENCES `job_role` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `users_ibfk_4` FOREIGN KEY (`location_id`) REFERENCES `location` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `users_ibfk_5` FOREIGN KEY (`designation_id`) REFERENCES `designation` (`id`) ON DELETE SET NULL;
 

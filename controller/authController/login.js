@@ -1,5 +1,5 @@
 const bcrypt = require('bcryptjs');
-const { User, Sales, Department, Division, JobRole, Location, Designation } = require('../../models');
+const { User, Sales, Department, Division, JobRole, Location, Designation, UserDivisions } = require('../../models');
 const { generateAccessToken, generateRefreshToken } = require('../../middleware/jwtMiddleware');
 const { logUserActivity, extractRequestDetails } = require('../../services/elasticsearchService');
 
@@ -26,7 +26,6 @@ const login = async (req, res) => {
                 where: { email: identifier },
                 include: [
                     { model: Department },
-                    { model: Division },
                     { model: JobRole },
                     { model: Location },
                     { model: Designation }
@@ -172,9 +171,12 @@ const login = async (req, res) => {
         delete userData.password;
         userData.userType = userType;
 
+        // Fetch user divisions
+        const divisions = await UserDivisions.findAll({ where: { user_id: user.id }, include: [{ model: Division, as: 'division' }] });
+        userData.divisions = divisions.map(d => d.division);
+
         // Remove foreign key IDs since we have the full objects
         delete userData.department_id;
-        delete userData.division_id;
         delete userData.job_role_id;
         delete userData.location_id;
         delete userData.designation_id;
@@ -186,11 +188,14 @@ const login = async (req, res) => {
             delete userData.department.updated_at;
             delete userData.Department;
         }
-        if (userData.Division) {
-            userData.division = userData.Division;
-            delete userData.division.created_at;
-            delete userData.division.updated_at;
-            delete userData.Division;
+        if (userData.divisions && userData.divisions.length > 0) {
+            // Keep userData.divisions for multiple divisions
+            userData.divisions.forEach(div => {
+                delete div.created_at;
+                delete div.updated_at;
+            });
+        } else {
+            userData.divisions = [];
         }
         if (userData.JobRole) {
             userData.jobRole = userData.JobRole;

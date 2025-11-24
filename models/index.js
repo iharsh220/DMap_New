@@ -38,13 +38,14 @@ DesignationJobRole.belongsTo(Designation, { foreignKey: 'designation_id', as: 'd
 DesignationJobRole.belongsTo(JobRole, { foreignKey: 'jobrole_id', as: 'jobRole' });
 
 User.belongsTo(Department, { foreignKey: 'department_id' });
-User.belongsTo(Division, { foreignKey: 'division_id' });
 User.belongsTo(JobRole, { foreignKey: 'job_role_id' });
 User.belongsTo(Location, { foreignKey: 'location_id' });
 User.belongsTo(Designation, { foreignKey: 'designation_id' });
 
 User.belongsToMany(Division, { through: UserDivisions, foreignKey: 'user_id' });
 Division.belongsToMany(User, { through: UserDivisions, foreignKey: 'division_id' });
+
+UserDivisions.belongsTo(Division, { foreignKey: 'division_id', as: 'division' });
 
 Sales.belongsTo(Division, { foreignKey: 'division_id' });
 

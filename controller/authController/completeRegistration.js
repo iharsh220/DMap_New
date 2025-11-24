@@ -1,5 +1,5 @@
 const bcrypt = require('bcryptjs');
-const { User, DesignationJobRole } = require('../../models');
+const { User, DesignationJobRole, UserDivisions } = require('../../models');
 const { logUserActivity, extractRequestDetails } = require('../../services/elasticsearchService');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
@@ -7,7 +7,12 @@ const { renderTemplate } = require('../../services/templateService');
 // Complete registration
 const completeRegistration = async (req, res) => {
     try {
-        const { email, name, password, phone, department_id, division_id, designation_id, location_id } = req.body;
+        const { email, name, password, phone, department_id, division_ids, designation_id, location_id } = req.body;
+
+        // Validate division_ids
+        if (!division_ids || !Array.isArray(division_ids) || division_ids.length === 0) {
+            return res.status(400).json({ success: false, error: 'At least one division is required' });
+        }
 
         // Get job role based on designation
         const designationJobRole = await DesignationJobRole.findOne({ where: { designation_id } });
@@ -27,6 +32,20 @@ const completeRegistration = async (req, res) => {
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
+        // Create user_divisions entries
+        let firstUserDivisionId = null;
+        if (division_ids && Array.isArray(division_ids)) {
+            for (const divisionId of division_ids) {
+                const userDivision = await UserDivisions.create({
+                    user_id: user.id,
+                    division_id: divisionId
+                });
+                if (!firstUserDivisionId) {
+                    firstUserDivisionId = userDivision.id;
+                }
+            }
+        }
+
         // Update user
         const now = new Date();
         const passwordExpiresAt = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000); // 90 days from now
@@ -35,7 +54,6 @@ const completeRegistration = async (req, res) => {
             password: hashedPassword,
             phone,
             department_id,
-            division_id,
             designation_id,
             job_role_id: designationJobRole ? designationJobRole.jobrole_id : null,
             location_id,

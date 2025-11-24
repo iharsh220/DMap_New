@@ -32,10 +32,16 @@ const createWorkRequest = async (req, res) => {
         // Find manager in the same division with Creative Manager role
         const manager = await User.findOne({
             where: {
-                division_id: workMedium.division_id,
+                '$Divisions.id$': workMedium.division_id,
                 job_role_id: 2, // Creative Manager
                 account_status: 'active'
-            }
+            },
+            include: [
+                { model: require('../../models').Department },
+                { model: require('../../models').Division, as: 'divisions' },
+                { model: require('../../models').JobRole },
+                { model: require('../../models').Location }
+            ]
         });
 
         if (!manager) {
@@ -95,6 +101,83 @@ const createWorkRequest = async (req, res) => {
                 const docResult = await WorkRequestDocuments.create(documentData);
                 documents.push(docResult);
             }
+        }
+
+        // Send notification emails
+        const user = await User.findByPk(user_id, {
+            include: [
+                { model: require('../../models').Department, as: 'department' },
+                { model: require('../../models').Division, as: 'divisions' },
+                { model: require('../../models').JobRole, as: 'jobRole' },
+                { model: require('../../models').Location, as: 'location' },
+                { model: require('../../models').Designation, as: 'designation' }
+            ]
+        });
+        if (user && manager) {
+            // Email to user
+            const userEmailHtml = renderTemplate('workRequestUserConfirmation', {
+                manager_name: manager.name,
+                manager_email: manager.email,
+                manager_department: manager.department?.department_name || 'N/A',
+                manager_division: manager.divisions && manager.divisions.length > 0 ? manager.divisions[0].title : 'N/A',
+                manager_job_role: manager.jobRole?.role_title || 'N/A',
+                manager_location: manager.location?.location_name || 'N/A',
+                project_name: result.data.project_name,
+                brand: result.data.brand || 'Not specified',
+                work_medium_type: workMedium.type,
+                work_medium_category: workMedium.category,
+                priority: result.data.priority,
+                division_name: workMedium.Division.title,
+                request_id: result.data.id,
+                request_date: new Date(result.data.created_at).toLocaleDateString('en-IN', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }),
+                project_details: result.data.project_details || 'No detailed description provided.',
+                priority_capitalized: result.data.priority.charAt(0).toUpperCase() + result.data.priority.slice(1),
+                frontend_url: process.env.FRONTEND_URL || 'http://localhost:3000'
+            });
+            await sendMail({
+                to: user.email,
+                subject: 'Work Request Submitted Successfully',
+                html: userEmailHtml
+            });
+
+            // Email to manager
+            const managerEmailHtml = renderTemplate('workRequestManagerNotification', {
+                project_name: result.data.project_name,
+                brand: result.data.brand || 'Not specified',
+                work_medium_type: workMedium.type,
+                work_medium_category: workMedium.category,
+                priority: result.data.priority,
+                division_name: workMedium.Division.title,
+                request_id: result.data.id,
+                request_date: new Date(result.data.created_at).toLocaleDateString('en-IN', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }),
+                user_name: user.name,
+                user_email: user.email,
+                user_department: user.department?.department_name || 'Not specified',
+                user_division: user.divisions && user.divisions.length > 0 ? user.divisions[0].title : 'Not specified',
+                user_job_role: user.jobRole?.role_title || 'Not specified',
+                user_location: user.location?.location_name || 'Not specified',
+                user_designation: user.designation?.designation_name || 'Not specified',
+                project_details: result.data.project_details || 'No detailed description provided.',
+                priority_capitalized: result.data.priority.charAt(0).toUpperCase() + result.data.priority.slice(1),
+                frontend_url: process.env.FRONTEND_URL || 'http://localhost:3000'
+            });
+            await sendMail({
+                to: manager.email,
+                subject: 'New Work Request Submitted',
+                html: managerEmailHtml
+            });
         }
 
         res.status(201).json({

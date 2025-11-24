@@ -28,10 +28,6 @@ const User = sequelize.define('User', {
     type: DataTypes.INTEGER,
     allowNull: true,
   },
-  division_id: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-  },
   job_role_id: {
     type: DataTypes.INTEGER,
     allowNull: true,
