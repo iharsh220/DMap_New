@@ -1,5 +1,5 @@
 const bcrypt = require('bcryptjs');
-const { User } = require('../../models');
+const { User, DesignationJobRole } = require('../../models');
 const { logUserActivity, extractRequestDetails } = require('../../services/elasticsearchService');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
@@ -8,6 +8,9 @@ const { renderTemplate } = require('../../services/templateService');
 const completeRegistration = async (req, res) => {
     try {
         const { email, name, password, phone, department_id, division_id, designation_id, location_id } = req.body;
+
+        // Get job role based on designation
+        const designationJobRole = await DesignationJobRole.findOne({ where: { designation_id } });
 
         // Find user
         const user = await User.findOne({ where: { email } });
@@ -34,6 +37,7 @@ const completeRegistration = async (req, res) => {
             department_id,
             division_id,
             designation_id,
+            job_role_id: designationJobRole ? designationJobRole.jobrole_id : null,
             location_id,
             account_status: 'active',
             password_changed_at: now,
