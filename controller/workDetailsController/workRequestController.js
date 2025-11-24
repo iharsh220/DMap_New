@@ -1,5 +1,7 @@
 const CrudService = require('../../services/crudService');
 const { WorkRequests, WorkMedium, User, WorkRequestDocuments } = require('../../models');
+const { sendMail } = require('../../services/mailService');
+const { renderTemplate } = require('../../services/templateService');
 const path = require('path');
 
 const workRequestService = new CrudService(WorkRequests);
@@ -30,19 +32,20 @@ const createWorkRequest = async (req, res) => {
         }
 
         // Find manager in the same division with Creative Manager role
-        const manager = await User.findOne({
-            where: {
-                '$Divisions.id$': workMedium.division_id,
-                job_role_id: 2, // Creative Manager
-                account_status: 'active'
-            },
-            include: [
-                { model: require('../../models').Department },
-                { model: require('../../models').Division, as: 'divisions' },
-                { model: require('../../models').JobRole },
-                { model: require('../../models').Location }
-            ]
+        const userDivision = await require('../../models').UserDivisions.findOne({
+            where: { division_id: workMedium.division_id },
+            include: [{
+                model: require('../../models').User,
+                where: { job_role_id: 2, account_status: 'active' },
+                include: [
+                    { model: require('../../models').Department, as: 'Department' },
+                    { model: require('../../models').Division, as: 'Divisions' },
+                    { model: require('../../models').JobRole, as: 'JobRole' },
+                    { model: require('../../models').Location, as: 'Location' }
+                ]
+            }]
         });
+        const manager = userDivision ? userDivision.User : null;
 
         if (!manager) {
             return res.status(400).json({
@@ -106,22 +109,23 @@ const createWorkRequest = async (req, res) => {
         // Send notification emails
         const user = await User.findByPk(user_id, {
             include: [
-                { model: require('../../models').Department, as: 'department' },
-                { model: require('../../models').Division, as: 'divisions' },
-                { model: require('../../models').JobRole, as: 'jobRole' },
-                { model: require('../../models').Location, as: 'location' },
-                { model: require('../../models').Designation, as: 'designation' }
+                { model: require('../../models').Department, as: 'Department' },
+                { model: require('../../models').Division, as: 'Divisions' },
+                { model: require('../../models').JobRole, as: 'JobRole' },
+                { model: require('../../models').Location, as: 'Location' },
+                { model: require('../../models').Designation, as: 'Designation' }
             ]
         });
         if (user && manager) {
             // Email to user
+            // Email to user
             const userEmailHtml = renderTemplate('workRequestUserConfirmation', {
                 manager_name: manager.name,
                 manager_email: manager.email,
-                manager_department: manager.department?.department_name || 'N/A',
-                manager_division: manager.divisions && manager.divisions.length > 0 ? manager.divisions[0].title : 'N/A',
-                manager_job_role: manager.jobRole?.role_title || 'N/A',
-                manager_location: manager.location?.location_name || 'N/A',
+                manager_department: manager.Department?.department_name || 'N/A',
+                manager_division: manager.Divisions && manager.Divisions.length > 0 ? manager.Divisions[0].title : 'N/A',
+                manager_job_role: manager.JobRole?.role_title || 'N/A',
+                manager_location: manager.Location?.location_name || 'N/A',
                 project_name: result.data.project_name,
                 brand: result.data.brand || 'Not specified',
                 work_medium_type: workMedium.type,
@@ -164,11 +168,11 @@ const createWorkRequest = async (req, res) => {
                 }),
                 user_name: user.name,
                 user_email: user.email,
-                user_department: user.department?.department_name || 'Not specified',
-                user_division: user.divisions && user.divisions.length > 0 ? user.divisions[0].title : 'Not specified',
-                user_job_role: user.jobRole?.role_title || 'Not specified',
-                user_location: user.location?.location_name || 'Not specified',
-                user_designation: user.designation?.designation_name || 'Not specified',
+                user_department: user.Department?.department_name || 'Not specified',
+                user_division: user.Divisions && user.Divisions.length > 0 ? user.Divisions[0].title : 'Not specified',
+                user_job_role: user.JobRole?.role_title || 'Not specified',
+                user_location: user.Location?.location_name || 'Not specified',
+                user_designation: user.Designation?.designation_name || 'Not specified',
                 project_details: result.data.project_details || 'No detailed description provided.',
                 priority_capitalized: result.data.priority.charAt(0).toUpperCase() + result.data.priority.slice(1),
                 frontend_url: process.env.FRONTEND_URL || 'http://localhost:3000'

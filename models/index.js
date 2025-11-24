@@ -45,6 +45,9 @@ User.belongsTo(Designation, { foreignKey: 'designation_id' });
 User.belongsToMany(Division, { through: UserDivisions, foreignKey: 'user_id' });
 Division.belongsToMany(User, { through: UserDivisions, foreignKey: 'division_id' });
 
+UserDivisions.belongsTo(User, { foreignKey: 'user_id' });
+UserDivisions.belongsTo(Division, { foreignKey: 'division_id' });
+
 UserDivisions.belongsTo(Division, { foreignKey: 'division_id', as: 'division' });
 
 Sales.belongsTo(Division, { foreignKey: 'division_id' });
