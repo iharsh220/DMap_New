@@ -83,6 +83,32 @@
           }
         },
         {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/digilabs/dmap/api/auth/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "digilabs",
+                "dmap",
+                "api",
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Logout user (requires authentication)"
+          }
+        },
+        {
           "name": "Refresh Token",
           "request": {
             "method": "POST",
