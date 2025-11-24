@@ -4,6 +4,9 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
+const fileUpload = require('express-fileupload');
+const path = require('path');
+const fs = require('fs');
 const { connectDB } = require('./config/databaseConfig');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -66,13 +69,15 @@ if (cluster.isMaster) {
     app.use(compression());
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
-
+    app.use(fileUpload());
+    app.use('/uploads', express.static('uploads'));
+    
     // Rate limiting
     const limiter = require('./middleware/rateLimitMiddleware');
     app.use(limiter);
 
     // Base route
-    const baseRoute = '/digilabs/dmap/api';
+    const baseRoute = process.env.BASE_ROUTE || '/digilabs/dmap/api';
 
     // Routes
     app.use(baseRoute, require('./routes/indexRoute'));

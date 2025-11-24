@@ -236,6 +236,76 @@
           }
         }
       ]
+    },
+    {
+      "name": "workRequests",
+      "item": [
+        {
+          "name": "Create Work Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "project_name",
+                  "value": "New Product Launch Campaign",
+                  "type": "text"
+                },
+                {
+                  "key": "brand",
+                  "value": "Alembic Pharma",
+                  "type": "text"
+                },
+                {
+                  "key": "work_medium_id",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "project_details",
+                  "value": "Detailed description of the project requirements",
+                  "type": "text"
+                },
+                {
+                  "key": "priority",
+                  "value": "high",
+                  "type": "text"
+                },
+                {
+                  "key": "remarks",
+                  "value": "Any additional remarks",
+                  "type": "text"
+                },
+                {
+                  "key": "documents",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/digilabs/dmap/api/work-requests",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "digilabs",
+                "dmap",
+                "api",
+                "work-requests"
+              ]
+            },
+            "description": "Create a new work request with optional file uploads (requires authentication)"
+          }
+        }
+      ]
     }
   ],
   "variable": [
