@@ -326,6 +326,99 @@
           }
         },
         {
+          "name": "Get Assigned Work Requests (Manager)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "digilabs",
+                "dmap",
+                "api",
+                "manager",
+                "assigned-work-requests"
+              ]
+            },
+            "description": "Get list of work requests assigned to the authenticated manager (requires authentication)"
+          }
+        },
+        {
+          "name": "Get Assigned Work Request by ID (Manager)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "digilabs",
+                "dmap",
+                "api",
+                "manager",
+                "assigned-work-requests",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Work request ID"
+                }
+              ]
+            },
+            "description": "Get details of a specific work request assigned to the authenticated manager (requires authentication)"
+          }
+        },
+        {
+          "name": "Create Work Request",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/digilabs/dmap/api/work-requests/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "digilabs",
+                "dmap",
+                "api",
+                "work-requests",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Work request ID"
+                }
+              ]
+            },
+            "description": "Get details of a specific work request by ID (requires authentication, user can only access their own requests)"
+          }
+        },
+        {
           "name": "Create Work Request",
           "request": {
             "method": "POST",
