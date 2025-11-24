@@ -1,0 +1,70 @@
+{
+    "success": true,
+    "data": [
+        {
+            "id": 39,
+            "user_id": 8,
+            "project_name": "Cardigem New project",
+            "brand": "HeartDay",
+            "project_details": "Its work heart day activity",
+            "priority": "high",
+            "status": "pending",
+            "requested_at": "2025-11-24T09:44:49.000Z",
+            "remarks": "",
+            "users": {
+                "id": 8,
+                "name": "Nikhil Nadkar",
+                "email": "nikhil.nadkar@alembic.co.in",
+                "phone": "+917039294919",
+                "email_verified_status": 1,
+                "account_status": "active"
+            },
+            "WorkMedium": {
+                "id": 2,
+                "type": "DIGITAL",
+                "category": "Web Application",
+                "description": "VA HTMLization, Websites, Brand Gamifications, etc...",
+                "Division": {
+                    "id": 5,
+                    "title": "Web Application",
+                    "description": "Web application development"
+                }
+            },
+            "requestedManager": {
+                "id": 7,
+                "name": "Harsh Gohil",
+                "email": "harsh.gohil@alembic.co.in",
+                "phone": "+918080302041",
+                "email_verified_status": 1,
+                "account_status": "active",
+                "Department": {
+                    "id": 9,
+                    "department_name": "Digilabs",
+                    "description": "All verticals within Digilabs",
+                    "status": "Active"
+                },
+                "Divisions": [
+                    {
+                        "id": 5,
+                        "title": "Web Application",
+                        "department_id": 9,
+                        "description": "Web application development"
+                    }
+                ],
+                "JobRole": {
+                    "id": 2,
+                    "role_title": "Creative Manager",
+                    "level": "Mid",
+                    "description": "Creative media managers ( for Graphic, Video, Content, Web App divisions)"
+                },
+                "Location": {
+                    "id": 1,
+                    "location_name": "Mumbai HO",
+                    "type": "HO",
+                    "description": "Head Office Mumbai",
+                    "state": "active"
+                }
+            }
+        }
+    ]
+}

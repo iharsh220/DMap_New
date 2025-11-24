@@ -108,12 +108,13 @@ const createWorkRequest = async (req, res) => {
 
         // Send notification emails
         const user = await User.findByPk(user_id, {
+            attributes: { exclude: ['password', 'created_at', 'updated_at'] },
             include: [
-                { model: require('../../models').Department, as: 'Department' },
-                { model: require('../../models').Division, as: 'Divisions' },
-                { model: require('../../models').JobRole, as: 'JobRole' },
-                { model: require('../../models').Location, as: 'Location' },
-                { model: require('../../models').Designation, as: 'Designation' }
+                { model: require('../../models').Department, as: 'Department', attributes: { exclude: ['created_at', 'updated_at'] } },
+                { model: require('../../models').Division, as: 'Divisions', attributes: { exclude: ['created_at', 'updated_at'] } },
+                { model: require('../../models').JobRole, as: 'JobRole', attributes: { exclude: ['created_at', 'updated_at'] } },
+                { model: require('../../models').Location, as: 'Location', attributes: { exclude: ['created_at', 'updated_at'] } },
+                { model: require('../../models').Designation, as: 'Designation', attributes: { exclude: ['created_at', 'updated_at'] } }
             ]
         });
         if (isdraft === 'false' && user && manager) {
@@ -202,4 +203,63 @@ const createWorkRequest = async (req, res) => {
     }
 };
 
-module.exports = createWorkRequest;
+const getMyWorkRequests = async (req, res) => {
+    try {
+        const user_id = req.user.id;
+
+        const requests = await WorkRequests.findAll({
+            where: { user_id },
+            attributes: { exclude: ['work_medium_id', 'requested_manager_id', 'created_at', 'updated_at'] },
+            include: [
+                { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
+                { model: WorkMedium, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: require('../../models').Division, as: 'Division', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
+                { model: User, as: 'requestedManager', foreignKey: 'requested_manager_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] }, include: [
+                    { model: require('../../models').Department, as: 'Department', attributes: { exclude: ['created_at', 'updated_at'] } },
+                    { model: require('../../models').Division, as: 'Divisions', attributes: { exclude: ['created_at', 'updated_at'] }, through: { attributes: [] } },
+                    { model: require('../../models').JobRole, as: 'JobRole', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } },
+                    { model: require('../../models').Location, as: 'Location', attributes: { exclude: ['created_at', 'updated_at'] } }
+                ] }
+            ],
+            order: [['created_at', 'DESC']]
+        });
+
+        res.json({ success: true, data: requests });
+    } catch (error) {
+        console.error('Error fetching work requests:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+const getWorkRequestById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user_id = req.user.id;
+
+        const request = await WorkRequests.findOne({
+            where: { id, user_id },
+            attributes: { exclude: ['work_medium_id', 'requested_manager_id', 'created_at', 'updated_at'] },
+            include: [
+                { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
+                { model: WorkMedium, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: require('../../models').Division, as: 'Division', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
+                { model: User, as: 'requestedManager', foreignKey: 'requested_manager_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] }, include: [
+                    { model: require('../../models').Department, as: 'Department', attributes: { exclude: ['created_at', 'updated_at'] } },
+                    { model: require('../../models').Division, as: 'Divisions', attributes: { exclude: ['created_at', 'updated_at'] }, through: { attributes: [] } },
+                    { model: require('../../models').JobRole, as: 'JobRole', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } },
+                    { model: require('../../models').Location, as: 'Location', attributes: { exclude: ['created_at', 'updated_at'] } }
+                ] },
+                { model: WorkRequestDocuments, attributes: { exclude: ['created_at', 'updated_at'] } }
+            ]
+        });
+
+        if (!request) {
+            return res.status(404).json({ success: false, error: 'Work request not found' });
+        }
+
+        res.json({ success: true, data: request });
+    } catch (error) {
+        console.error('Error fetching work request:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+module.exports = { createWorkRequest, getMyWorkRequests, getWorkRequestById };

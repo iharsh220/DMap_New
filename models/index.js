@@ -60,9 +60,10 @@ Tasks.belongsTo(User, { as: 'manager', foreignKey: 'manager_id' });
 
 WorkMedium.belongsTo(Division, { foreignKey: 'division_id' });
 
-WorkRequests.belongsTo(User, { foreignKey: 'user_id' });
+WorkRequests.belongsTo(User, { foreignKey: 'user_id', as: 'users' });
 WorkRequests.belongsTo(WorkMedium, { foreignKey: 'work_medium_id' });
 WorkRequests.belongsTo(User, { as: 'requestedManager', foreignKey: 'requested_manager_id' });
+WorkRequests.hasMany(WorkRequestDocuments, { foreignKey: 'work_request_id' });
 
 WorkRequestDocuments.belongsTo(WorkRequests, { foreignKey: 'work_request_id' });
 

@@ -241,6 +241,65 @@
       "name": "workRequests",
       "item": [
         {
+          "name": "Get My Work Requests",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/digilabs/dmap/api/work-requests/my-requests",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "digilabs",
+                "dmap",
+                "api",
+                "work-requests",
+                "my-requests"
+              ]
+            },
+            "description": "Get list of work requests submitted by the authenticated user (requires authentication)"
+          }
+        },
+        {
+          "name": "Get Work Request by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/digilabs/dmap/api/work-requests/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "digilabs",
+                "dmap",
+                "api",
+                "work-requests",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Work request ID"
+                }
+              ]
+            },
+            "description": "Get details of a specific work request by ID (requires authentication, user can only access their own requests)"
+          }
+        },
+        {
           "name": "Create Work Request",
           "request": {
             "method": "POST",

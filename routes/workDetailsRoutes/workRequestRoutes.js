@@ -1,10 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const createWorkRequest = require('../../controller/workDetailsController/workRequestController');
+const { createWorkRequest, getMyWorkRequests, getWorkRequestById } = require('../../controller/workDetailsController/workRequestController');
 const { authenticateToken } = require('../../middleware/jwtMiddleware');
 const path = require('path');
 const fs = require('fs');
 
+
+// GET /work-requests/my-requests - Get user's work requests
+router.get('/my-requests', authenticateToken, getMyWorkRequests);
+
+// GET /work-requests/:id - Get work request by ID
+router.get('/:id', authenticateToken, getWorkRequestById);
 
 // POST /work-requests - Create work request
 router.post('/', authenticateToken, (req, res, next) => {
