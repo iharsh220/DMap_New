@@ -1,8 +1,13 @@
 const bcrypt = require('bcryptjs');
+const CrudService = require('../../services/crudService');
 const { User, DesignationJobRole, UserDivisions } = require('../../models');
 const { logUserActivity, extractRequestDetails } = require('../../services/elasticsearchService');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
+
+const userService = new CrudService(User);
+const userDivisionsService = new CrudService(UserDivisions);
+const designationJobRoleService = new CrudService(DesignationJobRole);
 
 // Complete registration
 const completeRegistration = async (req, res) => {
@@ -15,10 +20,15 @@ const completeRegistration = async (req, res) => {
         }
 
         // Get job role based on designation
-        const designationJobRole = await DesignationJobRole.findOne({ where: { designation_id } });
+        const designationJobRoleResult = await designationJobRoleService.getAll({ where: { designation_id }, limit: 1 });
+        const designationJobRole = designationJobRoleResult.success && designationJobRoleResult.data.length > 0 ? designationJobRoleResult.data[0] : null;
 
         // Find user
-        const user = await User.findOne({ where: { email } });
+        const userResult = await userService.getAll({ where: { email }, limit: 1 });
+        let user = null;
+        if (userResult.success && userResult.data.length > 0) {
+            user = userResult.data[0];
+        }
         if (!user || user.email_verified_status !== 1) {
             await logUserActivity({
                 event: 'complete_registration_failed',
@@ -36,12 +46,12 @@ const completeRegistration = async (req, res) => {
         let firstUserDivisionId = null;
         if (division_ids && Array.isArray(division_ids)) {
             for (const divisionId of division_ids) {
-                const userDivision = await UserDivisions.create({
+                const userDivisionResult = await userDivisionsService.create({
                     user_id: user.id,
                     division_id: divisionId
                 });
-                if (!firstUserDivisionId) {
-                    firstUserDivisionId = userDivision.id;
+                if (userDivisionResult.success && !firstUserDivisionId) {
+                    firstUserDivisionId = userDivisionResult.data.id;
                 }
             }
         }
@@ -49,7 +59,7 @@ const completeRegistration = async (req, res) => {
         // Update user
         const now = new Date();
         const passwordExpiresAt = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000); // 90 days from now
-        await User.update({
+        await userService.updateById(user.id, {
             name,
             password: hashedPassword,
             phone,
@@ -60,7 +70,7 @@ const completeRegistration = async (req, res) => {
             account_status: 'active',
             password_changed_at: now,
             password_expires_at: passwordExpiresAt
-        }, { where: { email } });
+        });
 
         // Send registration success email
         try {

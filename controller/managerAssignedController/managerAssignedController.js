@@ -1,10 +1,13 @@
+const CrudService = require('../../services/crudService');
 const { WorkRequests, WorkMedium, User, WorkRequestDocuments } = require('../../models');
+
+const workRequestService = new CrudService(WorkRequests);
 
 const getAssignedWorkRequests = async (req, res) => {
     try {
         const manager_id = req.user.id;
 
-        const requests = await WorkRequests.findAll({
+        const result = await workRequestService.getAll({
             where: { requested_manager_id: manager_id },
             attributes: { exclude: ['work_medium_id', 'requested_manager_id', 'created_at', 'updated_at'] },
             include: [
@@ -14,7 +17,11 @@ const getAssignedWorkRequests = async (req, res) => {
             order: [['created_at', 'DESC']]
         });
 
-        res.json({ success: true, data: requests });
+        if (result.success) {
+            res.json({ success: true, data: result.data });
+        } else {
+            res.status(500).json({ success: false, error: result.error });
+        }
     } catch (error) {
         console.error('Error fetching assigned work requests:', error);
         res.status(500).json({ success: false, error: error.message });
@@ -26,21 +33,22 @@ const getAssignedWorkRequestById = async (req, res) => {
         const { id } = req.params;
         const manager_id = req.user.id;
 
-        const request = await WorkRequests.findOne({
+        const result = await workRequestService.getAll({
             where: { id, requested_manager_id: manager_id },
             attributes: { exclude: ['work_medium_id', 'requested_manager_id', 'created_at', 'updated_at'] },
             include: [
                 { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
                 { model: WorkMedium, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: require('../../models').Division, as: 'Division', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
                 { model: WorkRequestDocuments, attributes: { exclude: ['created_at', 'updated_at'] } }
-            ]
+            ],
+            limit: 1
         });
 
-        if (!request) {
-            return res.status(404).json({ success: false, error: 'Assigned work request not found' });
+        if (result.success && result.data.length > 0) {
+            res.json({ success: true, data: result.data[0] });
+        } else {
+            res.status(404).json({ success: false, error: 'Assigned work request not found' });
         }
-
-        res.json({ success: true, data: request });
     } catch (error) {
         console.error('Error fetching assigned work request:', error);
         res.status(500).json({ success: false, error: error.message });

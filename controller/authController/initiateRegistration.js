@@ -1,9 +1,14 @@
 const jwt = require('jsonwebtoken');
+const CrudService = require('../../services/crudService');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
-const { User, Sales } = require('../../models');
+const { User, Sales, DesignationJobRole } = require('../../models');
 const { generateEmailVerificationToken } = require('../../middleware/jwtMiddleware');
 const { logUserActivity, extractRequestDetails } = require('../../services/elasticsearchService');
+
+const userService = new CrudService(User);
+const salesService = new CrudService(Sales);
+const designationJobRoleService = new CrudService(DesignationJobRole);
 
 // Initiate registration
 const initiateRegistration = async (req, res) => {
@@ -32,7 +37,8 @@ const initiateRegistration = async (req, res) => {
         }
 
         // Check if user exists in sales table first
-        const existingSalesUser = await Sales.findOne({ where: { email_id: email } });
+        const salesResult = await salesService.getAll({ where: { email_id: email }, limit: 1 });
+        const existingSalesUser = salesResult.success && salesResult.data.length > 0 ? salesResult.data[0] : null;
         if (existingSalesUser) {
             await logUserActivity({
                 event: 'initiate_registration_failed',
@@ -48,7 +54,8 @@ const initiateRegistration = async (req, res) => {
         }
 
         // Check if user exists in users table
-        let existingUser = await User.findOne({ where: { email } });
+        const userResult = await userService.getAll({ where: { email }, limit: 1 });
+        let existingUser = userResult.success && userResult.data.length > 0 ? userResult.data[0] : null;
         if (existingUser) {
             if (existingUser.email_verified_status === 1) {
                 await logUserActivity({
@@ -94,13 +101,12 @@ const initiateRegistration = async (req, res) => {
         }
 
         // Create user entry with email_verified_status = 0
-        try {
-            await User.create({
-                email,
-                email_verified_status: 0
-            });
-        } catch (error) {
-            console.error('Error creating user:', error);
+        const createResult = await userService.create({
+            email,
+            email_verified_status: 0
+        });
+        if (!createResult.success) {
+            console.error('Error creating user:', createResult.error);
             return res.status(500).json({
                 success: false,
                 error: 'Failed to initiate registration'

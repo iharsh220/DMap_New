@@ -1,5 +1,8 @@
+const CrudService = require('../../services/crudService');
 const { User } = require('../../models');
 const { logUserActivity, extractRequestDetails } = require('../../services/elasticsearchService');
+
+const userService = new CrudService(User);
 
 // Verify email
 const verifyEmail = async (req, res) => {
@@ -7,7 +10,8 @@ const verifyEmail = async (req, res) => {
         const { email } = req.user;
 
         // Check if user exists
-        const existingUser = await User.findOne({ where: { email } });
+        const userResult = await userService.getAll({ where: { email }, limit: 1 });
+        const existingUser = userResult.success && userResult.data.length > 0 ? userResult.data[0] : null;
         if (!existingUser) {
             await logUserActivity({
                 event: 'verify_email_failed',
@@ -53,10 +57,7 @@ const verifyEmail = async (req, res) => {
 
         // Update user's email_verified_status to 1
         try {
-            await User.update(
-                { email_verified_status: 1 },
-                { where: { email } }
-            );
+            await userService.updateById(existingUser.id, { email_verified_status: 1 });
         } catch (updateError) {
             console.error('Error updating user verification status:', updateError);
             await logUserActivity({

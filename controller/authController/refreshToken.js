@@ -1,6 +1,9 @@
+const CrudService = require('../../services/crudService');
 const { User, Department, Division, JobRole, Location, Designation } = require('../../models');
 const { generateAccessToken, verifyRefreshToken } = require('../../middleware/jwtMiddleware');
 const { logUserActivity, extractRequestDetails } = require('../../services/elasticsearchService');
+
+const userService = new CrudService(User);
 
 // Refresh token
 const refreshToken = async (req, res) => {
@@ -19,7 +22,7 @@ const refreshToken = async (req, res) => {
         const decoded = await verifyRefreshToken(token);
 
         // Fetch full user data
-        const user = await User.findByPk(decoded.id, {
+        const userResult = await userService.getById(decoded.id, {
             include: [
                 { model: Department },
                 { model: Division },
@@ -29,7 +32,7 @@ const refreshToken = async (req, res) => {
             ]
         });
 
-        if (!user) {
+        if (!userResult.success || !userResult.data) {
             await logUserActivity({
                 event: 'refresh_token_failed',
                 reason: 'user_not_found',
@@ -38,6 +41,8 @@ const refreshToken = async (req, res) => {
             });
             return res.status(401).json({ success: false, error: 'User not found' });
         }
+
+        const user = userResult.data;
 
         // Prepare user data like in login
         const userData = user.toJSON();

@@ -4,6 +4,7 @@ const { Department, Division, Designation, DesignationDepartment, JobRole, Locat
 // Create service instances
 const departmentService = new CrudService(Department);
 const locationService = new CrudService(Location);
+const designationDepartmentService = new CrudService(DesignationDepartment);
 
 // Get all departments with nested divisions, designations, and locations
 const getAllDepartments = async (req, res) => {
@@ -36,7 +37,7 @@ const getAllDepartments = async (req, res) => {
         // For each department, get its designations
         const departmentsWithDesignations = await Promise.all(
             departmentResult.data.map(async (dept) => {
-                const designationDepartments = await DesignationDepartment.findAll({
+                const designationResult = await designationDepartmentService.getAll({
                     where: { department_id: dept.id },
                     include: [
                         {
@@ -46,6 +47,8 @@ const getAllDepartments = async (req, res) => {
                         }
                     ]
                 });
+
+                const designationDepartments = designationResult.success ? designationResult.data : [];
 
                 return {
                     id: dept.id,

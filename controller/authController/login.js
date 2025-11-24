@@ -1,7 +1,11 @@
 const bcrypt = require('bcryptjs');
+const CrudService = require('../../services/crudService');
 const { User, Sales, Department, Division, JobRole, Location, Designation, UserDivisions } = require('../../models');
 const { generateAccessToken, generateRefreshToken } = require('../../middleware/jwtMiddleware');
 const { logUserActivity, extractRequestDetails } = require('../../services/elasticsearchService');
+
+const userService = new CrudService(User);
+const salesService = new CrudService(Sales);
 
 // Login
 const login = async (req, res) => {
@@ -22,43 +26,59 @@ const login = async (req, res) => {
 
         if (loginType === 'email') {
             // Check User table first
-            user = await User.findOne({
+            const userResult = await userService.getAll({
                 where: { email: identifier },
                 include: [
                     { model: Department },
                     { model: JobRole },
                     { model: Location },
                     { model: Designation }
-                ]
+                ],
+                limit: 1
             });
+            if (userResult.success && userResult.data.length > 0) {
+                user = userResult.data[0];
+            }
             if (!user) {
                 // Check Sales table
-                user = await Sales.findOne({
+                const salesResult = await salesService.getAll({
                     where: { email_id: identifier },
                     include: [
                         { model: Division }
-                    ]
+                    ],
+                    limit: 1
                 });
-                userType = 'sales';
+                if (salesResult.success && salesResult.data.length > 0) {
+                    user = salesResult.data[0];
+                    userType = 'sales';
+                }
             } else {
                 userType = 'user';
             }
         } else if (loginType === 'sapcode') {
-            user = await Sales.findOne({
+            const salesResult = await salesService.getAll({
                 where: { sap_code: identifier },
                 include: [
                     { model: Division }
-                ]
+                ],
+                limit: 1
             });
-            userType = 'sales';
+            if (salesResult.success && salesResult.data.length > 0) {
+                user = salesResult.data[0];
+                userType = 'sales';
+            }
         } else if (loginType === 'empcode') {
-            user = await Sales.findOne({
+            const salesResult = await salesService.getAll({
                 where: { emp_code: identifier },
                 include: [
                     { model: Division }
-                ]
+                ],
+                limit: 1
             });
-            userType = 'sales';
+            if (salesResult.success && salesResult.data.length > 0) {
+                user = salesResult.data[0];
+                userType = 'sales';
+            }
         } else {
             await logUserActivity({
                 event: 'login_failed',
@@ -110,7 +130,7 @@ const login = async (req, res) => {
                     });
                 } else {
                     // Unlock account
-                    await user.update({ account_status: 'active', lock_until: null });
+                    await userService.updateById(user.id, { account_status: 'active', lock_until: null });
                 }
             } else {
                 await logUserActivity({
@@ -132,7 +152,7 @@ const login = async (req, res) => {
             if (newAttempts >= 5) {
                 // Lock account for 30 minutes
                 const lockUntil = new Date(Date.now() + 30 * 60 * 1000);
-                await user.update({ login_attempts: newAttempts, account_status: 'locked', lock_until: lockUntil });
+                await userService.updateById(user.id, { login_attempts: newAttempts, account_status: 'locked', lock_until: lockUntil });
                 await logUserActivity({
                     event: 'login_failed',
                     reason: 'account_locked_due_to_attempts',
@@ -146,7 +166,7 @@ const login = async (req, res) => {
                 });
             } else {
                 const remainingAttempts = 5 - newAttempts;
-                await user.update({ login_attempts: newAttempts });
+                await userService.updateById(user.id, { login_attempts: newAttempts });
                 await logUserActivity({
                     event: 'login_failed',
                     reason: 'invalid_password',
@@ -164,7 +184,7 @@ const login = async (req, res) => {
 
         // Successful login
         const now = new Date();
-        await user.update({ login_attempts: 0, last_login: now });
+        await userService.updateById(user.id, { login_attempts: 0, last_login: now });
 
         // Generate tokens
         const userData = user.toJSON();

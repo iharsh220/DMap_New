@@ -207,7 +207,7 @@ const getMyWorkRequests = async (req, res) => {
     try {
         const user_id = req.user.id;
 
-        const requests = await WorkRequests.findAll({
+        const result = await workRequestService.getAll({
             where: { user_id },
             attributes: { exclude: ['work_medium_id', 'requested_manager_id', 'created_at', 'updated_at'] },
             include: [
@@ -223,7 +223,11 @@ const getMyWorkRequests = async (req, res) => {
             order: [['created_at', 'DESC']]
         });
 
-        res.json({ success: true, data: requests });
+        if (result.success) {
+            res.json({ success: true, data: result.data });
+        } else {
+            res.status(500).json({ success: false, error: result.error });
+        }
     } catch (error) {
         console.error('Error fetching work requests:', error);
         res.status(500).json({ success: false, error: error.message });
@@ -235,7 +239,7 @@ const getWorkRequestById = async (req, res) => {
         const { id } = req.params;
         const user_id = req.user.id;
 
-        const request = await WorkRequests.findOne({
+        const result = await workRequestService.getAll({
             where: { id, user_id },
             attributes: { exclude: ['work_medium_id', 'requested_manager_id', 'created_at', 'updated_at'] },
             include: [
@@ -248,14 +252,15 @@ const getWorkRequestById = async (req, res) => {
                     { model: require('../../models').Location, as: 'Location', attributes: { exclude: ['created_at', 'updated_at'] } }
                 ] },
                 { model: WorkRequestDocuments, attributes: { exclude: ['created_at', 'updated_at'] } }
-            ]
+            ],
+            limit: 1
         });
 
-        if (!request) {
-            return res.status(404).json({ success: false, error: 'Work request not found' });
+        if (result.success && result.data.length > 0) {
+            res.json({ success: true, data: result.data[0] });
+        } else {
+            res.status(404).json({ success: false, error: 'Work request not found' });
         }
-
-        res.json({ success: true, data: request });
     } catch (error) {
         console.error('Error fetching work request:', error);
         res.status(500).json({ success: false, error: error.message });
