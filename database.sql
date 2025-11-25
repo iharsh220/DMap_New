@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Nov 12, 2025 at 06:40 AM
+-- Generation Time: Nov 25, 2025 at 09:20 AM
 -- Server version: 11.4.9-MariaDB
 -- PHP Version: 8.4.14
 
@@ -41,119 +41,18 @@ CREATE TABLE `department` (
 -- Dumping data for table `department`
 --
 
-INSERT INTO `department` (`id`, `department_name`, `description`, `status`, `created_at`, `updated_at`) VALUES
-(1, 'Marketing', 'All marketing divisions of the company', 'Active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(2, 'Medical', 'All medical division employees of the company', 'Active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(3, 'Legal', 'All legal division employees of the company', 'Active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(4, 'CQA', 'All CQA division employees of the company', 'Active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(5, 'Business Enablers', 'All the other divisions of the company', 'Active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(6, 'IBU', 'Any divisions from company''s Vadodara HQ', 'Active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(7, 'Leadership', 'All employees with AGM & above designation', 'Active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(8, 'Corporate Communication', 'All verticals within Corp Comm', 'Active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(9, 'Digilabs', 'All verticals within Digilabs', 'Active', '2025-11-12 06:04:52', '2025-11-12 06:04:52');
+INSERT INTO `department` (`id`, `department_name`, `description`, `status`, `state`, `created_at`, `updated_at`) VALUES
+(1, 'Marketing', 'All marketing divisions of the company', 'Active', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(2, 'Medical', 'All medical division employees of the company', 'Active', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(3, 'Legal', 'All legal division employees of the company', 'Active', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(4, 'CQA', 'All CQA division employees of the company', 'Active', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(5, 'Business Enablers', 'All the other divisions of the company', 'Active', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(6, 'IBU', 'Any divisions from company\'s Vadodara HQ', 'Active', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(7, 'Leadership', 'All employees with AGM & above designation', 'Active', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(8, 'Corporate Communication', 'All verticals within Corp Comm', 'Active', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(9, 'Digilabs', 'All verticals within Digilabs', 'Active', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52');
 
 -- --------------------------------------------------------
-
---
--- Table structure for table `division`
---
-
-CREATE TABLE `division` (
-  `id` int(11) NOT NULL,
-  `title` varchar(100) NOT NULL,
-  `department_id` int(11) NOT NULL,
-  `description` text DEFAULT NULL,
-  `state` enum('active','inactive') DEFAULT 'active',
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-
---
--- Dumping data for table `division`
---
-
-INSERT INTO `division` (`id`, `title`, `department_id`, `description`, `created_at`, `updated_at`) VALUES
-(1, 'Graphic', 9, 'Graphic design and visual creation', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(2, 'Video', 9, 'Video production and editing', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(3, 'Shoot', 9, 'Photography and shooting services', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(4, 'Content', 9, 'Content writing and creation', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(5, 'Web Application', 9, 'Web application development', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(6, 'Corporate Communication', 8, 'Corporate Communication Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(7, 'Legal & Compliance', 3, 'Legal & Compliance Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(8, 'Coporate Quality Assurance', 4, 'Coporate Quality Assurance Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(9, 'HR', 5, 'HR Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(10, 'Business Excellence', 5, 'Business Excellence Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(11, 'IT', 5, 'IT Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(12, 'SEAT', 5, 'SEAT Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(13, 'IBU', 4, 'IBU Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(14, 'Alcare', 1, 'Alcare Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(15, 'Algrow', 1, 'Algrow Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(16, 'Aqua', 1, 'Aqua Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(17, 'Cardigem', 1, 'Cardigem Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(18, 'Corazon', 1, 'Corazon Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(19, 'Corium', 1, 'Corium Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(20, 'Elena', 1, 'Elena Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(21, 'Enteron', 1, 'Enteron Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(22, 'Eyecare', 1, 'Eyecare Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(23, 'Farmcure', 1, 'Farmcure Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(24, 'Gastron', 1, 'Gastron Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(25, 'Generic', 1, 'Generic Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(26, 'Hospital Care', 1, 'Hospital Care Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(27, 'Maxis', 1, 'Maxis Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(28, 'Megacare', 1, 'Megacare Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(29, 'Nepal Business', 1, 'Nepal Business Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(30, 'Osteofit', 1, 'Osteofit Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(31, 'Ouron', 1, 'Ouron Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(32, 'Petal', 1, 'Petal Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(33, 'Pharma', 1, 'Pharma Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(34, 'Poultry', 1, 'Poultry Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(35, 'Specia', 1, 'Specia Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(36, 'Summit', 1, 'Summit Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(37, 'Veterinary', 1, 'Veterinary Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(38, 'Vetmax', 1, 'Vetmax Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(39, 'Zenovi', 1, 'Zenovi Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(40, 'Medical Services', 2, 'Medical Services Division', '2025-11-12 06:04:52', '2025-11-12 06:04:52');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `job_role`
---
-
-CREATE TABLE `job_role` (
-  `id` int(11) NOT NULL,
-  `role_title` varchar(100) NOT NULL,
-  `level` varchar(50) DEFAULT NULL,
-  `description` text DEFAULT NULL,
-  `department_id` int(11) DEFAULT NULL,
-  `state` enum('active','inactive') DEFAULT 'active',
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-
---
--- Dumping data for table `job_role`
---
-
-INSERT INTO `job_role` (`id`, `role_title`, `level`, `description`, `department_id`, `created_at`, `updated_at`) VALUES
-(1, 'Super Admin', 'Senior', 'System administrators', 9, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(2, 'Creative Manager', 'Mid', 'Creative media managers ( for Graphic, Video, Content, Web App divisions)', 9, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(3, 'Creative User', 'Low', 'All subject matter experts such as designers, video editors, copywriters, developers, etc', 9, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(4, 'Marketing Manager', 'Mid', 'Marketing manager', 1, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(5, 'Marketing User', 'Low', 'All product manager levels', 1, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(6, 'Senior Leadership', 'Mid', 'Any user under Leadership department', 7, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(7, 'Other User', 'Low', 'Any user under Business Enabler department', 5, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(8, 'Medical Manager', 'Mid', 'Level 3 user of medical team', 2, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(9, 'Medical Senior', 'Low', 'Level 2 user of medical team', 2, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(10, 'Medical User', 'Low', 'Level 1 user of medical team', 2, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(11, 'Legal Manager', 'Mid', 'Level 3 user of legal team', 3, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(12, 'Legal Senior', 'Low', 'Level 2 user of legal team', 3, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(13, 'Lega User', 'Low', 'Level 1 user of legal team', 3, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(14, 'CQA Manager', 'Mid', 'Level 3 user of CQA team', 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(15, 'CQA Senior', 'Low', 'Level 2 user of CQA team', 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(16, 'CQA User', 'Low', 'Level 1 user of CQA team', 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(17, 'CComm Manager', 'Mid', 'Managers and up of corp comm division', 8, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(18, 'CComm User', 'Low', 'All users of corporate communication division', 8, '2025-11-12 06:04:52', '2025-11-12 06:04:52');
 
 --
 -- Table structure for table `designation`
@@ -172,33 +71,33 @@ CREATE TABLE `designation` (
 -- Dumping data for table `designation`
 --
 
-INSERT INTO `designation` (`id`, `designation_name`, `designation_category`, `created_at`, `updated_at`) VALUES
-(1, 'CHRO & Chief Customer Experience Officer', 'Senior Leadership', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(2, 'Senior Vice President', 'Senior Leadership', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(3, 'Vice President', 'Senior Leadership', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(4, 'Executive Vice President', 'Senior Leadership', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(5, 'Associate Vice President', 'Senior Leadership', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(6, 'General Manager', 'Senior Leadership', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(7, 'Deputy General Manager', 'Senior Leadership', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(8, 'Marketing Manager', 'Marketing', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(9, 'Group Product Manager', 'Marketing', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(10, 'Senior Product Manager', 'Marketing', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(11, 'Product Manager', 'Marketing', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(12, 'Assistant Product Manager', 'Marketing', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(13, 'Product Executive', 'Marketing', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(14, 'Management Trainee', 'Marketing', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(15, 'Senior Manager', 'Others', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(16, 'Manager', 'Others', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(17, 'Deputy Manager', 'Others', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(18, 'Assistant Manager', 'Others', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(19, 'Senior Executive', 'Others', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(20, 'Executive', 'Others', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(21, 'Junior Executive', 'Others', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(22, 'Trainee', 'Others', '2025-11-12 06:04:52', '2025-11-12 06:04:52');
+INSERT INTO `designation` (`id`, `designation_name`, `designation_category`, `state`, `created_at`, `updated_at`) VALUES
+(1, 'CHRO & Chief Customer Experience Officer', 'Senior Leadership', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(2, 'Senior Vice President', 'Senior Leadership', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(3, 'Vice President', 'Senior Leadership', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(4, 'Executive Vice President', 'Senior Leadership', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(5, 'Associate Vice President', 'Senior Leadership', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(6, 'General Manager', 'Senior Leadership', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(7, 'Deputy General Manager', 'Senior Leadership', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(8, 'Marketing Manager', 'Marketing', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(9, 'Group Product Manager', 'Marketing', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(10, 'Senior Product Manager', 'Marketing', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(11, 'Product Manager', 'Marketing', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(12, 'Assistant Product Manager', 'Marketing', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(13, 'Product Executive', 'Marketing', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(14, 'Management Trainee', 'Marketing', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(15, 'Senior Manager', 'Others', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(16, 'Manager', 'Others', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(17, 'Deputy Manager', 'Others', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(18, 'Assistant Manager', 'Others', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(19, 'Senior Executive', 'Others', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(20, 'Executive', 'Others', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(21, 'Junior Executive', 'Others', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(22, 'Trainee', 'Others', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52');
 
 -- --------------------------------------------------------
 
-
+--
 -- Table structure for table `designation_departments`
 --
 
@@ -287,12 +186,8 @@ INSERT INTO `designation_departments` (`id`, `designation_id`, `department_id`, 
 (70, 22, 9, '2025-11-12 06:04:52', '2025-11-12 06:04:52');
 
 -- --------------------------------------------------------
--- --------------------------------------------------------
--- --------------------------------------------------------
 
--- --------------------------------------------------------
-
-
+--
 -- Table structure for table `designation_jobroles`
 --
 
@@ -333,6 +228,110 @@ INSERT INTO `designation_jobroles` (`id`, `designation_id`, `jobrole_id`, `creat
 (22, 22, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52');
 
 -- --------------------------------------------------------
+
+--
+-- Table structure for table `division`
+--
+
+CREATE TABLE `division` (
+  `id` int(11) NOT NULL,
+  `title` varchar(100) NOT NULL,
+  `department_id` int(11) NOT NULL,
+  `description` text DEFAULT NULL,
+  `state` enum('active','inactive') DEFAULT 'active',
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Dumping data for table `division`
+--
+
+INSERT INTO `division` (`id`, `title`, `department_id`, `description`, `state`, `created_at`, `updated_at`) VALUES
+(1, 'Graphic', 9, 'Graphic design and visual creation', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(2, 'Video', 9, 'Video production and editing', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(3, 'Shoot', 9, 'Photography and shooting services', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(4, 'Content', 9, 'Content writing and creation', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(5, 'Web Application', 9, 'Web application development', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(6, 'Corporate Communication', 8, 'Corporate Communication Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(7, 'Legal & Compliance', 3, 'Legal & Compliance Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(8, 'Coporate Quality Assurance', 4, 'Coporate Quality Assurance Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(9, 'HR', 5, 'HR Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(10, 'Business Excellence', 5, 'Business Excellence Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(11, 'IT', 5, 'IT Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(12, 'SEAT', 5, 'SEAT Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(13, 'IBU', 4, 'IBU Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(14, 'Alcare', 1, 'Alcare Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(15, 'Algrow', 1, 'Algrow Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(16, 'Aqua', 1, 'Aqua Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(17, 'Cardigem', 1, 'Cardigem Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(18, 'Corazon', 1, 'Corazon Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(19, 'Corium', 1, 'Corium Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(20, 'Elena', 1, 'Elena Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(21, 'Enteron', 1, 'Enteron Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(22, 'Eyecare', 1, 'Eyecare Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(23, 'Farmcure', 1, 'Farmcure Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(24, 'Gastron', 1, 'Gastron Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(25, 'Generic', 1, 'Generic Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(26, 'Hospital Care', 1, 'Hospital Care Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(27, 'Maxis', 1, 'Maxis Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(28, 'Megacare', 1, 'Megacare Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(29, 'Nepal Business', 1, 'Nepal Business Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(30, 'Osteofit', 1, 'Osteofit Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(31, 'Ouron', 1, 'Ouron Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(32, 'Petal', 1, 'Petal Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(33, 'Pharma', 1, 'Pharma Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(34, 'Poultry', 1, 'Poultry Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(35, 'Specia', 1, 'Specia Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(36, 'Summit', 1, 'Summit Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(37, 'Veterinary', 1, 'Veterinary Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(38, 'Vetmax', 1, 'Vetmax Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(39, 'Zenovi', 1, 'Zenovi Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(40, 'Medical Services', 2, 'Medical Services Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `job_role`
+--
+
+CREATE TABLE `job_role` (
+  `id` int(11) NOT NULL,
+  `role_title` varchar(100) NOT NULL,
+  `level` varchar(50) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `department_id` int(11) DEFAULT NULL,
+  `state` enum('active','inactive') DEFAULT 'active',
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Dumping data for table `job_role`
+--
+
+INSERT INTO `job_role` (`id`, `role_title`, `level`, `description`, `department_id`, `state`, `created_at`, `updated_at`) VALUES
+(1, 'Super Admin', 'Senior', 'System administrators', 9, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(2, 'Creative Manager', 'Mid', 'Creative media managers ( for Graphic, Video, Content, Web App divisions)', 9, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(3, 'Creative User', 'Low', 'All subject matter experts such as designers, video editors, copywriters, developers, etc', 9, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(4, 'Marketing Manager', 'Mid', 'Marketing manager', 1, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(5, 'Marketing User', 'Low', 'All product manager levels', 1, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(6, 'Senior Leadership', 'Mid', 'Any user under Leadership department', 7, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(7, 'Other User', 'Low', 'Any user under Business Enabler department', 5, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(8, 'Medical Manager', 'Mid', 'Level 3 user of medical team', 2, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(9, 'Medical Senior', 'Low', 'Level 2 user of medical team', 2, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(10, 'Medical User', 'Low', 'Level 1 user of medical team', 2, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(11, 'Legal Manager', 'Mid', 'Level 3 user of legal team', 3, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(12, 'Legal Senior', 'Low', 'Level 2 user of legal team', 3, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(13, 'Lega User', 'Low', 'Level 1 user of legal team', 3, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(14, 'CQA Manager', 'Mid', 'Level 3 user of CQA team', 4, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(15, 'CQA Senior', 'Low', 'Level 2 user of CQA team', 4, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(16, 'CQA User', 'Low', 'Level 1 user of CQA team', 4, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(17, 'CComm Manager', 'Mid', 'Managers and up of corp comm division', 8, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(18, 'CComm User', 'Low', 'All users of corporate communication division', 8, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52');
+
+-- --------------------------------------------------------
+
 --
 -- Table structure for table `location`
 --
@@ -351,10 +350,10 @@ CREATE TABLE `location` (
 -- Dumping data for table `location`
 --
 
-INSERT INTO `location` (`id`, `location_name`, `type`, `description`, `created_at`, `updated_at`) VALUES
-(1, 'Mumbai HO', 'HO', 'Head Office Mumbai', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(2, 'Field', 'Field', 'Field Office', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(3, 'Vadodara HQ', 'HQ', 'Headquarters Vadodara', '2025-11-12 06:04:52', '2025-11-12 06:04:52');
+INSERT INTO `location` (`id`, `location_name`, `type`, `description`, `state`, `created_at`, `updated_at`) VALUES
+(1, 'Mumbai HO', 'HO', 'Head Office Mumbai', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(2, 'Field', 'Field', 'Field Office', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(3, 'Vadodara HQ', 'HQ', 'Headquarters Vadodara', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52');
 
 -- --------------------------------------------------------
 
@@ -473,10 +472,10 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `name`, `email`, `phone`, `password`, `department_id`, `job_role_id`, `location_id`, `designation_id`, `email_verified_status`, `account_status`, `last_login`, `login_attempts`, `lock_until`, `password_changed_at`, `password_expires_at`, `created_at`, `updated_at`) VALUES
 (1, 'System Admin', 'admin@alembic.co.in', '8080302041', '$2a$12$/.rT3avNPO1l0ZjqSRS/Ru09mKVNuIRSLaHjBDeMwLHscVLq1ETY6', 2, 1, 1, NULL, 1, 'active', '2025-11-12 06:04:52', 0, NULL, '2025-11-12 06:04:52', '2026-02-10 06:04:52', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(2, 'Harsh Gohil', 'harsh.gohil@alembic.co.in', '8080302042', '$2b$10$GJmBy5B8VE9lQH5hOgzMb.xP6VEP10IwtD80di3Uniu3aaazcU8yy', 2, 3, 1, NULL, 1, 'active', NULL, 0, NULL, '2025-11-12 06:06:13', '2026-02-10 06:06:13', '2025-11-12 06:04:58', '2025-11-12 06:06:13'),
-(3, 'Nikhil Nadkar', 'nikhil.nadkar@alembic.co.in', '8080302042', '$2b$10$i7Z7bTmqBpmyPRcxrqoX1OE7upFSVXqFXiYzQqoIW7pt8M2FD6.Uq', 1, 4, 1, NULL, 1, 'active', '2025-11-12 06:35:08', 0, NULL, '2025-11-12 06:11:11', '2026-02-10 06:11:11', '2025-11-12 06:10:01', '2025-11-12 06:35:08'),
-(4, 'Mohanish Padwal', 'mohanish.padwal@alembic.co.in', NULL, '$2b$10$Ji2xiG/5vdtbeUc3.FdcIOAymaHhMB1hBrOwoFawALpGc7VX10fD.', 2, 2, 1, NULL, 1, 'active', NULL, 0, NULL, '2025-11-19 08:12:00', '2026-02-17 08:12:00', '2025-11-19 08:12:00', '2025-11-19 08:12:00'),
-(5, 'Bhagwan Parab', 'bhagwan.parab@alembic.co.in', NULL, '$2b$10$mSvKWrDwZCZyM5LR7zLWgOkqRUebR76dmXyiCnSUr.Y6Ft1njZKum', 2, 2, 1, NULL, 1, 'active', NULL, 0, NULL, '2025-11-19 08:12:00', '2026-02-17 08:12:00', '2025-11-19 08:12:00', '2025-11-19 08:12:00');
+(9, 'Bhagwan Parab', 'bhagwan.parab@alembic.co.in', '1234567890', '$2a$10$13zqXGBAuAF/pcF4XHxvi.lEo8flBZCOnw/qq.fBJfZ57eAJcfj42', 9, 2, 1, 16, 1, 'active', NULL, 0, NULL, '2025-11-25 06:14:31', '2026-02-23 06:14:31', '2025-11-25 06:10:40', '2025-11-25 06:14:31'),
+(10, 'Harsh Gohil', 'harsh.gohil@alembic.co.in', '1234567890', '$2a$10$Kc.lwpVnKYKTOyVEkEaR5eCEcMqK7SjbnjpwgIB.LiAN/pLagxVeO', 9, 4, 1, 20, 1, 'active', NULL, 0, NULL, '2025-11-25 06:15:53', '2026-02-23 06:15:53', '2025-11-25 06:14:56', '2025-11-25 06:15:53'),
+(11, 'Mohanish Padwal', 'mohanish.padwal@alembic.co.in', '1234567890', '$2a$10$lbDnrhd.6O4EvCFNTeDt1.SngPt.IqHZkvw3jtUwjKTrEWoIbcDO.', 9, 2, 1, 16, 1, 'active', '2025-11-25 07:19:30', 0, NULL, '2025-11-25 06:17:31', '2026-02-23 06:17:31', '2025-11-25 06:16:23', '2025-11-25 07:19:30'),
+(12, 'Nikhil Nadkar', 'nikhil.nadkar@alembic.co.in', '1234567890', '$2a$10$Txudkx41QciW8euyVoodNOIa4seUXViVsWc.UN3RCdxg0KrcFfssW', 1, 5, 1, 8, 1, 'active', '2025-11-25 06:42:48', 0, NULL, '2025-11-25 06:19:02', '2026-02-23 06:19:02', '2025-11-25 06:17:55', '2025-11-25 06:42:48');
 
 -- --------------------------------------------------------
 
@@ -497,15 +496,14 @@ CREATE TABLE `user_divisions` (
 --
 
 INSERT INTO `user_divisions` (`id`, `user_id`, `division_id`, `created_at`, `updated_at`) VALUES
-(1, 2, 5, '2025-11-12 06:06:13', '2025-11-12 06:06:13'),
-(2, 2, 4, '2025-11-12 06:06:13', '2025-11-12 06:06:13'),
-(3, 1, 1, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(4, 3, 20, '2025-11-12 06:10:01', '2025-11-12 06:10:01'),
-(5, 4, 5, '2025-11-19 08:12:00', '2025-11-19 08:12:00'),
-(6, 5, 5, '2025-11-19 08:12:00', '2025-11-19 08:12:00');
+(12, 9, 1, '2025-11-25 06:14:31', '2025-11-25 06:14:31'),
+(13, 10, 5, '2025-11-25 06:15:53', '2025-11-25 06:15:53'),
+(14, 11, 2, '2025-11-25 06:17:31', '2025-11-25 06:17:31'),
+(15, 11, 4, '2025-11-25 06:17:31', '2025-11-25 06:17:31'),
+(16, 11, 5, '2025-11-25 06:17:31', '2025-11-25 06:17:31'),
+(17, 12, 22, '2025-11-25 06:19:02', '2025-11-25 06:19:02');
 
 -- --------------------------------------------------------
-
 
 --
 -- Table structure for table `work_medium`
@@ -560,7 +558,9 @@ CREATE TABLE `work_requests` (
 --
 
 INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `work_medium_id`, `project_details`, `priority`, `status`, `requested_manager_id`, `requested_at`, `remarks`, `created_at`, `updated_at`) VALUES
-(4, 3, 'New Product Launch Campaign', 'Alembic Pharma', 2, 'Detailed description of the project requirements, objectives, and deliverables', 'high', 'pending', 2, '2025-11-12 06:35:19', NULL, '2025-11-12 06:35:19', '2025-11-12 06:35:19');
+(45, 12, 'Resync Project', 'Resync', 2, 'Resync Eyes strain ', 'medium', 'pending', 11, '2025-11-25 06:35:16', NULL, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(47, 12, 'Resync Poster maker', 'Resync', 1, 'Resync Poster maker', 'high', 'pending', 9, '2025-11-25 06:41:39', '', '2025-11-25 06:41:39', '2025-11-25 06:41:39'),
+(48, 12, 'Eye strain poster banner', 'Resync', 1, 'Eye strain poster banner event', 'high', 'pending', 9, '2025-11-25 06:44:54', NULL, '2025-11-25 06:44:54', '2025-11-25 07:27:36');
 
 -- --------------------------------------------------------
 
@@ -583,8 +583,12 @@ CREATE TABLE `work_request_documents` (
 --
 
 INSERT INTO `work_request_documents` (`id`, `work_request_id`, `document_name`, `document_path`, `document_type`, `document_size`, `uploaded_at`) VALUES
-(1, 4, 'claimRepudationLetter.pdf', '/Users/harsh.gohil/Documents/Harsh Gohil/Projects/Divisions/Digilabs/D Map Upgraded/uploads/work-request/New Product Launch Campaign/claimRepudationLetter_1762929319626.pdf', 'application/pdf', 680283, '2025-11-12 06:35:19'),
-(2, 4, 'GMC-26220130003-26278.pdf', '/Users/harsh.gohil/Documents/Harsh Gohil/Projects/Divisions/Digilabs/D Map Upgraded/uploads/work-request/New Product Launch Campaign/GMC-26220130003-26278_1762929319701.pdf', 'application/pdf', 152774, '2025-11-12 06:35:19');
+(124, 45, 'alembicdigilabs_Digi_dmap.csv', '/work-requests/uploads/Resync_Project/alembicdigilabs_Digi_dmap.csv-1764052516740-502954236.csv', 'text/csv', 3939, '2025-11-25 06:35:16'),
+(125, 45, 'alembicdigilabs_Digi_dmap.sql', '/work-requests/uploads/Resync_Project/alembicdigilabs_Digi_dmap.sql-1764052516765-978964861.sql', 'application/x-sql', 28042, '2025-11-25 06:35:16'),
+(126, 45, 'D-Map-Upgraded API.postman_collection.json', '/work-requests/uploads/Resync_Project/D_Map_Upgraded_API.postman_collection.json-1764052516776-782527887.json', 'application/json', 76385, '2025-11-25 06:35:16'),
+(130, 47, 'alembicdigilabs_Digi_dmap.csv', '/work-requests/uploads/Resync_Poster_maker/alembicdigilabs_Digi_dmap.csv-1764052899244-848021088.csv', 'text/csv', 3939, '2025-11-25 06:41:39'),
+(131, 47, 'alembicdigilabs_Digi_dmap.sql', '/work-requests/uploads/Resync_Poster_maker/alembicdigilabs_Digi_dmap.sql-1764052899267-297870515.sql', 'application/x-sql', 28042, '2025-11-25 06:41:39'),
+(132, 47, 'D-Map-Upgraded API.postman_collection.json', '/work-requests/uploads/Resync_Poster_maker/D_Map_Upgraded_API.postman_collection.json-1764052899278-1385401.json', 'application/json', 76385, '2025-11-25 06:41:39');
 
 --
 -- Indexes for dumped tables
@@ -595,13 +599,6 @@ INSERT INTO `work_request_documents` (`id`, `work_request_id`, `document_name`, 
 --
 ALTER TABLE `department`
   ADD PRIMARY KEY (`id`);
-
---
--- Indexes for table `division`
---
-ALTER TABLE `division`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `department_id` (`department_id`);
 
 --
 -- Indexes for table `designation`
@@ -626,6 +623,13 @@ ALTER TABLE `designation_jobroles`
   ADD UNIQUE KEY `unique_designation_jobrole` (`designation_id`,`jobrole_id`),
   ADD KEY `designation_id` (`designation_id`),
   ADD KEY `jobrole_id` (`jobrole_id`);
+
+--
+-- Indexes for table `division`
+--
+ALTER TABLE `division`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `department_id` (`department_id`);
 
 --
 -- Indexes for table `job_role`
@@ -680,7 +684,6 @@ ALTER TABLE `user_divisions`
   ADD UNIQUE KEY `unique_user_division` (`user_id`,`division_id`),
   ADD KEY `division_id` (`division_id`);
 
-
 --
 -- Indexes for table `work_medium`
 --
@@ -702,10 +705,10 @@ ALTER TABLE `work_requests`
   ADD KEY `idx_work_requests_updated_at` (`updated_at`),
   ADD KEY `idx_work_requests_project_name` (`project_name`),
   ADD KEY `idx_work_requests_brand` (`brand`),
-  ADD KEY `idx_work_requests_search` (`status`, `priority`, `created_at`),
-  ADD KEY `idx_work_requests_user_search` (`user_id`, `status`, `created_at`),
-  ADD KEY `idx_work_requests_manager_search` (`requested_manager_id`, `status`, `created_at`),
-  ADD FULLTEXT KEY `ft_work_requests_content` (`project_name`, `brand`, `project_details`);
+  ADD KEY `idx_work_requests_search` (`status`,`priority`,`created_at`),
+  ADD KEY `idx_work_requests_user_search` (`user_id`,`status`,`created_at`),
+  ADD KEY `idx_work_requests_manager_search` (`requested_manager_id`,`status`,`created_at`);
+ALTER TABLE `work_requests` ADD FULLTEXT KEY `ft_work_requests_content` (`project_name`,`brand`,`project_details`);
 
 --
 -- Indexes for table `work_request_documents`
@@ -722,13 +725,7 @@ ALTER TABLE `work_request_documents`
 -- AUTO_INCREMENT for table `department`
 --
 ALTER TABLE `department`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
-
---
--- AUTO_INCREMENT for table `division`
---
-ALTER TABLE `division`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `designation`
@@ -749,10 +746,16 @@ ALTER TABLE `designation_jobroles`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
 
 --
+-- AUTO_INCREMENT for table `division`
+--
+ALTER TABLE `division`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
+
+--
 -- AUTO_INCREMENT for table `job_role`
 --
 ALTER TABLE `job_role`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT for table `location`
@@ -776,14 +779,13 @@ ALTER TABLE `tasks`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `user_divisions`
 --
 ALTER TABLE `user_divisions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
-
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
 
 --
 -- AUTO_INCREMENT for table `work_medium`
@@ -795,39 +797,17 @@ ALTER TABLE `work_medium`
 -- AUTO_INCREMENT for table `work_requests`
 --
 ALTER TABLE `work_requests`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=49;
 
 --
 -- AUTO_INCREMENT for table `work_request_documents`
 --
 ALTER TABLE `work_request_documents`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=133;
 
 --
 -- Constraints for dumped tables
 --
-
---
--- Constraints for table `division`
---
-ALTER TABLE `division`
-  ADD CONSTRAINT `division_ibfk_1` FOREIGN KEY (`department_id`) REFERENCES `department` (`id`);
-
---
--- Constraints for table `sales`
---
-ALTER TABLE `sales`
-  ADD CONSTRAINT `sales_ibfk_1` FOREIGN KEY (`division_id`) REFERENCES `division` (`id`) ON DELETE SET NULL;
-
---
--- Constraints for table `tasks`
---
-ALTER TABLE `tasks`
-  ADD CONSTRAINT `tasks_ibfk_1` FOREIGN KEY (`division_id`) REFERENCES `division` (`id`) ON DELETE SET NULL,
-  ADD CONSTRAINT `tasks_ibfk_2` FOREIGN KEY (`work_medium_id`) REFERENCES `work_medium` (`id`) ON DELETE SET NULL,
-  ADD CONSTRAINT `tasks_ibfk_4` FOREIGN KEY (`manager_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
-  ADD CONSTRAINT `tasks_ibfk_5` FOREIGN KEY (`assigned_by_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
-  ADD CONSTRAINT `tasks_ibfk_6` FOREIGN KEY (`artist_id`) REFERENCES `users` (`id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `designation_departments`
@@ -844,10 +824,32 @@ ALTER TABLE `designation_jobroles`
   ADD CONSTRAINT `designation_jobroles_ibfk_2` FOREIGN KEY (`jobrole_id`) REFERENCES `job_role` (`id`) ON DELETE CASCADE;
 
 --
+-- Constraints for table `division`
+--
+ALTER TABLE `division`
+  ADD CONSTRAINT `division_ibfk_1` FOREIGN KEY (`department_id`) REFERENCES `department` (`id`);
+
+--
 -- Constraints for table `job_role`
 --
 ALTER TABLE `job_role`
   ADD CONSTRAINT `job_role_ibfk_1` FOREIGN KEY (`department_id`) REFERENCES `department` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `sales`
+--
+ALTER TABLE `sales`
+  ADD CONSTRAINT `sales_ibfk_1` FOREIGN KEY (`division_id`) REFERENCES `division` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `tasks`
+--
+ALTER TABLE `tasks`
+  ADD CONSTRAINT `tasks_ibfk_1` FOREIGN KEY (`division_id`) REFERENCES `division` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `tasks_ibfk_2` FOREIGN KEY (`work_medium_id`) REFERENCES `work_medium` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `tasks_ibfk_4` FOREIGN KEY (`manager_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `tasks_ibfk_5` FOREIGN KEY (`assigned_by_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `tasks_ibfk_6` FOREIGN KEY (`artist_id`) REFERENCES `users` (`id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `users`
