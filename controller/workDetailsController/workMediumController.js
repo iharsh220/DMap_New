@@ -1,3 +1,4 @@
+const { Op } = require('sequelize');
 const CrudService = require('../../services/crudService');
 const { WorkMedium } = require('../../models');
 
@@ -7,7 +8,7 @@ const workMediumService = new CrudService(WorkMedium);
 // Get all work mediums
 const getAllWorkMediums = async (req, res) => {
     try {
-        const { Op } = require('sequelize');
+        
         const where = {};
 
         if (req.query.exclude_work_medium_id) {

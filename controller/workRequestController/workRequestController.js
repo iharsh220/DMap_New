@@ -1,5 +1,17 @@
+const { Op } = require('sequelize');
 const CrudService = require('../../services/crudService');
-const { WorkRequests, WorkMedium, User, WorkRequestDocuments } = require('../../models');
+const {
+    WorkRequests,
+    WorkMedium,
+    User,
+    WorkRequestDocuments,
+    UserDivisions,
+    Department,
+    Division,
+    JobRole,
+    Location,
+    Designation
+} = require('../../models');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
 const path = require('path');
@@ -22,7 +34,7 @@ const createWorkRequest = async (req, res) => {
 
         // Get work medium to find division
         const workMedium = await WorkMedium.findByPk(work_medium_id, {
-            include: [{ model: require('../../models').Division, as: 'Division' }]
+            include: [{ model: Division, as: 'Division' }]
         });
         if (!workMedium) {
             return res.status(400).json({
@@ -32,16 +44,16 @@ const createWorkRequest = async (req, res) => {
         }
 
         // Find manager in the same division with Creative Manager role
-        const userDivision = await require('../../models').UserDivisions.findOne({
+        const userDivision = await UserDivisions.findOne({
             where: { division_id: workMedium.division_id },
             include: [{
-                model: require('../../models').User,
+                model: User,
                 where: { job_role_id: 2, account_status: 'active' },
                 include: [
-                    { model: require('../../models').Department, as: 'Department' },
-                    { model: require('../../models').Division, as: 'Divisions' },
-                    { model: require('../../models').JobRole, as: 'JobRole' },
-                    { model: require('../../models').Location, as: 'Location' }
+                    { model: Department, as: 'Department' },
+                    { model: Division, as: 'Divisions' },
+                    { model: JobRole, as: 'JobRole' },
+                    { model: Location, as: 'Location' }
                 ]
             }]
         });
@@ -110,11 +122,11 @@ const createWorkRequest = async (req, res) => {
         const user = await User.findByPk(user_id, {
             attributes: { exclude: ['password', 'created_at', 'updated_at'] },
             include: [
-                { model: require('../../models').Department, as: 'Department', attributes: { exclude: ['created_at', 'updated_at'] } },
-                { model: require('../../models').Division, as: 'Divisions', attributes: { exclude: ['created_at', 'updated_at'] } },
-                { model: require('../../models').JobRole, as: 'JobRole', attributes: { exclude: ['created_at', 'updated_at'] } },
-                { model: require('../../models').Location, as: 'Location', attributes: { exclude: ['created_at', 'updated_at'] } },
-                { model: require('../../models').Designation, as: 'Designation', attributes: { exclude: ['created_at', 'updated_at'] } }
+                { model: Department, as: 'Department', attributes: { exclude: ['created_at', 'updated_at'] } },
+                { model: Division, as: 'Divisions', attributes: { exclude: ['created_at', 'updated_at'] } },
+                { model: JobRole, as: 'JobRole', attributes: { exclude: ['created_at', 'updated_at'] } },
+                { model: Location, as: 'Location', attributes: { exclude: ['created_at', 'updated_at'] } },
+                { model: Designation, as: 'Designation', attributes: { exclude: ['created_at', 'updated_at'] } }
             ]
         });
         if (isdraft === 'false' && user && manager) {
@@ -206,7 +218,7 @@ const createWorkRequest = async (req, res) => {
 const getMyWorkRequests = async (req, res) => {
     try {
         const user_id = req.user.id;
-        const { Op } = require('sequelize');
+
 
         let where = { user_id };
 
@@ -227,13 +239,15 @@ const getMyWorkRequests = async (req, res) => {
             attributes: { exclude: ['work_medium_id', 'requested_manager_id', 'updated_at'] },
             include: [
                 { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
-                { model: WorkMedium, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: require('../../models').Division, as: 'Division', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
-                { model: User, as: 'requestedManager', foreignKey: 'requested_manager_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] }, include: [
-                    { model: require('../../models').Department, as: 'Department', attributes: { exclude: ['created_at', 'updated_at'] } },
-                    { model: require('../../models').Division, as: 'Divisions', attributes: { exclude: ['created_at', 'updated_at'] }, through: { attributes: [] } },
-                    { model: require('../../models').JobRole, as: 'JobRole', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } },
-                    { model: require('../../models').Location, as: 'Location', attributes: { exclude: ['created_at', 'updated_at'] } }
-                ] }
+                { model: WorkMedium, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, as: 'Division', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
+                {
+                    model: User, as: 'requestedManager', foreignKey: 'requested_manager_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] }, include: [
+                        { model: Department, as: 'Department', attributes: { exclude: ['created_at', 'updated_at'] } },
+                        { model: Division, as: 'Divisions', attributes: { exclude: ['created_at', 'updated_at'] }, through: { attributes: [] } },
+                        { model: JobRole, as: 'JobRole', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } },
+                        { model: Location, as: 'Location', attributes: { exclude: ['created_at', 'updated_at'] } }
+                    ]
+                }
             ],
             limit: req.pagination.limit,
             offset: req.pagination.offset,
@@ -264,13 +278,15 @@ const getWorkRequestById = async (req, res) => {
             attributes: { exclude: ['work_medium_id', 'requested_manager_id', 'created_at', 'updated_at'] },
             include: [
                 { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
-                { model: WorkMedium, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: require('../../models').Division, as: 'Division', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
-                { model: User, as: 'requestedManager', foreignKey: 'requested_manager_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] }, include: [
-                    { model: require('../../models').Department, as: 'Department', attributes: { exclude: ['created_at', 'updated_at'] } },
-                    { model: require('../../models').Division, as: 'Divisions', attributes: { exclude: ['created_at', 'updated_at'] }, through: { attributes: [] } },
-                    { model: require('../../models').JobRole, as: 'JobRole', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } },
-                    { model: require('../../models').Location, as: 'Location', attributes: { exclude: ['created_at', 'updated_at'] } }
-                ] },
+                { model: WorkMedium, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, as: 'Division', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
+                {
+                    model: User, as: 'requestedManager', foreignKey: 'requested_manager_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] }, include: [
+                        { model: Department, as: 'Department', attributes: { exclude: ['created_at', 'updated_at'] } },
+                        { model: Division, as: 'Divisions', attributes: { exclude: ['created_at', 'updated_at'] }, through: { attributes: [] } },
+                        { model: JobRole, as: 'JobRole', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } },
+                        { model: Location, as: 'Location', attributes: { exclude: ['created_at', 'updated_at'] } }
+                    ]
+                },
                 { model: WorkRequestDocuments, attributes: { exclude: ['created_at', 'updated_at'] } }
             ],
             limit: 1

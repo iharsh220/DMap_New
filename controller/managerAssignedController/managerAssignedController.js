@@ -1,5 +1,19 @@
 const CrudService = require('../../services/crudService');
-const { WorkRequests, WorkMedium, User, WorkRequestDocuments } = require('../../models');
+const {
+    WorkRequests,
+    WorkMedium,
+    User,
+    WorkRequestDocuments,
+    UserDivisions,
+    Department,
+    Division,
+    JobRole,
+    Location,
+    Designation
+} = require('../../models');
+
+const { sendMail } = require('../../services/mailService');
+const { renderTemplate } = require('../../services/templateService');
 
 const workRequestService = new CrudService(WorkRequests);
 const userService = new CrudService(User);
@@ -29,7 +43,7 @@ const getAssignedWorkRequests = async (req, res) => {
             attributes: { exclude: ['work_medium_id', 'requested_manager_id', 'updated_at'] },
             include: [
                 { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
-                { model: WorkMedium, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: require('../../models').Division, as: 'Division', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
+                { model: WorkMedium, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, as: 'Division', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
             ],
             limit: req.pagination.limit,
             offset: req.pagination.offset,
@@ -60,7 +74,7 @@ const getAssignedWorkRequestById = async (req, res) => {
             attributes: { exclude: ['work_medium_id', 'requested_manager_id', 'updated_at'] },
             include: [
                 { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
-                { model: WorkMedium, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: require('../../models').Division, as: 'Division', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
+                { model: WorkMedium, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, as: 'Division', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
                 { model: WorkRequestDocuments, attributes: { exclude: ['created_at', 'updated_at'] } }
             ],
             limit: 1
@@ -114,10 +128,6 @@ const acceptWorkRequest = async (req, res) => {
                     // Get work medium
                     const workMediumResult = await workMediumService.getById(workRequest.work_medium_id);
                     const workMedium = workMediumResult.success ? workMediumResult.data : {};
-
-                    // Send email
-                    const { sendMail } = require('../../services/mailService');
-                    const { renderTemplate } = require('../../services/templateService');
 
                     const html = renderTemplate('workRequestAcceptanceNotification', {
                         project_name: workRequest.project_name,
@@ -175,6 +185,10 @@ const deferWorkRequest = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Invalid reason' });
         }
 
+        if (reason === 'incorrect_work_medium' && !req.body.new_work_medium_id) {
+            return res.status(400).json({ success: false, error: 'new_work_medium_id is required for incorrect_work_medium reason' });
+        }
+
         // Check if work request exists and is assigned to this manager
         const existingResult = await workRequestService.getAll({
             where: { id, requested_manager_id: manager_id },
@@ -187,18 +201,12 @@ const deferWorkRequest = async (req, res) => {
 
         const workRequest = existingResult.data[0];
 
-        // If insufficient_details, send email
         if (reason === 'insufficient_details' && message) {
-            // Get user
+            // Send email to user
             const userResult = await userService.getById(workRequest.user_id);
             if (userResult.success) {
                 const user = userResult.data;
-                // Get manager
-                const manager = req.user; // Assuming req.user has details
-
-                // Send email
-                const { sendMail } = require('../../services/mailService');
-                const { renderTemplate } = require('../../services/templateService');
+                const manager = req.user;
 
                 const html = renderTemplate('workRequestDeferNotification', {
                     user_name: user.name,
@@ -223,12 +231,110 @@ const deferWorkRequest = async (req, res) => {
                     html
                 };
 
-                // CC manager if different from user
                 if (req.user.id !== workRequest.user_id) {
                     mailOptions.cc = req.user.email;
                 }
 
                 await sendMail(mailOptions);
+            }
+        } else if (reason === 'incorrect_work_medium') {
+            // Reassign to new work medium manager
+            const newWorkMediumId = parseInt(req.body.new_work_medium_id);
+            if (isNaN(newWorkMediumId)) {
+                return res.status(400).json({ success: false, error: 'Invalid new_work_medium_id' });
+            }
+
+            // Get new work medium
+            const newWorkMedium = await WorkMedium.findByPk(newWorkMediumId, {
+                include: [{ model: Division, as: 'Division' }]
+            });
+            if (!newWorkMedium) {
+                return res.status(400).json({ success: false, error: 'Invalid work medium ID' });
+            }
+
+            // Find new manager
+            const managerDivision = await UserDivisions.findOne({
+                where: { division_id: newWorkMedium.division_id },
+                include: [{
+                    model: User,
+                    where: { job_role_id: 2, account_status: 'active' },
+                    include: [
+                        { model: Department, as: 'Department' },
+                        { model: Division, as: 'Divisions' },
+                        { model: JobRole, as: 'JobRole' },
+                        { model: Location, as: 'Location' }
+                    ]
+                }]
+            });
+            const newManager = managerDivision ? managerDivision.User : null;
+
+            if (!newManager) {
+                return res.status(400).json({ success: false, error: 'No manager found for the new work medium' });
+            }
+
+            // Update work request
+            const updateResult = await workRequestService.updateById(id, {
+                work_medium_id: newWorkMediumId,
+                requested_manager_id: newManager.id
+            });
+
+            if (!updateResult.success) {
+                return res.status(500).json({ success: false, error: 'Failed to reassign work request' });
+            }
+
+            // Send transfer email to new manager
+            const user = await User.findByPk(workRequest.user_id, {
+                include: [
+                    { model: Department, as: 'Department' },
+                    { model: Division, as: 'Divisions' },
+                    { model: JobRole, as: 'JobRole' },
+                    { model: Location, as: 'Location' },
+                    { model: Designation, as: 'Designation' }
+                ]
+            });
+            if (user) {
+                const transferManager = req.user;
+
+                const html = renderTemplate('workRequestTransferNotification', {
+                    transfer_manager_name: transferManager.name,
+                    transfer_manager_email: transferManager.email,
+                    project_name: workRequest.project_name,
+                    brand: workRequest.brand,
+                    work_medium_type: newWorkMedium.type,
+                    work_medium_category: newWorkMedium.category,
+                    priority: workRequest.priority,
+                    division_name: newWorkMedium.Division.title,
+                    request_id: workRequest.id,
+                    request_date: new Date(workRequest.created_at).toLocaleDateString('en-IN', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }),
+                    user_name: user.name,
+                    user_email: user.email,
+                    user_department: user.Department?.department_name || 'Not specified',
+                    user_division: user.Division?.title || 'Not specified',
+                    user_job_role: user.JobRole?.role_title || 'Not specified',
+                    user_location: user.Location?.location_name || 'Not specified',
+                    user_designation: user.Designation?.designation_name || 'Not specified',
+                    project_details: workRequest.project_details || 'No detailed description provided.',
+                    priority_capitalized: workRequest.priority.charAt(0).toUpperCase() + workRequest.priority.slice(1),
+                    frontend_url: process.env.FRONTEND_URL || 'http://localhost:3000'
+                });
+
+                const ccEmails = [user.email];
+                if (transferManager.id !== user.id) {
+                    ccEmails.push(transferManager.email);
+                }
+
+                await sendMail({
+                    to: newManager.email,
+                    cc: ccEmails.join(','),
+                    subject: 'Work Request Transferred to You',
+                    html
+                });
             }
         }
 

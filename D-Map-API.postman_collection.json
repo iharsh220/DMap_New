@@ -503,7 +503,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"reason\": \"insufficient_details\",\n  \"message\": \"Please provide more details about the project requirements\"\n}"
+              "raw": "{\n  \"reason\": \"insufficient_details\",\n  \"message\": \"Please provide more details about the project requirements\"\n}\n\n// For incorrect_work_medium:\n// {\n//   \"reason\": \"incorrect_work_medium\",\n//   \"new_work_medium_id\": 2\n// }"
             },
             "url": {
               "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id/defer",
