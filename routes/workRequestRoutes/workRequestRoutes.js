@@ -2,12 +2,15 @@ const express = require('express');
 const router = express.Router();
 const { createWorkRequest, getMyWorkRequests, getWorkRequestById } = require('../../controller/workRequestController/workRequestController');
 const { authenticateToken } = require('../../middleware/jwtMiddleware');
+const filterMiddleware = require('../../middleware/filterMiddleware');
+const paginationMiddleware = require('../../middleware/paginationMiddleware');
+const searchMiddleware = require('../../middleware/searchMiddleware');
 const path = require('path');
 const fs = require('fs');
 
 
 // GET /work-requests/my-requests - Get user's work requests
-router.get('/my-requests', authenticateToken, getMyWorkRequests);
+router.get('/my-requests', authenticateToken, filterMiddleware, paginationMiddleware, searchMiddleware, getMyWorkRequests);
 
 // GET /work-requests/:id - Get work request by ID
 router.get('/:id', authenticateToken, getWorkRequestById);

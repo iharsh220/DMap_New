@@ -277,7 +277,7 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/digilabs/dmap/api/work-requests/my-requests",
+              "raw": "{{base_url}}/digilabs/dmap/api/work-requests/my-requests?page=1&limit=10&search=&searchFields=project_name,brand&priority=&status=",
               "host": [
                 "{{base_url}}"
               ],
@@ -287,9 +287,41 @@
                 "api",
                 "work-requests",
                 "my-requests"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number for pagination"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of items per page"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search term"
+                },
+                {
+                  "key": "searchFields",
+                  "value": "project_name,brand",
+                  "description": "Fields to search in"
+                },
+                {
+                  "key": "priority",
+                  "value": "",
+                  "description": "Filter by priority"
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "description": "Filter by status"
+                }
               ]
             },
-            "description": "Get list of work requests submitted by the authenticated user (requires authentication)"
+            "description": "Get list of work requests submitted by the authenticated user with filtering, pagination, and search (requires authentication)"
           }
         },
         {
@@ -336,7 +368,7 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests",
+              "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests?page=1&limit=10&search=&searchFields=project_name,brand&priority=&status=",
               "host": [
                 "{{base_url}}"
               ],
@@ -346,9 +378,41 @@
                 "api",
                 "manager",
                 "assigned-work-requests"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number for pagination"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of items per page"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search term"
+                },
+                {
+                  "key": "searchFields",
+                  "value": "project_name,brand",
+                  "description": "Fields to search in"
+                },
+                {
+                  "key": "priority",
+                  "value": "",
+                  "description": "Filter by priority"
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "description": "Filter by status"
+                }
               ]
             },
-            "description": "Get list of work requests assigned to the authenticated manager (requires authentication)"
+            "description": "Get list of work requests assigned to the authenticated manager with filtering, pagination, and search (requires authentication and manager role)"
           }
         },
         {
@@ -383,39 +447,6 @@
               ]
             },
             "description": "Get details of a specific work request assigned to the authenticated manager (requires authentication)"
-          }
-        },
-        {
-          "name": "Create Work Request",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/digilabs/dmap/api/work-requests/:id",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "digilabs",
-                "dmap",
-                "api",
-                "work-requests",
-                ":id"
-              ],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": "1",
-                  "description": "Work request ID"
-                }
-              ]
-            },
-            "description": "Get details of a specific work request by ID (requires authentication, user can only access their own requests)"
           }
         },
         {
@@ -481,6 +512,53 @@
               ]
             },
             "description": "Create a new work request with optional file uploads (requires authentication)"
+          }
+        },
+        {
+          "name": "Access Uploaded File",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/digilabs/dmap/api/work-requests/uploads/New_Product_Launch_Campaign/filename.csv",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "digilabs",
+                "dmap",
+                "api",
+                "work-requests",
+                "uploads",
+                "New_Product_Launch_Campaign",
+                "filename.csv"
+              ]
+            },
+            "description": "Access an uploaded file (requires authentication)"
+          }
+        },
+        {
+          "name": "Access Uploaded File (Static)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/uploads/New_Product_Launch_Campaign/filename.csv",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "uploads",
+                "New_Product_Launch_Campaign",
+                "filename.csv"
+              ]
+            },
+            "description": "Access an uploaded file via static serving (public access)"
           }
         }
       ]

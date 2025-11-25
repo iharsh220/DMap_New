@@ -206,10 +206,25 @@ const createWorkRequest = async (req, res) => {
 const getMyWorkRequests = async (req, res) => {
     try {
         const user_id = req.user.id;
+        const { Op } = require('sequelize');
+
+        let where = { user_id };
+
+        // Apply filters
+        if (req.filters) {
+            where = { ...where, ...req.filters };
+        }
+
+        // Apply search
+        if (req.search.term && req.search.fields.length > 0) {
+            where[Op.or] = req.search.fields.map(field => ({
+                [field]: { [Op.like]: `%${req.search.term}%` }
+            }));
+        }
 
         const result = await workRequestService.getAll({
-            where: { user_id },
-            attributes: { exclude: ['work_medium_id', 'requested_manager_id', 'created_at', 'updated_at'] },
+            where,
+            attributes: { exclude: ['work_medium_id', 'requested_manager_id', 'updated_at'] },
             include: [
                 { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
                 { model: WorkMedium, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: require('../../models').Division, as: 'Division', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
@@ -220,11 +235,13 @@ const getMyWorkRequests = async (req, res) => {
                     { model: require('../../models').Location, as: 'Location', attributes: { exclude: ['created_at', 'updated_at'] } }
                 ] }
             ],
+            limit: req.pagination.limit,
+            offset: req.pagination.offset,
             order: [['created_at', 'DESC']]
         });
 
         if (result.success) {
-            res.json({ success: true, data: result.data });
+            res.json({ success: true, data: result.data, pagination: req.pagination });
         } else {
             res.status(500).json({ success: false, error: result.error });
         }
