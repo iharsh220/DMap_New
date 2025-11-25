@@ -32,7 +32,7 @@ const WorkRequests = sequelize.define('WorkRequests', {
     defaultValue: 'medium',
   },
   status: {
-    type: DataTypes.ENUM('draft', 'pending', 'accepted', 'assigned', 'in_progress', 'completed', 'rejected'),
+    type: DataTypes.ENUM('draft', 'pending', 'accepted', 'assigned', 'in_progress', 'completed', 'rejected', 'deferred'),
     defaultValue: 'pending',
   },
   requested_manager_id: {

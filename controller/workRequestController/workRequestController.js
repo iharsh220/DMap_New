@@ -253,7 +253,10 @@ const getMyWorkRequests = async (req, res) => {
 
 const getWorkRequestById = async (req, res) => {
     try {
-        const { id } = req.params;
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) {
+            return res.status(400).json({ success: false, error: 'Invalid work request ID' });
+        }
         const user_id = req.user.id;
 
         const result = await workRequestService.getAll({

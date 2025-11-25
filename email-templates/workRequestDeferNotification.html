@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Work Request Deferred - D-Map</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 40px 30px;
+        }
+        .welcome-message {
+            font-size: 18px;
+            font-weight: 500;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #856404;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #0c5460;
+        }
+        .features-list {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+        }
+        .features-list ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .features-list li {
+            margin-bottom: 8px;
+            color: #495057;
+        }
+        .support {
+            background-color: #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 25px 0;
+            text-align: center;
+        }
+        .support a {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .action-button {
+            display: inline-block;
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            margin: 10px 0;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            font-size: 12px;
+            color: #6c757d;
+            border-top: 1px solid #dee2e6;
+        }
+        .footer p {
+            margin: 0;
+        }
+        @media (max-width: 600px) {
+            .container {
+                margin: 10px;
+                border-radius: 8px;
+            }
+            .header, .content, .footer {
+                padding: 20px;
+            }
+            .header h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Work Request Deferred</h1>
+        </div>
+        <div class="content">
+            <div class="welcome-message">
+                Work Request Deferred - Action Required
+            </div>
+
+            <div class="warning">
+                <strong>Your work request has been deferred by the manager due to insufficient details.</strong><br>
+                Please review the feedback below and provide the requested information.
+            </div>
+
+            <div class="info">
+                <strong>Manager Feedback:</strong><br>
+                {{message}}
+            </div>
+
+            <div class="info">
+                <strong>Work Request Details:</strong>
+                <ul>
+                    <li><strong>Project Name:</strong> {{project_name}}</li>
+                    <li><strong>Brand:</strong> {{brand}}</li>
+                    <li><strong>Request Date:</strong> {{request_date}}</li>
+                </ul>
+            </div>
+
+            <p><strong>Next Steps:</strong></p>
+            <div class="features-list">
+                <ul>
+                    <li>Review the manager's feedback carefully</li>
+                    <li>Provide the additional details requested</li>
+                    <li>Update your work request with more comprehensive information</li>
+                    <li>Contact the manager directly if you need clarification</li>
+                </ul>
+            </div>
+
+            <div style="text-align: center;">
+                <a href="{{frontend_url}}/dashboard" class="action-button">
+                    Update Request
+                </a>
+            </div>
+
+            <div class="support">
+                <p>Contact the manager at <a href="mailto:{{manager_email}}">{{manager_email}}</a> for any questions or support at <a href="mailto:support@alembicdigilabs.com">support@alembicdigilabs.com</a></p>
+            </div>
+        </div>
+        <div class="footer">
+            <p>This is an automated message from D-Map. Please do not reply to this email.</p>
+            <p>&copy; 2025 Alembic Digital Labs. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

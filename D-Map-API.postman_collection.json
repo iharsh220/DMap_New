@@ -446,7 +446,81 @@
                 }
               ]
             },
-            "description": "Get details of a specific work request assigned to the authenticated manager (requires authentication)"
+            "description": "Get details of a specific work request assigned to the authenticated manager (requires authentication and manager role)"
+          }
+        },
+        {
+          "name": "Accept Work Request (Manager)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id/accept",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "digilabs",
+                "dmap",
+                "api",
+                "manager",
+                "assigned-work-requests",
+                ":id",
+                "accept"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Work request ID"
+                }
+              ]
+            },
+            "description": "Accept a work request assigned to the authenticated manager (requires authentication and manager role)"
+          }
+        },
+        {
+          "name": "Defer Work Request (Manager)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"insufficient_details\",\n  \"message\": \"Please provide more details about the project requirements\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id/defer",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "digilabs",
+                "dmap",
+                "api",
+                "manager",
+                "assigned-work-requests",
+                ":id",
+                "defer"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Work request ID"
+                }
+              ]
+            },
+            "description": "Defer a work request with reason (insufficient_details or incorrect_work_medium) and optional message for insufficient_details (requires authentication and manager role)"
           }
         },
         {
