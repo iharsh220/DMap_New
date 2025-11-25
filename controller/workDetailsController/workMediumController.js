@@ -7,7 +7,15 @@ const workMediumService = new CrudService(WorkMedium);
 // Get all work mediums
 const getAllWorkMediums = async (req, res) => {
     try {
+        const { Op } = require('sequelize');
+        const where = {};
+
+        if (req.query.exclude_work_medium_id) {
+            where.id = { [Op.ne]: parseInt(req.query.exclude_work_medium_id) };
+        }
+
         const workMediumResult = await workMediumService.getAll({
+            where,
             attributes: ['id', 'type', 'category', 'description', 'division_id']
         });
 
@@ -25,6 +33,7 @@ const getAllWorkMediums = async (req, res) => {
                 acc[item.type] = [];
             }
             acc[item.type].push({
+                id: item.id,
                 category: item.category,
                 description: item.description,
                 division_id: item.division_id

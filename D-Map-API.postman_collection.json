@@ -247,7 +247,7 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/digilabs/dmap/api/work-mediums",
+              "raw": "{{base_url}}/digilabs/dmap/api/work-mediums?exclude_work_medium_id=",
               "host": [
                 "{{base_url}}"
               ],
@@ -256,9 +256,16 @@
                 "dmap",
                 "api",
                 "work-mediums"
+              ],
+              "query": [
+                {
+                  "key": "exclude_work_medium_id",
+                  "value": "",
+                  "description": "ID of work medium to exclude from results (optional)"
+                }
               ]
             },
-            "description": "Get all work mediums grouped by type (requires authentication)"
+            "description": "Get all work mediums grouped by type, optionally excluding a specific work medium (requires authentication)"
           }
         }
       ]
