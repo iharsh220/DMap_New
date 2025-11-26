@@ -68,10 +68,11 @@ if (cluster.isMaster) {
     }));
     app.use(compression());
     app.use(express.json());
+    
     app.use(express.urlencoded({ extended: true }));
     app.use(fileUpload());
     app.use('/uploads', express.static('uploads'));
-    
+
     // Rate limiting
     const limiter = require('./middleware/rateLimitMiddleware');
     app.use(limiter);

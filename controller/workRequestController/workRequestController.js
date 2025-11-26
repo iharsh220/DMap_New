@@ -14,7 +14,9 @@ const {
 } = require('../../models');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
+const { queueFileUpload } = require('../../services/fileUploadService');
 const path = require('path');
+const fs = require('fs');
 
 const workRequestService = new CrudService(WorkRequests);
 
@@ -99,22 +101,38 @@ const createWorkRequest = async (req, res) => {
                 // Generate unique filename
                 const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
                 const filename = file.name.replace(/[^a-zA-Z0-9.]/g, '_') + '-' + uniqueSuffix + path.extname(file.name);
-                const filepath = path.join(req.uploadPath, filename);
 
-                // Move file to upload path
-                await file.mv(filepath);
+                // Create temp directory if it doesn't exist
+                const tempDir = path.join('temp', 'uploads');
+                if (!fs.existsSync(tempDir)) {
+                    fs.mkdirSync(tempDir, { recursive: true });
+                }
+
+                // Save file to temp location
+                const tempFilename = `temp-${uniqueSuffix}-${filename}`;
+                const tempFilepath = path.join(tempDir, tempFilename);
+                await file.mv(tempFilepath);
 
                 const documentData = {
                     work_request_id: workRequestId,
                     document_name: file.name,
-                    document_path: `/work-requests/uploads/${req.projectName}/${filename}`,
+                    document_path: `/uploads/${req.projectName}/${filename}`,
                     document_type: file.mimetype,
                     document_size: file.size,
+                    status: 'uploading',
                     uploaded_at: new Date()
                 };
 
                 const docResult = await WorkRequestDocuments.create(documentData);
                 documents.push(docResult);
+
+                // Queue file upload
+                await queueFileUpload({
+                    documentId: docResult.id,
+                    tempFilepath: tempFilepath,
+                    uploadPath: req.uploadPath,
+                    filename: filename
+                });
             }
         }
 
@@ -157,11 +175,11 @@ const createWorkRequest = async (req, res) => {
                 priority_capitalized: result.data.priority.charAt(0).toUpperCase() + result.data.priority.slice(1),
                 frontend_url: process.env.FRONTEND_URL || 'http://localhost:3000'
             });
-            await sendMail({
-                to: user.email,
-                subject: 'Work Request Submitted Successfully',
-                html: userEmailHtml
-            });
+            // await sendMail({
+            //     to: user.email,
+            //     subject: 'Work Request Submitted Successfully',
+            //     html: userEmailHtml
+            // });
 
             // Email to manager
             const managerEmailHtml = renderTemplate('workRequestManagerNotification', {
@@ -190,11 +208,11 @@ const createWorkRequest = async (req, res) => {
                 priority_capitalized: result.data.priority.charAt(0).toUpperCase() + result.data.priority.slice(1),
                 frontend_url: process.env.FRONTEND_URL || 'http://localhost:3000'
             });
-            await sendMail({
-                to: manager.email,
-                subject: 'New Work Request Submitted',
-                html: managerEmailHtml
-            });
+            // await sendMail({
+            //     to: manager.email,
+            //     subject: 'New Work Request Submitted',
+            //     html: managerEmailHtml
+            // });
         }
 
         res.status(201).json({

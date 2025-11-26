@@ -27,6 +27,10 @@ const WorkRequestDocuments = sequelize.define('WorkRequestDocuments', {
     type: DataTypes.INTEGER,
     allowNull: true,
   },
+  status: {
+    type: DataTypes.ENUM('uploading', 'uploaded', 'failed'),
+    defaultValue: 'uploading',
+  },
   uploaded_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,

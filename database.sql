@@ -575,6 +575,7 @@ CREATE TABLE `work_request_documents` (
   `document_path` varchar(500) NOT NULL,
   `document_type` varchar(50) DEFAULT NULL,
   `document_size` int(11) DEFAULT NULL,
+  `status` enum('uploading','uploaded','failed') DEFAULT 'uploading',
   `uploaded_at` timestamp NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
