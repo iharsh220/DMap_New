@@ -475,7 +475,7 @@ INSERT INTO `users` (`id`, `name`, `email`, `phone`, `password`, `department_id`
 (9, 'Bhagwan Parab', 'bhagwan.parab@alembic.co.in', '1234567890', '$2a$10$13zqXGBAuAF/pcF4XHxvi.lEo8flBZCOnw/qq.fBJfZ57eAJcfj42', 9, 2, 1, 16, 1, 'active', NULL, 0, NULL, '2025-11-25 06:14:31', '2026-02-23 06:14:31', '2025-11-25 06:10:40', '2025-11-25 06:14:31'),
 (10, 'Harsh Gohil', 'harsh.gohil@alembic.co.in', '1234567890', '$2a$10$Kc.lwpVnKYKTOyVEkEaR5eCEcMqK7SjbnjpwgIB.LiAN/pLagxVeO', 9, 4, 1, 20, 1, 'active', '2025-11-26 04:00:05', 0, NULL, '2025-11-25 06:15:53', '2026-02-23 06:15:53', '2025-11-25 06:14:56', '2025-11-26 04:00:05'),
 (11, 'Mohanish Padwal', 'mohanish.padwal@alembic.co.in', '1234567890', '$2a$10$lbDnrhd.6O4EvCFNTeDt1.SngPt.IqHZkvw3jtUwjKTrEWoIbcDO.', 9, 2, 1, 16, 1, 'active', '2025-11-26 04:25:25', 0, NULL, '2025-11-25 06:17:31', '2026-02-23 06:17:31', '2025-11-25 06:16:23', '2025-11-26 04:25:25'),
-(12, 'Nikhil Nadkar', 'nikhil.nadkar@alembic.co.in', '1234567890', '$2a$10$Txudkx41QciW8euyVoodNOIa4seUXViVsWc.UN3RCdxg0KrcFfssW', 1, 5, 1, 8, 1, 'active', '2025-11-25 09:26:49', 0, NULL, '2025-11-25 06:19:02', '2026-02-23 06:19:02', '2025-11-25 06:17:55', '2025-11-25 09:26:49'),
+(12, 'Nikhil Nadkar', 'nikhil.nadkar12@alembic.co.in', '1234567890', '$2a$10$Txudkx41QciW8euyVoodNOIa4seUXViVsWc.UN3RCdxg0KrcFfssW', 1, 5, 1, 8, 1, 'active', '2025-11-25 09:26:49', 0, NULL, '2025-11-25 06:19:02', '2026-02-23 06:19:02', '2025-11-25 06:17:55', '2025-11-25 09:26:49'),
 (13, 'Gautam Barnawal', 'gautam.baranwal@alembic.co.in', '1234567890', '$2a$10$ELYSn.TNQYl4.ppKulgaFeenW5Stt3wzMzeymt1O0hyAfzxnKGxZq', 9, 4, 1, 19, 1, 'active', NULL, 0, NULL, '2025-11-26 02:42:48', '2026-02-24 02:42:48', '2025-11-25 10:46:13', '2025-11-26 02:42:48'),
 (14, 'Vinisha Chadala', 'vinisha.chadala@alembic.co.in', '1234567890', '$2a$10$Fehw59cHdrrS0KdlB.koo.3aqM85F0soHulTlyn7Ga9ICb7XBbFGe', 9, 4, 1, 19, 1, 'active', NULL, 0, NULL, '2025-11-26 04:20:56', '2026-02-24 04:20:56', '2025-11-26 04:19:06', '2025-11-26 04:20:56'),
 (15, 'Vikaram Rai', 'vikramr.rai@alembic.co.in', '1234567890', '$2a$10$eMdj3uvEko0L26oRtV0veeoxZzMsiHwaHdW66FQ63bBN3ssboQN6q', 9, 2, 1, 16, 1, 'active', NULL, 0, NULL, '2025-11-26 04:33:08', '2026-02-24 04:33:08', '2025-11-26 04:31:28', '2025-11-26 04:33:08');
@@ -553,7 +553,7 @@ CREATE TABLE `work_requests` (
   `project_details` text DEFAULT NULL,
   `priority` enum('low','medium','high','critical') DEFAULT 'medium',
   `status` enum('draft','pending','accepted','assigned','in_progress','completed','rejected') DEFAULT 'pending',
-  `requested_manager_id` int(11) DEFAULT NULL,
+  `requested_manager_link_id` int(11) DEFAULT NULL,
   `requested_at` datetime DEFAULT NULL,
   `remarks` text DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
@@ -564,11 +564,35 @@ CREATE TABLE `work_requests` (
 -- Dumping data for table `work_requests`
 --
 
-INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `work_medium_id`, `project_details`, `priority`, `status`, `requested_manager_id`, `requested_at`, `remarks`, `created_at`, `updated_at`) VALUES
-(45, 12, 'Resync Project', 'Resync', 2, 'Resync Eyes strain ', 'medium', 'pending', 11, '2025-11-25 06:35:16', NULL, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(47, 12, 'Resync Poster maker', 'Resync', 1, 'Resync Poster maker', 'high', 'pending', 9, '2025-11-25 06:41:39', '', '2025-11-25 06:41:39', '2025-11-25 06:41:39'),
-(48, 12, 'Eye strain poster banner', 'Resync', 1, 'Eye strain poster banner event', 'high', 'pending', 9, '2025-11-25 06:44:54', NULL, '2025-11-25 06:44:54', '2025-11-25 07:27:36'),
-(55, 11, 'file upload testing big file', 'Testing', 2, 'Detailed description of the project requirements', 'high', 'pending', 11, '2025-11-25 09:45:44', 'Any additional remarks', '2025-11-25 09:45:44', '2025-11-25 09:45:44');
+INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `work_medium_id`, `project_details`, `priority`, `status`, `requested_manager_link_id`, `requested_at`, `remarks`, `created_at`, `updated_at`) VALUES
+(45, 12, 'Resync Project', 'Resync', 2, 'Resync Eyes strain ', 'medium', 'pending', 1, '2025-11-25 06:35:16', NULL, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(47, 12, 'Resync Poster maker', 'Resync', 1, 'Resync Poster maker', 'high', 'pending', 2, '2025-11-25 06:41:39', '', '2025-11-25 06:41:39', '2025-11-25 06:41:39'),
+(48, 12, 'Eye strain poster banner', 'Resync', 1, 'Eye strain poster banner event', 'high', 'pending', 3, '2025-11-25 06:44:54', NULL, '2025-11-25 06:44:54', '2025-11-25 07:27:36'),
+(55, 11, 'file upload testing big file', 'Testing', 2, 'Detailed description of the project requirements', 'high', 'pending', 4, '2025-11-25 09:45:44', 'Any additional remarks', '2025-11-25 09:45:44', '2025-11-25 09:45:44');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `work_request_managers`
+--
+
+CREATE TABLE `work_request_managers` (
+  `id` int(11) NOT NULL,
+  `work_request_id` int(11) NOT NULL,
+  `manager_id` int(11) NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Dumping data for table `work_request_managers`
+--
+
+INSERT INTO `work_request_managers` (`id`, `work_request_id`, `manager_id`, `created_at`, `updated_at`) VALUES
+(1, 45, 11, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(2, 47, 9, '2025-11-25 06:41:39', '2025-11-25 06:41:39'),
+(3, 48, 9, '2025-11-25 06:44:54', '2025-11-25 06:44:54'),
+(4, 55, 11, '2025-11-25 09:45:44', '2025-11-25 09:45:44');
 
 -- --------------------------------------------------------
 
@@ -709,7 +733,7 @@ ALTER TABLE `work_requests`
   ADD PRIMARY KEY (`id`),
   ADD KEY `user_id` (`user_id`),
   ADD KEY `work_medium_id` (`work_medium_id`),
-  ADD KEY `requested_manager_id` (`requested_manager_id`),
+  ADD KEY `requested_manager_link_id` (`requested_manager_link_id`),
   ADD KEY `idx_work_requests_status` (`status`),
   ADD KEY `idx_work_requests_priority` (`priority`),
   ADD KEY `idx_work_requests_created_at` (`created_at`),
@@ -717,9 +741,16 @@ ALTER TABLE `work_requests`
   ADD KEY `idx_work_requests_project_name` (`project_name`),
   ADD KEY `idx_work_requests_brand` (`brand`),
   ADD KEY `idx_work_requests_search` (`status`,`priority`,`created_at`),
-  ADD KEY `idx_work_requests_user_search` (`user_id`,`status`,`created_at`),
-  ADD KEY `idx_work_requests_manager_search` (`requested_manager_id`,`status`,`created_at`);
+  ADD KEY `idx_work_requests_user_search` (`user_id`,`status`,`created_at`);
 ALTER TABLE `work_requests` ADD FULLTEXT KEY `ft_work_requests_content` (`project_name`,`brand`,`project_details`);
+
+--
+-- Indexes for table `work_request_managers`
+--
+ALTER TABLE `work_request_managers`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `work_request_id` (`work_request_id`),
+  ADD KEY `manager_id` (`manager_id`);
 
 --
 -- Indexes for table `work_request_documents`
@@ -811,6 +842,12 @@ ALTER TABLE `work_requests`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=56;
 
 --
+-- AUTO_INCREMENT for table `work_request_managers`
+--
+ALTER TABLE `work_request_managers`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
 -- AUTO_INCREMENT for table `work_request_documents`
 --
 ALTER TABLE `work_request_documents`
@@ -890,7 +927,14 @@ ALTER TABLE `work_medium`
 ALTER TABLE `work_requests`
   ADD CONSTRAINT `work_requests_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `work_requests_ibfk_2` FOREIGN KEY (`work_medium_id`) REFERENCES `work_medium` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `work_requests_ibfk_3` FOREIGN KEY (`requested_manager_id`) REFERENCES `users` (`id`) ON DELETE SET NULL;
+  ADD CONSTRAINT `work_requests_ibfk_3` FOREIGN KEY (`requested_manager_link_id`) REFERENCES `work_request_managers` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `work_request_managers`
+--
+ALTER TABLE `work_request_managers`
+  ADD CONSTRAINT `work_request_managers_ibfk_1` FOREIGN KEY (`work_request_id`) REFERENCES `work_requests` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `work_request_managers_ibfk_2` FOREIGN KEY (`manager_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `work_request_documents`
