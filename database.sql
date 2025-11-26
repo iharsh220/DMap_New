@@ -407,7 +407,7 @@ CREATE TABLE `tasks` (
   `assigned_by_id` int(11) DEFAULT NULL,
   `division_id` int(11) DEFAULT NULL,
   `work_type` enum('Design','Video','Development','Marketing','Content','Photography','Branding','UI/UX','Backend','New Mod') DEFAULT 'Design',
-  `work_medium_id` int(11) DEFAULT NULL,
+  `request_type_id` int(11) DEFAULT NULL,
   `task_type` varchar(100) DEFAULT NULL,
   `artist_id` int(11) DEFAULT NULL,
   `manager_id` int(11) DEFAULT NULL,
@@ -514,10 +514,10 @@ INSERT INTO `user_divisions` (`id`, `user_id`, `division_id`, `created_at`, `upd
 -- --------------------------------------------------------
 
 --
--- Table structure for table `work_medium`
+-- Table structure for table `request_type`
 --
 
-CREATE TABLE `work_medium` (
+CREATE TABLE `request_type` (
   `id` int(11) NOT NULL,
   `type` varchar(100) NOT NULL,
   `category` varchar(100) NOT NULL,
@@ -528,10 +528,10 @@ CREATE TABLE `work_medium` (
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
 --
--- Dumping data for table `work_medium`
+-- Dumping data for table `request_type`
 --
 
-INSERT INTO `work_medium` (`id`, `type`, `category`, `description`, `division_id`, `created_at`, `updated_at`) VALUES
+INSERT INTO `request_type` (`id`, `type`, `category`, `description`, `division_id`, `created_at`, `updated_at`) VALUES
 (1, 'DIGITAL', 'Digital Creatives', 'Infographics, Social Media, Magazine, etc.', 1, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
 (2, 'DIGITAL', 'Web Application', 'VA HTMLization, Websites, Brand Gamifications, etc...', 5, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
 (3, 'PRINT', 'Print Creatives', 'Posters, Banners, LBL, Standees, etc.', 1, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
@@ -556,7 +556,7 @@ CREATE TABLE `work_requests` (
   `user_id` int(11) NOT NULL,
   `project_name` varchar(255) NOT NULL,
   `brand` varchar(100) DEFAULT NULL,
-  `work_medium_id` int(11) NOT NULL,
+  `request_type_id` int(11) NOT NULL,
   `project_details` text DEFAULT NULL,
   `priority` enum('low','medium','high','critical') DEFAULT 'medium',
   `status` enum('draft','pending','accepted','assigned','in_progress','completed','rejected') DEFAULT 'pending',
@@ -570,7 +570,7 @@ CREATE TABLE `work_requests` (
 -- Dumping data for table `work_requests`
 --
 
-INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `work_medium_id`, `project_details`, `priority`, `status`, `requested_at`, `remarks`, `created_at`, `updated_at`) VALUES
+INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `request_type_id`, `project_details`, `priority`, `status`, `requested_at`, `remarks`, `created_at`, `updated_at`) VALUES
 (45, 12, 'Resync Project', 'Resync', 2, 'Resync Eyes strain ', 'medium', 'pending', '2025-11-25 06:35:16', NULL, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
 (47, 12, 'Resync Poster maker', 'Resync', 1, 'Resync Poster maker', 'high', 'pending', '2025-11-25 06:41:39', '', '2025-11-25 06:41:39', '2025-11-25 06:41:39'),
 (48, 12, 'Eye strain poster banner', 'Resync', 1, 'Eye strain poster banner event', 'high', 'pending', '2025-11-25 06:44:54', NULL, '2025-11-25 06:44:54', '2025-11-25 07:27:36'),
@@ -701,7 +701,7 @@ ALTER TABLE `sales`
 ALTER TABLE `tasks`
   ADD PRIMARY KEY (`id`),
   ADD KEY `division_id` (`division_id`),
-  ADD KEY `work_medium_id` (`work_medium_id`),
+  ADD KEY `request_type_id` (`request_type_id`),
   ADD KEY `manager_id` (`manager_id`),
   ADD KEY `assigned_by_id` (`assigned_by_id`),
   ADD KEY `artist_id` (`artist_id`);
@@ -726,9 +726,9 @@ ALTER TABLE `user_divisions`
   ADD KEY `division_id` (`division_id`);
 
 --
--- Indexes for table `work_medium`
+-- Indexes for table `request_type`
 --
-ALTER TABLE `work_medium`
+ALTER TABLE `request_type`
   ADD PRIMARY KEY (`id`),
   ADD KEY `division_id` (`division_id`);
 
@@ -738,7 +738,7 @@ ALTER TABLE `work_medium`
 ALTER TABLE `work_requests`
   ADD PRIMARY KEY (`id`),
   ADD KEY `user_id` (`user_id`),
-  ADD KEY `work_medium_id` (`work_medium_id`),
+  ADD KEY `request_type_id` (`request_type_id`),
   ADD KEY `idx_work_requests_status` (`status`),
   ADD KEY `idx_work_requests_priority` (`priority`),
   ADD KEY `idx_work_requests_created_at` (`created_at`),
@@ -835,9 +835,9 @@ ALTER TABLE `user_divisions`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
--- AUTO_INCREMENT for table `work_medium`
+-- AUTO_INCREMENT for table `request_type`
 --
-ALTER TABLE `work_medium`
+ALTER TABLE `request_type`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
@@ -899,7 +899,7 @@ ALTER TABLE `sales`
 --
 ALTER TABLE `tasks`
   ADD CONSTRAINT `tasks_ibfk_1` FOREIGN KEY (`division_id`) REFERENCES `division` (`id`) ON DELETE SET NULL,
-  ADD CONSTRAINT `tasks_ibfk_2` FOREIGN KEY (`work_medium_id`) REFERENCES `work_medium` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `tasks_ibfk_2` FOREIGN KEY (`request_type_id`) REFERENCES `request_type` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `tasks_ibfk_4` FOREIGN KEY (`manager_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `tasks_ibfk_5` FOREIGN KEY (`assigned_by_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `tasks_ibfk_6` FOREIGN KEY (`artist_id`) REFERENCES `users` (`id`) ON DELETE SET NULL;
@@ -921,17 +921,17 @@ ALTER TABLE `user_divisions`
   ADD CONSTRAINT `user_divisions_ibfk_2` FOREIGN KEY (`division_id`) REFERENCES `division` (`id`) ON DELETE CASCADE;
 
 --
--- Constraints for table `work_medium`
+-- Constraints for table `request_type`
 --
-ALTER TABLE `work_medium`
-  ADD CONSTRAINT `work_medium_ibfk_1` FOREIGN KEY (`division_id`) REFERENCES `division` (`id`);
+ALTER TABLE `request_type`
+  ADD CONSTRAINT `request_type_ibfk_1` FOREIGN KEY (`division_id`) REFERENCES `division` (`id`);
 
 --
 -- Constraints for table `work_requests`
 --
 ALTER TABLE `work_requests`
   ADD CONSTRAINT `work_requests_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `work_requests_ibfk_2` FOREIGN KEY (`work_medium_id`) REFERENCES `work_medium` (`id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `work_requests_ibfk_2` FOREIGN KEY (`request_type_id`) REFERENCES `request_type` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `work_request_managers`

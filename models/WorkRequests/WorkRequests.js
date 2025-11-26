@@ -19,7 +19,7 @@ const WorkRequests = sequelize.define('WorkRequests', {
     type: DataTypes.STRING(100),
     allowNull: true,
   },
-  work_medium_id: {
+  request_type_id: {
     type: DataTypes.INTEGER,
     allowNull: false,
   },

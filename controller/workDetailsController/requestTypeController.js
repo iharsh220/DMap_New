@@ -1,35 +1,35 @@
 const { Op } = require('sequelize');
 const CrudService = require('../../services/crudService');
-const { WorkMedium } = require('../../models');
+const { RequestType } = require('../../models');
 
 // Create service instance
-const workMediumService = new CrudService(WorkMedium);
+const RequestTypeService = new CrudService(RequestType);
 
-// Get all work mediums
-const getAllWorkMediums = async (req, res) => {
+// Get all request types
+const getAllRequestTypes = async (req, res) => {
     try {
-        
+
         const where = {};
 
-        if (req.query.exclude_work_medium_id) {
-            where.id = { [Op.ne]: parseInt(req.query.exclude_work_medium_id) };
+        if (req.query.exclude_request_type_id) {
+            where.id = { [Op.ne]: parseInt(req.query.exclude_request_type_id) };
         }
 
-        const workMediumResult = await workMediumService.getAll({
+        const RequestTypeResult = await RequestTypeService.getAll({
             where,
             attributes: ['id', 'type', 'category', 'description', 'division_id']
         });
 
-        if (!workMediumResult.success) {
+        if (!RequestTypeResult.success) {
             return res.status(500).json({
                 success: false,
-                error: 'Failed to retrieve work mediums',
-                message: 'Failed to retrieve work mediums'
+                error: 'Failed to retrieve request types',
+                message: 'Failed to retrieve request types'
             });
         }
 
         // Group by type
-        const groupedData = workMediumResult.data.reduce((acc, item) => {
+        const groupedData = RequestTypeResult.data.reduce((acc, item) => {
             if (!acc[item.type]) {
                 acc[item.type] = [];
             }
@@ -45,16 +45,16 @@ const getAllWorkMediums = async (req, res) => {
         res.status(200).json({
             success: true,
             data: groupedData,
-            message: 'Work mediums retrieved successfully'
+            message: 'Request types retrieved successfully'
         });
     } catch (error) {
-        console.error('Error in getAllWorkMediums:', error);
+        console.error('Error in getAllRequestTypes:', error);
         res.status(500).json({
             success: false,
             error: error.message,
-            message: 'Failed to retrieve work mediums'
+            message: 'Failed to retrieve request types'
         });
     }
 };
 
-module.exports = getAllWorkMediums;
+module.exports = getAllRequestTypes;

@@ -234,10 +234,10 @@
       ]
     },
     {
-      "name": "workMedium",
+      "name": "RequestType",
       "item": [
         {
-          "name": "Get All Work Mediums",
+          "name": "Get All request types",
           "request": {
             "method": "GET",
             "header": [
@@ -247,7 +247,7 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/digilabs/dmap/api/work-mediums?exclude_work_medium_id=",
+              "raw": "{{base_url}}/digilabs/dmap/api/request-types?exclude_request_type_id=",
               "host": [
                 "{{base_url}}"
               ],
@@ -255,17 +255,17 @@
                 "digilabs",
                 "dmap",
                 "api",
-                "work-mediums"
+                "request-types"
               ],
               "query": [
                 {
-                  "key": "exclude_work_medium_id",
+                  "key": "exclude_request_type_id",
                   "value": "",
-                  "description": "ID of work medium to exclude from results (optional)"
+                  "description": "ID of request type to exclude from results (optional)"
                 }
               ]
             },
-            "description": "Get all work mediums grouped by type, optionally excluding a specific work medium (requires authentication)"
+            "description": "Get all request types grouped by type, optionally excluding a specific request type (requires authentication)"
           }
         }
       ]
@@ -503,7 +503,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"reason\": \"insufficient_details\",\n  \"message\": \"Please provide more details about the project requirements\"\n}\n\n// For incorrect_work_medium:\n// {\n//   \"reason\": \"incorrect_work_medium\",\n//   \"new_work_medium_id\": 2\n// }"
+              "raw": "{\n  \"reason\": \"insufficient_details\",\n  \"message\": \"Please provide more details about the project requirements\"\n}\n\n// For incorrect_request_type:\n// {\n//   \"reason\": \"incorrect_request_type\",\n//   \"new_request_type_id\": 2\n// }"
             },
             "url": {
               "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id/defer",
@@ -527,7 +527,7 @@
                 }
               ]
             },
-            "description": "Defer a work request with reason (insufficient_details or incorrect_work_medium) and optional message for insufficient_details (requires authentication and manager role)"
+            "description": "Defer a work request with reason (insufficient_details or incorrect_request_type) and optional message for insufficient_details (requires authentication and manager role)"
           }
         },
         {
@@ -554,7 +554,7 @@
                   "type": "text"
                 },
                 {
-                  "key": "work_medium_id",
+                  "key": "request_type_id",
                   "value": "1",
                   "type": "text"
                 },

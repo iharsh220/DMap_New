@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../../config/databaseConfig');
 
-const WorkMedium = sequelize.define('WorkMedium', {
+const RequestType = sequelize.define('RequestType', {
   id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
@@ -32,10 +32,10 @@ const WorkMedium = sequelize.define('WorkMedium', {
     defaultValue: DataTypes.NOW,
   },
 }, {
-  tableName: 'work_medium',
+  tableName: 'request_type',
   timestamps: true,
   createdAt: 'created_at',
   updatedAt: 'updated_at',
 });
 
-module.exports = WorkMedium;
+module.exports = RequestType;

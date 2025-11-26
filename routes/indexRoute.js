@@ -5,7 +5,7 @@ const path = require('path');
 // Import route modules
 const authRoutes = require('./authRoute/authRoute');
 const departmentRoutes = require('./workDetailsRoutes/departmentRoutes');
-const workMediumRoutes = require('./workDetailsRoutes/workMediumRoutes');
+const requestTypeRoutes = require('./workDetailsRoutes/requestTypeRoutes');
 const workRequestRoutes = require('./workRequestRoutes/workRequestRoutes');
 const managerAssignedRoutes = require('./managerAssignedRoutes/managerAssignedRoutes');
 
@@ -15,7 +15,7 @@ router.use('/auth', authRoutes);
 
 //Work Details Routes
 router.use('/departments', departmentRoutes);
-router.use('/work-mediums', workMediumRoutes);
+router.use('/request-types', requestTypeRoutes);
 
 router.use('/work-requests', workRequestRoutes);
 

@@ -27,7 +27,7 @@ const Tasks = sequelize.define('Tasks', {
     type: DataTypes.ENUM('Design', 'Video', 'Development', 'Marketing', 'Content', 'Photography', 'Branding', 'UI/UX', 'Backend', 'New Mod'),
     defaultValue: 'Design',
   },
-  work_medium_id: {
+  request_type_id: {
     type: DataTypes.INTEGER,
     allowNull: true,
   },

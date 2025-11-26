@@ -2,7 +2,7 @@ const { Op } = require('sequelize');
 const CrudService = require('../../services/crudService');
 const {
     WorkRequests,
-    WorkMedium,
+    RequestType,
     User,
     WorkRequestDocuments,
     WorkRequestManagers,
@@ -24,31 +24,31 @@ const workRequestService = new CrudService(WorkRequests);
 // Create work request
 const createWorkRequest = async (req, res) => {
     try {
-        const { project_name, brand, work_medium_id, project_details, priority = 'medium', remarks, isdraft = 'false' } = req.body;
+        const { project_name, brand, request_type_id, project_details, priority = 'medium', remarks, isdraft = 'false' } = req.body;
         const user_id = req.user.id; // From JWT middleware
 
         // Validate required fields
-        if (!project_name || !work_medium_id) {
+        if (!project_name || !request_type_id) {
             return res.status(400).json({
                 success: false,
-                error: 'Project name and work medium ID are required'
+                error: 'Project name and request type ID are required'
             });
         }
 
-        // Get work medium to find division
-        const workMedium = await WorkMedium.findByPk(work_medium_id, {
+        // Get request type to find division
+        const requestType = await RequestType.findByPk(request_type_id, {
             include: [{ model: Division, as: 'Division' }]
         });
-        if (!workMedium) {
+        if (!requestType) {
             return res.status(400).json({
                 success: false,
-                error: 'Invalid work medium ID'
+                error: 'Invalid request type ID'
             });
         }
 
         // Find managers in the same division with Creative Manager role
         const userDivisions = await UserDivisions.findAll({
-            where: { division_id: workMedium.division_id },
+            where: { division_id: requestType.division_id },
             include: [{
                 model: User,
                 where: { job_role_id: 2, account_status: 'active' },
@@ -65,7 +65,7 @@ const createWorkRequest = async (req, res) => {
         if (managers.length === 0) {
             return res.status(400).json({
                 success: false,
-                error: 'No manager found for this work medium'
+                error: 'No manager found for this request type'
             });
         }
 
@@ -74,7 +74,7 @@ const createWorkRequest = async (req, res) => {
             user_id,
             project_name,
             brand,
-            work_medium_id,
+            request_type_id: request_type_id,
             project_details,
             priority,
             status: isdraft === 'true' ? 'draft' : 'pending',
@@ -173,10 +173,10 @@ const createWorkRequest = async (req, res) => {
                 manager_location: firstManager.Location?.location_name || 'N/A',
                 project_name: result.data.project_name,
                 brand: result.data.brand || 'Not specified',
-                work_medium_type: workMedium.type,
-                work_medium_category: workMedium.category,
+                request_type_type: requestType.type,
+                request_type_category: requestType.category,
                 priority: result.data.priority,
-                division_name: workMedium.Division.title,
+                division_name: requestType.Division.title,
                 request_id: result.data.id,
                 request_date: new Date(result.data.created_at).toLocaleDateString('en-IN', {
                     year: 'numeric',
@@ -199,10 +199,10 @@ const createWorkRequest = async (req, res) => {
             const managerEmailHtml = renderTemplate('workRequestManagerNotification', {
                 project_name: result.data.project_name,
                 brand: result.data.brand || 'Not specified',
-                work_medium_type: workMedium.type,
-                work_medium_category: workMedium.category,
+                request_type_type: requestType.type,
+                request_type_category: requestType.category,
                 priority: result.data.priority,
-                division_name: workMedium.Division.title,
+                division_name: requestType.Division.title,
                 request_id: result.data.id,
                 request_date: new Date(result.data.created_at).toLocaleDateString('en-IN', {
                     year: 'numeric',
@@ -268,10 +268,10 @@ const getMyWorkRequests = async (req, res) => {
 
         const result = await workRequestService.getAll({
             where,
-            attributes: { exclude: ['work_medium_id', 'updated_at'] },
+            attributes: { exclude: ['request_type_id', 'updated_at'] },
             include: [
                 { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
-                { model: WorkMedium, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, as: 'Division', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
+                { model: RequestType, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, as: 'Division', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
                 {
                     model: WorkRequestManagers, attributes: { exclude: ['created_at', 'updated_at'] }, include: [
                         {
@@ -311,10 +311,10 @@ const getWorkRequestById = async (req, res) => {
 
         const result = await workRequestService.getAll({
             where: { id, user_id },
-            attributes: { exclude: ['work_medium_id', 'created_at', 'updated_at'] },
+            attributes: { exclude: ['request_type_id', 'created_at', 'updated_at'] },
             include: [
                 { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
-                { model: WorkMedium, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, as: 'Division', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
+                { model: RequestType, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, as: 'Division', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
                 {
                     model: WorkRequestManagers, attributes: { exclude: ['created_at', 'updated_at'] }, include: [
                         {
@@ -329,7 +329,8 @@ const getWorkRequestById = async (req, res) => {
                 },
                 { model: WorkRequestDocuments, attributes: { exclude: ['created_at', 'updated_at'] } }
             ],
-            limit: 1
+            limit: 1,
+            order: []
         });
 
         if (result.success && result.data.length > 0) {
