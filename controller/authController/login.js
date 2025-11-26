@@ -97,7 +97,7 @@ const login = async (req, res) => {
                 loginType,
                 ...extractRequestDetails(req)
             });
-            return res.status(401).json({ success: false, error: 'Invalid credentials' });
+            return res.status(401).json({ success: false, error: 'Email does not match our records' });
         }
 
         // Check email verified and account status
@@ -116,7 +116,10 @@ const login = async (req, res) => {
             if (user.account_status === 'locked') {
                 // Check if lock has expired
                 if (user.lock_until && user.lock_until > new Date()) {
-                    const remainingMinutes = Math.ceil((user.lock_until - new Date()) / (1000 * 60));
+                    const remainingTime = user.lock_until - new Date();
+                    const minutes = Math.floor(remainingTime / (1000 * 60));
+                    const seconds = Math.floor((remainingTime % (1000 * 60)) / 1000);
+                    const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}min`;
                     await logUserActivity({
                         event: 'login_failed',
                         reason: 'account_locked',
@@ -126,7 +129,7 @@ const login = async (req, res) => {
                     });
                     return res.status(401).json({
                         success: false,
-                        error: `Account is locked due to too many failed attempts. Try again in ${remainingMinutes} minute${remainingMinutes === 1 ? '' : 's'}.`
+                        error: `Too many login attempts. Please try again in ${timeString}`
                     });
                 } else {
                     // Unlock account
@@ -162,7 +165,7 @@ const login = async (req, res) => {
                 });
                 return res.status(401).json({
                     success: false,
-                    error: 'Too many failed attempts. Account locked for 30 minutes. Please use forgot password or try again later.'
+                    error: 'Too many login attempts. Please try again in 30:00min'
                 });
             } else {
                 const remainingAttempts = 5 - newAttempts;
@@ -177,8 +180,7 @@ const login = async (req, res) => {
                 });
                 return res.status(401).json({
                     success: false,
-                    error: `Invalid credentials. You have ${remainingAttempts} attempt${remainingAttempts === 1 ? '' : 's'} left. After 5 failed attempts, your account will be locked for 30 minutes.`,
-                    type: 'login'
+                    error: `Password does not match our records. ${remainingAttempts} attempts remaining`
                 });
             }
         }
