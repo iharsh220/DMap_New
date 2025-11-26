@@ -67,11 +67,10 @@ const getAssignableUsers = async (req, res) => {
             });
         }
 
-        // Find all active users in this division, excluding managers (job_role_id != 2)
+        // Find all active users in this division
         const assignableUsersResult = await userService.getAll({
             where: {
                 [Op.and]: [
-                    { job_role_id: { [Op.ne]: 2 } }, // Exclude managers
                     { account_status: 'active' }
                 ]
             },
@@ -80,12 +79,12 @@ const getAssignableUsers = async (req, res) => {
                     model: Division,
                     as: 'Divisions',
                     where: { id: divisionId },
-                    attributes: [], // No division attributes needed
+                    attributes: ['id', 'title'],
                     through: { attributes: [] },
                     required: true
                 }
             ],
-            attributes: ['id', 'name'] // Only return id and name
+            attributes: ['id', 'name']
         });
 
         if (!assignableUsersResult.success) {
@@ -96,9 +95,27 @@ const getAssignableUsers = async (req, res) => {
             });
         }
 
+        // Get manager details
+        const managerDetails = await userService.getById(manager_id);
+        const manager = managerDetails.success ? managerDetails.data : { id: manager_id, name: 'Unknown' };
+
+        // Format the response
+        const formattedData = assignableUsersResult.data.map(user => ({
+            id: user.id,
+            name: user.id === manager_id ? 'Self' : user.name,
+            manager: {
+                id: manager.id,
+                name: manager.name
+            },
+            division: {
+                id: user.Divisions[0].id,
+                name: user.Divisions[0].title
+            }
+        }));
+
         res.json({
             success: true,
-            data: assignableUsersResult.data,
+            data: formattedData,
             message: 'Assignable users retrieved successfully'
         });
     } catch (error) {
