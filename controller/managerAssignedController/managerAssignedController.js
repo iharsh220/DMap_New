@@ -6,6 +6,7 @@ const {
     WorkMedium,
     User,
     WorkRequestDocuments,
+    WorkRequestManagers,
     UserDivisions,
     Department,
     Division,
@@ -33,8 +34,14 @@ const getAssignableUsers = async (req, res) => {
 
         // Get work request with work medium to find the division
         const workRequestResult = await workRequestService.getAll({
-            where: { id: workRequestId, requested_manager_id: manager_id },
+            where: { id: workRequestId },
             include: [
+                {
+                    model: WorkRequestManagers,
+                    where: { manager_id: manager_id },
+                    required: true,
+                    attributes: []
+                },
                 {
                     model: WorkMedium,
                     include: [{ model: Division, as: 'Division' }]
@@ -108,7 +115,7 @@ const getAssignedWorkRequests = async (req, res) => {
     try {
         const manager_id = req.user.id;
 
-        let where = { requested_manager_id: manager_id, status: { [Op.ne]: 'draft' } };
+        let where = { status: { [Op.ne]: 'draft' } };
 
         // Apply filters
         if (req.filters) {
@@ -124,8 +131,14 @@ const getAssignedWorkRequests = async (req, res) => {
 
         const result = await workRequestService.getAll({
             where,
-            attributes: { exclude: ['work_medium_id', 'requested_manager_id', 'updated_at'] },
+            attributes: { exclude: ['work_medium_id', 'requested_manager_link_id', 'updated_at'] },
             include: [
+                {
+                    model: WorkRequestManagers,
+                    where: { manager_id: manager_id },
+                    required: true,
+                    attributes: []
+                },
                 { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
                 { model: WorkMedium, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, as: 'Division', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
             ],
@@ -154,9 +167,15 @@ const getAssignedWorkRequestById = async (req, res) => {
         const manager_id = req.user.id;
 
         const result = await workRequestService.getAll({
-            where: { id, requested_manager_id: manager_id },
-            attributes: { exclude: ['work_medium_id', 'requested_manager_id', 'updated_at'] },
+            where: { id },
+            attributes: { exclude: ['work_medium_id', 'requested_manager_link_id', 'updated_at'] },
             include: [
+                {
+                    model: WorkRequestManagers,
+                    where: { manager_id: manager_id },
+                    required: true,
+                    attributes: []
+                },
                 { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
                 { model: WorkMedium, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, as: 'Division', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
                 { model: WorkRequestDocuments, attributes: { exclude: ['created_at', 'updated_at'] } }
@@ -185,7 +204,15 @@ const acceptWorkRequest = async (req, res) => {
 
         // Check if work request exists and is assigned to this manager
         const existingResult = await workRequestService.getAll({
-            where: { id, requested_manager_id: manager_id },
+            where: { id },
+            include: [
+                {
+                    model: WorkRequestManagers,
+                    where: { manager_id: manager_id },
+                    required: true,
+                    attributes: []
+                }
+            ],
             limit: 1
         });
 
@@ -275,7 +302,15 @@ const deferWorkRequest = async (req, res) => {
 
         // Check if work request exists and is assigned to this manager
         const existingResult = await workRequestService.getAll({
-            where: { id, requested_manager_id: manager_id },
+            where: { id },
+            include: [
+                {
+                    model: WorkRequestManagers,
+                    where: { manager_id: manager_id },
+                    required: true,
+                    attributes: []
+                }
+            ],
             limit: 1
         });
 
@@ -358,13 +393,18 @@ const deferWorkRequest = async (req, res) => {
 
             // Update work request
             const updateResult = await workRequestService.updateById(id, {
-                work_medium_id: newWorkMediumId,
-                requested_manager_id: newManager.id
+                work_medium_id: newWorkMediumId
             });
 
             if (!updateResult.success) {
                 return res.status(500).json({ success: false, error: 'Failed to reassign work request' });
             }
+
+            // Update the manager in WorkRequestManagers
+            await WorkRequestManagers.update(
+                { manager_id: newManager.id },
+                { where: { work_request_id: id } }
+            );
 
             // Send transfer email to new manager
             const user = await User.findByPk(workRequest.user_id, {

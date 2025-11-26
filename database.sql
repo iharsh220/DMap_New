@@ -531,12 +531,18 @@ CREATE TABLE `work_medium` (
 --
 
 INSERT INTO `work_medium` (`id`, `type`, `category`, `description`, `division_id`, `created_at`, `updated_at`) VALUES
-(1, 'DIGITAL', 'Digital Artworks', 'Infographics, Social Media, Magazine, etc.', 1, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(1, 'DIGITAL', 'Digital Creatives', 'Infographics, Social Media, Magazine, etc.', 1, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
 (2, 'DIGITAL', 'Web Application', 'VA HTMLization, Websites, Brand Gamifications, etc...', 5, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(3, 'PRINT', 'Print Artwork', 'Posters, Banners, LBL, Standees, etc.', 1, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(3, 'PRINT', 'Print Creatives', 'Posters, Banners, LBL, Standees, etc.', 1, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
 (4, 'VIDEO & AUDIO', 'Video Shoot', 'Video shooting services', 2, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
 (5, 'VIDEO & AUDIO', 'Product/Pack-shot Shoot', 'Product and packaging photography', 2, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(6, 'VIDEO & AUDIO', 'Motion Graphics', 'Motion graphics and animation', 2, '2025-11-11 06:52:31', '2025-11-11 06:52:31');
+(6, 'VIDEO & AUDIO', 'Motion Graphics', 'Motion graphics and animation', 2, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(7, 'VIDEO & AUDIO', 'Animation Video', 'Animation video', 2, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(8, 'VIDEO & AUDIO', 'Motivational Video', 'Shoot & Edit / Edit Only / Create', 2, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(9, 'VIDEO & AUDIO', 'GIF', 'GIF creation', 2, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(10, 'VIDEO & AUDIO', 'Audio Recording', 'Audio recording services', 2, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(11, 'Content', 'Copywriting', 'Content Building, Non-medical Content', 4, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(12, 'Other', 'Consulting', 'Need creative input before agency', 9, '2025-11-11 06:52:31', '2025-11-11 06:52:31');
 
 -- --------------------------------------------------------
 
@@ -553,7 +559,6 @@ CREATE TABLE `work_requests` (
   `project_details` text DEFAULT NULL,
   `priority` enum('low','medium','high','critical') DEFAULT 'medium',
   `status` enum('draft','pending','accepted','assigned','in_progress','completed','rejected') DEFAULT 'pending',
-  `requested_manager_link_id` int(11) DEFAULT NULL,
   `requested_at` datetime DEFAULT NULL,
   `remarks` text DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
@@ -564,11 +569,11 @@ CREATE TABLE `work_requests` (
 -- Dumping data for table `work_requests`
 --
 
-INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `work_medium_id`, `project_details`, `priority`, `status`, `requested_manager_link_id`, `requested_at`, `remarks`, `created_at`, `updated_at`) VALUES
-(45, 12, 'Resync Project', 'Resync', 2, 'Resync Eyes strain ', 'medium', 'pending', 1, '2025-11-25 06:35:16', NULL, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(47, 12, 'Resync Poster maker', 'Resync', 1, 'Resync Poster maker', 'high', 'pending', 2, '2025-11-25 06:41:39', '', '2025-11-25 06:41:39', '2025-11-25 06:41:39'),
-(48, 12, 'Eye strain poster banner', 'Resync', 1, 'Eye strain poster banner event', 'high', 'pending', 3, '2025-11-25 06:44:54', NULL, '2025-11-25 06:44:54', '2025-11-25 07:27:36'),
-(55, 11, 'file upload testing big file', 'Testing', 2, 'Detailed description of the project requirements', 'high', 'pending', 4, '2025-11-25 09:45:44', 'Any additional remarks', '2025-11-25 09:45:44', '2025-11-25 09:45:44');
+INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `work_medium_id`, `project_details`, `priority`, `status`, `requested_at`, `remarks`, `created_at`, `updated_at`) VALUES
+(45, 12, 'Resync Project', 'Resync', 2, 'Resync Eyes strain ', 'medium', 'pending', '2025-11-25 06:35:16', NULL, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(47, 12, 'Resync Poster maker', 'Resync', 1, 'Resync Poster maker', 'high', 'pending', '2025-11-25 06:41:39', '', '2025-11-25 06:41:39', '2025-11-25 06:41:39'),
+(48, 12, 'Eye strain poster banner', 'Resync', 1, 'Eye strain poster banner event', 'high', 'pending', '2025-11-25 06:44:54', NULL, '2025-11-25 06:44:54', '2025-11-25 07:27:36'),
+(55, 11, 'file upload testing big file', 'Testing', 2, 'Detailed description of the project requirements', 'high', 'pending', '2025-11-25 09:45:44', 'Any additional remarks', '2025-11-25 09:45:44', '2025-11-25 09:45:44');
 
 -- --------------------------------------------------------
 
@@ -733,7 +738,6 @@ ALTER TABLE `work_requests`
   ADD PRIMARY KEY (`id`),
   ADD KEY `user_id` (`user_id`),
   ADD KEY `work_medium_id` (`work_medium_id`),
-  ADD KEY `requested_manager_link_id` (`requested_manager_link_id`),
   ADD KEY `idx_work_requests_status` (`status`),
   ADD KEY `idx_work_requests_priority` (`priority`),
   ADD KEY `idx_work_requests_created_at` (`created_at`),
@@ -833,7 +837,7 @@ ALTER TABLE `user_divisions`
 -- AUTO_INCREMENT for table `work_medium`
 --
 ALTER TABLE `work_medium`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `work_requests`
@@ -926,8 +930,7 @@ ALTER TABLE `work_medium`
 --
 ALTER TABLE `work_requests`
   ADD CONSTRAINT `work_requests_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `work_requests_ibfk_2` FOREIGN KEY (`work_medium_id`) REFERENCES `work_medium` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `work_requests_ibfk_3` FOREIGN KEY (`requested_manager_link_id`) REFERENCES `work_request_managers` (`id`) ON DELETE SET NULL;
+  ADD CONSTRAINT `work_requests_ibfk_2` FOREIGN KEY (`work_medium_id`) REFERENCES `work_medium` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `work_request_managers`

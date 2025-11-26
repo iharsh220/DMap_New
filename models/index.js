@@ -14,6 +14,7 @@ const Tasks = require('./Tasks/Tasks');
 const UserDivisions = require('./UserDivisions/UserDivisions');
 const WorkMedium = require('./WorkMedium/WorkMedium');
 const WorkRequests = require('./WorkRequests/WorkRequests');
+const WorkRequestManagers = require('./WorkRequestManagers/WorkRequestManagers');
 const WorkRequestDocuments = require('./WorkRequestDocuments/WorkRequestDocuments');
 
 // Associations
@@ -62,8 +63,11 @@ WorkMedium.belongsTo(Division, { foreignKey: 'division_id' });
 
 WorkRequests.belongsTo(User, { foreignKey: 'user_id', as: 'users' });
 WorkRequests.belongsTo(WorkMedium, { foreignKey: 'work_medium_id' });
-WorkRequests.belongsTo(User, { as: 'requestedManager', foreignKey: 'requested_manager_id' });
+WorkRequests.hasMany(WorkRequestManagers, { foreignKey: 'work_request_id' });
 WorkRequests.hasMany(WorkRequestDocuments, { foreignKey: 'work_request_id' });
+
+WorkRequestManagers.belongsTo(WorkRequests, { foreignKey: 'work_request_id' });
+WorkRequestManagers.belongsTo(User, { as: 'manager', foreignKey: 'manager_id' });
 
 WorkRequestDocuments.belongsTo(WorkRequests, { foreignKey: 'work_request_id' });
 
@@ -82,5 +86,6 @@ module.exports = {
   UserDivisions,
   WorkMedium,
   WorkRequests,
+  WorkRequestManagers,
   WorkRequestDocuments
 };

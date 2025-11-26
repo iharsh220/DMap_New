@@ -5,6 +5,7 @@ const {
     WorkMedium,
     User,
     WorkRequestDocuments,
+    WorkRequestManagers,
     UserDivisions,
     Department,
     Division,
@@ -45,8 +46,8 @@ const createWorkRequest = async (req, res) => {
             });
         }
 
-        // Find manager in the same division with Creative Manager role
-        const userDivision = await UserDivisions.findOne({
+        // Find managers in the same division with Creative Manager role
+        const userDivisions = await UserDivisions.findAll({
             where: { division_id: workMedium.division_id },
             include: [{
                 model: User,
@@ -59,9 +60,9 @@ const createWorkRequest = async (req, res) => {
                 ]
             }]
         });
-        const manager = userDivision ? userDivision.User : null;
+        const managers = userDivisions.map(ud => ud.User).filter(u => u);
 
-        if (!manager) {
+        if (managers.length === 0) {
             return res.status(400).json({
                 success: false,
                 error: 'No manager found for this work medium'
@@ -77,7 +78,6 @@ const createWorkRequest = async (req, res) => {
             project_details,
             priority,
             status: isdraft === 'true' ? 'draft' : 'pending',
-            requested_manager_id: manager.id,
             requested_at: new Date(),
             remarks
         };
@@ -91,8 +91,19 @@ const createWorkRequest = async (req, res) => {
             });
         }
 
-        // Handle file uploads
         const workRequestId = result.data.id;
+
+        // Create work request manager entries for all managers
+        const managerEntries = [];
+        for (const manager of managers) {
+            const managerEntry = await WorkRequestManagers.create({
+                work_request_id: workRequestId,
+                manager_id: manager.id
+            });
+            managerEntries.push(managerEntry);
+        }
+
+        // Handle file uploads
         const documents = [];
 
         if (req.files && req.files.documents) {
@@ -147,16 +158,16 @@ const createWorkRequest = async (req, res) => {
                 { model: Designation, as: 'Designation', attributes: { exclude: ['created_at', 'updated_at'] } }
             ]
         });
-        if (isdraft === 'false' && user && manager) {
-            // Email to user
-            // Email to user
+        if (isdraft === 'false' && user && managers.length > 0) {
+            // Email to user (using first manager's details)
+            const firstManager = managers[0];
             const userEmailHtml = renderTemplate('workRequestUserConfirmation', {
-                manager_name: manager.name,
-                manager_email: manager.email,
-                manager_department: manager.Department?.department_name || 'N/A',
-                manager_division: manager.Divisions && manager.Divisions.length > 0 ? manager.Divisions[0].title : 'N/A',
-                manager_job_role: manager.JobRole?.role_title || 'N/A',
-                manager_location: manager.Location?.location_name || 'N/A',
+                manager_name: firstManager.name,
+                manager_email: firstManager.email,
+                manager_department: firstManager.Department?.department_name || 'N/A',
+                manager_division: firstManager.Divisions && firstManager.Divisions.length > 0 ? firstManager.Divisions[0].title : 'N/A',
+                manager_job_role: firstManager.JobRole?.role_title || 'N/A',
+                manager_location: firstManager.Location?.location_name || 'N/A',
                 project_name: result.data.project_name,
                 brand: result.data.brand || 'Not specified',
                 work_medium_type: workMedium.type,
@@ -181,38 +192,40 @@ const createWorkRequest = async (req, res) => {
             //     html: userEmailHtml
             // });
 
-            // Email to manager
-            const managerEmailHtml = renderTemplate('workRequestManagerNotification', {
-                project_name: result.data.project_name,
-                brand: result.data.brand || 'Not specified',
-                work_medium_type: workMedium.type,
-                work_medium_category: workMedium.category,
-                priority: result.data.priority,
-                division_name: workMedium.Division.title,
-                request_id: result.data.id,
-                request_date: new Date(result.data.created_at).toLocaleDateString('en-IN', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                }),
-                user_name: user.name,
-                user_email: user.email,
-                user_department: user.Department?.department_name || 'Not specified',
-                user_division: user.Divisions && user.Divisions.length > 0 ? user.Divisions[0].title : 'Not specified',
-                user_job_role: user.JobRole?.role_title || 'Not specified',
-                user_location: user.Location?.location_name || 'Not specified',
-                user_designation: user.Designation?.designation_name || 'Not specified',
-                project_details: result.data.project_details || 'No detailed description provided.',
-                priority_capitalized: result.data.priority.charAt(0).toUpperCase() + result.data.priority.slice(1),
-                frontend_url: process.env.FRONTEND_URL || 'http://localhost:3000'
-            });
-            // await sendMail({
-            //     to: manager.email,
-            //     subject: 'New Work Request Submitted',
-            //     html: managerEmailHtml
-            // });
+            // Email to all managers
+            for (const manager of managers) {
+                const managerEmailHtml = renderTemplate('workRequestManagerNotification', {
+                    project_name: result.data.project_name,
+                    brand: result.data.brand || 'Not specified',
+                    work_medium_type: workMedium.type,
+                    work_medium_category: workMedium.category,
+                    priority: result.data.priority,
+                    division_name: workMedium.Division.title,
+                    request_id: result.data.id,
+                    request_date: new Date(result.data.created_at).toLocaleDateString('en-IN', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }),
+                    user_name: user.name,
+                    user_email: user.email,
+                    user_department: user.Department?.department_name || 'Not specified',
+                    user_division: user.Divisions && user.Divisions.length > 0 ? user.Divisions[0].title : 'Not specified',
+                    user_job_role: user.JobRole?.role_title || 'Not specified',
+                    user_location: user.Location?.location_name || 'Not specified',
+                    user_designation: user.Designation?.designation_name || 'Not specified',
+                    project_details: result.data.project_details || 'No detailed description provided.',
+                    priority_capitalized: result.data.priority.charAt(0).toUpperCase() + result.data.priority.slice(1),
+                    frontend_url: process.env.FRONTEND_URL || 'http://localhost:3000'
+                });
+                // await sendMail({
+                //     to: manager.email,
+                //     subject: 'New Work Request Submitted',
+                //     html: managerEmailHtml
+                // });
+            }
         }
 
         res.status(201).json({
@@ -254,16 +267,20 @@ const getMyWorkRequests = async (req, res) => {
 
         const result = await workRequestService.getAll({
             where,
-            attributes: { exclude: ['work_medium_id', 'requested_manager_id', 'updated_at'] },
+            attributes: { exclude: ['work_medium_id', 'updated_at'] },
             include: [
                 { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
                 { model: WorkMedium, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, as: 'Division', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
                 {
-                    model: User, as: 'requestedManager', foreignKey: 'requested_manager_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] }, include: [
-                        { model: Department, as: 'Department', attributes: { exclude: ['created_at', 'updated_at'] } },
-                        { model: Division, as: 'Divisions', attributes: { exclude: ['created_at', 'updated_at'] }, through: { attributes: [] } },
-                        { model: JobRole, as: 'JobRole', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } },
-                        { model: Location, as: 'Location', attributes: { exclude: ['created_at', 'updated_at'] } }
+                    model: WorkRequestManagers, attributes: { exclude: ['created_at', 'updated_at'] }, include: [
+                        {
+                            model: User, as: 'manager', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] }, include: [
+                                { model: Department, as: 'Department', attributes: { exclude: ['created_at', 'updated_at'] } },
+                                { model: Division, as: 'Divisions', attributes: { exclude: ['created_at', 'updated_at'] }, through: { attributes: [] } },
+                                { model: JobRole, as: 'JobRole', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } },
+                                { model: Location, as: 'Location', attributes: { exclude: ['created_at', 'updated_at'] } }
+                            ]
+                        }
                     ]
                 }
             ],
@@ -293,16 +310,20 @@ const getWorkRequestById = async (req, res) => {
 
         const result = await workRequestService.getAll({
             where: { id, user_id },
-            attributes: { exclude: ['work_medium_id', 'requested_manager_id', 'created_at', 'updated_at'] },
+            attributes: { exclude: ['work_medium_id', 'created_at', 'updated_at'] },
             include: [
                 { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
                 { model: WorkMedium, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, as: 'Division', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
                 {
-                    model: User, as: 'requestedManager', foreignKey: 'requested_manager_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] }, include: [
-                        { model: Department, as: 'Department', attributes: { exclude: ['created_at', 'updated_at'] } },
-                        { model: Division, as: 'Divisions', attributes: { exclude: ['created_at', 'updated_at'] }, through: { attributes: [] } },
-                        { model: JobRole, as: 'JobRole', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } },
-                        { model: Location, as: 'Location', attributes: { exclude: ['created_at', 'updated_at'] } }
+                    model: WorkRequestManagers, attributes: { exclude: ['created_at', 'updated_at'] }, include: [
+                        {
+                            model: User, as: 'manager', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] }, include: [
+                                { model: Department, as: 'Department', attributes: { exclude: ['created_at', 'updated_at'] } },
+                                { model: Division, as: 'Divisions', attributes: { exclude: ['created_at', 'updated_at'] }, through: { attributes: [] } },
+                                { model: JobRole, as: 'JobRole', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } },
+                                { model: Location, as: 'Location', attributes: { exclude: ['created_at', 'updated_at'] } }
+                            ]
+                        }
                     ]
                 },
                 { model: WorkRequestDocuments, attributes: { exclude: ['created_at', 'updated_at'] } }

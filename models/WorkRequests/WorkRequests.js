@@ -35,10 +35,6 @@ const WorkRequests = sequelize.define('WorkRequests', {
     type: DataTypes.ENUM('draft', 'pending', 'accepted', 'assigned', 'in_progress', 'completed', 'rejected', 'deferred'),
     defaultValue: 'pending',
   },
-  requested_manager_id: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-  },
   requested_at: {
     type: DataTypes.DATE,
     allowNull: true,
