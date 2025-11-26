@@ -144,7 +144,7 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.environment.set(\"jwt_token\", pm.response.json().accessToken);"
+                  "pm.collectionVariables.set(\"jwt_token\", pm.response.json().accessToken);"
                 ],
                 "type": "text/javascript"
               }
@@ -160,7 +160,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"identifier\": \"harsh.gohil@alembic.co.in\",\n  \"password\": \"password123\",\n  \"loginType\": \"email\"\n}"
+              "raw": "{\n  \"identifier\": \"harsh.gohil@alembic.co.in\",\n  \"password\": \"Harsh@1234\",\n  \"loginType\": \"email\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/digilabs/dmap/api/auth/login",
@@ -189,7 +189,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"harsh.gohil@alembic.co.in\",\n  \"name\": \"John Doe\",\n  \"password\": \"password123\",\n  \"phone\": \"1234567890\",\n  \"department_id\": 1,\n  \"division_ids\": [1,2],\n  \"designation_id\": 1,\n  \"location_id\": 1\n}"
+              "raw": "{\n  \"email\": \"harsh.gohil@alembic.co.in\",\n  \"name\": \"John Doe\",\n  \"password\": \"Harsh@1234\",\n  \"phone\": \"1234567890\",\n  \"department_id\": 1,\n  \"division_ids\": [1,2],\n  \"designation_id\": 1,\n  \"location_id\": 1\n}"
             },
             "url": {
               "raw": "{{base_url}}/digilabs/dmap/api/auth/complete-registration",
@@ -640,6 +640,41 @@
               ]
             },
             "description": "Access an uploaded file via static serving (public access)"
+          }
+        },
+        {
+          "name": "Get Assignable Users for Work Request (Manager)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:work_request_id/assignable-users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "digilabs",
+                "dmap",
+                "api",
+                "manager",
+                "assigned-work-requests",
+                ":work_request_id",
+                "assignable-users"
+              ],
+              "variable": [
+                {
+                  "key": "work_request_id",
+                  "value": "45",
+                  "description": "Work request ID"
+                }
+              ]
+            },
+            "description": "Get list of users from the work request's division that can be assigned tasks (excludes managers, requires authentication and manager role)"
           }
         }
       ]

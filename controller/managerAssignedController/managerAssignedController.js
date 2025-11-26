@@ -1,3 +1,5 @@
+const { Op } = require('sequelize');
+
 const CrudService = require('../../services/crudService');
 const {
     WorkRequests,
@@ -18,11 +20,93 @@ const { renderTemplate } = require('../../services/templateService');
 const workRequestService = new CrudService(WorkRequests);
 const userService = new CrudService(User);
 const workMediumService = new CrudService(WorkMedium);
+const userDivisionsService = new CrudService(UserDivisions);
+
+const getAssignableUsers = async (req, res) => {
+    try {
+        const workRequestId = parseInt(req.params.id, 10);
+        if (isNaN(workRequestId)) {
+            return res.status(400).json({ success: false, error: 'Invalid work request ID' });
+        }
+
+        const manager_id = req.user.id;
+
+        // Get work request with work medium to find the division
+        const workRequestResult = await workRequestService.getAll({
+            where: { id: workRequestId, requested_manager_id: manager_id },
+            include: [
+                {
+                    model: WorkMedium,
+                    include: [{ model: Division, as: 'Division' }]
+                }
+            ],
+            limit: 1
+        });
+
+        if (!workRequestResult.success || workRequestResult.data.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Work request not found or not assigned to you'
+            });
+        }
+
+        const workRequest = workRequestResult.data[0];
+        const divisionId = workRequest.WorkMedium?.Division?.id;
+
+        if (!divisionId) {
+            return res.status(404).json({
+                success: false,
+                error: 'Division not found for this work request'
+            });
+        }
+
+        // Find all active users in this division, excluding managers (job_role_id != 2)
+        const assignableUsersResult = await userService.getAll({
+            where: {
+                [Op.and]: [
+                    { job_role_id: { [Op.ne]: 2 } }, // Exclude managers
+                    { account_status: 'active' }
+                ]
+            },
+            include: [
+                {
+                    model: Division,
+                    as: 'Divisions',
+                    where: { id: divisionId },
+                    attributes: [], // No division attributes needed
+                    through: { attributes: [] },
+                    required: true
+                }
+            ],
+            attributes: ['id', 'name'] // Only return id and name
+        });
+
+        if (!assignableUsersResult.success) {
+            return res.status(500).json({
+                success: false,
+                error: assignableUsersResult.error,
+                message: 'Failed to fetch assignable users'
+            });
+        }
+
+        res.json({
+            success: true,
+            data: assignableUsersResult.data,
+            message: 'Assignable users retrieved successfully'
+        });
+    } catch (error) {
+        console.error('Error fetching assignable users:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            message: 'Failed to fetch assignable users'
+        });
+    }
+};
 
 const getAssignedWorkRequests = async (req, res) => {
     try {
         const manager_id = req.user.id;
-        const { Op } = require('sequelize');
 
         let where = { requested_manager_id: manager_id, status: { [Op.ne]: 'draft' } };
 
@@ -345,4 +429,10 @@ const deferWorkRequest = async (req, res) => {
     }
 };
 
-module.exports = { getAssignedWorkRequests, getAssignedWorkRequestById, acceptWorkRequest, deferWorkRequest };
+module.exports = {
+    getAssignedWorkRequests,
+    getAssignedWorkRequestById,
+    acceptWorkRequest,
+    deferWorkRequest,
+    getAssignableUsers
+};
