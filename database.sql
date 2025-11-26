@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Nov 25, 2025 at 09:20 AM
+-- Generation Time: Nov 26, 2025 at 04:35 AM
 -- Server version: 11.4.9-MariaDB
 -- PHP Version: 8.4.14
 
@@ -473,9 +473,12 @@ CREATE TABLE `users` (
 INSERT INTO `users` (`id`, `name`, `email`, `phone`, `password`, `department_id`, `job_role_id`, `location_id`, `designation_id`, `email_verified_status`, `account_status`, `last_login`, `login_attempts`, `lock_until`, `password_changed_at`, `password_expires_at`, `created_at`, `updated_at`) VALUES
 (1, 'System Admin', 'admin@alembic.co.in', '8080302041', '$2a$12$/.rT3avNPO1l0ZjqSRS/Ru09mKVNuIRSLaHjBDeMwLHscVLq1ETY6', 2, 1, 1, NULL, 1, 'active', '2025-11-12 06:04:52', 0, NULL, '2025-11-12 06:04:52', '2026-02-10 06:04:52', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
 (9, 'Bhagwan Parab', 'bhagwan.parab@alembic.co.in', '1234567890', '$2a$10$13zqXGBAuAF/pcF4XHxvi.lEo8flBZCOnw/qq.fBJfZ57eAJcfj42', 9, 2, 1, 16, 1, 'active', NULL, 0, NULL, '2025-11-25 06:14:31', '2026-02-23 06:14:31', '2025-11-25 06:10:40', '2025-11-25 06:14:31'),
-(10, 'Harsh Gohil', 'harsh.gohil@alembic.co.in', '1234567890', '$2a$10$Kc.lwpVnKYKTOyVEkEaR5eCEcMqK7SjbnjpwgIB.LiAN/pLagxVeO', 9, 4, 1, 20, 1, 'active', NULL, 0, NULL, '2025-11-25 06:15:53', '2026-02-23 06:15:53', '2025-11-25 06:14:56', '2025-11-25 06:15:53'),
-(11, 'Mohanish Padwal', 'mohanish.padwal@alembic.co.in', '1234567890', '$2a$10$lbDnrhd.6O4EvCFNTeDt1.SngPt.IqHZkvw3jtUwjKTrEWoIbcDO.', 9, 2, 1, 16, 1, 'active', '2025-11-25 07:19:30', 0, NULL, '2025-11-25 06:17:31', '2026-02-23 06:17:31', '2025-11-25 06:16:23', '2025-11-25 07:19:30'),
-(12, 'Nikhil Nadkar', 'nikhil.nadkar@alembic.co.in', '1234567890', '$2a$10$Txudkx41QciW8euyVoodNOIa4seUXViVsWc.UN3RCdxg0KrcFfssW', 1, 5, 1, 8, 1, 'active', '2025-11-25 06:42:48', 0, NULL, '2025-11-25 06:19:02', '2026-02-23 06:19:02', '2025-11-25 06:17:55', '2025-11-25 06:42:48');
+(10, 'Harsh Gohil', 'harsh.gohil@alembic.co.in', '1234567890', '$2a$10$Kc.lwpVnKYKTOyVEkEaR5eCEcMqK7SjbnjpwgIB.LiAN/pLagxVeO', 9, 4, 1, 20, 1, 'active', '2025-11-26 04:00:05', 0, NULL, '2025-11-25 06:15:53', '2026-02-23 06:15:53', '2025-11-25 06:14:56', '2025-11-26 04:00:05'),
+(11, 'Mohanish Padwal', 'mohanish.padwal@alembic.co.in', '1234567890', '$2a$10$lbDnrhd.6O4EvCFNTeDt1.SngPt.IqHZkvw3jtUwjKTrEWoIbcDO.', 9, 2, 1, 16, 1, 'active', '2025-11-26 04:25:25', 0, NULL, '2025-11-25 06:17:31', '2026-02-23 06:17:31', '2025-11-25 06:16:23', '2025-11-26 04:25:25'),
+(12, 'Nikhil Nadkar', 'nikhil.nadkar@alembic.co.in', '1234567890', '$2a$10$Txudkx41QciW8euyVoodNOIa4seUXViVsWc.UN3RCdxg0KrcFfssW', 1, 5, 1, 8, 1, 'active', '2025-11-25 09:26:49', 0, NULL, '2025-11-25 06:19:02', '2026-02-23 06:19:02', '2025-11-25 06:17:55', '2025-11-25 09:26:49'),
+(13, 'Gautam Barnawal', 'gautam.baranwal@alembic.co.in', '1234567890', '$2a$10$ELYSn.TNQYl4.ppKulgaFeenW5Stt3wzMzeymt1O0hyAfzxnKGxZq', 9, 4, 1, 19, 1, 'active', NULL, 0, NULL, '2025-11-26 02:42:48', '2026-02-24 02:42:48', '2025-11-25 10:46:13', '2025-11-26 02:42:48'),
+(14, 'Vinisha Chadala', 'vinisha.chadala@alembic.co.in', '1234567890', '$2a$10$Fehw59cHdrrS0KdlB.koo.3aqM85F0soHulTlyn7Ga9ICb7XBbFGe', 9, 4, 1, 19, 1, 'active', NULL, 0, NULL, '2025-11-26 04:20:56', '2026-02-24 04:20:56', '2025-11-26 04:19:06', '2025-11-26 04:20:56'),
+(15, 'Vikaram Rai', 'vikramr.rai@alembic.co.in', '1234567890', '$2a$10$eMdj3uvEko0L26oRtV0veeoxZzMsiHwaHdW66FQ63bBN3ssboQN6q', 9, 2, 1, 16, 1, 'active', NULL, 0, NULL, '2025-11-26 04:33:08', '2026-02-24 04:33:08', '2025-11-26 04:31:28', '2025-11-26 04:33:08');
 
 -- --------------------------------------------------------
 
@@ -501,7 +504,11 @@ INSERT INTO `user_divisions` (`id`, `user_id`, `division_id`, `created_at`, `upd
 (14, 11, 2, '2025-11-25 06:17:31', '2025-11-25 06:17:31'),
 (15, 11, 4, '2025-11-25 06:17:31', '2025-11-25 06:17:31'),
 (16, 11, 5, '2025-11-25 06:17:31', '2025-11-25 06:17:31'),
-(17, 12, 22, '2025-11-25 06:19:02', '2025-11-25 06:19:02');
+(17, 12, 22, '2025-11-25 06:19:02', '2025-11-25 06:19:02'),
+(18, 13, 5, '2025-11-26 02:42:48', '2025-11-26 02:42:48'),
+(19, 14, 4, '2025-11-26 04:20:56', '2025-11-26 04:20:56'),
+(20, 15, 3, '2025-11-26 04:33:07', '2025-11-26 04:33:07'),
+(21, 15, 4, '2025-11-26 04:33:08', '2025-11-26 04:33:08');
 
 -- --------------------------------------------------------
 
@@ -560,7 +567,8 @@ CREATE TABLE `work_requests` (
 INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `work_medium_id`, `project_details`, `priority`, `status`, `requested_manager_id`, `requested_at`, `remarks`, `created_at`, `updated_at`) VALUES
 (45, 12, 'Resync Project', 'Resync', 2, 'Resync Eyes strain ', 'medium', 'pending', 11, '2025-11-25 06:35:16', NULL, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
 (47, 12, 'Resync Poster maker', 'Resync', 1, 'Resync Poster maker', 'high', 'pending', 9, '2025-11-25 06:41:39', '', '2025-11-25 06:41:39', '2025-11-25 06:41:39'),
-(48, 12, 'Eye strain poster banner', 'Resync', 1, 'Eye strain poster banner event', 'high', 'pending', 9, '2025-11-25 06:44:54', NULL, '2025-11-25 06:44:54', '2025-11-25 07:27:36');
+(48, 12, 'Eye strain poster banner', 'Resync', 1, 'Eye strain poster banner event', 'high', 'pending', 9, '2025-11-25 06:44:54', NULL, '2025-11-25 06:44:54', '2025-11-25 07:27:36'),
+(55, 11, 'file upload testing big file', 'Testing', 2, 'Detailed description of the project requirements', 'high', 'pending', 11, '2025-11-25 09:45:44', 'Any additional remarks', '2025-11-25 09:45:44', '2025-11-25 09:45:44');
 
 -- --------------------------------------------------------
 
@@ -583,13 +591,15 @@ CREATE TABLE `work_request_documents` (
 -- Dumping data for table `work_request_documents`
 --
 
-INSERT INTO `work_request_documents` (`id`, `work_request_id`, `document_name`, `document_path`, `document_type`, `document_size`, `uploaded_at`) VALUES
-(124, 45, 'alembicdigilabs_Digi_dmap.csv', '/work-requests/uploads/Resync_Project/alembicdigilabs_Digi_dmap.csv-1764052516740-502954236.csv', 'text/csv', 3939, '2025-11-25 06:35:16'),
-(125, 45, 'alembicdigilabs_Digi_dmap.sql', '/work-requests/uploads/Resync_Project/alembicdigilabs_Digi_dmap.sql-1764052516765-978964861.sql', 'application/x-sql', 28042, '2025-11-25 06:35:16'),
-(126, 45, 'D-Map-Upgraded API.postman_collection.json', '/work-requests/uploads/Resync_Project/D_Map_Upgraded_API.postman_collection.json-1764052516776-782527887.json', 'application/json', 76385, '2025-11-25 06:35:16'),
-(130, 47, 'alembicdigilabs_Digi_dmap.csv', '/work-requests/uploads/Resync_Poster_maker/alembicdigilabs_Digi_dmap.csv-1764052899244-848021088.csv', 'text/csv', 3939, '2025-11-25 06:41:39'),
-(131, 47, 'alembicdigilabs_Digi_dmap.sql', '/work-requests/uploads/Resync_Poster_maker/alembicdigilabs_Digi_dmap.sql-1764052899267-297870515.sql', 'application/x-sql', 28042, '2025-11-25 06:41:39'),
-(132, 47, 'D-Map-Upgraded API.postman_collection.json', '/work-requests/uploads/Resync_Poster_maker/D_Map_Upgraded_API.postman_collection.json-1764052899278-1385401.json', 'application/json', 76385, '2025-11-25 06:41:39');
+INSERT INTO `work_request_documents` (`id`, `work_request_id`, `document_name`, `document_path`, `document_type`, `document_size`, `status`, `uploaded_at`) VALUES
+(124, 45, 'alembicdigilabs_Digi_dmap.csv', '/work-requests/uploads/Resync_Project/alembicdigilabs_Digi_dmap.csv-1764052516740-502954236.csv', 'text/csv', 3939, 'uploaded', '2025-11-25 06:35:16'),
+(125, 45, 'alembicdigilabs_Digi_dmap.sql', '/work-requests/uploads/Resync_Project/alembicdigilabs_Digi_dmap.sql-1764052516765-978964861.sql', 'application/x-sql', 28042, 'uploaded', '2025-11-25 06:35:16'),
+(126, 45, 'D-Map-Upgraded API.postman_collection.json', '/work-requests/uploads/Resync_Project/D_Map_Upgraded_API.postman_collection.json-1764052516776-782527887.json', 'application/json', 76385, 'uploaded', '2025-11-25 06:35:16'),
+(130, 47, 'alembicdigilabs_Digi_dmap.csv', '/work-requests/uploads/Resync_Poster_maker/alembicdigilabs_Digi_dmap.csv-1764052899244-848021088.csv', 'text/csv', 3939, 'uploaded', '2025-11-25 06:41:39'),
+(131, 47, 'alembicdigilabs_Digi_dmap.sql', '/work-requests/uploads/Resync_Poster_maker/alembicdigilabs_Digi_dmap.sql-1764052899267-297870515.sql', 'application/x-sql', 28042, 'uploaded', '2025-11-25 06:41:39'),
+(132, 47, 'D-Map-Upgraded API.postman_collection.json', '/work-requests/uploads/Resync_Poster_maker/D_Map_Upgraded_API.postman_collection.json-1764052899278-1385401.json', 'application/json', 76385, 'uploaded', '2025-11-25 06:41:39'),
+(141, 55, 'World_Diabetes_Day.mp4', '/uploads/file_upload_testing_big_file/World_Diabetes_Day.mp4-1764063944254-161854996.mp4', 'video/mp4', 51401011, 'uploaded', '2025-11-25 09:45:44'),
+(142, 55, 'World_Heart_Day_2025_with_videoframer.mp4', '/uploads/file_upload_testing_big_file/World_Heart_Day_2025_with_videoframer.mp4-1764063944309-29912950.mp4', 'video/mp4', 12336237, 'uploaded', '2025-11-25 09:45:44');
 
 --
 -- Indexes for dumped tables
@@ -780,13 +790,13 @@ ALTER TABLE `tasks`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT for table `user_divisions`
 --
 ALTER TABLE `user_divisions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
 -- AUTO_INCREMENT for table `work_medium`
@@ -798,13 +808,13 @@ ALTER TABLE `work_medium`
 -- AUTO_INCREMENT for table `work_requests`
 --
 ALTER TABLE `work_requests`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=49;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=56;
 
 --
 -- AUTO_INCREMENT for table `work_request_documents`
 --
 ALTER TABLE `work_request_documents`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=133;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=143;
 
 --
 -- Constraints for dumped tables
