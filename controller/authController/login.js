@@ -155,7 +155,7 @@ const login = async (req, res) => {
             if (newAttempts >= 5) {
                 // Lock account for 30 minutes
                 const lockUntil = new Date(Date.now() + 30 * 60 * 1000);
-                await userService.updateById(user.id, { login_attempts: newAttempts, account_status: 'locked', lock_until: lockUntil });
+                await userService.updateById(user.id, { login_attempts: 0, account_status: 'locked', lock_until: lockUntil });
                 await logUserActivity({
                     event: 'login_failed',
                     reason: 'account_locked_due_to_attempts',
