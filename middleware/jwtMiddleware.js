@@ -6,22 +6,22 @@ const authenticateToken = async (req, res, next) => {
   const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
   if (!token) {
-    return res.status(401).json({ error: 'Access token required' });
+    return res.status(401).json({ success: false, error: 'Access token required' });
   }
 
   try {
-      // Check if token is blacklisted
-      const isBlacklisted = await redisClient.get(`blacklist:${token}`);
-      if (isBlacklisted) {
-          return res.status(401).json({ error: 'Token has been revoked' });
-      }
+    // Check if token is blacklisted
+    const isBlacklisted = await redisClient.get(`blacklist:${token}`);
+    if (isBlacklisted) {
+      return res.status(401).json({ success: false, error: 'Token has been revoked' });
+    }
 
-      const keyBytes = Uint8Array.from(Buffer.from(process.env.JWT_ENCRYPTION_KEY, 'base64'));
-      const { payload } = await jwtDecrypt(token, keyBytes);
-      req.user = payload;
-      next();
+    const keyBytes = Uint8Array.from(Buffer.from(process.env.JWT_ENCRYPTION_KEY, 'base64'));
+    const { payload } = await jwtDecrypt(token, keyBytes);
+    req.user = payload;
+    next();
   } catch (error) {
-      return res.status(403).json({ error: 'Invalid or expired token' });
+    return res.status(403).json({ error: 'Invalid or expired token' });
   }
 };
 

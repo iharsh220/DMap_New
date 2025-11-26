@@ -177,7 +177,8 @@ const login = async (req, res) => {
                 });
                 return res.status(401).json({
                     success: false,
-                    error: `Invalid credentials. You have ${remainingAttempts} attempt${remainingAttempts === 1 ? '' : 's'} left. After 5 failed attempts, your account will be locked for 30 minutes.`
+                    error: `Invalid credentials. You have ${remainingAttempts} attempt${remainingAttempts === 1 ? '' : 's'} left. After 5 failed attempts, your account will be locked for 30 minutes.`,
+                    type: 'login'
                 });
             }
         }
