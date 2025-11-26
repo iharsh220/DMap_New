@@ -31,7 +31,6 @@ CREATE TABLE `department` (
   `id` int(11) NOT NULL,
   `department_name` varchar(100) NOT NULL,
   `description` text DEFAULT NULL,
-  `status` enum('Active','Inactive') DEFAULT 'Active',
   `state` enum('active','inactive') DEFAULT 'active',
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
@@ -41,16 +40,16 @@ CREATE TABLE `department` (
 -- Dumping data for table `department`
 --
 
-INSERT INTO `department` (`id`, `department_name`, `description`, `status`, `state`, `created_at`, `updated_at`) VALUES
-(1, 'Marketing', 'All marketing divisions of the company', 'Active', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(2, 'Medical', 'All medical division employees of the company', 'Active', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(3, 'Legal', 'All legal division employees of the company', 'Active', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(4, 'CQA', 'All CQA division employees of the company', 'Active', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(5, 'Business Enablers', 'All the other divisions of the company', 'Active', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(6, 'IBU', 'Any divisions from company\'s Vadodara HQ', 'Active', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(7, 'Leadership', 'All employees with AGM & above designation', 'Active', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(8, 'Corporate Communication', 'All verticals within Corp Comm', 'Active', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(9, 'Digilabs', 'All verticals within Digilabs', 'Active', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52');
+INSERT INTO `department` (`id`, `department_name`, `description`, `state`, `created_at`, `updated_at`) VALUES
+(1, 'Marketing', 'All marketing divisions of the company', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(2, 'Medical', 'All medical division employees of the company', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(3, 'Legal', 'All legal division employees of the company', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(4, 'CQA', 'All CQA division employees of the company', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(5, 'Business Enablers', 'All the other divisions of the company', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(6, 'IBU', 'Any divisions from company\'s Vadodara HQ', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(7, 'Leadership', 'All employees with AGM & above designation', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(8, 'Corporate Communication', 'All verticals within Corp Comm', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(9, 'Digilabs', 'All verticals within Digilabs', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52');
 
 -- --------------------------------------------------------
 

@@ -15,10 +15,6 @@ const Department = sequelize.define('Department', {
     type: DataTypes.TEXT,
     allowNull: true,
   },
-  status: {
-    type: DataTypes.ENUM('Active', 'Inactive'),
-    defaultValue: 'Active',
-  },
   created_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,
