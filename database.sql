@@ -220,7 +220,7 @@ INSERT INTO `designation_jobroles` (`id`, `designation_id`, `jobrole_id`, `creat
 (14, 14, 6, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
 (15, 15, 2, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
 (16, 16, 2, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(17, 17, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(17, 17, 3, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
 (18, 18, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
 (19, 19, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
 (20, 20, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
@@ -313,22 +313,23 @@ CREATE TABLE `job_role` (
 INSERT INTO `job_role` (`id`, `role_title`, `level`, `description`, `department_id`, `state`, `created_at`, `updated_at`) VALUES
 (1, 'Super Admin', 'Senior', 'System administrators', 9, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
 (2, 'Creative Manager', 'Mid', 'Creative media managers ( for Graphic, Video, Content, Web App divisions)', 9, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(3, 'Creative User', 'Low', 'All subject matter experts such as designers, video editors, copywriters, developers, etc', 9, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(4, 'Marketing Manager', 'Mid', 'Marketing manager', 1, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(5, 'Marketing User', 'Low', 'All product manager levels', 1, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(6, 'Senior Leadership', 'Mid', 'Any user under Leadership department', 7, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(7, 'Other User', 'Low', 'Any user under Business Enabler department', 5, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(8, 'Medical Manager', 'Mid', 'Level 3 user of medical team', 2, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(9, 'Medical Senior', 'Low', 'Level 2 user of medical team', 2, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(10, 'Medical User', 'Low', 'Level 1 user of medical team', 2, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(11, 'Legal Manager', 'Mid', 'Level 3 user of legal team', 3, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(12, 'Legal Senior', 'Low', 'Level 2 user of legal team', 3, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(13, 'Lega User', 'Low', 'Level 1 user of legal team', 3, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(14, 'CQA Manager', 'Mid', 'Level 3 user of CQA team', 4, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(15, 'CQA Senior', 'Low', 'Level 2 user of CQA team', 4, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(16, 'CQA User', 'Low', 'Level 1 user of CQA team', 4, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(17, 'CComm Manager', 'Mid', 'Managers and up of corp comm division', 8, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(18, 'CComm User', 'Low', 'All users of corporate communication division', 8, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52');
+(3, 'Creative Lead', 'Mid', 'All leads who can be backup for Creative Managers', 9, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(4, 'Creative User', 'Low', 'All subject matter experts such as designers, video editors, copywriters, developers, etc', 9, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(5, 'Marketing Manager', 'Mid', 'Marketing manager', 1, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(6, 'Marketing User', 'Low', 'All product manager levels', 1, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(7, 'Senior Leadership', 'Mid', 'Any user under Leadership department', 7, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(8, 'Other User', 'Low', 'Any user under Business Enabler department', 5, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(9, 'Medical Manager', 'Mid', 'Level 3 user of medical team', 2, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(10, 'Medical Senior', 'Low', 'Level 2 user of medical team', 2, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(11, 'Medical User', 'Low', 'Level 1 user of medical team', 2, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(12, 'Legal Manager', 'Mid', 'Level 3 user of legal team', 3, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(13, 'Legal Senior', 'Low', 'Level 2 user of legal team', 3, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(14, 'Legal User', 'Low', 'Level 1 user of legal team', 3, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(15, 'CQA Manager', 'Mid', 'Level 3 user of CQA team', 4, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(16, 'CQA Senior', 'Low', 'Level 2 user of CQA team', 4, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(17, 'CQA User', 'Low', 'Level 1 user of CQA team', 4, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(18, 'CComm Manager', 'Mid', 'Managers and up of corp comm division', 8, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(19, 'CComm User', 'Low', 'All users of corporate communication division', 8, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52');
 
 -- --------------------------------------------------------
 
@@ -475,7 +476,7 @@ INSERT INTO `users` (`id`, `name`, `email`, `phone`, `password`, `department_id`
 (9, 'Bhagwan Parab', 'bhagwan.parab@alembic.co.in', '1234567890', '$2a$10$13zqXGBAuAF/pcF4XHxvi.lEo8flBZCOnw/qq.fBJfZ57eAJcfj42', 9, 2, 1, 16, 1, 'active', NULL, 0, NULL, '2025-11-25 06:14:31', '2026-02-23 06:14:31', '2025-11-25 06:10:40', '2025-11-25 06:14:31'),
 (10, 'Harsh Gohil', 'harsh.gohil@alembic.co.in', '1234567890', '$2a$10$Kc.lwpVnKYKTOyVEkEaR5eCEcMqK7SjbnjpwgIB.LiAN/pLagxVeO', 9, 4, 1, 20, 1, 'active', '2025-11-26 04:00:05', 0, NULL, '2025-11-25 06:15:53', '2026-02-23 06:15:53', '2025-11-25 06:14:56', '2025-11-26 04:00:05'),
 (11, 'Mohanish Padwal', 'mohanish.padwal@alembic.co.in', '1234567890', '$2a$10$lbDnrhd.6O4EvCFNTeDt1.SngPt.IqHZkvw3jtUwjKTrEWoIbcDO.', 9, 2, 1, 16, 1, 'active', '2025-11-26 04:25:25', 0, NULL, '2025-11-25 06:17:31', '2026-02-23 06:17:31', '2025-11-25 06:16:23', '2025-11-26 04:25:25'),
-(12, 'Nikhil Nadkar', 'nikhil.nadkar12@alembic.co.in', '1234567890', '$2a$10$Txudkx41QciW8euyVoodNOIa4seUXViVsWc.UN3RCdxg0KrcFfssW', 1, 5, 1, 8, 1, 'active', '2025-11-25 09:26:49', 0, NULL, '2025-11-25 06:19:02', '2026-02-23 06:19:02', '2025-11-25 06:17:55', '2025-11-25 09:26:49'),
+(12, 'Nikhil Nadkar', 'nikhil.nadkar@alembic.co.in', '1234567890', '$2a$10$Txudkx41QciW8euyVoodNOIa4seUXViVsWc.UN3RCdxg0KrcFfssW', 1, 5, 1, 8, 1, 'active', '2025-11-25 09:26:49', 0, NULL, '2025-11-25 06:19:02', '2026-02-23 06:19:02', '2025-11-25 06:17:55', '2025-11-25 09:26:49'),
 (13, 'Gautam Barnawal', 'gautam.baranwal@alembic.co.in', '1234567890', '$2a$10$ELYSn.TNQYl4.ppKulgaFeenW5Stt3wzMzeymt1O0hyAfzxnKGxZq', 9, 4, 1, 19, 1, 'active', NULL, 0, NULL, '2025-11-26 02:42:48', '2026-02-24 02:42:48', '2025-11-25 10:46:13', '2025-11-26 02:42:48'),
 (14, 'Vinisha Chadala', 'vinisha.chadala@alembic.co.in', '1234567890', '$2a$10$Fehw59cHdrrS0KdlB.koo.3aqM85F0soHulTlyn7Ga9ICb7XBbFGe', 9, 4, 1, 19, 1, 'active', NULL, 0, NULL, '2025-11-26 04:20:56', '2026-02-24 04:20:56', '2025-11-26 04:19:06', '2025-11-26 04:20:56'),
 (15, 'Vikaram Rai', 'vikramr.rai@alembic.co.in', '1234567890', '$2a$10$eMdj3uvEko0L26oRtV0veeoxZzMsiHwaHdW66FQ63bBN3ssboQN6q', 9, 2, 1, 16, 1, 'active', NULL, 0, NULL, '2025-11-26 04:33:08', '2026-02-24 04:33:08', '2025-11-26 04:31:28', '2025-11-26 04:33:08');
@@ -801,7 +802,7 @@ ALTER TABLE `division`
 -- AUTO_INCREMENT for table `job_role`
 --
 ALTER TABLE `job_role`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
 -- AUTO_INCREMENT for table `location`
