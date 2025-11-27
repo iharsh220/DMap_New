@@ -1,6 +1,6 @@
 const CrudService = require('../../services/crudService');
 const { User, Department, Division, JobRole, Location, Designation } = require('../../models');
-const { generateAccessToken, verifyRefreshToken } = require('../../middleware/jwtMiddleware');
+const { generateAccessToken, verifyRefreshToken, blacklistToken } = require('../../middleware/jwtMiddleware');
 const { logUserActivity, extractRequestDetails } = require('../../services/elasticsearchService');
 
 const userService = new CrudService(User);
@@ -90,6 +90,10 @@ const refreshToken = async (req, res) => {
         userData.userType = decoded.userType || 'user';
 
         const newAccessToken = await generateAccessToken(userData);
+
+        // Blacklist the old refresh token (7 days TTL)
+        const refreshTtl = require('ms')(process.env.REFRESH_TOKEN_EXPIRES_IN || '7d') / 1000;
+        await blacklistToken(token, refreshTtl);
 
         await logUserActivity({
             event: 'refresh_token_success',

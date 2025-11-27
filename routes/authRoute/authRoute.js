@@ -6,6 +6,9 @@ const refreshToken = require('../../controller/authController/refreshToken');
 const completeRegistration = require('../../controller/authController/completeRegistration');
 const login = require('../../controller/authController/login');
 const logout = require('../../controller/authController/logout');
+const forgotPassword = require('../../controller/authController/forgotPassword');
+const resetPassword = require('../../controller/authController/resetPassword');
+const changePassword = require('../../controller/authController/changePassword');
 
 const router = express.Router();
 
@@ -20,5 +23,11 @@ router.post('/refresh-token', refreshToken);
 router.post('/logout', authenticateToken, logout);
 
 router.post('/complete-registration', completeRegistration);
+
+router.post('/forgot-password', forgotPassword);
+
+router.post('/reset-password', resetPassword);
+
+router.post('/change-password', authenticateToken, changePassword);
 
 module.exports = router;

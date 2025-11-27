@@ -72,7 +72,7 @@ const initiateRegistration = async (req, res) => {
             } else {
                 // User exists but not verified, resend verification email
                 // Generate encrypted JWT token
-                const token = await generateEmailVerificationToken(email);
+                const token = await generateEmailVerificationToken({ email });
 
                 // Create verification URL
                 const verificationUrl = `${process.env.FRONTEND_URL}/verifyemailtab?token=${token}`;
@@ -114,7 +114,7 @@ const initiateRegistration = async (req, res) => {
         }
 
         // Generate encrypted JWT token
-        const token = await generateEmailVerificationToken(email);
+        const token = await generateEmailVerificationToken({ email });
 
         // Create verification URL
         const verificationUrl = `${process.env.FRONTEND_URL}/verifyemailtab?token=${token}`;

@@ -72,12 +72,30 @@ const verifyRefreshToken = async (token) => {
   return await decryptToken(token, process.env.REFRESH_ENCRYPTION_KEY);
 };
 
-const generateEmailVerificationToken = async (email) => {
-  return await generateToken({ email }, process.env.JWT_ENCRYPTION_KEY, process.env.EMAIL_VERIFICATION_TOKEN_EXPIRES_IN || '24h');
+const generateEmailVerificationToken = async (payload) => {
+  return await generateToken(payload, process.env.JWT_ENCRYPTION_KEY, process.env.EMAIL_VERIFICATION_TOKEN_EXPIRES_IN || '24h');
+};
+
+const generatePasswordResetToken = async (payload) => {
+  return await generateToken(payload, process.env.JWT_ENCRYPTION_KEY, '1h');
 };
 
 const verifyEmailVerificationToken = async (token) => {
+  // Check if token is blacklisted
+  const isBlacklisted = await redisClient.get(`blacklist:${token}`);
+  if (isBlacklisted) {
+    throw new Error('Token has been used and is no longer valid');
+  }
   return await decryptToken(token, process.env.JWT_ENCRYPTION_KEY);
+};
+
+const blacklistToken = async (token, ttlSeconds) => {
+  if (!ttlSeconds) {
+    // Default to 15 minutes for access tokens
+    const expiration = process.env.JWT_EXPIRES_IN || '15m';
+    ttlSeconds = require('ms')(expiration) / 1000;
+  }
+  await redisClient.setex(`blacklist:${token}`, ttlSeconds, 'true');
 };
 
 module.exports = {
@@ -87,5 +105,7 @@ module.exports = {
   generateRefreshToken,
   verifyRefreshToken,
   generateEmailVerificationToken,
-  verifyEmailVerificationToken
+  verifyEmailVerificationToken,
+  generatePasswordResetToken,
+  blacklistToken
 };

@@ -1,5 +1,6 @@
 const CrudService = require('../../services/crudService');
 const { User } = require('../../models');
+const { blacklistToken } = require('../../middleware/jwtMiddleware');
 const { logUserActivity, extractRequestDetails } = require('../../services/elasticsearchService');
 
 const userService = new CrudService(User);
@@ -87,6 +88,13 @@ const verifyEmail = async (req, res) => {
             email,
             message: 'Email verified successfully. Please complete your registration.'
         });
+
+        // Blacklist the verification token (24 hours TTL)
+        const { token } = req.query;
+        if (token) {
+            const emailTtl = require('ms')(process.env.EMAIL_VERIFICATION_TOKEN_EXPIRES_IN || '24h') / 1000;
+            await blacklistToken(token, emailTtl);
+        }
 
         await logUserActivity({
             event: 'verify_email_success',
