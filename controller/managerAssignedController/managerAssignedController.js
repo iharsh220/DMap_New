@@ -272,7 +272,7 @@ const acceptWorkRequest = async (req, res) => {
                             minute: '2-digit'
                         }),
                         project_details: workRequest.project_details || 'No detailed description provided.',
-                        frontend_url: process.env.FRONTEND_URL || 'http://localhost:3000'
+                        frontend_url: process.env.FRONTEND_URL
                     });
 
                     const mailOptions = {
@@ -462,7 +462,7 @@ const deferWorkRequest = async (req, res) => {
                     user_designation: user.Designation?.designation_name || 'Not specified',
                     project_details: workRequest.project_details || 'No detailed description provided.',
                     priority_capitalized: workRequest.priority.charAt(0).toUpperCase() + workRequest.priority.slice(1),
-                    frontend_url: process.env.FRONTEND_URL || 'http://localhost:3000'
+                    frontend_url: process.env.FRONTEND_URL
                 });
 
                 const ccEmails = [user.email];

@@ -93,13 +93,13 @@ const forgotPassword = async (req, res) => {
         const resetToken = await generatePasswordResetToken({ userId: user.id, userType });
 
         // Send email
-        const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+        const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
 
         // Read email template
         const templatePath = path.join(__dirname, '../../email-templates/passwordReset.html');
         let htmlTemplate = fs.readFileSync(templatePath, 'utf8');
         htmlTemplate = htmlTemplate.replace(/{{resetUrl}}/g, resetUrl);
-    
+
         await sendMail({
             to: user.email || user.email_id,
             subject: 'Password Reset Request - D-Map',

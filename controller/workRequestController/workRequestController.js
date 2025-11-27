@@ -164,7 +164,7 @@ const createWorkRequest = async (req, res) => {
                 `Manager ${index + 1}: ${m.name} (${m.email})`
             ).join(', ');
             const firstManager = managers[0];
-            
+
             const userEmailHtml = renderTemplate('workRequestUserConfirmation', {
                 manager_name: managerDetails,
                 manager_department: firstManager.Department?.department_name || 'N/A',
@@ -187,7 +187,7 @@ const createWorkRequest = async (req, res) => {
                 }),
                 project_details: result.data.project_details || 'No detailed description provided.',
                 priority_capitalized: result.data.priority.charAt(0).toUpperCase() + result.data.priority.slice(1),
-                frontend_url: process.env.FRONTEND_URL || 'http://localhost:3000'
+                frontend_url: process.env.FRONTEND_URL
             });
             await sendMail({
                 to: user.email,
@@ -220,7 +220,7 @@ const createWorkRequest = async (req, res) => {
                 user_designation: user.Designation?.designation_name || 'Not specified',
                 project_details: result.data.project_details || 'No detailed description provided.',
                 priority_capitalized: result.data.priority.charAt(0).toUpperCase() + result.data.priority.slice(1),
-                frontend_url: process.env.FRONTEND_URL || 'http://localhost:3000'
+                frontend_url: process.env.FRONTEND_URL
             });
             await sendMail({
                 to: managers.map(m => m.email).join(','),
