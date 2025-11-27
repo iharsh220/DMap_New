@@ -9,6 +9,7 @@ const logout = require('../../controller/authController/logout');
 const forgotPassword = require('../../controller/authController/forgotPassword');
 const resetPassword = require('../../controller/authController/resetPassword');
 const changePassword = require('../../controller/authController/changePassword');
+const getProfile = require('../../controller/authController/getProfile');
 
 const router = express.Router();
 
@@ -29,5 +30,7 @@ router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
 
 router.post('/change-password', authenticateToken, changePassword);
+
+router.get('/profile', authenticateToken, getProfile);
 
 module.exports = router;

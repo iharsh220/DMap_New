@@ -299,6 +299,32 @@
             },
             "description": "Change password for authenticated user (requires authentication)"
           }
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/digilabs/dmap/api/auth/profile",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "digilabs",
+                "dmap",
+                "api",
+                "auth",
+                "profile"
+              ]
+            },
+            "description": "Get complete user profile information (requires authentication)"
+          }
         }
       ]
     },
