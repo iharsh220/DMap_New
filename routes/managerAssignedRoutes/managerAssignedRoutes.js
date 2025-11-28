@@ -8,12 +8,12 @@ const paginationMiddleware = require('../../middleware/paginationMiddleware');
 const searchMiddleware = require('../../middleware/searchMiddleware');
 
 // Manager-specific routes for viewing assigned work requests
-router.get('/', authenticateToken, checkRole([1, 2]), filterMiddleware, paginationMiddleware, searchMiddleware, getAssignedWorkRequests); // Get all requests assigned to the manager
-router.get('/:id', authenticateToken, checkRole([1, 2]), getAssignedWorkRequestById); // Get specific assigned work request by ID
-router.put('/:id/accept', authenticateToken, checkRole([1, 2]), acceptWorkRequest); // Accept a work request
-router.put('/:id/defer', authenticateToken, checkRole([1, 2]), deferWorkRequest); // Defer a work request
+router.get('/', authenticateToken, checkRole([1, 2, 3]), filterMiddleware, paginationMiddleware, searchMiddleware, getAssignedWorkRequests); // Get all requests assigned to the manager
+router.get('/:id', authenticateToken, checkRole([1, 2, 3]), getAssignedWorkRequestById); // Get specific assigned work request by ID
+router.put('/:id/accept', authenticateToken, checkRole([1, 2, 3]), acceptWorkRequest); // Accept a work request
+router.put('/:id/defer', authenticateToken, checkRole([1, 2, 3]), deferWorkRequest); // Defer a work request
 
 
-router.get('/:id/assignable-users', authenticateToken, checkRole([1, 2]), getAssignableUsers); // Get users that can be assigned tasks for a specific work request
+router.get('/:id/assignable-users', authenticateToken, checkRole([1, 2, 3]), getAssignableUsers); // Get users that can be assigned tasks for a specific work request
 
 module.exports = router;

@@ -45,26 +45,32 @@ const createWorkRequest = async (req, res) => {
             });
         }
 
-        // Find managers in the same division with Creative Manager role
-        const userDivisions = await UserDivisions.findAll({
+        // Find all assignees (Creative Managers and Creative Leads) in the same division
+        const assigneeUserDivisions = await UserDivisions.findAll({
             where: { division_id: requestType.division_id },
             include: [{
                 model: User,
-                where: { job_role_id: 2, account_status: 'active' },
+                where: {
+                    job_role_id: { [require('sequelize').Op.in]: [2, 3] }, // 2: Creative Manager, 3: Creative Lead
+                    account_status: 'active'
+                },
                 include: [
-                    { model: Department, as: 'Department' },
-                    { model: Division, as: 'Divisions' },
-                    { model: JobRole, as: 'JobRole' },
-                    { model: Location, as: 'Location' }
+                    { model: Department, as: 'Department', attributes: ['id', 'department_name'] },
+                    { model: Division, as: 'Divisions', attributes: ['id', 'title'] },
+                    { model: JobRole, as: 'JobRole', attributes: ['id', 'role_title'] },
+                    { model: Location, as: 'Location', attributes: ['id', 'location_name'] }
                 ]
             }]
         });
-        const managers = userDivisions.map(ud => ud.User).filter(u => u);
 
-        if (managers.length === 0) {
+        const allAssignees = assigneeUserDivisions.map(ud => ud.User).filter(u => u);
+        const managers = allAssignees.filter(u => u.job_role_id === 2);
+        const creativeLeads = allAssignees.filter(u => u.job_role_id === 3);
+
+        if (managers.length === 0 && creativeLeads.length === 0) {
             return res.status(400).json({
                 success: false,
-                error: 'No manager found for this request type'
+                error: 'No manager or creative lead found for this request type'
             });
         }
 
@@ -92,12 +98,12 @@ const createWorkRequest = async (req, res) => {
 
         const workRequestId = result.data.id;
 
-        // Create work request manager entries for all managers
+        // Create work request manager entries for all managers and creative leads
         const managerEntries = [];
-        for (const manager of managers) {
+        for (const assignee of allAssignees) {
             const managerEntry = await WorkRequestManagers.create({
                 work_request_id: workRequestId,
-                manager_id: manager.id
+                manager_id: assignee.id
             });
             managerEntries.push(managerEntry);
         }
@@ -147,31 +153,20 @@ const createWorkRequest = async (req, res) => {
         }
 
         // Send notification emails
-        // const user = await User.findByPk(user_id, {
-        //     attributes: { exclude: ['password', 'created_at', 'updated_at'] },
-        //     include: [
-        //         { model: Department, as: 'Department', attributes: { exclude: ['created_at', 'updated_at'] } },
-        //         { model: Division, as: 'Divisions', attributes: { exclude: ['created_at', 'updated_at'] } },
-        //         { model: JobRole, as: 'JobRole', attributes: { exclude: ['created_at', 'updated_at'] } },
-        //         { model: Location, as: 'Location', attributes: { exclude: ['created_at', 'updated_at'] } },
-        //         { model: Designation, as: 'Designation', attributes: { exclude: ['created_at', 'updated_at'] } }
-        //     ]
-        // });
-        // console.log(user);
-        // console.log(req.user);
-        if (isdraft === 'false' && req.user && managers.length > 0) {
-            // Email to user (including all managers' details)
-            const managerDetails = managers.map((m, index) =>
-                `Manager ${index + 1}: ${m.name} (${m.email})`
+        if (isdraft === 'false' && req.user && allAssignees.length > 0) {
+            // Prepare assignee details for user email
+            const assigneeDetails = allAssignees.map((a, index) =>
+                `${a.JobRole?.role_title || 'Assignee'} ${index + 1}: ${a.name} (${a.email})`
             ).join(', ');
-            const firstManager = managers[0];
+            const firstAssignee = allAssignees[0];
 
+            // Email to user (confirmation)
             const userEmailHtml = renderTemplate('workRequestUserConfirmation', {
-                manager_name: managerDetails,
-                manager_department: firstManager.Department?.department_name || 'N/A',
-                manager_division: firstManager.Divisions && firstManager.Divisions.length > 0 ? firstManager.Divisions[0].title : 'N/A',
-                manager_job_role: firstManager.JobRole?.role_title || 'N/A',
-                manager_location: firstManager.Location?.location_name || 'N/A',
+                manager_name: assigneeDetails,
+                manager_department: firstAssignee.Department?.department_name || 'N/A',
+                manager_division: firstAssignee.Divisions && firstAssignee.Divisions.length > 0 ? firstAssignee.Divisions[0].title : 'N/A',
+                manager_job_role: firstAssignee.JobRole?.role_title || 'N/A',
+                manager_location: firstAssignee.Location?.location_name || 'N/A',
                 project_name: result.data.project_name,
                 brand: result.data.brand || 'Not specified',
                 request_type_type: requestType.type,
@@ -197,7 +192,10 @@ const createWorkRequest = async (req, res) => {
                 html: userEmailHtml
             });
 
-            // Email to all managers
+            // Email to managers (with leads in CC)
+            const managerEmails = managers.map(m => m.email);
+            const leadEmails = creativeLeads.map(l => l.email);
+
             const managerEmailHtml = renderTemplate('workRequestManagerNotification', {
                 project_name: result.data.project_name,
                 brand: result.data.brand || 'Not specified',
@@ -226,7 +224,8 @@ const createWorkRequest = async (req, res) => {
             });
 
             await sendMail({
-                to: managers.map(m => m.email).join(','),
+                to: managerEmails.join(','),
+                cc: leadEmails.join(','),
                 subject: 'New Work Request Submitted',
                 html: managerEmailHtml
             });
