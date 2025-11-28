@@ -17,6 +17,7 @@ const {
 
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
+const { logUserActivity, extractRequestDetails } = require('../../services/elasticsearchService');
 
 const workRequestService = new CrudService(WorkRequests);
 const userService = new CrudService(User);
@@ -113,6 +114,14 @@ const getAssignableUsers = async (req, res) => {
             }
         }));
 
+        await logUserActivity({
+            event: 'assignable_users_viewed',
+            userId: req.user.id,
+            workRequestId: workRequestId,
+            count: formattedData.length,
+            ...extractRequestDetails(req)
+        });
+
         res.json({
             success: true,
             data: formattedData,
@@ -165,6 +174,12 @@ const getAssignedWorkRequests = async (req, res) => {
         });
 
         if (result.success) {
+            await logUserActivity({
+                event: 'assigned_work_requests_viewed',
+                userId: req.user.id,
+                count: result.data.length,
+                ...extractRequestDetails(req)
+            });
             res.json({ success: true, data: result.data, pagination: req.pagination });
         } else {
             res.status(500).json({ success: false, error: result.error });
@@ -201,6 +216,12 @@ const getAssignedWorkRequestById = async (req, res) => {
         });
 
         if (result.success && result.data.length > 0) {
+            await logUserActivity({
+                event: 'assigned_work_request_viewed',
+                userId: req.user.id,
+                workRequestId: id,
+                ...extractRequestDetails(req)
+            });
             res.json({ success: true, data: result.data[0] });
         } else {
             res.status(404).json({ success: false, error: 'Assigned work request not found' });
@@ -248,6 +269,13 @@ const acceptWorkRequest = async (req, res) => {
 
         const workRequest = existingResult.data[0];
         if (workRequest.status === 'accepted') {
+            await logUserActivity({
+                event: 'work_request_action_failed',
+                reason: 'already_accepted',
+                userId: req.user.id,
+                workRequestId: id,
+                ...extractRequestDetails(req)
+            });
             return res.status(400).json({ success: false, error: 'Work request is already accepted' });
         }
 
@@ -265,7 +293,7 @@ const acceptWorkRequest = async (req, res) => {
                     include: [{
                         model: User,
                         where: {
-                            job_role_id: { [require('sequelize').Op.in]: [2, 3] }, // 2: Creative Manager, 3: Creative Lead
+                            job_role_id: { [Op.in]: [2, 3] }, // 2: Creative Manager, 3: Creative Lead
                             account_status: 'active'
                         },
                         attributes: ['email']
@@ -307,6 +335,13 @@ const acceptWorkRequest = async (req, res) => {
                 await sendMail(mailOptions);
             }
 
+            await logUserActivity({
+                event: 'work_request_accepted',
+                userId: req.user.id,
+                workRequestId: id,
+                ...extractRequestDetails(req)
+            });
+
             res.json({ success: true, message: 'Work request accepted successfully' });
         } else {
             res.status(404).json({ success: false, error: 'Work request not found or update failed' });
@@ -320,9 +355,11 @@ const acceptWorkRequest = async (req, res) => {
 const deferWorkRequest = async (req, res) => {
     try {
         const id = parseInt(req.params.id, 10);
+        
         if (isNaN(id)) {
             return res.status(400).json({ success: false, error: 'Invalid work request ID' });
         }
+
         const manager_id = req.user.id;
         const { reason, message } = req.body; // reason: 'insufficient_details' or 'incorrect_request_type', message for insufficient_details
 
@@ -334,7 +371,7 @@ const deferWorkRequest = async (req, res) => {
             return res.status(400).json({ success: false, error: 'new_request_type_id is required for incorrect_request_type reason' });
         }
 
-        // Check if work request exists and is assigned to this manager
+        // Check if work request exists and is assigned to this manager, get all needed data in one query
         const existingResult = await workRequestService.getAll({
             where: { id },
             include: [
@@ -343,6 +380,15 @@ const deferWorkRequest = async (req, res) => {
                     where: { manager_id: manager_id },
                     required: true,
                     attributes: []
+                },
+                {
+                    model: User,
+                    as: 'users',
+                    attributes: ['id', 'name', 'email']
+                },
+                {
+                    model: RequestType,
+                    include: [{ model: Division, as: 'Division', attributes: ['id'] }]
                 }
             ],
             limit: 1
@@ -354,18 +400,47 @@ const deferWorkRequest = async (req, res) => {
 
         const workRequest = existingResult.data[0];
 
+        if (workRequest.status === 'accepted') {
+            await logUserActivity({
+                event: 'work_request_action_failed',
+                reason: 'already_accepted_cannot_defer',
+                userId: req.user.id,
+                workRequestId: id,
+                ...extractRequestDetails(req)
+            });
+            return res.status(400).json({ success: false, error: 'Work request is already accepted and cannot be deferred' });
+        }
+
         if (reason === 'insufficient_details' && message) {
             // Send email to user
-            const userResult = await userService.getById(workRequest.user_id);
-            if (userResult.success) {
-                const user = userResult.data;
-                const manager = req.user;
+            const user = workRequest.users;
+            const currentUser = req.user;
+            const requestType = workRequest.RequestType || {};
+            const divisionId = requestType.Division?.id;
+
+            // Find all Creative Managers and Creative Leads in the division
+            let ccEmails = [];
+            if (divisionId) {
+                const assigneeUserDivisions = await UserDivisions.findAll({
+                    where: { division_id: divisionId },
+                    include: [{
+                        model: User,
+                        where: {
+                            job_role_id: { [Op.in]: [2, 3] }, // 2: Creative Manager, 3: Creative Lead
+                            account_status: 'active'
+                        },
+                        attributes: ['email']
+                    }],
+                    attributes: []
+                });
+                ccEmails = assigneeUserDivisions.map(ud => ud.User.email);
+            }
 
                 const html = renderTemplate('workRequestDeferNotification', {
                     user_name: user.name,
                     user_email: user.email,
-                    manager_name: manager.name,
-                    manager_email: manager.email,
+                    manager_name: currentUser.name,
+                    manager_email: currentUser.email,
                     project_name: workRequest.project_name,
                     brand: workRequest.brand,
                     message: message,
@@ -384,14 +459,24 @@ const deferWorkRequest = async (req, res) => {
                     html
                 };
 
-                if (req.user.id !== workRequest.user_id) {
-                    mailOptions.cc = req.user.email;
+                // CC all managers and leads in the division
+                if (ccEmails.length > 0) {
+                    mailOptions.cc = ccEmails.join(',');
                 }
 
                 await sendMail(mailOptions);
-            }
+
+                await logUserActivity({
+                    event: 'work_request_deferred',
+                    reason: 'insufficient_details',
+                    userId: req.user.id,
+                    workRequestId: id,
+                    deferReason: reason,
+                    message: message,
+                    ...extractRequestDetails(req)
+                });
         } else if (reason === 'incorrect_request_type') {
-            // Reassign to new request type manager
+            // Reassign to new request type - assign all managers and leads
             const newRequestTypeId = parseInt(req.body.new_request_type_id);
             if (isNaN(newRequestTypeId)) {
                 return res.status(400).json({ success: false, error: 'Invalid new_request_type_id' });
@@ -405,24 +490,22 @@ const deferWorkRequest = async (req, res) => {
                 return res.status(400).json({ success: false, error: 'Invalid request type ID' });
             }
 
-            // Find new manager
-            const managerDivision = await UserDivisions.findOne({
+            // Find all Creative Managers and Creative Leads in the new division
+            const newManagersAndLeads = await UserDivisions.findAll({
                 where: { division_id: newRequestType.division_id },
                 include: [{
                     model: User,
-                    where: { job_role_id: 2, account_status: 'active' },
-                    include: [
-                        { model: Department, as: 'Department' },
-                        { model: Division, as: 'Divisions' },
-                        { model: JobRole, as: 'JobRole' },
-                        { model: Location, as: 'Location' }
-                    ]
-                }]
+                    where: {
+                        job_role_id: { [Op.in]: [2, 3] }, // 2: Creative Manager, 3: Creative Lead
+                        account_status: 'active'
+                    },
+                    attributes: ['id', 'name', 'email']
+                }],
+                attributes: []
             });
-            const newManager = managerDivision ? managerDivision.User : null;
 
-            if (!newManager) {
-                return res.status(400).json({ success: false, error: 'No manager found for the new request type' });
+            if (!newManagersAndLeads || newManagersAndLeads.length === 0) {
+                return res.status(400).json({ success: false, error: 'No managers or leads found for the new request type' });
             }
 
             // Update work request
@@ -434,11 +517,22 @@ const deferWorkRequest = async (req, res) => {
                 return res.status(500).json({ success: false, error: 'Failed to reassign work request' });
             }
 
-            // Update the manager in WorkRequestManagers
-            await WorkRequestManagers.update(
-                { manager_id: newManager.id },
-                { where: { work_request_id: id } }
-            );
+            // Delete existing WorkRequestManagers entries
+            await WorkRequestManagers.destroy({
+                where: { work_request_id: id }
+            });
+
+            // Create new WorkRequestManagers entries for all managers and leads
+            const newAssignments = newManagersAndLeads.map(managerDivision => ({
+                work_request_id: id,
+                manager_id: managerDivision.User.id
+            }));
+
+            await WorkRequestManagers.bulkCreate(newAssignments);
+
+            // Use the first manager (Creative Manager) for the transfer email
+            const newManager = newManagersAndLeads.find(m => m.User.job_role_id === 2)?.User ||
+                              newManagersAndLeads[0].User;
 
             // Send transfer email to new manager
             const user = await User.findByPk(workRequest.user_id, {
@@ -494,6 +588,16 @@ const deferWorkRequest = async (req, res) => {
                     html
                 });
             }
+
+            await logUserActivity({
+                event: 'work_request_deferred',
+                reason: 'incorrect_request_type',
+                userId: req.user.id,
+                workRequestId: id,
+                deferReason: reason,
+                newRequestTypeId: req.body.new_request_type_id,
+                ...extractRequestDetails(req)
+            });
         }
 
         res.json({ success: true, message: 'Work request deferred successfully' });
