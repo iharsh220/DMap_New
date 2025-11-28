@@ -219,7 +219,7 @@ const acceptWorkRequest = async (req, res) => {
         }
         const manager_id = req.user.id;
 
-        // Check if work request exists and is assigned to this manager
+        // Check if work request exists and is assigned to this manager, get all needed data in one query
         const existingResult = await workRequestService.getAll({
             where: { id },
             include: [
@@ -228,6 +228,15 @@ const acceptWorkRequest = async (req, res) => {
                     where: { manager_id: manager_id },
                     required: true,
                     attributes: []
+                },
+                {
+                    model: User,
+                    as: 'users',
+                    attributes: ['id', 'name', 'email']
+                },
+                {
+                    model: RequestType,
+                    include: [{ model: Division, as: 'Division', attributes: ['id'] }]
                 }
             ],
             limit: 1
@@ -245,49 +254,57 @@ const acceptWorkRequest = async (req, res) => {
         const updateResult = await workRequestService.updateById(id, { status: 'accepted' });
 
         if (updateResult.success) {
-            // Send email to user
-            const workRequestResult = await workRequestService.getById(id);
-            if (workRequestResult.success) {
-                const workRequest = workRequestResult.data;
-                // Get user
-                const userResult = await userService.getById(workRequest.user_id);
-                if (userResult.success) {
-                    const user = userResult.data;
-                    // Get request type
-                    const requestTypeResult = await requestTypeService.getById(workRequest.request_type_id);
-                    const requestType = requestTypeResult.success ? requestTypeResult.data : {};
+            const user = workRequest.users;
+            const requestType = workRequest.RequestType || {};
+            const divisionId = requestType.Division?.id;
 
-                    const html = renderTemplate('workRequestAcceptanceNotification', {
-                        project_name: workRequest.project_name,
-                        brand: workRequest.brand,
-                        request_type_type: requestType.type,
-                        request_type_category: requestType.category,
-                        priority: workRequest.priority,
-                        request_id: workRequest.id,
-                        accepted_at: new Date().toLocaleDateString('en-IN', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        }),
-                        project_details: workRequest.project_details || 'No detailed description provided.',
-                        frontend_url: process.env.FRONTEND_URL
-                    });
+            if (user && divisionId) {
+                // Find all Creative Managers and Creative Leads in the division
+                const assigneeUserDivisions = await UserDivisions.findAll({
+                    where: { division_id: divisionId },
+                    include: [{
+                        model: User,
+                        where: {
+                            job_role_id: { [require('sequelize').Op.in]: [2, 3] }, // 2: Creative Manager, 3: Creative Lead
+                            account_status: 'active'
+                        },
+                        attributes: ['email']
+                    }],
+                    attributes: []
+                });
 
-                    const mailOptions = {
-                        to: user.email,
-                        subject: 'Work Request Accepted',
-                        html
-                    };
+                const ccEmails = assigneeUserDivisions.map(ud => ud.User.email);
 
-                    // CC manager if different from user
-                    if (req.user.id !== workRequest.user_id) {
-                        mailOptions.cc = req.user.email;
-                    }
+                const html = renderTemplate('workRequestAcceptanceNotification', {
+                    project_name: workRequest.project_name,
+                    brand: workRequest.brand,
+                    request_type_type: requestType.type,
+                    request_type_category: requestType.category,
+                    priority: workRequest.priority,
+                    request_id: workRequest.id,
+                    accepted_at: new Date().toLocaleDateString('en-IN', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }),
+                    project_details: workRequest.project_details || 'No detailed description provided.',
+                    frontend_url: process.env.FRONTEND_URL
+                });
 
-                    await sendMail(mailOptions);
+                const mailOptions = {
+                    to: user.email,
+                    subject: 'Work Request Accepted',
+                    html
+                };
+
+                // CC all managers and leads in the division
+                if (ccEmails.length > 0) {
+                    mailOptions.cc = ccEmails.join(',');
                 }
+
+                await sendMail(mailOptions);
             }
 
             res.json({ success: true, message: 'Work request accepted successfully' });
@@ -308,7 +325,7 @@ const deferWorkRequest = async (req, res) => {
         }
         const manager_id = req.user.id;
         const { reason, message } = req.body; // reason: 'insufficient_details' or 'incorrect_request_type', message for insufficient_details
-        
+
         if (!reason || !['insufficient_details', 'incorrect_request_type'].includes(reason)) {
             return res.status(400).json({ success: false, error: 'Invalid reason' });
         }
