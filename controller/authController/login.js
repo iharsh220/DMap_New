@@ -196,7 +196,12 @@ const login = async (req, res) => {
 
         // Fetch user divisions
         const divisions = await UserDivisions.findAll({ where: { user_id: user.id }, include: [{ model: Division, as: 'division' }] });
-        userData.divisions = divisions.map(d => d.division);
+        userData.divisions = divisions.map(d => {
+            const division = d.division.toJSON();
+            delete division.created_at;
+            delete division.updated_at;
+            return division;
+        });
 
         // Remove foreign key IDs since we have the full objects
         delete userData.department_id;

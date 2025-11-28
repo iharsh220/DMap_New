@@ -26,7 +26,6 @@ const createWorkRequest = async (req, res) => {
     try {
         const { project_name, brand, request_type_id, project_details, priority = 'medium', remarks, isdraft = 'false' } = req.body;
         const user_id = req.user.id; // From JWT middleware
-
         // Validate required fields
         if (!project_name || !request_type_id) {
             return res.status(400).json({
@@ -148,17 +147,19 @@ const createWorkRequest = async (req, res) => {
         }
 
         // Send notification emails
-        const user = await User.findByPk(user_id, {
-            attributes: { exclude: ['password', 'created_at', 'updated_at'] },
-            include: [
-                { model: Department, as: 'Department', attributes: { exclude: ['created_at', 'updated_at'] } },
-                { model: Division, as: 'Divisions', attributes: { exclude: ['created_at', 'updated_at'] } },
-                { model: JobRole, as: 'JobRole', attributes: { exclude: ['created_at', 'updated_at'] } },
-                { model: Location, as: 'Location', attributes: { exclude: ['created_at', 'updated_at'] } },
-                { model: Designation, as: 'Designation', attributes: { exclude: ['created_at', 'updated_at'] } }
-            ]
-        });
-        if (isdraft === 'false' && user && managers.length > 0) {
+        // const user = await User.findByPk(user_id, {
+        //     attributes: { exclude: ['password', 'created_at', 'updated_at'] },
+        //     include: [
+        //         { model: Department, as: 'Department', attributes: { exclude: ['created_at', 'updated_at'] } },
+        //         { model: Division, as: 'Divisions', attributes: { exclude: ['created_at', 'updated_at'] } },
+        //         { model: JobRole, as: 'JobRole', attributes: { exclude: ['created_at', 'updated_at'] } },
+        //         { model: Location, as: 'Location', attributes: { exclude: ['created_at', 'updated_at'] } },
+        //         { model: Designation, as: 'Designation', attributes: { exclude: ['created_at', 'updated_at'] } }
+        //     ]
+        // });
+        // console.log(user);
+        // console.log(req.user);
+        if (isdraft === 'false' && req.user && managers.length > 0) {
             // Email to user (including all managers' details)
             const managerDetails = managers.map((m, index) =>
                 `Manager ${index + 1}: ${m.name} (${m.email})`
@@ -189,8 +190,9 @@ const createWorkRequest = async (req, res) => {
                 priority_capitalized: result.data.priority.charAt(0).toUpperCase() + result.data.priority.slice(1),
                 frontend_url: process.env.FRONTEND_URL
             });
+
             await sendMail({
-                to: user.email,
+                to: req.user.email,
                 subject: 'Work Request Submitted Successfully',
                 html: userEmailHtml
             });
@@ -211,17 +213,18 @@ const createWorkRequest = async (req, res) => {
                     hour: '2-digit',
                     minute: '2-digit'
                 }),
-                user_name: user.name,
-                user_email: user.email,
-                user_department: user.Department?.department_name || 'Not specified',
-                user_division: user.Divisions && user.Divisions.length > 0 ? user.Divisions[0].title : 'Not specified',
-                user_job_role: user.JobRole?.role_title || 'Not specified',
-                user_location: user.Location?.location_name || 'Not specified',
-                user_designation: user.Designation?.designation_name || 'Not specified',
+                user_name: req.user.name,
+                user_email: req.user.email,
+                user_department: req.user.department?.department_name || 'Not specified',
+                user_division: req.user.divisions && req.user.divisions.length > 0 ? req.user.divisions[0].title : 'Not specified',
+                user_job_role: req.user.jobRole?.role_title || 'Not specified',
+                user_location: req.user.location?.location_name || 'Not specified',
+                user_designation: req.user.designation?.designation_name || 'Not specified',
                 project_details: result.data.project_details || 'No detailed description provided.',
                 priority_capitalized: result.data.priority.charAt(0).toUpperCase() + result.data.priority.slice(1),
                 frontend_url: process.env.FRONTEND_URL
             });
+
             await sendMail({
                 to: managers.map(m => m.email).join(','),
                 subject: 'New Work Request Submitted',

@@ -43,7 +43,7 @@ User.belongsTo(JobRole, { foreignKey: 'job_role_id' });
 User.belongsTo(Location, { foreignKey: 'location_id' });
 User.belongsTo(Designation, { foreignKey: 'designation_id' });
 
-User.belongsToMany(Division, { through: UserDivisions, foreignKey: 'user_id', as: 'divisions' });
+User.belongsToMany(Division, { through: UserDivisions, foreignKey: 'user_id', as: 'Divisions' });
 Division.belongsToMany(User, { through: UserDivisions, foreignKey: 'division_id' });
 
 UserDivisions.belongsTo(User, { foreignKey: 'user_id' });

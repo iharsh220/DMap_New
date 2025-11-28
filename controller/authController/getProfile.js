@@ -33,7 +33,7 @@ const getProfile = async (req, res) => {
         const userResult = await service.getById(userId, {
             include: userType === 'user' ? [
                 { model: Department },
-                { model: Division, as: 'divisions' },
+                { model: Division, as: 'Divisions' },
                 { model: JobRole },
                 { model: Location },
                 { model: Designation }
@@ -74,12 +74,11 @@ const getProfile = async (req, res) => {
                 delete userData.department.updated_at;
                 delete userData.Department;
             }
-            if (userData.divisions && userData.divisions.length > 0) {
-                userData.Divisions = userData.divisions.map(division => {
+            if (userData.Divisions && userData.Divisions.length > 0) {
+                userData.Divisions = userData.Divisions.map(division => {
                     const { created_at, updated_at, UserDivisions, ...divisionData } = division;
                     return divisionData;
                 });
-                delete userData.divisions;
             }
             if (userData.JobRole) {
                 userData.jobRole = userData.JobRole;
