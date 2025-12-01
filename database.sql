@@ -518,10 +518,10 @@ INSERT INTO `user_divisions` (`id`, `user_id`, `division_id`, `created_at`, `upd
 
 CREATE TABLE `request_type` (
   `id` int(11) NOT NULL,
-  `type` varchar(100) NOT NULL,
   `category` varchar(100) NOT NULL,
+  `type` varchar(100) NOT NULL,
   `description` text DEFAULT NULL,
-  `division_id` int(11) NOT NULL,
+  `division_id` int(11) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
@@ -530,21 +530,300 @@ CREATE TABLE `request_type` (
 -- Dumping data for table `request_type`
 --
 
-INSERT INTO `request_type` (`id`, `type`, `category`, `description`, `division_id`, `created_at`, `updated_at`) VALUES
-(1, 'DIGITAL', 'Digital Creatives', 'Infographics, Social Media, Magazine, etc.', 1, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(2, 'DIGITAL', 'Web Application', 'VA HTMLization, Websites, Brand Gamifications, etc...', 5, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(3, 'PRINT', 'Print Creatives', 'Posters, Banners, LBL, Standees, etc.', 1, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(4, 'VIDEO & AUDIO', 'Video Shoot', 'Video shooting services', 2, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(5, 'VIDEO & AUDIO', 'Product/Pack-shot Shoot', 'Product and packaging photography', 2, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(6, 'VIDEO & AUDIO', 'Motion Graphics', 'Motion graphics and animation', 2, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(7, 'VIDEO & AUDIO', 'Animation Video', 'Animation video', 2, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(8, 'VIDEO & AUDIO', 'Motivational Video', 'Shoot & Edit / Edit Only / Create', 2, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(9, 'VIDEO & AUDIO', 'GIF', 'GIF creation', 2, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(10, 'VIDEO & AUDIO', 'Audio Recording', 'Audio recording services', 2, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(11, 'Content', 'Copywriting', 'Content Building, Non-medical Content', 4, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(12, 'Other', 'Consulting', 'Need creative input before agency', 9, '2025-11-11 06:52:31', '2025-11-11 06:52:31');
+INSERT INTO `request_type` (`id`, `category`, `type`, `description`, `division_id`, `created_at`, `updated_at`) VALUES
+(1, 'Content & Writing', 'Content', 'Non-medical copywriting, Storyboarding, etc.', 4, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(2, 'Design & Graphics', 'Digital Graphics', 'Infographics, Social media post, Magazine, etc.', 1, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(3, 'Design & Graphics', 'Print Graphics', 'Posters, Banners, LBL, Standees, etc.', 1, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(4, 'Video & Animation', 'Animation Video', '2D or 3D video animations.', 2, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(5, 'Video & Animation', 'Motion Graphic Video', 'Infographics video, Explainer video, etc.', 2, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(6, 'Video & Animation', 'GIF', 'Short clips, Demos, Looping clips, etc', 2, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(7, 'Video & Animation', 'Video Editing', 'Motivational video, Raw footage compilation.', 3, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(8, 'Photo, Video & Audio Shoot', 'Video Shoot & Editing', 'Live-action filming for product demos, Testimonials, etc.', 3, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(9, 'Photo, Video & Audio Shoot', 'Product, Event & Portrait Shoot', 'Professional photography of products, Packaging, etc.', 3, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(10, 'Photo, Video & Audio Shoot', 'Audio Recording', 'Voice-overs, Background music, Jingles, etc.', 3, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(11, 'Web & Digital Solutions', 'Web Application', 'VA HTMLization, Websites, Brand gamifications, etc.', 5, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(12, 'Consulting & Advisory', 'Consulting', 'Preparation and guidance for outsourced projects', NULL, '2025-11-11 06:52:31', '2025-11-11 06:52:31');
 
 -- --------------------------------------------------------
+
+--
+-- Table structure for table `project_type`
+--
+
+CREATE TABLE IF NOT EXISTS `project_type` (
+  `id` int(11) NOT NULL PRIMARY KEY AUTO_INCREMENT,
+  `project_type` varchar(100) NOT NULL,
+  `description` text DEFAULT NULL,
+  `quantification` varchar(100) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Dumping data for table `project_type`
+--
+
+INSERT INTO `project_type` (`id`, `project_type`, `description`, `quantification`, `created_at`, `updated_at`) VALUES
+(1, 'Photo Framer', 'Framing photos digitally', 'No. of photo framers made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(2, 'Custom Web Application', 'Applications based on custom requirements', 'No. of applications made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(3, 'Custom Form', 'Tailor-made online form for data collection', 'No. of forms made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(4, 'E- Flipbook', 'Digital booklet with flip-page effect', 'No. of e-flipbook made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(5, 'Quiz Application', 'Online quiz tool with scoring and logic', 'No. of quiz applications made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(6, 'Static Website', 'Simple informational website without backend', 'No. of websites made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(7, 'Brand Gamification', 'Interactive game-based experience for brand engagement', 'No. of gamiifications made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(8, 'HTML Mailer', 'Email template coded in HTML', 'No. of mailers made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(9, 'Dynamic Website', 'Website with backend, database, and dynamic content', 'No. of dynamic websites made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(10, 'Poster Maker', 'Online tool to create posters', 'No. of poster makers made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(11, 'Video Framer', 'Tool to generate framed or templated videos', 'No. of video framers made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(12, 'QR Code', 'Generate custom QR codes', 'No. of qr codes made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(13, 'VA HTMLization', 'Converting Visual Aids into interactive HTML format', 'No. of vas htmlised', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(14, 'Communications', 'Written content for messages, emails, and campaigns', 'No. of communications made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(15, 'Creative Copywriting', 'Written content for all kind of digital or print use', 'No. of collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(16, 'Web Copywriting', 'Creation of UX copys for websites & applications', 'No. of articles/blogs/screens made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(17, 'QC', 'Quality checking of content', 'No. of collaterals proofread/transcriptions made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(18, 'Brand Development', 'Creation of brand identity, strategy, and core assets', 'No. of collaterals/story/slogan/pay-off line made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(19, 'Marketing & Social Media Creatives', 'All posts, ads, static graphics', 'No. of graphic collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(20, 'Branding & Corporate Identity', 'Identity-building assets', 'No. of graphic collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(21, 'Packaging & Label Design', 'Print packaging-related projects', 'No. of graphic collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(22, 'Publication & Print Layouts', 'Long-format or structured print', 'No. of graphic collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(23, 'Illustrations & Visual Art', 'Any sketch or creative drawing', 'No. of graphic collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(24, 'Pharma/Medical Artwork', 'Pharma-specific assets', 'No. of graphic collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(25, 'Exhibition & Display Assets', 'Event/stall materials', 'No. of graphic collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(26, 'Photo Manipulation & Advanced Edits', 'Creative photo work', 'No. of graphic collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(27, 'UI & Other Asset Production', 'Assets for web/app UI and other things', 'No. of graphic collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(28, '2D / 3D Animation', 'Full animation creation', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(29, 'Motion Graphics', 'Animated explainers and corporate videos', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(30, 'Short-form Animated Assets', 'Small looping/unlooped media', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(31, 'Video Editing & Post Production', 'Editing of recorded/raw footage', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(32, 'Video Shoot & Editing', 'All types of shooting & editing work', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(33, 'Photography & Post-Production', 'Products, people or event shoots & editing work', 'No. of still collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(34, 'Audio Recording & Post-Production', 'All types of recording & editing of recorded/raw audio', 'No. of audio collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `project_request_reference`
+--
+
+CREATE TABLE IF NOT EXISTS `project_request_reference` (
+  `id` int(11) NOT NULL PRIMARY KEY AUTO_INCREMENT,
+  `project_id` int(11) NOT NULL,
+  `request_id` int(11) NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Dumping data for table `project_request_reference`
+--
+
+INSERT INTO `project_request_reference` (`id`, `project_id`, `request_id`, `created_at`, `updated_at`) VALUES
+(1, 1, 11, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(2, 2, 11, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(3, 3, 11, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(4, 4, 11, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(5, 5, 11, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(6, 6, 11, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(7, 7, 11, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(8, 8, 11, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(9, 9, 11, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(10, 10, 11, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(11, 11, 11, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(12, 12, 11, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(13, 13, 11, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(14, 14, 1, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(15, 15, 1, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(16, 16, 1, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(17, 17, 1, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(18, 18, 1, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(19, 19, 2, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(20, 20, 2, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(21, 21, 2, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(22, 22, 2, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(23, 23, 2, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(24, 24, 2, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(25, 25, 2, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(26, 26, 2, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(27, 27, 2, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(28, 19, 3, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(29, 20, 3, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(30, 21, 3, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(31, 22, 3, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(32, 23, 3, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(33, 24, 3, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(34, 25, 3, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(35, 26, 3, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(36, 27, 3, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(37, 28, 4, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(38, 29, 5, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(39, 30, 6, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(40, 31, 7, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(41, 31, 8, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(42, 33, 9, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(43, 34, 10, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(44, 1, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(45, 2, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(46, 3, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(47, 4, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(48, 5, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(49, 6, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(50, 7, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(51, 8, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(52, 9, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(53, 10, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(54, 11, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(55, 12, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(56, 13, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(57, 14, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(58, 15, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(59, 16, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(60, 17, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(61, 18, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(62, 19, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(63, 20, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(64, 21, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(65, 22, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(66, 23, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(67, 24, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(68, 25, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(69, 26, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(70, 27, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(71, 28, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(72, 29, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(73, 30, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(74, 31, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(75, 32, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(76, 33, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(77, 34, 12, '2025-11-11 06:52:31', '2025-11-11 06:52:31');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `task_type`
+--
+
+CREATE TABLE IF NOT EXISTS `task_type` (
+  `id` int(11) NOT NULL PRIMARY KEY AUTO_INCREMENT,
+  `task_type` varchar(100) NOT NULL,
+  `description` text DEFAULT NULL,
+  `quantification` varchar(100) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Dumping data for table `task_type`
+--
+
+INSERT INTO `task_type` (`id`, `task_type`, `description`, `quantification`, `created_at`, `updated_at`) VALUES
+(1, 'Front-End Development', 'Coding', 'No. of screens developed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(2, 'Back-End Development', 'Coding', 'No. of screens developed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(3, 'API Development', 'Coding', 'No. of apis\' developed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(4, 'Database Development', 'Coding', 'No. of data tables created', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(5, 'Schema - Data Modelling, ERD', 'Coding', 'No. of erd created', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(6, 'Application Testing', 'Coding', 'No. of applications tested', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(7, 'Application Deployment', 'Coding', 'No. of times application was deployed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(8, 'QR Generation', 'Coding', 'No. of qr codes generated', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(9, '⁠User Research Reports (Interviews, Surveys, Usability Testing)', 'UIUX', 'No. of reports generated', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(10, '⁠User Personas and Segmentation', 'UIUX', 'No. of reports generated', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(11, 'Product Vision and Strategy', 'UIUX', 'No. of reports generated', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(12, '⁠Product Roadmap and Release Plan', 'UIUX', 'No. of reports generated', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(13, 'User Journey Maps or User Flow Diagrams', 'UIUX', 'No. of diagrams made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(14, 'Information Architecture and Content Structures', 'UIUX', 'No. of structures made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(15, 'High-Fidelity UI Mockups and Prototypes', 'UIUX', 'No. of screens designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(16, 'Responsive UI Design Adaptations', 'UIUX', 'No. of screens adapted', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(17, 'Emailers', 'Content Writing', 'No. of emailers written', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(18, 'Speech Write-up', 'Content Writing', 'No. of speeches written', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(19, 'Social Media Content', 'Content Writing', 'No. of content written', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(20, 'Graphic Content', 'Content Writing', 'No. of content written', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(21, 'Video Script', 'Content Writing', 'No. of script written', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(22, 'Storyboarding', 'Content Writing', 'No. of story written', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(23, 'Festival Content', 'Content Writing', 'No. of content written', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(24, 'Articles/Blogs', 'Content Writing', 'No. of articles/blogs written', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(25, 'UI write-up', 'Content Writing', 'No. of screens written', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(26, 'Proofreading', 'Content Writing', 'No. of collateral checked', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(27, 'Transcription', 'Content Writing', 'No. of collateral checked', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(28, 'Collateral Concept', 'Content Writing', 'No. of collateral written', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(29, 'Story Building', 'Content Writing', 'No. of story built', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(30, 'Brand Plan', 'Content Writing', 'No. of plans created', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(31, 'Slogan/Pay-off Line', 'Content Writing', 'No. of line made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(32, 'Festival Greetings', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(33, 'Whatsapp Creative', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(34, 'Teaser', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(35, 'Leaflet', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(36, 'Flyer', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(37, 'Mailer', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(38, 'Certificate', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(39, 'Banner', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(40, 'Poster', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(41, 'Card', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(42, 'Invitation Card', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(43, 'Logo', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(44, 'Mascot', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(45, 'Visiting Card', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(46, 'Bookmark', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(47, 'Badge', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(48, 'Sticker', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(49, 'Packaging', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(50, 'Jacket Folder', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(51, 'Booklet', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(52, 'Diary', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(53, 'Comicbook', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(54, 'Calendar Design', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(55, 'Illustrations', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(56, 'Sketches', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(57, 'Wallpaper', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(58, 'Visual Aid', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(59, 'Cover Page', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(60, 'LBL', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(61, 'Detailer', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(62, 'Prescription Pad', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(63, 'RCPA Card', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(64, 'Chit Pad', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(65, 'Reminder Card', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(66, 'Gimmick', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(67, 'Magazine Ad', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(68, 'Questionnaire Design', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(69, 'Stall Panel', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(70, 'Table Top', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(71, 'Standee', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(72, 'Dangler', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(73, 'Photo Manipulation', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(74, 'Momento', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(75, 'Template', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(76, 'Photo Frame', 'Graphics', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(77, '3D Animation', 'Videos', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(78, '3D Modelling', 'Videos', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(79, 'Logo & Identity Animation', 'Videos', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(80, 'Explainer & Instructional Motion Videos', 'Videos', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(81, 'Infographic & Data Visualization Motion Videos', 'Videos', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(82, 'Promo & Marketing Motion Videos', 'Videos', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(83, 'Corporate & Brand Storytelling Motions', 'Videos', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(84, 'Mode of Action Videos', 'Videos', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(85, 'VA Animation', 'Videos', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(86, 'GIF', 'Videos', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(87, 'Stop Motion', 'Videos', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(88, 'Animated Stickers', 'Videos', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(89, 'Festival Video', 'Videos', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(90, 'Video Editing', 'Videos + Shoot', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(91, 'Digistock Video', 'Shoot', 'No. of collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(92, 'Event Shoot', 'Shoot', 'No. of collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(93, 'Detailing Shoot', 'Shoot', 'No. of collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(94, 'Concept Shoot', 'Shoot', 'No. of collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(95, 'Portrait Photography', 'Shoot', 'No. of collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(96, 'Product Photography', 'Shoot', 'No. of collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(97, 'Event Photography', 'Shoot', 'No. of collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(98, 'Stop Motion Shoot', 'Shoot', 'No. of collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(99, 'Photo Editing', 'Shoot', 'No. of collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(100, 'Voice Over', 'Shoot', 'No. of collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(101, 'SFX', 'Shoot', 'No. of collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(102, 'Audio Editing', 'Shoot', 'No. of collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `project_type`
+--
 
 --
 -- Table structure for table `work_requests`
@@ -630,6 +909,378 @@ INSERT INTO `work_request_documents` (`id`, `work_request_id`, `document_name`, 
 (141, 55, 'World_Diabetes_Day.mp4', '/uploads/file_upload_testing_big_file/World_Diabetes_Day.mp4-1764063944254-161854996.mp4', 'video/mp4', 51401011, 'uploaded', '2025-11-25 09:45:44'),
 (142, 55, 'World_Heart_Day_2025_with_videoframer.mp4', '/uploads/file_upload_testing_big_file/World_Heart_Day_2025_with_videoframer.mp4-1764063944309-29912950.mp4', 'video/mp4', 12336237, 'uploaded', '2025-11-25 09:45:44');
 
+--
+-- --------------------------------------------------------
+--
+-- Table structure for table `issue_register`
+--
+
+CREATE TABLE `issue_register` (
+  `id` int(11) NOT NULL,
+  `change_issue_type` varchar(100) NOT NULL,
+  `description` text DEFAULT NULL,
+  `quantification` varchar(100) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Dumping data for table `issue_register`
+--
+
+INSERT INTO `issue_register` (`id`, `change_issue_type`, `description`, `quantification`, `created_at`, `updated_at`) VALUES
+(1, 'Content Update', 'Web + Graphics + Videos', 'No. of issues reported/changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(2, 'Button/Icon Replacement', 'Web', 'No. of issues reported', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(3, 'Layout Restructure', 'Web', 'No. of issues reported', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(4, 'Device Responsiveness Fix', 'Web', 'No. of issues reported', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(5, 'Colour/Theme Update', 'Web', 'No. of issues reported', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(6, 'Bug fixes', 'Web', 'No. of issues reported', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(7, 'Form Field Update', 'Web', 'No. of issues reported', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(8, 'API/Link Update', 'Web', 'No. of issues reported', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(9, 'Grammar & Spell Check', 'Content Writing', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(10, 'Copy/Fact Update', 'Content Writing', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(11, 'Brand Tone/Language Alignment', 'Content Writing', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(12, 'SEO Addition/Optimization', 'Content Writing', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(13, 'Brand Terminology Consistency', 'Content Writing', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(14, 'Regional Language Translation', 'Content Writing', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(15, 'Add Compliance/Legal Points', 'Content Writing', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(16, 'Shorten/Expand Content', 'Content Writing', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(17, 'Resize Layout', 'Graphics + Videos', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(18, 'Font Change/Alignment', 'Graphics', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(19, 'Colour Change', 'Graphics', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(20, 'Image Replacement', 'Graphics', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(21, 'Brand Identity Update', 'Graphics', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(22, 'Language Adaptation', 'Graphics', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(23, 'Print Margin Update', 'Graphics', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(24, 'Print Format Compatibility', 'Graphics', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(25, 'Theme Change', 'Graphics', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(26, 'Voice-Over Replacement', 'Videos', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(27, 'Music Track Update', 'Videos', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(28, 'Trimming/Sequencing', 'Videos', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(29, 'Logo Update', 'Videos', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(30, 'Add Animation/Transitions', 'Videos', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(31, 'Replace Product Shots/Visuals', 'Videos', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16');
+
+--
+-- --------------------------------------------------------
+--
+-- Table structure for table `task_project_reference`
+--
+
+CREATE TABLE `task_project_reference` (
+  `id` int(11) NOT NULL,
+  `task_id` int(11) NOT NULL,
+  `project_id` int(11) NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Dumping data for table `task_project_reference`
+--
+
+INSERT INTO `task_project_reference` (`id`, `task_id`, `project_id`, `created_at`, `updated_at`) VALUES
+(1, 1, 1, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(2, 2, 1, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(3, 3, 1, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(4, 4, 1, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(5, 5, 1, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(6, 6, 1, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(7, 7, 1, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(8, 8, 1, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(9, 9, 1, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(10, 10, 1, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(11, 11, 1, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(12, 12, 1, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(13, 13, 1, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(14, 14, 1, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(15, 15, 1, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(16, 16, 1, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(17, 1, 2, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(18, 2, 2, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(19, 3, 2, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(20, 4, 2, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(21, 5, 2, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(22, 6, 2, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(23, 7, 2, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(24, 8, 2, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(25, 9, 2, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(26, 10, 2, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(27, 11, 2, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(28, 12, 2, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(29, 13, 2, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(30, 14, 2, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(31, 15, 2, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(32, 16, 2, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(33, 1, 3, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(34, 2, 3, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(35, 3, 3, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(36, 4, 3, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(37, 5, 3, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(38, 6, 3, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(39, 7, 3, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(40, 8, 3, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(41, 9, 3, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(42, 10, 3, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(43, 11, 3, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(44, 12, 3, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(45, 13, 3, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(46, 14, 3, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(47, 15, 3, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(48, 16, 3, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(49, 1, 4, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(50, 2, 4, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(51, 3, 4, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(52, 4, 4, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(53, 5, 4, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(54, 6, 4, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(55, 7, 4, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(56, 8, 4, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(57, 9, 4, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(58, 10, 4, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(59, 11, 4, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(60, 12, 4, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(61, 13, 4, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(62, 14, 4, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(63, 15, 4, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(64, 16, 4, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(65, 1, 5, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(66, 2, 5, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(67, 3, 5, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(68, 4, 5, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(69, 5, 5, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(70, 6, 5, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(71, 7, 5, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(72, 8, 5, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(73, 9, 5, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(74, 10, 5, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(75, 11, 5, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(76, 12, 5, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(77, 13, 5, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(78, 14, 5, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(79, 15, 5, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(80, 16, 5, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(81, 1, 6, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(82, 2, 6, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(83, 3, 6, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(84, 4, 6, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(85, 5, 6, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(86, 6, 6, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(87, 7, 6, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(88, 8, 6, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(89, 9, 6, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(90, 10, 6, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(91, 11, 6, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(92, 12, 6, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(93, 13, 6, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(94, 14, 6, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(95, 15, 6, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(96, 16, 6, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(97, 1, 7, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(98, 2, 7, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(99, 3, 7, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(100, 4, 7, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(101, 5, 7, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(102, 6, 7, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(103, 7, 7, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(104, 8, 7, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(105, 9, 7, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(106, 10, 7, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(107, 11, 7, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(108, 12, 7, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(109, 13, 7, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(110, 14, 7, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(111, 15, 7, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(112, 16, 7, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(113, 1, 8, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(114, 2, 8, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(115, 3, 8, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(116, 4, 8, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(117, 5, 8, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(118, 6, 8, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(119, 7, 8, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(120, 8, 8, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(121, 9, 8, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(122, 10, 8, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(123, 11, 8, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(124, 12, 8, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(125, 13, 8, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(126, 14, 8, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(127, 15, 8, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(128, 16, 8, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(129, 1, 9, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(130, 2, 9, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(131, 3, 9, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(132, 4, 9, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(133, 5, 9, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(134, 6, 9, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(135, 7, 9, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(136, 8, 9, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(137, 9, 9, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(138, 10, 9, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(139, 11, 9, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(140, 12, 9, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(141, 13, 9, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(142, 14, 9, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(143, 15, 9, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(144, 16, 9, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(145, 1, 10, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(146, 2, 10, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(147, 3, 10, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(148, 4, 10, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(149, 5, 10, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(150, 6, 10, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(151, 7, 10, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(152, 8, 10, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(153, 9, 10, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(154, 10, 10, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(155, 11, 10, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(156, 12, 10, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(157, 13, 10, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(158, 14, 10, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(159, 15, 10, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(160, 16, 10, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(161, 1, 11, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(162, 2, 11, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(163, 3, 11, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(164, 4, 11, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(165, 5, 11, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(166, 6, 11, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(167, 7, 11, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(168, 8, 11, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(169, 9, 11, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(170, 10, 11, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(171, 11, 11, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(172, 12, 11, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(173, 13, 11, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(174, 14, 11, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(175, 15, 11, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(176, 16, 11, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(177, 1, 12, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(178, 2, 12, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(179, 3, 12, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(180, 4, 12, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(181, 5, 12, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(182, 6, 12, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(183, 7, 12, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(184, 8, 12, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(185, 9, 12, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(186, 10, 12, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(187, 11, 12, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(188, 12, 12, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(189, 13, 12, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(190, 14, 12, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(191, 15, 12, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(192, 16, 12, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(193, 1, 13, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(194, 2, 13, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(195, 3, 13, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(196, 4, 13, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(197, 5, 13, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(198, 6, 13, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(199, 7, 13, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(200, 8, 13, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(201, 9, 13, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(202, 10, 13, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(203, 11, 13, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(204, 12, 13, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(205, 13, 13, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(206, 14, 13, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(207, 15, 13, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(208, 16, 13, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(209, 17, 14, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(210, 18, 14, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(211, 19, 14, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(212, 20, 15, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(213, 21, 15, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(214, 22, 15, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(215, 23, 15, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(216, 24, 16, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(217, 25, 16, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(218, 26, 17, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(219, 27, 17, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(220, 28, 18, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(221, 29, 18, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(222, 30, 18, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(223, 31, 18, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(224, 32, 19, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(225, 33, 19, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(226, 34, 19, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(227, 35, 19, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(228, 36, 19, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(229, 37, 19, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(230, 38, 19, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(231, 39, 19, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(232, 40, 19, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(233, 41, 19, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(234, 42, 19, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(235, 43, 20, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(236, 44, 20, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(237, 45, 20, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(238, 46, 20, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(239, 47, 20, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(240, 48, 20, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(241, 49, 21, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(242, 50, 21, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(243, 51, 22, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(244, 52, 22, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(245, 53, 22, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(246, 54, 22, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(247, 55, 23, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(248, 56, 23, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(249, 57, 23, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(250, 58, 24, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(251, 59, 24, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(252, 60, 24, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(253, 61, 24, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(254, 62, 24, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(255, 63, 24, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(256, 64, 24, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(257, 65, 24, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(258, 66, 24, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(259, 67, 24, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(260, 68, 24, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(261, 69, 25, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(262, 70, 25, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(263, 71, 25, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(264, 72, 25, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(265, 73, 26, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(266, 74, 26, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(267, 75, 27, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(268, 76, 27, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(269, 77, 28, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(270, 78, 28, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(271, 79, 28, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(272, 80, 28, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(273, 81, 28, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(274, 82, 28, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(275, 83, 28, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(276, 84, 28, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(277, 85, 30, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(278, 86, 30, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(279, 87, 30, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(280, 88, 30, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(281, 89, 30, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(282, 90, 32, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(283, 91, 32, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(284, 92, 32, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(285, 93, 32, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(286, 94, 32, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(287, 95, 33, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(288, 96, 33, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(289, 97, 33, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(290, 98, 33, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(291, 99, 33, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(292, 100, 34, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(293, 101, 34, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(294, 102, 34, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(295, 79, 29, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(296, 80, 29, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(297, 81, 29, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(298, 82, 29, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(299, 83, 29, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(300, 84, 29, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(301, 90, 32, '2025-11-25 06:35:16', '2025-11-25 06:35:16');
 --
 -- Indexes for dumped tables
 --
@@ -764,6 +1415,20 @@ ALTER TABLE `work_request_documents`
   ADD KEY `work_request_id` (`work_request_id`);
 
 --
+-- Indexes for table `issue_register`
+--
+ALTER TABLE `issue_register`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `task_project_reference`
+--
+ALTER TABLE `task_project_reference`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `task_id` (`task_id`),
+  ADD KEY `project_id` (`project_id`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -858,6 +1523,18 @@ ALTER TABLE `work_request_documents`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=143;
 
 --
+-- AUTO_INCREMENT for table `issue_register`
+--
+ALTER TABLE `issue_register`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
+
+--
+-- AUTO_INCREMENT for table `task_project_reference`
+--
+ALTER TABLE `task_project_reference`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=302;
+
+--
 -- Constraints for dumped tables
 --
 
@@ -944,6 +1621,21 @@ ALTER TABLE `work_request_managers`
 --
 ALTER TABLE `work_request_documents`
   ADD CONSTRAINT `work_request_documents_ibfk_1` FOREIGN KEY (`work_request_id`) REFERENCES `work_requests` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `project_request_reference`
+--
+ALTER TABLE `project_request_reference`
+  ADD CONSTRAINT `project_request_reference_ibfk_1` FOREIGN KEY (`project_id`) REFERENCES `project_type` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `project_request_reference_ibfk_2` FOREIGN KEY (`request_id`) REFERENCES `request_type` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `task_project_reference`
+--
+ALTER TABLE `task_project_reference`
+  ADD CONSTRAINT `task_project_reference_ibfk_1` FOREIGN KEY (`task_id`) REFERENCES `task_type` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `task_project_reference_ibfk_2` FOREIGN KEY (`project_id`) REFERENCES `project_type` (`id`) ON DELETE CASCADE;
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
