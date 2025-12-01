@@ -401,40 +401,14 @@ INSERT INTO `sales` (`id`, `emp_code`, `emp_name`, `level`, `hq`, `region`, `zon
 
 CREATE TABLE `tasks` (
   `id` int(11) NOT NULL,
-  `quarter` varchar(20) DEFAULT NULL,
-  `project_name` varchar(255) NOT NULL,
-  `assigned_by_id` int(11) DEFAULT NULL,
-  `division_id` int(11) DEFAULT NULL,
-  `work_type` enum('Design','Video','Development','Marketing','Content','Photography','Branding','UI/UX','Backend','New Mod') DEFAULT 'Design',
-  `request_type_id` int(11) DEFAULT NULL,
-  `task_type` varchar(100) DEFAULT NULL,
-  `artist_id` int(11) DEFAULT NULL,
-  `manager_id` int(11) DEFAULT NULL,
-  `no_of_work_pages` int(11) DEFAULT 0,
-  `no_of_project` int(11) DEFAULT 0,
-  `no_of_options` int(11) DEFAULT 0,
-  `no_of_takes_photos` int(11) DEFAULT 0,
-  `no_of_words` int(11) DEFAULT 0,
-  `no_of_overdue` int(11) DEFAULT 0,
-  `month` varchar(20) DEFAULT NULL,
-  `request_date` date DEFAULT NULL,
-  `initiation_date` date DEFAULT NULL,
-  `completion_date` date DEFAULT NULL,
-  `project_status` enum('upcoming','ongoing','completed') DEFAULT 'upcoming',
-  `leadership` varchar(100) DEFAULT NULL,
-  `concept` text DEFAULT NULL,
-  `shoot_set_up` text DEFAULT NULL,
-  `shoot_hours` decimal(5,2) DEFAULT NULL,
-  `resize` tinyint(1) DEFAULT 0,
-  `last_moment_work` tinyint(1) DEFAULT 0,
-  `project_scale` enum('small','medium','high') DEFAULT NULL,
-  `project_priority` enum('critical','high','publish date') DEFAULT NULL,
-  `highlighted` tinyint(1) DEFAULT 0,
-  `appreciation` varchar(255) DEFAULT NULL,
-  `appreciated_by` varchar(100) DEFAULT NULL,
-  `appreciated_at` datetime DEFAULT NULL,
-  `remark` text DEFAULT NULL,
-  `brief_comments` text DEFAULT NULL,
+  `task_name` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `assigned_by_id` int(11) NOT NULL,
+  `manager_id` int(11) NOT NULL,
+  `assigned_to_id` int(11) NOT NULL,
+  `task_type_id` int(11) NOT NULL,
+  `dependency` text DEFAULT NULL,
+  `deadline` date DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
@@ -1351,11 +1325,10 @@ ALTER TABLE `sales`
 --
 ALTER TABLE `tasks`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `division_id` (`division_id`),
-  ADD KEY `request_type_id` (`request_type_id`),
-  ADD KEY `manager_id` (`manager_id`),
   ADD KEY `assigned_by_id` (`assigned_by_id`),
-  ADD KEY `artist_id` (`artist_id`);
+  ADD KEY `manager_id` (`manager_id`),
+  ADD KEY `assigned_to_id` (`assigned_to_id`),
+  ADD KEY `task_type_id` (`task_type_id`);
 
 --
 -- Indexes for table `users`
@@ -1429,6 +1402,7 @@ ALTER TABLE `task_project_reference`
   ADD PRIMARY KEY (`id`),
   ADD KEY `task_id` (`task_id`),
   ADD KEY `project_id` (`project_id`);
+
 
 --
 -- AUTO_INCREMENT for dumped tables
@@ -1536,6 +1510,7 @@ ALTER TABLE `issue_register`
 ALTER TABLE `task_project_reference`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=302;
 
+
 --
 -- Constraints for dumped tables
 --
@@ -1576,11 +1551,10 @@ ALTER TABLE `sales`
 -- Constraints for table `tasks`
 --
 ALTER TABLE `tasks`
-  ADD CONSTRAINT `tasks_ibfk_1` FOREIGN KEY (`division_id`) REFERENCES `division` (`id`) ON DELETE SET NULL,
-  ADD CONSTRAINT `tasks_ibfk_2` FOREIGN KEY (`request_type_id`) REFERENCES `request_type` (`id`) ON DELETE SET NULL,
-  ADD CONSTRAINT `tasks_ibfk_4` FOREIGN KEY (`manager_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
-  ADD CONSTRAINT `tasks_ibfk_5` FOREIGN KEY (`assigned_by_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
-  ADD CONSTRAINT `tasks_ibfk_6` FOREIGN KEY (`artist_id`) REFERENCES `users` (`id`) ON DELETE SET NULL;
+  ADD CONSTRAINT `tasks_ibfk_1` FOREIGN KEY (`assigned_by_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `tasks_ibfk_2` FOREIGN KEY (`manager_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `tasks_ibfk_3` FOREIGN KEY (`assigned_to_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `tasks_ibfk_4` FOREIGN KEY (`task_type_id`) REFERENCES `task_type` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `users`
@@ -1638,6 +1612,7 @@ ALTER TABLE `project_request_reference`
 ALTER TABLE `task_project_reference`
   ADD CONSTRAINT `task_project_reference_ibfk_1` FOREIGN KEY (`task_id`) REFERENCES `task_type` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `task_project_reference_ibfk_2` FOREIGN KEY (`project_id`) REFERENCES `project_type` (`id`) ON DELETE CASCADE;
+
 
 COMMIT;
 
