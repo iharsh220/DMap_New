@@ -35,6 +35,10 @@ const Tasks = sequelize.define('Tasks', {
     type: DataTypes.ENUM('draft', 'pending', 'accepted', 'assigned', 'in_progress', 'completed', 'rejected', 'deferred'),
     defaultValue: 'pending',
   },
+  intimate_team: {
+    type: DataTypes.TINYINT(1),
+    defaultValue: 0,
+  },
   created_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,

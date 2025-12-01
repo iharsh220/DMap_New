@@ -408,6 +408,7 @@ CREATE TABLE `tasks` (
   `work_request_id` int(11) NOT NULL,
   `deadline` date DEFAULT NULL,
   `status` enum('draft','pending','accepted','assigned','in_progress','completed','rejected','deferred') DEFAULT 'pending',
+  `intimate_team` tinyint(1) DEFAULT 0,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
