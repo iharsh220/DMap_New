@@ -16,6 +16,11 @@ const RequestType = require('./RequestType/RequestType');
 const WorkRequests = require('./WorkRequests/WorkRequests');
 const WorkRequestManagers = require('./WorkRequestManagers/WorkRequestManagers');
 const WorkRequestDocuments = require('./WorkRequestDocuments/WorkRequestDocuments');
+const ProjectType = require('./ProjectType/ProjectType');
+const TaskType = require('./TaskType/TaskType');
+const ProjectRequestReference = require('./ProjectRequestReference/ProjectRequestReference');
+const IssueRegister = require('./IssueRegister/IssueRegister');
+const TaskProjectReference = require('./TaskProjectReference/TaskProjectReference');
 
 // Associations
 Department.hasMany(Division, { foreignKey: 'department_id', as: 'divisions' });
@@ -69,6 +74,18 @@ WorkRequestManagers.belongsTo(User, { as: 'manager', foreignKey: 'manager_id' })
 
 WorkRequestDocuments.belongsTo(WorkRequests, { foreignKey: 'work_request_id' });
 
+ProjectType.belongsToMany(RequestType, { through: ProjectRequestReference, foreignKey: 'project_id' });
+RequestType.belongsToMany(ProjectType, { through: ProjectRequestReference, foreignKey: 'request_id' });
+
+ProjectRequestReference.belongsTo(ProjectType, { foreignKey: 'project_id', as: 'projectType' });
+ProjectRequestReference.belongsTo(RequestType, { foreignKey: 'request_id', as: 'requestType' });
+
+TaskType.belongsToMany(ProjectType, { through: TaskProjectReference, foreignKey: 'task_id' });
+ProjectType.belongsToMany(TaskType, { through: TaskProjectReference, foreignKey: 'project_id' });
+
+TaskProjectReference.belongsTo(TaskType, { foreignKey: 'task_id', as: 'taskType' });
+TaskProjectReference.belongsTo(ProjectType, { foreignKey: 'project_id', as: 'projectType' });
+
 module.exports = {
   sequelize,
   Department,
@@ -85,5 +102,10 @@ module.exports = {
   RequestType,
   WorkRequests,
   WorkRequestManagers,
-  WorkRequestDocuments
+  WorkRequestDocuments,
+  ProjectType,
+  TaskType,
+  ProjectRequestReference,
+  IssueRegister,
+  TaskProjectReference
 };
