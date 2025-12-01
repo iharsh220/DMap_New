@@ -59,6 +59,14 @@ const getAssignableUsers = async (req, res) => {
         }
 
         const workRequest = workRequestResult.data[0];
+
+        // Check if work request is accepted
+        if (workRequest.status !== 'accepted') {
+            return res.status(400).json({
+                success: false,
+                error: 'Work request must be accepted before assigning users'
+            });
+        }
         const divisionId = workRequest.RequestType?.Division?.id;
 
         if (!divisionId) {
@@ -355,7 +363,7 @@ const acceptWorkRequest = async (req, res) => {
 const deferWorkRequest = async (req, res) => {
     try {
         const id = parseInt(req.params.id, 10);
-        
+
         if (isNaN(id)) {
             return res.status(400).json({ success: false, error: 'Invalid work request ID' });
         }
@@ -436,45 +444,45 @@ const deferWorkRequest = async (req, res) => {
                 ccEmails = assigneeUserDivisions.map(ud => ud.User.email);
             }
 
-                const html = renderTemplate('workRequestDeferNotification', {
-                    user_name: user.name,
-                    user_email: user.email,
-                    manager_name: currentUser.name,
-                    manager_email: currentUser.email,
-                    project_name: workRequest.project_name,
-                    brand: workRequest.brand,
-                    message: message,
-                    request_date: new Date(workRequest.created_at).toLocaleDateString('en-IN', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    })
-                });
+            const html = renderTemplate('workRequestDeferNotification', {
+                user_name: user.name,
+                user_email: user.email,
+                manager_name: currentUser.name,
+                manager_email: currentUser.email,
+                project_name: workRequest.project_name,
+                brand: workRequest.brand,
+                message: message,
+                request_date: new Date(workRequest.created_at).toLocaleDateString('en-IN', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                })
+            });
 
-                const mailOptions = {
-                    to: user.email,
-                    subject: 'Work Request Deferred - Insufficient Details',
-                    html
-                };
+            const mailOptions = {
+                to: user.email,
+                subject: 'Work Request Deferred - Insufficient Details',
+                html
+            };
 
-                // CC all managers and leads in the division
-                if (ccEmails.length > 0) {
-                    mailOptions.cc = ccEmails.join(',');
-                }
+            // CC all managers and leads in the division
+            if (ccEmails.length > 0) {
+                mailOptions.cc = ccEmails.join(',');
+            }
 
-                await sendMail(mailOptions);
+            await sendMail(mailOptions);
 
-                await logUserActivity({
-                    event: 'work_request_deferred',
-                    reason: 'insufficient_details',
-                    userId: req.user.id,
-                    workRequestId: id,
-                    deferReason: reason,
-                    message: message,
-                    ...extractRequestDetails(req)
-                });
+            await logUserActivity({
+                event: 'work_request_deferred',
+                reason: 'insufficient_details',
+                userId: req.user.id,
+                workRequestId: id,
+                deferReason: reason,
+                message: message,
+                ...extractRequestDetails(req)
+            });
         } else if (reason === 'incorrect_request_type') {
             // Reassign to new request type - assign all managers and leads
             const newRequestTypeId = parseInt(req.body.new_request_type_id);
@@ -532,7 +540,7 @@ const deferWorkRequest = async (req, res) => {
 
             // Use the first manager (Creative Manager) for the transfer email
             const newManager = newManagersAndLeads.find(m => m.User.job_role_id === 2)?.User ||
-                              newManagersAndLeads[0].User;
+                newManagersAndLeads[0].User;
 
             // Send transfer email to new manager
             const user = await User.findByPk(workRequest.user_id, {
