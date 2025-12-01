@@ -804,6 +804,41 @@
           }
         },
         {
+          "name": "Get Task Types for Work Request (Manager)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:work_request_id/task-types",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "digilabs",
+                "dmap",
+                "api",
+                "manager",
+                "assigned-work-requests",
+                ":work_request_id",
+                "task-types"
+              ],
+              "variable": [
+                {
+                  "key": "work_request_id",
+                  "value": "45",
+                  "description": "Work request ID"
+                }
+              ]
+            },
+            "description": "Get list of task types associated with the work request's project type (requires authentication and manager role)"
+          }
+        },
+        {
           "name": "Get Project Types by Request Type",
           "request": {
             "method": "GET",

@@ -4,6 +4,8 @@ const CrudService = require('../../services/crudService');
 const {
     WorkRequests,
     RequestType,
+    ProjectType,
+    TaskType,
     User,
     WorkRequestDocuments,
     WorkRequestManagers,
@@ -615,10 +617,95 @@ const deferWorkRequest = async (req, res) => {
     }
 };
 
+const getTaskTypesByWorkRequest = async (req, res) => {
+    try {
+        const workRequestId = parseInt(req.params.id, 10);
+        if (isNaN(workRequestId)) {
+            return res.status(400).json({ success: false, error: 'Invalid work request ID' });
+        }
+
+        const manager_id = req.user.id;
+
+        // Get work request with project_id, ensuring it's assigned to this manager
+        const workRequestResult = await workRequestService.getAll({
+            where: { id: workRequestId },
+            include: [
+                {
+                    model: WorkRequestManagers,
+                    where: { manager_id: manager_id },
+                    required: true,
+                    attributes: []
+                }
+            ],
+            attributes: ['id', 'project_id'],
+            limit: 1,
+            order: []
+        });
+
+        if (!workRequestResult.success || workRequestResult.data.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Work request not found or not assigned to you'
+            });
+        }
+
+        const workRequest = workRequestResult.data[0];
+        const projectId = workRequest.project_id;
+
+        if (!projectId) {
+            return res.json({
+                success: true,
+                data: [],
+                message: 'No project type associated with this work request'
+            });
+        }
+
+        // Get project type with associated task types
+        const projectType = await ProjectType.findByPk(projectId, {
+            include: [{
+                model: TaskType,
+                through: { attributes: [] },
+                attributes: { exclude: ['created_at', 'updated_at'] }
+            }],
+            attributes: { exclude: ['created_at', 'updated_at'] }
+        });
+
+        if (!projectType) {
+            return res.status(404).json({
+                success: false,
+                error: 'Project type not found'
+            });
+        }
+
+        await logUserActivity({
+            event: 'task_types_viewed',
+            userId: req.user.id,
+            workRequestId: workRequestId,
+            projectId: projectId,
+            taskTypeCount: projectType.TaskTypes.length,
+            ...extractRequestDetails(req)
+        });
+
+        res.json({
+            success: true,
+            data: projectType.TaskTypes,
+            message: 'Task types retrieved successfully'
+        });
+    } catch (error) {
+        console.error('Error fetching task types:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            message: 'Failed to fetch task types'
+        });
+    }
+};
+
 module.exports = {
     getAssignedWorkRequests,
     getAssignedWorkRequestById,
     acceptWorkRequest,
     deferWorkRequest,
-    getAssignableUsers
+    getAssignableUsers,
+    getTaskTypesByWorkRequest
 };

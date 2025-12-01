@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getAssignedWorkRequests, getAssignedWorkRequestById, acceptWorkRequest, deferWorkRequest, getAssignableUsers } = require('../../controller/managerAssignedController/managerAssignedController');
+const { getAssignedWorkRequests, getAssignedWorkRequestById, acceptWorkRequest, deferWorkRequest, getAssignableUsers, getTaskTypesByWorkRequest } = require('../../controller/managerAssignedController/managerAssignedController');
 const { authenticateToken } = require('../../middleware/jwtMiddleware');
 const { checkRole } = require('../../middleware/roleMiddleware');
 const filterMiddleware = require('../../middleware/filterMiddleware');
@@ -15,5 +15,6 @@ router.put('/:id/defer', authenticateToken, checkRole([1, 2, 3]), deferWorkReque
 
 
 router.get('/:id/assignable-users', authenticateToken, checkRole([1, 2, 3]), getAssignableUsers); // Get users that can be assigned tasks for a specific work request
+router.get('/:id/task-types', authenticateToken, checkRole([1, 2, 3]), getTaskTypesByWorkRequest); // Get task types for a specific work request based on its project_id
 
 module.exports = router;
