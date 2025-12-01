@@ -3,6 +3,7 @@ const CrudService = require('../../services/crudService');
 const {
     WorkRequests,
     RequestType,
+    ProjectType,
     User,
     WorkRequestDocuments,
     WorkRequestManagers,
@@ -24,7 +25,7 @@ const workRequestService = new CrudService(WorkRequests);
 // Create work request
 const createWorkRequest = async (req, res) => {
     try {
-        const { project_name, brand, request_type_id, project_details, priority = 'medium', remarks, isdraft = 'false' } = req.body;
+        const { project_name, brand, request_type_id, project_id, project_details, priority = 'medium', remarks, isdraft = 'false' } = req.body;
         const user_id = req.user.id; // From JWT middleware
         // Validate required fields
         if (!project_name || !request_type_id) {
@@ -80,6 +81,7 @@ const createWorkRequest = async (req, res) => {
             project_name,
             brand,
             request_type_id: request_type_id,
+            project_id,
             project_details,
             priority,
             status: isdraft === 'true' ? 'draft' : 'pending',
@@ -346,4 +348,43 @@ const getWorkRequestById = async (req, res) => {
     }
 };
 
-module.exports = { createWorkRequest, getMyWorkRequests, getWorkRequestById };
+const getProjectTypesByRequestType = async (req, res) => {
+    try {
+        const { request_type_id } = req.query;
+
+        if (!request_type_id) {
+            return res.status(400).json({
+                success: false,
+                error: 'request_type_id is required'
+            });
+        }
+
+        const requestType = await RequestType.findByPk(request_type_id, {
+            include: [{
+                model: ProjectType,
+                through: { attributes: [] },
+                attributes: { exclude: ['created_at', 'updated_at'] }
+            }]
+        });
+
+        if (!requestType) {
+            return res.status(404).json({
+                success: false,
+                error: 'Request type not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            data: requestType.ProjectTypes
+        });
+    } catch (error) {
+        console.error('Error fetching project types:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+};
+
+module.exports = { createWorkRequest, getMyWorkRequests, getWorkRequestById, getProjectTypesByRequestType };

@@ -23,6 +23,10 @@ const WorkRequests = sequelize.define('WorkRequests', {
     type: DataTypes.INTEGER,
     allowNull: false,
   },
+  project_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
   project_details: {
     type: DataTypes.TEXT,
     allowNull: true,

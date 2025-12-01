@@ -679,6 +679,12 @@
                   "type": "text"
                 },
                 {
+                  "key": "project_id",
+                  "value": "",
+                  "type": "text",
+                  "description": "Optional project type ID"
+                },
+                {
                   "key": "project_details",
                   "value": "Detailed description of the project requirements",
                   "type": "text"
@@ -795,6 +801,39 @@
               ]
             },
             "description": "Get list of users from the work request's division that can be assigned tasks (excludes managers, requires authentication and manager role)"
+          }
+        },
+        {
+          "name": "Get Project Types by Request Type",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/digilabs/dmap/api/work-requests/project-types?request_type_id=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "digilabs",
+                "dmap",
+                "api",
+                "work-requests",
+                "project-types"
+              ],
+              "query": [
+                {
+                  "key": "request_type_id",
+                  "value": "1",
+                  "description": "Request type ID to get associated project types"
+                }
+              ]
+            },
+            "description": "Get list of project types associated with a specific request type (requires authentication)"
           }
         }
       ]

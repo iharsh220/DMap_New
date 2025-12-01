@@ -66,6 +66,7 @@ RequestType.belongsTo(Division, { foreignKey: 'division_id' });
 
 WorkRequests.belongsTo(User, { foreignKey: 'user_id', as: 'users' });
 WorkRequests.belongsTo(RequestType, { foreignKey: 'request_type_id' });
+WorkRequests.belongsTo(ProjectType, { foreignKey: 'project_id' });
 WorkRequests.hasMany(WorkRequestManagers, { foreignKey: 'work_request_id' });
 WorkRequests.hasMany(WorkRequestDocuments, { foreignKey: 'work_request_id' });
 

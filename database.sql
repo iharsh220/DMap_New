@@ -835,6 +835,7 @@ CREATE TABLE `work_requests` (
   `project_name` varchar(255) NOT NULL,
   `brand` varchar(100) DEFAULT NULL,
   `request_type_id` int(11) NOT NULL,
+  `project_id` int(11) DEFAULT NULL,
   `project_details` text DEFAULT NULL,
   `priority` enum('low','medium','high','critical') DEFAULT 'medium',
   `status` enum('draft','pending','accepted','assigned','in_progress','completed','rejected') DEFAULT 'pending',
@@ -848,11 +849,11 @@ CREATE TABLE `work_requests` (
 -- Dumping data for table `work_requests`
 --
 
-INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `request_type_id`, `project_details`, `priority`, `status`, `requested_at`, `remarks`, `created_at`, `updated_at`) VALUES
-(45, 12, 'Resync Project', 'Resync', 2, 'Resync Eyes strain ', 'medium', 'pending', '2025-11-25 06:35:16', NULL, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(47, 12, 'Resync Poster maker', 'Resync', 1, 'Resync Poster maker', 'high', 'pending', '2025-11-25 06:41:39', '', '2025-11-25 06:41:39', '2025-11-25 06:41:39'),
-(48, 12, 'Eye strain poster banner', 'Resync', 1, 'Eye strain poster banner event', 'high', 'pending', '2025-11-25 06:44:54', NULL, '2025-11-25 06:44:54', '2025-11-25 07:27:36'),
-(55, 11, 'file upload testing big file', 'Testing', 2, 'Detailed description of the project requirements', 'high', 'pending', '2025-11-25 09:45:44', 'Any additional remarks', '2025-11-25 09:45:44', '2025-11-25 09:45:44');
+INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `request_type_id`, `project_id`, `project_details`, `priority`, `status`, `requested_at`, `remarks`, `created_at`, `updated_at`) VALUES
+(45, 12, 'Resync Project', 'Resync', 2, NULL, 'Resync Eyes strain ', 'medium', 'pending', '2025-11-25 06:35:16', NULL, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(47, 12, 'Resync Poster maker', 'Resync', 1, NULL, 'Resync Poster maker', 'high', 'pending', '2025-11-25 06:41:39', '', '2025-11-25 06:41:39', '2025-11-25 06:41:39'),
+(48, 12, 'Eye strain poster banner', 'Resync', 1, NULL, 'Eye strain poster banner event', 'high', 'pending', '2025-11-25 06:44:54', NULL, '2025-11-25 06:44:54', '2025-11-25 07:27:36'),
+(55, 11, 'file upload testing big file', 'Testing', 2, NULL, 'Detailed description of the project requirements', 'high', 'pending', '2025-11-25 09:45:44', 'Any additional remarks', '2025-11-25 09:45:44', '2025-11-25 09:45:44');
 
 -- --------------------------------------------------------
 
@@ -1389,6 +1390,7 @@ ALTER TABLE `work_requests`
   ADD PRIMARY KEY (`id`),
   ADD KEY `user_id` (`user_id`),
   ADD KEY `request_type_id` (`request_type_id`),
+  ADD KEY `project_id` (`project_id`),
   ADD KEY `idx_work_requests_status` (`status`),
   ADD KEY `idx_work_requests_priority` (`priority`),
   ADD KEY `idx_work_requests_created_at` (`created_at`),
@@ -1607,7 +1609,8 @@ ALTER TABLE `request_type`
 --
 ALTER TABLE `work_requests`
   ADD CONSTRAINT `work_requests_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `work_requests_ibfk_2` FOREIGN KEY (`request_type_id`) REFERENCES `request_type` (`id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `work_requests_ibfk_2` FOREIGN KEY (`request_type_id`) REFERENCES `request_type` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `work_requests_ibfk_3` FOREIGN KEY (`project_id`) REFERENCES `project_type` (`id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `work_request_managers`
