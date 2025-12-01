@@ -27,13 +27,13 @@ const Tasks = sequelize.define('Tasks', {
     type: DataTypes.INTEGER,
     allowNull: false,
   },
-  dependency: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-  },
   deadline: {
     type: DataTypes.DATEONLY,
     allowNull: true,
+  },
+  status: {
+    type: DataTypes.ENUM('draft', 'pending', 'accepted', 'assigned', 'in_progress', 'completed', 'rejected', 'deferred'),
+    defaultValue: 'pending',
   },
   created_at: {
     type: DataTypes.DATE,

@@ -14,7 +14,9 @@ const {
     Division,
     JobRole,
     Location,
-    Designation
+    Designation,
+    Tasks,
+    TaskDependencies
 } = require('../../models');
 
 const { sendMail } = require('../../services/mailService');
@@ -220,7 +222,33 @@ const getAssignedWorkRequestById = async (req, res) => {
                 },
                 { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
                 { model: RequestType, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, as: 'Division', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
-                { model: WorkRequestDocuments, attributes: { exclude: ['created_at', 'updated_at'] } }
+                { model: WorkRequestDocuments, attributes: { exclude: ['created_at', 'updated_at'] } },
+                {
+                    model: Tasks,
+                    attributes: { exclude: ['created_at', 'updated_at'] },
+                    include: [
+                        {
+                            model: User,
+                            as: 'assignedTo',
+                            attributes: ['id', 'name', 'email']
+                        },
+                        {
+                            model: TaskType,
+                            attributes: ['id', 'task_type', 'description']
+                        },
+                        {
+                            model: TaskDependencies,
+                            as: 'dependencies',
+                            include: [
+                                {
+                                    model: Tasks,
+                                    as: 'dependencyTask',
+                                    attributes: ['id', 'task_name']
+                                }
+                            ]
+                        }
+                    ]
+                }
             ],
             limit: 1
         });
@@ -701,11 +729,294 @@ const getTaskTypesByWorkRequest = async (req, res) => {
     }
 };
 
+const createTask = async (req, res) => {
+    try {
+        const manager_id = req.user.id;
+        const { work_request_id, task_name, description, assigned_to_id, task_type_id, deadline, dependencies } = req.body;
+
+        // Validate required fields
+        if (!work_request_id || !task_name || !assigned_to_id || !task_type_id) {
+            return res.status(400).json({
+                success: false,
+                error: 'work_request_id, task_name, assigned_to_id, and task_type_id are required'
+            });
+        }
+
+        // Check if work request exists and is assigned to this manager
+        const workRequestResult = await workRequestService.getAll({
+            where: { id: work_request_id },
+            include: [
+                {
+                    model: WorkRequestManagers,
+                    where: { manager_id: manager_id },
+                    required: true,
+                    attributes: []
+                }
+            ],
+            limit: 1
+        });
+
+        if (!workRequestResult.success || workRequestResult.data.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Work request not found or not assigned to you'
+            });
+        }
+
+        const workRequest = workRequestResult.data[0];
+
+        // Check if work request is accepted
+        if (workRequest.status !== 'accepted') {
+            return res.status(400).json({
+                success: false,
+                error: 'Work request must be accepted before creating tasks'
+            });
+        }
+
+        // Validate dependencies if provided
+        if (dependencies && Array.isArray(dependencies) && dependencies.length > 0) {
+            // Check if all dependency tasks exist and belong to the same work_request
+            const dependencyTasks = await Tasks.findAll({
+                where: {
+                    id: { [Op.in]: dependencies },
+                    work_request_id: work_request_id
+                },
+                attributes: ['id', 'deadline']
+            });
+
+            if (dependencyTasks.length !== dependencies.length) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Some dependency tasks not found or do not belong to this work request'
+                });
+            }
+
+            // Check if deadline is on or after the latest dependency deadline
+            if (deadline) {
+                const latestDependencyDeadline = dependencyTasks.reduce((latest, task) => {
+                    return task.deadline && (!latest || task.deadline > latest) ? task.deadline : latest;
+                }, null);
+
+                if (latestDependencyDeadline && new Date(deadline) < new Date(latestDependencyDeadline)) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Task deadline cannot be before the latest dependency deadline'
+                    });
+                }
+            }
+        }
+
+        // Create the task
+        const taskData = {
+            work_request_id,
+            task_name,
+            description,
+            assigned_to_id,
+            task_type_id,
+            deadline,
+            status: 'pending'
+        };
+
+        const taskResult = await Tasks.create(taskData);
+
+        // Create dependencies if provided
+        if (dependencies && Array.isArray(dependencies) && dependencies.length > 0) {
+            const dependencyRecords = dependencies.map(depTaskId => ({
+                task_id: taskResult.id,
+                dependency_task_id: depTaskId
+            }));
+            await TaskDependencies.bulkCreate(dependencyRecords);
+        }
+
+        await logUserActivity({
+            event: 'task_created',
+            userId: req.user.id,
+            workRequestId: work_request_id,
+            taskId: taskResult.id,
+            ...extractRequestDetails(req)
+        });
+
+        res.status(201).json({
+            success: true,
+            data: taskResult,
+            message: 'Task created successfully'
+        });
+    } catch (error) {
+        console.error('Error creating task:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            message: 'Failed to create task'
+        });
+    }
+};
+
+const getTasks = async (req, res) => {
+    try {
+        const manager_id = req.user.id;
+
+        // Get tasks for work requests assigned to this manager
+        const tasksResult = await Tasks.findAll({
+            include: [
+                {
+                    model: WorkRequests,
+                    include: [
+                        {
+                            model: WorkRequestManagers,
+                            where: { manager_id: manager_id },
+                            required: true,
+                            attributes: []
+                        }
+                    ],
+                    attributes: ['id', 'project_name', 'brand', 'status']
+                },
+                {
+                    model: User,
+                    as: 'assignedTo',
+                    attributes: ['id', 'name', 'email']
+                },
+                {
+                    model: TaskType,
+                    attributes: ['id', 'task_type', 'description']
+                },
+                {
+                    model: TaskDependencies,
+                    as: 'dependencies',
+                    include: [
+                        {
+                            model: Tasks,
+                            as: 'dependencyTask',
+                            attributes: ['id', 'task_name']
+                        }
+                    ]
+                }
+            ],
+            order: [['created_at', 'DESC']]
+        });
+
+        // Group tasks by work_request_id
+        const groupedTasks = {};
+        tasksResult.forEach(task => {
+            const workRequestId = task.work_request_id;
+            if (!groupedTasks[workRequestId]) {
+                groupedTasks[workRequestId] = {
+                    work_request: task.WorkRequest,
+                    tasks: []
+                };
+            }
+            groupedTasks[workRequestId].tasks.push(task);
+        });
+
+        // Convert to array format for easier consumption
+        const result = Object.keys(groupedTasks).map(workRequestId => ({
+            work_request_id: parseInt(workRequestId),
+            work_request: groupedTasks[workRequestId].work_request,
+            tasks: groupedTasks[workRequestId].tasks
+        }));
+
+        await logUserActivity({
+            event: 'tasks_viewed',
+            userId: req.user.id,
+            taskCount: tasksResult.length,
+            workRequestCount: result.length,
+            ...extractRequestDetails(req)
+        });
+
+        res.json({
+            success: true,
+            data: result,
+            message: 'Tasks retrieved successfully'
+        });
+    } catch (error) {
+        console.error('Error fetching tasks:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            message: 'Failed to fetch tasks'
+        });
+    }
+};
+
+const getTasksForDependencies = async (req, res) => {
+    try {
+        const workRequestId = parseInt(req.params.work_request_id, 10);
+        if (isNaN(workRequestId)) {
+            return res.status(400).json({ success: false, error: 'Invalid work request ID' });
+        }
+
+        const manager_id = req.user.id;
+
+        // Check if work request is assigned to this manager
+        const workRequestResult = await workRequestService.getAll({
+            where: { id: workRequestId },
+            include: [
+                {
+                    model: WorkRequestManagers,
+                    where: { manager_id: manager_id },
+                    required: true,
+                    attributes: []
+                }
+            ],
+            limit: 1
+        });
+
+        if (!workRequestResult.success || workRequestResult.data.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Work request not found or not assigned to you'
+            });
+        }
+
+        // Get all tasks for this work request
+        const tasksResult = await Tasks.findAll({
+            where: { work_request_id: workRequestId },
+            attributes: ['id', 'task_name', 'description', 'deadline', 'status'],
+            include: [
+                {
+                    model: User,
+                    as: 'assignedTo',
+                    attributes: ['id', 'name']
+                },
+                {
+                    model: TaskType,
+                    attributes: ['id', 'task_type']
+                }
+            ],
+            order: [['created_at', 'ASC']]
+        });
+
+        await logUserActivity({
+            event: 'tasks_for_dependencies_viewed',
+            userId: req.user.id,
+            workRequestId: workRequestId,
+            taskCount: tasksResult.length,
+            ...extractRequestDetails(req)
+        });
+
+        res.json({
+            success: true,
+            data: tasksResult,
+            message: 'Tasks for dependencies retrieved successfully'
+        });
+    } catch (error) {
+        console.error('Error fetching tasks for dependencies:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            message: 'Failed to fetch tasks for dependencies'
+        });
+    }
+};
+
+
 module.exports = {
     getAssignedWorkRequests,
     getAssignedWorkRequestById,
     acceptWorkRequest,
     deferWorkRequest,
     getAssignableUsers,
-    getTaskTypesByWorkRequest
+    getTaskTypesByWorkRequest,
+    createTask,
+    getTasks,
+    getTasksForDependencies
 };

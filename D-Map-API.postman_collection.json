@@ -481,7 +481,7 @@
                 }
               ]
             },
-            "description": "Get details of a specific work request by ID (requires authentication, user can only access their own requests)"
+            "description": "Get details of a specific work request by ID, including all assigned tasks and their progress (requires authentication, user can only access their own requests)"
           }
         },
         {
@@ -573,7 +573,7 @@
                 }
               ]
             },
-            "description": "Get details of a specific work request assigned to the authenticated manager (requires authentication and manager role)"
+            "description": "Get details of a specific work request assigned to the authenticated manager, including all tasks assigned to users for this work request (requires authentication and manager role)"
           }
         },
         {
@@ -869,6 +869,109 @@
               ]
             },
             "description": "Get list of project types associated with a specific request type (requires authentication)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tasks",
+      "item": [
+        {
+          "name": "Create Task (Manager)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"work_request_id\": 45,\n  \"task_name\": \"Design Landing Page\",\n  \"description\": \"Create responsive landing page design\",\n  \"assigned_to_id\": 10,\n  \"task_type_id\": 15,\n  \"deadline\": \"2025-12-15\",\n  \"dependencies\": [1, 2]\n}\n\n// For no dependencies, remove the dependencies array or send empty array:\n// {\n//   \"work_request_id\": 45,\n//   \"task_name\": \"Design Landing Page\",\n//   \"description\": \"Create responsive landing page design\",\n//   \"assigned_to_id\": 10,\n//   \"task_type_id\": 15,\n//   \"deadline\": \"2025-12-15\",\n//   \"dependencies\": []\n// }"
+            },
+            "url": {
+              "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/tasks",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "digilabs",
+                "dmap",
+                "api",
+                "manager",
+                "assigned-work-requests",
+                "tasks"
+              ]
+            },
+            "description": "Create a new task for an accepted work request. Supports optional dependencies array for task relationships (handled via task_dependencies table). Dependencies must be existing tasks from the same work request and deadline must be after latest dependency deadline (requires authentication and manager role)"
+          }
+        },
+        {
+          "name": "Get All Tasks (Manager)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/tasks",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "digilabs",
+                "dmap",
+                "api",
+                "manager",
+                "assigned-work-requests",
+                "tasks"
+              ]
+            },
+            "description": "Get all tasks for work requests assigned to the authenticated manager, grouped by work_request_id. Returns an array of objects containing work_request details and associated tasks (requires authentication and manager role)"
+          }
+        },
+        {
+          "name": "Get Tasks for Dependencies (Manager)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/tasks/work-request/:work_request_id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "digilabs",
+                "dmap",
+                "api",
+                "manager",
+                "assigned-work-requests",
+                "tasks",
+                "work-request",
+                ":work_request_id"
+              ],
+              "variable": [
+                {
+                  "key": "work_request_id",
+                  "value": "45",
+                  "description": "Work request ID to get tasks for dependency selection"
+                }
+              ]
+            },
+            "description": "Get all tasks for a specific work request to select as dependencies when creating new tasks (requires authentication and manager role)"
           }
         }
       ]

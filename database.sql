@@ -406,18 +406,33 @@ CREATE TABLE `tasks` (
   `assigned_to_id` int(11) NOT NULL,
   `task_type_id` int(11) NOT NULL,
   `work_request_id` int(11) NOT NULL,
-  `dependency` text DEFAULT NULL,
   `deadline` date DEFAULT NULL,
+  `status` enum('draft','pending','accepted','assigned','in_progress','completed','rejected','deferred') DEFAULT 'pending',
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
 -- --------------------------------------------------------
 
+
+--
+-- Table structure for table `task_dependencies`
+--
+
+CREATE TABLE `task_dependencies` (
+  `id` int(11) NOT NULL,
+  `task_id` int(11) NOT NULL,
+  `dependency_task_id` int(11) NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+-- --------------------------------------------------------
+
+
 --
 -- Table structure for table `users`
 --
-
 CREATE TABLE `users` (
   `id` int(11) NOT NULL,
   `name` varchar(100) DEFAULT NULL,
@@ -1394,6 +1409,14 @@ ALTER TABLE `issue_register`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `task_dependencies`
+--
+ALTER TABLE `task_dependencies`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `task_id` (`task_id`),
+  ADD KEY `dependency_task_id` (`dependency_task_id`);
+
+--
 -- Indexes for table `task_project_reference`
 --
 ALTER TABLE `task_project_reference`
@@ -1503,6 +1526,12 @@ ALTER TABLE `issue_register`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
 
 --
+-- AUTO_INCREMENT for table `task_dependencies`
+--
+ALTER TABLE `task_dependencies`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `task_project_reference`
 --
 ALTER TABLE `task_project_reference`
@@ -1602,6 +1631,13 @@ ALTER TABLE `work_request_documents`
 ALTER TABLE `project_request_reference`
   ADD CONSTRAINT `project_request_reference_ibfk_1` FOREIGN KEY (`project_id`) REFERENCES `project_type` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `project_request_reference_ibfk_2` FOREIGN KEY (`request_id`) REFERENCES `request_type` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `task_dependencies`
+--
+ALTER TABLE `task_dependencies`
+  ADD CONSTRAINT `task_dependencies_ibfk_1` FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `task_dependencies_ibfk_2` FOREIGN KEY (`dependency_task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `task_project_reference`

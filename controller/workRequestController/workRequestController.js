@@ -12,7 +12,10 @@ const {
     Division,
     JobRole,
     Location,
-    Designation
+    Designation,
+    Tasks,
+    TaskType,
+    TaskDependencies
 } = require('../../models');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
@@ -331,7 +334,33 @@ const getWorkRequestById = async (req, res) => {
                         }
                     ]
                 },
-                { model: WorkRequestDocuments, attributes: { exclude: ['created_at', 'updated_at'] } }
+                { model: WorkRequestDocuments, attributes: { exclude: ['created_at', 'updated_at'] } },
+                {
+                    model: Tasks,
+                    attributes: { exclude: ['created_at', 'updated_at'] },
+                    include: [
+                        {
+                            model: User,
+                            as: 'assignedTo',
+                            attributes: ['id', 'name', 'email']
+                        },
+                        {
+                            model: TaskType,
+                            attributes: ['id', 'task_type', 'description']
+                        },
+                        {
+                            model: TaskDependencies,
+                            as: 'dependencies',
+                            include: [
+                                {
+                                    model: Tasks,
+                                    as: 'dependencyTask',
+                                    attributes: ['id', 'task_name']
+                                }
+                            ]
+                        }
+                    ]
+                }
             ],
             limit: 1,
             order: []
