@@ -56,10 +56,9 @@ UserDivisions.belongsTo(Division, { foreignKey: 'division_id', as: 'division' })
 
 Sales.belongsTo(Division, { foreignKey: 'division_id' });
 
-Tasks.belongsTo(User, { as: 'assignedBy', foreignKey: 'assigned_by_id' });
-Tasks.belongsTo(User, { as: 'manager', foreignKey: 'manager_id' });
 Tasks.belongsTo(User, { as: 'assignedTo', foreignKey: 'assigned_to_id' });
 Tasks.belongsTo(TaskType, { foreignKey: 'task_type_id' });
+Tasks.belongsTo(WorkRequests, { foreignKey: 'work_request_id' });
 
 RequestType.belongsTo(Division, { foreignKey: 'division_id' });
 
@@ -68,6 +67,7 @@ WorkRequests.belongsTo(RequestType, { foreignKey: 'request_type_id' });
 WorkRequests.belongsTo(ProjectType, { foreignKey: 'project_id' });
 WorkRequests.hasMany(WorkRequestManagers, { foreignKey: 'work_request_id' });
 WorkRequests.hasMany(WorkRequestDocuments, { foreignKey: 'work_request_id' });
+WorkRequests.hasMany(Tasks, { foreignKey: 'work_request_id' });
 
 WorkRequestManagers.belongsTo(WorkRequests, { foreignKey: 'work_request_id' });
 WorkRequestManagers.belongsTo(User, { as: 'manager', foreignKey: 'manager_id' });

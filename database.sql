@@ -403,10 +403,9 @@ CREATE TABLE `tasks` (
   `id` int(11) NOT NULL,
   `task_name` varchar(255) NOT NULL,
   `description` text DEFAULT NULL,
-  `assigned_by_id` int(11) NOT NULL,
-  `manager_id` int(11) NOT NULL,
   `assigned_to_id` int(11) NOT NULL,
   `task_type_id` int(11) NOT NULL,
+  `work_request_id` int(11) NOT NULL,
   `dependency` text DEFAULT NULL,
   `deadline` date DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
@@ -1325,10 +1324,9 @@ ALTER TABLE `sales`
 --
 ALTER TABLE `tasks`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `assigned_by_id` (`assigned_by_id`),
-  ADD KEY `manager_id` (`manager_id`),
   ADD KEY `assigned_to_id` (`assigned_to_id`),
-  ADD KEY `task_type_id` (`task_type_id`);
+  ADD KEY `task_type_id` (`task_type_id`),
+  ADD KEY `work_request_id` (`work_request_id`);
 
 --
 -- Indexes for table `users`
@@ -1551,10 +1549,9 @@ ALTER TABLE `sales`
 -- Constraints for table `tasks`
 --
 ALTER TABLE `tasks`
-  ADD CONSTRAINT `tasks_ibfk_1` FOREIGN KEY (`assigned_by_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `tasks_ibfk_2` FOREIGN KEY (`manager_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `tasks_ibfk_3` FOREIGN KEY (`assigned_to_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `tasks_ibfk_4` FOREIGN KEY (`task_type_id`) REFERENCES `task_type` (`id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `tasks_ibfk_1` FOREIGN KEY (`assigned_to_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `tasks_ibfk_2` FOREIGN KEY (`task_type_id`) REFERENCES `task_type` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `tasks_ibfk_3` FOREIGN KEY (`work_request_id`) REFERENCES `work_requests` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `users`

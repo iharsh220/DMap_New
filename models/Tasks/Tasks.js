@@ -15,19 +15,15 @@ const Tasks = sequelize.define('Tasks', {
     type: DataTypes.TEXT,
     allowNull: true,
   },
-  assigned_by_id: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-  },
-  manager_id: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-  },
   assigned_to_id: {
     type: DataTypes.INTEGER,
     allowNull: false,
   },
   task_type_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+  work_request_id: {
     type: DataTypes.INTEGER,
     allowNull: false,
   },
