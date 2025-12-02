@@ -1090,6 +1090,109 @@ const getTaskAnalytics = async (req, res) => {
     }
 };
 
+const getMyTeam = async (req, res) => {
+    try {
+        const manager_id = req.user.id;
+
+        // Get all divisions the manager belongs to
+        const managerDivisions = await UserDivisions.findAll({
+            where: { user_id: manager_id },
+            include: [
+                {
+                    model: Division,
+                    as: 'division',
+                    attributes: ['id', 'title', 'department_id']
+                }
+            ],
+            attributes: []
+        });
+
+        if (!managerDivisions || managerDivisions.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'No divisions found for this manager'
+            });
+        }
+
+        const teamData = [];
+
+        // For each division, get creative users and their task counts
+        for (const managerDivision of managerDivisions) {
+            const division = managerDivision.division;
+
+            // Get all creative users and creative leads in this division (job_role_id = 3 for Creative Lead, 4 for Creative User)
+            const creativeUsers = await UserDivisions.findAll({
+                where: { division_id: division.id },
+                include: [
+                    {
+                        model: User,
+                        where: {
+                            id: { [Op.ne]: manager_id },
+                            // job_role_id: { [Op.in]: [3, 4] }, // Creative Lead and Creative User
+                            account_status: 'active'
+                        },
+                        attributes: ['id', 'name', 'email', 'job_role_id']
+                    }
+                ],
+                attributes: []
+            });
+
+            const divisionTeam = {
+                division: {
+                    id: division.id,
+                    name: division.title,
+                    department_id: division.department_id
+                },
+                teamMembers: []
+            };
+
+            // For each creative user, count their assigned tasks
+            for (const userDivision of creativeUsers) {
+                const user = userDivision.User;
+
+                // Count total tasks assigned to this user
+                const taskCount = await TaskAssignments.count({
+                    where: { user_id: user.id }
+                });
+                
+                divisionTeam.teamMembers.push({
+                    id: user.id,
+                    name: user.name,
+                    email: user.email,
+                    jobRole: user.job_role_id,
+                    taskCount: taskCount
+                });
+            }
+
+            // Only add division if it has team members
+            if (divisionTeam.teamMembers.length > 0) {
+                teamData.push(divisionTeam);
+            }
+        }
+
+        await logUserActivity({
+            event: 'my_team_viewed',
+            userId: req.user.id,
+            divisionCount: teamData.length,
+            totalMembers: teamData.reduce((sum, div) => sum + div.teamMembers.length, 0),
+            ...extractRequestDetails(req)
+        });
+
+        res.json({
+            success: true,
+            data: teamData,
+            message: 'My team retrieved successfully'
+        });
+    } catch (error) {
+        console.error('Error fetching my team:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            message: 'Failed to fetch my team'
+        });
+    }
+};
+
 
 
 
@@ -1102,5 +1205,6 @@ module.exports = {
     getTaskTypesByWorkRequest,
     createTask,
     getTasksByWorkRequestId,
-    getTaskAnalytics
+    getTaskAnalytics,
+    getMyTeam
 };

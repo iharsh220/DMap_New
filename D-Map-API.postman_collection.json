@@ -971,6 +971,34 @@
 						"description": "Get task analytics for a specific work request including total tasks, publish date, estimated TAT, team members, and SME request count (requires authentication and manager role)"
 					},
 					"response": []
+				},
+				{
+					"name": "Get My Team",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/my-team",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"digilabs",
+								"dmap",
+								"api",
+								"manager",
+								"assigned-work-requests",
+								"my-team"
+							]
+						},
+						"description": "Get manager's team members with task counts, grouped by division. Shows creative users and creative leads from all divisions the manager belongs to (requires authentication and manager role)"
+					},
+					"response": []
 				}
 			]
 		},
