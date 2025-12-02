@@ -935,6 +935,42 @@
 						"description": "Get list of task types associated with the work request's project type (requires authentication and manager role)"
 					},
 					"response": []
+				},
+				{
+					"name": "Get Task Analytics",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id/analytics",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"digilabs",
+								"dmap",
+								"api",
+								"manager",
+								"assigned-work-requests",
+								":id",
+								"analytics"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1",
+									"description": "Work request ID"
+								}
+							]
+						},
+						"description": "Get task analytics for a specific work request including total tasks, publish date, estimated TAT, team members, and SME request count (requires authentication and manager role)"
+					},
+					"response": []
 				}
 			]
 		},

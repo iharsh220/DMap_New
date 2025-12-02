@@ -964,6 +964,132 @@ const getTasksByWorkRequestId = async (req, res) => {
     }
 };
 
+const getTaskAnalytics = async (req, res) => {
+    try {
+        const workRequestId = parseInt(req.params.id, 10);
+        if (isNaN(workRequestId)) {
+            return res.status(400).json({ success: false, error: 'Invalid work request ID' });
+        }
+
+        const manager_id = req.user.id;
+
+        // Check if work request is assigned to this manager
+        const workRequestResult = await workRequestService.getAll({
+            where: { id: workRequestId },
+            include: [
+                {
+                    model: WorkRequestManagers,
+                    where: { manager_id: manager_id },
+                    required: true,
+                    attributes: []
+                }
+            ],
+            limit: 1
+        });
+
+        if (!workRequestResult.success || workRequestResult.data.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Work request not found or not assigned to you'
+            });
+        }
+
+        // 1. Total tasks
+        const totalTasks = await Tasks.count({
+            where: { work_request_id: workRequestId }
+        });
+
+        // 2. Publish date (latest deadline of all tasks)
+        const latestDeadlineTask = await Tasks.findOne({
+            where: { work_request_id: workRequestId },
+            order: [['deadline', 'DESC']],
+            attributes: ['deadline']
+        });
+        const publishDate = latestDeadlineTask && latestDeadlineTask.deadline ? latestDeadlineTask.deadline : null;
+
+        // 3. Estimated TAT (from earliest to latest task deadline)
+        const earliestDeadlineTask = await Tasks.findOne({
+            where: { work_request_id: workRequestId },
+            order: [['deadline', 'ASC']],
+            attributes: ['deadline']
+        });
+
+        const latestDeadlineTaskForTAT = await Tasks.findOne({
+            where: { work_request_id: workRequestId },
+            order: [['deadline', 'DESC']],
+            attributes: ['deadline']
+        });
+
+        let estimatedTAT = null;
+        if (earliestDeadlineTask && earliestDeadlineTask.deadline && latestDeadlineTaskForTAT && latestDeadlineTaskForTAT.deadline) {
+            const startDate = new Date(earliestDeadlineTask.deadline);
+            const endDate = new Date(latestDeadlineTaskForTAT.deadline);
+            const diffTime = Math.abs(endDate - startDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end days
+            estimatedTAT = diffDays;
+        }
+
+        // 4. Team Members Assigned
+        const assignedUsers = await TaskAssignments.findAll({
+            where: {},
+            include: [
+                {
+                    model: Tasks,
+                    where: { work_request_id: workRequestId },
+                    attributes: []
+                },
+                {
+                    model: User,
+                    attributes: ['id', 'name', 'email']
+                }
+            ],
+            attributes: []
+        });
+
+        const teamMembers = [...new Set(assignedUsers.map(ta => ta.User))].map(user => ({
+            id: user.id,
+            name: user.name,
+            email: user.email
+        }));
+
+        // 5. SME Request (total request type count - 1)
+        const requestTypeCount = await Tasks.findAll({
+            where: { work_request_id: workRequestId },
+            attributes: ['request_type_id'],
+            group: ['request_type_id']
+        });
+        const smeRequest = requestTypeCount.length - 1;
+
+        const analytics = {
+            totalTasks,
+            publishDate,
+            estimatedTAT,
+            teamMembers,
+            smeRequest
+        };
+
+        await logUserActivity({
+            event: 'task_analytics_viewed',
+            userId: req.user.id,
+            workRequestId: workRequestId,
+            ...extractRequestDetails(req)
+        });
+
+        res.json({
+            success: true,
+            data: analytics,
+            message: 'Task analytics retrieved successfully'
+        });
+    } catch (error) {
+        console.error('Error fetching task analytics:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            message: 'Failed to fetch task analytics'
+        });
+    }
+};
+
 
 
 
@@ -975,5 +1101,6 @@ module.exports = {
     getAssignableUsers,
     getTaskTypesByWorkRequest,
     createTask,
-    getTasksByWorkRequestId
+    getTasksByWorkRequestId,
+    getTaskAnalytics
 };
