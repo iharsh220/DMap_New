@@ -38,9 +38,13 @@ const createWorkRequest = async (req, res) => {
             });
         }
 
-        // Get request type to find division
+        // Get request type with divisions
         const requestType = await RequestType.findByPk(request_type_id, {
-            include: [{ model: Division, as: 'Division' }]
+            include: [{
+                model: Division,
+                through: { attributes: [] },
+                attributes: ['id', 'title']
+            }]
         });
         if (!requestType) {
             return res.status(400).json({
@@ -49,13 +53,15 @@ const createWorkRequest = async (req, res) => {
             });
         }
 
-        // Find all assignees (Creative Managers and Creative Leads) in the same division
+        const divisionIds = requestType.Divisions.map(d => d.id);
+
+        // Find all assignees (Creative Managers and Creative Leads) in the linked divisions
         const assigneeUserDivisions = await UserDivisions.findAll({
-            where: { division_id: requestType.division_id },
+            where: { division_id: { [Op.in]: divisionIds } },
             include: [{
                 model: User,
                 where: {
-                    job_role_id: { [require('sequelize').Op.in]: [2, 3] }, // 2: Creative Manager, 3: Creative Lead
+                    job_role_id: { [Op.in]: [2, 3] }, // 2: Creative Manager, 3: Creative Lead
                     account_status: 'active'
                 },
                 include: [
@@ -174,10 +180,10 @@ const createWorkRequest = async (req, res) => {
                 manager_location: firstAssignee.Location?.location_name || 'N/A',
                 project_name: result.data.project_name,
                 brand: result.data.brand || 'Not specified',
-                request_type_type: requestType.type,
-                request_type_category: requestType.category,
+                request_type_type: requestType.request_type,
+                request_type_category: 'N/A',
                 priority: result.data.priority,
-                division_name: requestType.Division.title,
+                division_name: requestType.Divisions.length > 0 ? requestType.Divisions[0].title : 'N/A',
                 request_id: result.data.id,
                 request_date: new Date(result.data.created_at).toLocaleDateString('en-IN', {
                     year: 'numeric',
@@ -204,10 +210,10 @@ const createWorkRequest = async (req, res) => {
             const managerEmailHtml = renderTemplate('workRequestManagerNotification', {
                 project_name: result.data.project_name,
                 brand: result.data.brand || 'Not specified',
-                request_type_type: requestType.type,
-                request_type_category: requestType.category,
+                request_type_type: requestType.request_type,
+                request_type_category: 'N/A',
                 priority: result.data.priority,
-                division_name: requestType.Division.title,
+                division_name: requestType.Divisions.length > 0 ? requestType.Divisions[0].title : 'N/A',
                 request_id: result.data.id,
                 request_date: new Date(result.data.created_at).toLocaleDateString('en-IN', {
                     year: 'numeric',
@@ -278,7 +284,7 @@ const getMyWorkRequests = async (req, res) => {
             attributes: { exclude: ['request_type_id', 'updated_at'] },
             include: [
                 { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
-                { model: RequestType, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, as: 'Division', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
+                { model: RequestType, attributes: { exclude: ['created_at', 'updated_at'] } },
                 {
                     model: WorkRequestManagers, attributes: { exclude: ['created_at', 'updated_at'] }, include: [
                         {
@@ -321,7 +327,7 @@ const getWorkRequestById = async (req, res) => {
             attributes: { exclude: ['request_type_id', 'created_at', 'updated_at'] },
             include: [
                 { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
-                { model: RequestType, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, as: 'Division', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
+                { model: RequestType, attributes: { exclude: ['created_at', 'updated_at'] } },
                 {
                     model: WorkRequestManagers, attributes: { exclude: ['created_at', 'updated_at'] }, include: [
                         {

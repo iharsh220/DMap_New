@@ -17,7 +17,7 @@ const getAllRequestTypes = async (req, res) => {
 
         const RequestTypeResult = await RequestTypeService.getAll({
             where,
-            attributes: ['id', 'type', 'category', 'description', 'division_id']
+            attributes: ['id', 'request_type', 'description']
         });
 
         if (!RequestTypeResult.success) {
@@ -28,16 +28,14 @@ const getAllRequestTypes = async (req, res) => {
             });
         }
 
-        // Group by type
+        // Group by request_type
         const groupedData = RequestTypeResult.data.reduce((acc, item) => {
-            if (!acc[item.type]) {
-                acc[item.type] = [];
+            if (!acc[item.request_type]) {
+                acc[item.request_type] = [];
             }
-            acc[item.type].push({
+            acc[item.request_type].push({
                 id: item.id,
-                category: item.category,
-                description: item.description,
-                division_id: item.division_id
+                description: item.description
             });
             return acc;
         }, {});

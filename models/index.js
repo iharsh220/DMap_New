@@ -13,6 +13,7 @@ const Sales = require('./Sales/Sales');
 const Tasks = require('./Tasks/Tasks');
 const UserDivisions = require('./UserDivisions/UserDivisions');
 const RequestType = require('./RequestType/RequestType');
+const RequestDivisionReference = require('./RequestDivisionReference/RequestDivisionReference');
 const WorkRequests = require('./WorkRequests/WorkRequests');
 const WorkRequestManagers = require('./WorkRequestManagers/WorkRequestManagers');
 const WorkRequestDocuments = require('./WorkRequestDocuments/WorkRequestDocuments');
@@ -61,7 +62,6 @@ Tasks.belongsTo(User, { as: 'assignedTo', foreignKey: 'assigned_to_id' });
 Tasks.belongsTo(TaskType, { foreignKey: 'task_type_id' });
 Tasks.belongsTo(WorkRequests, { foreignKey: 'work_request_id' });
 
-RequestType.belongsTo(Division, { foreignKey: 'division_id' });
 
 WorkRequests.belongsTo(User, { foreignKey: 'user_id', as: 'users' });
 WorkRequests.belongsTo(RequestType, { foreignKey: 'request_type_id' });
@@ -74,6 +74,12 @@ WorkRequestManagers.belongsTo(WorkRequests, { foreignKey: 'work_request_id' });
 WorkRequestManagers.belongsTo(User, { as: 'manager', foreignKey: 'manager_id' });
 
 WorkRequestDocuments.belongsTo(WorkRequests, { foreignKey: 'work_request_id' });
+
+RequestType.belongsToMany(Division, { through: RequestDivisionReference, foreignKey: 'request_id' });
+Division.belongsToMany(RequestType, { through: RequestDivisionReference, foreignKey: 'division_id' });
+
+RequestDivisionReference.belongsTo(RequestType, { foreignKey: 'request_id' });
+RequestDivisionReference.belongsTo(Division, { foreignKey: 'division_id' });
 
 ProjectType.belongsToMany(RequestType, { through: ProjectRequestReference, foreignKey: 'project_id' });
 RequestType.belongsToMany(ProjectType, { through: ProjectRequestReference, foreignKey: 'request_id' });
@@ -106,6 +112,7 @@ module.exports = {
   Tasks,
   UserDivisions,
   RequestType,
+  RequestDivisionReference,
   WorkRequests,
   WorkRequestManagers,
   WorkRequestDocuments,

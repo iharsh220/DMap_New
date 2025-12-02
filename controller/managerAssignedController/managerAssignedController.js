@@ -49,7 +49,7 @@ const getAssignableUsers = async (req, res) => {
                 },
                 {
                     model: RequestType,
-                    include: [{ model: Division, as: 'Division' }]
+                    include: [{ model: Division, through: { attributes: [] } }]
                 }
             ],
             limit: 1
@@ -71,7 +71,7 @@ const getAssignableUsers = async (req, res) => {
                 error: 'Work request must be accepted before assigning users'
             });
         }
-        const divisionId = workRequest.RequestType?.Division?.id;
+        const divisionId = workRequest.RequestType?.Divisions?.[0]?.id;
 
         if (!divisionId) {
             return res.status(404).json({
@@ -178,7 +178,7 @@ const getAssignedWorkRequests = async (req, res) => {
                     attributes: []
                 },
                 { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
-                { model: RequestType, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, as: 'Division', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
+                { model: RequestType, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, through: { attributes: [] }, attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
             ],
             limit: req.pagination.limit,
             offset: req.pagination.offset,
@@ -221,7 +221,7 @@ const getAssignedWorkRequestById = async (req, res) => {
                     attributes: []
                 },
                 { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
-                { model: RequestType, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, as: 'Division', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
+                { model: RequestType, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, through: { attributes: [] }, attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
                 { model: WorkRequestDocuments, attributes: { exclude: ['created_at', 'updated_at'] } },
                 {
                     model: Tasks,
@@ -295,7 +295,7 @@ const acceptWorkRequest = async (req, res) => {
                 },
                 {
                     model: RequestType,
-                    include: [{ model: Division, as: 'Division', attributes: ['id'] }]
+                    include: [{ model: Division, through: { attributes: [] }, attributes: ['id'] }]
                 }
             ],
             limit: 1
@@ -322,7 +322,7 @@ const acceptWorkRequest = async (req, res) => {
         if (updateResult.success) {
             const user = workRequest.users;
             const requestType = workRequest.RequestType || {};
-            const divisionId = requestType.Division?.id;
+            const divisionId = requestType.Divisions?.[0]?.id;
 
             if (user && divisionId) {
                 // Find all Creative Managers and Creative Leads in the division
@@ -344,8 +344,7 @@ const acceptWorkRequest = async (req, res) => {
                 const html = renderTemplate('workRequestAcceptanceNotification', {
                     project_name: workRequest.project_name,
                     brand: workRequest.brand,
-                    request_type_type: requestType.type,
-                    request_type_category: requestType.category,
+                    request_type_type: requestType.request_type,
                     priority: workRequest.priority,
                     request_id: workRequest.id,
                     accepted_at: new Date().toLocaleDateString('en-IN', {
@@ -426,7 +425,7 @@ const deferWorkRequest = async (req, res) => {
                 },
                 {
                     model: RequestType,
-                    include: [{ model: Division, as: 'Division', attributes: ['id'] }]
+                    include: [{ model: Division, through: { attributes: [] }, attributes: ['id'] }]
                 }
             ],
             limit: 1
@@ -454,7 +453,7 @@ const deferWorkRequest = async (req, res) => {
             const user = workRequest.users;
             const currentUser = req.user;
             const requestType = workRequest.RequestType || {};
-            const divisionId = requestType.Division?.id;
+            const divisionId = requestType.Divisions?.[0]?.id;
 
             // Find all Creative Managers and Creative Leads in the division
             let ccEmails = [];
@@ -522,7 +521,7 @@ const deferWorkRequest = async (req, res) => {
 
             // Get new request type
             const newRequestType = await RequestType.findByPk(newRequestTypeId, {
-                include: [{ model: Division, as: 'Division' }]
+                include: [{ model: Division, through: { attributes: [] } }]
             });
             if (!newRequestType) {
                 return res.status(400).json({ success: false, error: 'Invalid request type ID' });
@@ -530,7 +529,7 @@ const deferWorkRequest = async (req, res) => {
 
             // Find all Creative Managers and Creative Leads in the new division
             const newManagersAndLeads = await UserDivisions.findAll({
-                where: { division_id: newRequestType.division_id },
+                where: { division_id: newRequestType.Divisions?.[0]?.id },
                 include: [{
                     model: User,
                     where: {
@@ -590,10 +589,9 @@ const deferWorkRequest = async (req, res) => {
                     transfer_manager_email: transferManager.email,
                     project_name: workRequest.project_name,
                     brand: workRequest.brand,
-                    request_type_type: newRequestType.type,
-                    request_type_category: newRequestType.category,
+                    request_type_type: newRequestType.request_type,
                     priority: workRequest.priority,
-                    division_name: newRequestType.Division.title,
+                    division_name: newRequestType.Divisions?.[0]?.title,
                     request_id: workRequest.id,
                     request_date: new Date(workRequest.created_at).toLocaleDateString('en-IN', {
                         year: 'numeric',
