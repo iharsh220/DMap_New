@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "fd4aada4-170f-4593-a979-fe62e0af2ead",
+		"_postman_id": "6fc041bf-050b-4dbd-ba8d-0a911fc02d4f",
 		"name": "D-Map API",
 		"description": "API collection for D-Map application",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
@@ -536,12 +536,12 @@
 								},
 								{
 									"key": "request_type_id",
-									"value": "1",
+									"value": "5",
 									"type": "text"
 								},
 								{
 									"key": "project_id",
-									"value": "",
+									"value": "5",
 									"description": "Optional project type ID",
 									"type": "text"
 								},
@@ -607,7 +607,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"work_request_id\": 45,\n  \"task_name\": \"Design Landing Page\",\n  \"description\": \"Create responsive landing page design\",\n  \"assigned_to_ids\": [10, 11],\n  \"task_type_id\": 15,\n  \"deadline\": \"2025-12-15\",\n  \"dependencies\": [1, 2]\n}\n\n// For single user assignment:\n// {\n//   \"work_request_id\": 45,\n//   \"task_name\": \"Design Landing Page\",\n//   \"description\": \"Create responsive landing page design\",\n//   \"assigned_to_ids\": [10],\n//   \"task_type_id\": 15,\n//   \"deadline\": \"2025-12-15\",\n//   \"dependencies\": []\n// }"
+									"raw": "{\n  \"work_request_id\": 56,\n  \"task_name\": \"Design Landing Page\",\n  \"description\": \"Create responsive landing page design\",\n  \"assigned_to_ids\": [10],\n  \"task_type_id\": 2,\n  \"deadline\": \"2025-12-15\",\n  \"dependencies\": [1]\n}\n\n// For single user assignment:\n// {\n//   \"work_request_id\": 56,\n//   \"task_name\": \"Design Landing Page\",\n//   \"description\": \"Create responsive landing page design\",\n//   \"assigned_to_ids\": [10],\n//   \"task_type_id\": 1,\n//   \"deadline\": \"2025-12-15\",\n//   \"dependencies\": []\n// }"
 								},
 								"url": {
 									"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/tasks",
@@ -683,7 +683,7 @@
 									"variable": [
 										{
 											"key": "work_request_id",
-											"value": "45",
+											"value": "56",
 											"description": "Work request ID to get all tasks for"
 										}
 									]
@@ -815,7 +815,7 @@
 							"variable": [
 								{
 									"key": "id",
-									"value": "1",
+									"value": "56",
 									"description": "Work request ID"
 								}
 							]

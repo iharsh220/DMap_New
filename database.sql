@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Nov 26, 2025 at 04:35 AM
+-- Generation Time: Dec 02, 2025 at 08:44 AM
 -- Server version: 11.4.9-MariaDB
 -- PHP Version: 8.4.14
 
@@ -291,6 +291,58 @@ INSERT INTO `division` (`id`, `title`, `department_id`, `description`, `state`, 
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `issue_register`
+--
+
+CREATE TABLE `issue_register` (
+  `id` int(11) NOT NULL,
+  `change_issue_type` varchar(100) NOT NULL,
+  `description` text DEFAULT NULL,
+  `quantification` varchar(100) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Dumping data for table `issue_register`
+--
+
+INSERT INTO `issue_register` (`id`, `change_issue_type`, `description`, `quantification`, `created_at`, `updated_at`) VALUES
+(1, 'Content Update', 'Web + Graphics + Videos', 'No. of issues reported/changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(2, 'Button/Icon Replacement', 'Web', 'No. of issues reported', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(3, 'Layout Restructure', 'Web', 'No. of issues reported', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(4, 'Device Responsiveness Fix', 'Web', 'No. of issues reported', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(5, 'Colour/Theme Update', 'Web', 'No. of issues reported', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(6, 'Bug fixes', 'Web', 'No. of issues reported', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(7, 'Form Field Update', 'Web', 'No. of issues reported', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(8, 'API/Link Update', 'Web', 'No. of issues reported', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(9, 'Grammar & Spell Check', 'Content Writing', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(10, 'Copy/Fact Update', 'Content Writing', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(11, 'Brand Tone/Language Alignment', 'Content Writing', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(12, 'SEO Addition/Optimization', 'Content Writing', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(13, 'Brand Terminology Consistency', 'Content Writing', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(14, 'Regional Language Translation', 'Content Writing', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(15, 'Add Compliance/Legal Points', 'Content Writing', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(16, 'Shorten/Expand Content', 'Content Writing', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(17, 'Resize Layout', 'Graphics + Videos', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(18, 'Font Change/Alignment', 'Graphics', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(19, 'Colour Change', 'Graphics', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(20, 'Image Replacement', 'Graphics', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(21, 'Brand Identity Update', 'Graphics', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(22, 'Language Adaptation', 'Graphics', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(23, 'Print Margin Update', 'Graphics', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(24, 'Print Format Compatibility', 'Graphics', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(25, 'Theme Change', 'Graphics', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(26, 'Voice-Over Replacement', 'Videos', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(27, 'Music Track Update', 'Videos', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(28, 'Trimming/Sequencing', 'Videos', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(29, 'Logo Update', 'Videos', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(30, 'Add Animation/Transitions', 'Videos', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
+(31, 'Replace Product Shots/Visuals', 'Videos', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `job_role`
 --
 
@@ -358,246 +410,11 @@ INSERT INTO `location` (`id`, `location_name`, `type`, `description`, `state`, `
 -- --------------------------------------------------------
 
 --
--- Table structure for table `sales`
---
-
-CREATE TABLE `sales` (
-  `id` int(11) NOT NULL,
-  `emp_code` int(11) NOT NULL,
-  `emp_name` varchar(100) NOT NULL,
-  `level` varchar(50) DEFAULT NULL,
-  `hq` varchar(100) DEFAULT NULL,
-  `region` varchar(100) DEFAULT NULL,
-  `zone` varchar(100) DEFAULT NULL,
-  `division_id` int(11) DEFAULT NULL,
-  `sap_code` int(11) NOT NULL,
-  `mobile_number` varchar(15) DEFAULT NULL,
-  `email_id` varchar(100) NOT NULL,
-  `user_type` enum('sales') DEFAULT 'sales',
-  `email_verified_status` tinyint(1) DEFAULT 0,
-  `password` varchar(255) DEFAULT NULL,
-  `account_status` enum('pending','active','inactive','locked','rejected','vacant') DEFAULT 'pending',
-  `last_login` datetime DEFAULT NULL,
-  `login_attempts` int(11) DEFAULT 0,
-  `lock_until` datetime DEFAULT NULL,
-  `password_changed_at` datetime DEFAULT NULL,
-  `password_expires_at` datetime DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-
---
--- Dumping data for table `sales`
---
-
-INSERT INTO `sales` (`id`, `emp_code`, `emp_name`, `level`, `hq`, `region`, `zone`, `division_id`, `sap_code`, `mobile_number`, `email_id`, `user_type`, `email_verified_status`, `password`, `account_status`, `last_login`, `login_attempts`, `lock_until`, `password_changed_at`, `password_expires_at`, `created_at`, `updated_at`) VALUES
-(1, 12345, 'Demo Sales User', 'Junior', 'Mumbai', 'West', 'Zone A', 14, 67890, '9876543210', 'demo.sales@alembic.co.in', 'sales', 1, '$2b$10$demo.hash.for.sales.user.password123', 'active', NULL, 0, NULL, '2025-11-21 07:24:00', '2026-02-19 07:24:00', '2025-11-21 07:24:00', '2025-11-21 07:24:00');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `tasks`
---
-
-CREATE TABLE `tasks` (
-  `id` int(11) NOT NULL,
-  `task_name` varchar(255) NOT NULL,
-  `description` text DEFAULT NULL,
-  `assigned_to_manager_id` int(11) DEFAULT NULL,
-  `task_type_id` int(11) NOT NULL,
-  `work_request_id` int(11) NOT NULL,
-  `deadline` date DEFAULT NULL,
-  `status` enum('draft','pending','accepted','assigned','in_progress','completed','rejected','deferred') DEFAULT 'pending',
-  `intimate_team` tinyint(1) DEFAULT 0,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-
--- --------------------------------------------------------
-
-
---
--- Table structure for table `task_dependencies`
---
-
-CREATE TABLE `task_dependencies` (
-  `id` int(11) NOT NULL,
-  `task_id` int(11) NOT NULL,
-  `dependency_task_id` int(11) NOT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-
---
--- Table structure for table `task_assignments`
---
-
-CREATE TABLE `task_assignments` (
-  `id` int(11) NOT NULL,
-  `task_id` int(11) NOT NULL,
-  `user_id` int(11) NOT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-
--- --------------------------------------------------------
-
-
---
--- Table structure for table `users`
---
-CREATE TABLE `users` (
-  `id` int(11) NOT NULL,
-  `name` varchar(100) DEFAULT NULL,
-  `email` varchar(100) NOT NULL,
-  `phone` varchar(15) DEFAULT NULL,
-  `password` varchar(255) DEFAULT NULL,
-  `department_id` int(11) DEFAULT NULL,
-  `job_role_id` int(11) DEFAULT NULL,
-  `location_id` int(11) DEFAULT NULL,
-  `designation_id` int(11) DEFAULT NULL,
-  `email_verified_status` tinyint(1) DEFAULT 0,
-  `account_status` enum('pending','active','inactive','locked','rejected','vacant') DEFAULT 'pending',
-  `last_login` datetime DEFAULT NULL,
-  `login_attempts` int(11) DEFAULT 0,
-  `lock_until` datetime DEFAULT NULL,
-  `password_changed_at` datetime DEFAULT NULL,
-  `password_expires_at` datetime DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-
---
--- Dumping data for table `users`
---
-
-INSERT INTO `users` (`id`, `name`, `email`, `phone`, `password`, `department_id`, `job_role_id`, `location_id`, `designation_id`, `email_verified_status`, `account_status`, `last_login`, `login_attempts`, `lock_until`, `password_changed_at`, `password_expires_at`, `created_at`, `updated_at`) VALUES
-(1, 'System Admin', 'admin@alembic.co.in', '8080302041', '$2a$12$/.rT3avNPO1l0ZjqSRS/Ru09mKVNuIRSLaHjBDeMwLHscVLq1ETY6', 2, 1, 1, NULL, 1, 'active', '2025-11-12 06:04:52', 0, NULL, '2025-11-12 06:04:52', '2026-02-10 06:04:52', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(9, 'Bhagwan Parab', 'bhagwan.parab@alembic.co.in', '1234567890', '$2a$10$13zqXGBAuAF/pcF4XHxvi.lEo8flBZCOnw/qq.fBJfZ57eAJcfj42', 9, 2, 1, 16, 1, 'active', NULL, 0, NULL, '2025-11-25 06:14:31', '2026-02-23 06:14:31', '2025-11-25 06:10:40', '2025-11-25 06:14:31'),
-(10, 'Harsh Gohil', 'harsh.gohil@alembic.co.in', '1234567890', '$2a$10$Kc.lwpVnKYKTOyVEkEaR5eCEcMqK7SjbnjpwgIB.LiAN/pLagxVeO', 9, 4, 1, 20, 1, 'active', '2025-11-26 04:00:05', 0, NULL, '2025-11-25 06:15:53', '2026-02-23 06:15:53', '2025-11-25 06:14:56', '2025-11-26 04:00:05'),
-(11, 'Mohanish Padwal', 'mohanish.padwal@alembic.co.in', '1234567890', '$2a$10$lbDnrhd.6O4EvCFNTeDt1.SngPt.IqHZkvw3jtUwjKTrEWoIbcDO.', 9, 2, 1, 16, 1, 'active', '2025-11-26 04:25:25', 0, NULL, '2025-11-25 06:17:31', '2026-02-23 06:17:31', '2025-11-25 06:16:23', '2025-11-26 04:25:25'),
-(12, 'Nikhil Nadkar', 'nikhil.nadkar@alembic.co.in', '1234567890', '$2a$10$Txudkx41QciW8euyVoodNOIa4seUXViVsWc.UN3RCdxg0KrcFfssW', 1, 5, 1, 8, 1, 'active', '2025-11-25 09:26:49', 0, NULL, '2025-11-25 06:19:02', '2026-02-23 06:19:02', '2025-11-25 06:17:55', '2025-11-25 09:26:49'),
-(13, 'Gautam Barnawal', 'gautam.baranwal@alembic.co.in', '1234567890', '$2a$10$ELYSn.TNQYl4.ppKulgaFeenW5Stt3wzMzeymt1O0hyAfzxnKGxZq', 9, 4, 1, 19, 1, 'active', NULL, 0, NULL, '2025-11-26 02:42:48', '2026-02-24 02:42:48', '2025-11-25 10:46:13', '2025-11-26 02:42:48'),
-(14, 'Vinisha Chadala', 'vinisha.chadala@alembic.co.in', '1234567890', '$2a$10$Fehw59cHdrrS0KdlB.koo.3aqM85F0soHulTlyn7Ga9ICb7XBbFGe', 9, 4, 1, 19, 1, 'active', NULL, 0, NULL, '2025-11-26 04:20:56', '2026-02-24 04:20:56', '2025-11-26 04:19:06', '2025-11-26 04:20:56'),
-(15, 'Vikaram Rai', 'vikramr.rai@alembic.co.in', '1234567890', '$2a$10$eMdj3uvEko0L26oRtV0veeoxZzMsiHwaHdW66FQ63bBN3ssboQN6q', 9, 2, 1, 16, 1, 'active', NULL, 0, NULL, '2025-11-26 04:33:08', '2026-02-24 04:33:08', '2025-11-26 04:31:28', '2025-11-26 04:33:08');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `user_divisions`
---
-
-CREATE TABLE `user_divisions` (
-  `id` int(11) NOT NULL,
-  `user_id` int(11) NOT NULL,
-  `division_id` int(11) NOT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-
---
--- Dumping data for table `user_divisions`
---
-
-INSERT INTO `user_divisions` (`id`, `user_id`, `division_id`, `created_at`, `updated_at`) VALUES
-(12, 9, 1, '2025-11-25 06:14:31', '2025-11-25 06:14:31'),
-(13, 10, 5, '2025-11-25 06:15:53', '2025-11-25 06:15:53'),
-(14, 11, 2, '2025-11-25 06:17:31', '2025-11-25 06:17:31'),
-(15, 11, 4, '2025-11-25 06:17:31', '2025-11-25 06:17:31'),
-(16, 11, 5, '2025-11-25 06:17:31', '2025-11-25 06:17:31'),
-(17, 12, 22, '2025-11-25 06:19:02', '2025-11-25 06:19:02'),
-(18, 13, 5, '2025-11-26 02:42:48', '2025-11-26 02:42:48'),
-(19, 14, 4, '2025-11-26 04:20:56', '2025-11-26 04:20:56'),
-(20, 15, 3, '2025-11-26 04:33:07', '2025-11-26 04:33:07'),
-(21, 15, 4, '2025-11-26 04:33:08', '2025-11-26 04:33:08');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `request_type`
---
-
-CREATE TABLE `request_type` (
-  `id` int(11) NOT NULL,
-  `request_type` varchar(100) NOT NULL,
-  `description` text DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-
---
--- Dumping data for table `request_type`
---
-
-INSERT INTO `request_type` (`id`, `request_type`, `description`, `created_at`, `updated_at`) VALUES
-(1, 'Content Writing', 'Non-medical copywriting, Storyboarding, etc.', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(2, 'Design & Graphics', 'LBL, Standees, Social media post, Magazine, etc.', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(3, 'Video & Animation', 'Motivational video, Short clips, 2D/3D video animations, etc.', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(4, 'Photo, Video & Audio Shoot', 'Voice-overs, Product demos, Testimonials, etc.', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(5, 'Web & Digital Solutions', 'VA HTMLization, Websites, Brand gamifications, etc.', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(6, 'Consulting & Advisory', 'Preparation and guidance for outsourced projects', '2025-11-11 06:52:31', '2025-11-11 06:52:31');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `project_type`
---
-
-CREATE TABLE IF NOT EXISTS `project_type` (
-  `id` int(11) NOT NULL PRIMARY KEY AUTO_INCREMENT,
-  `project_type` varchar(100) NOT NULL,
-  `description` text DEFAULT NULL,
-  `quantification` varchar(100) DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-
---
--- Dumping data for table `project_type`
---
-
-INSERT INTO `project_type` (`id`, `project_type`, `description`, `quantification`, `created_at`, `updated_at`) VALUES
-(1, 'VA HTMLization', 'Converting Visual Aids into interactive HTML format', 'No. of vas htmlised', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(2, 'Photo Framer', 'Framing photos digitally', 'No. of photo framers made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(3, 'Poster Maker', 'Online tool to create posters', 'No. of poster makers made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(4, 'Video Framer', 'Tool to generate framed or templated videos', 'No. of video framers made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(5, 'Custom Form', 'Tailor-made online form for data collection', 'No. of forms made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(6, 'Brand Gamification', 'Interactive game-based experience for brand engagement', 'No. of gamiifications made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(7, 'E- Flipbook', 'Digital booklet with flip-page effect', 'No. of e-flipbook made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(8, 'Quiz Application', 'Online quiz tool with scoring and logic', 'No. of quiz applications made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(9, 'HTML Mailer', 'Email template coded in HTML', 'No. of mailers made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(10, 'QR Code', 'Generate custom QR codes', 'No. of qr codes made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(11, 'Static Website', 'Simple informational website without backend', 'No. of websites made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(12, 'Dynamic Website', 'Website with backend, database, and dynamic content', 'No. of dynamic websites made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(13, 'Custom Web Application', 'Applications based on custom requirements', 'No. of applications made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(14, 'Brand Communication Strategy', 'Creation of brand identity, strategy, and core assets', 'No. of collaterals/story/slogan/pay-off line made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(15, 'Creative Copywriting', 'Written content for all kind of digital, print, UX, and communications', 'No. of collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(16, 'Marketing & Social Media Creatives', 'All posts, ads, static graphics', 'No. of graphic collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(17, 'Branding & Corporate Identity', 'Identity-building assets', 'No. of graphic collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(18, 'Packaging & Label Design', 'Print packaging-related projects', 'No. of graphic collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(19, 'Publication & Print Layouts', 'Long-format or structured print', 'No. of graphic collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(20, 'Illustrations & Visual Art', 'Any sketch or creative drawing', 'No. of graphic collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(21, 'Pharma/Medical Artwork', 'Pharma-specific assets like VA, LBL, etc', 'No. of graphic collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(22, 'Exhibition & Display Assets', 'Event/stall materials', 'No. of graphic collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(23, 'Photo Manipulation & Advanced Edits', 'Creative photo work', 'No. of graphic collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(24, 'UI & Other Asset Production', 'Assets for web/app UI and other things', 'No. of graphic collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(25, '2D Animation', 'Full 2D animated video creation', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(26, '3D Animation', '3D animation creation', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(27, 'Motion Graphics', 'Animated explainers and corporate videos', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(28, 'Short-form Animated Assets', 'Small looping/unlooped media', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(29, 'Video Editing & Post Production', 'Editing of recorded/raw footage', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(30, 'Video Shoot & Editing', 'All types of shooting & editing work', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(31, 'Photography & Post-Production', 'Products, people or event shoots & editing work', 'No. of still collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(32, 'Audio Recording & Post-Production', 'All types of recording & editing of recorded/raw audio', 'No. of audio collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31');
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `project_request_reference`
 --
 
-CREATE TABLE IF NOT EXISTS `project_request_reference` (
-  `id` int(11) NOT NULL PRIMARY KEY AUTO_INCREMENT,
+CREATE TABLE `project_request_reference` (
+  `id` int(11) NOT NULL,
   `project_id` int(11) NOT NULL,
   `request_id` int(11) NOT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
@@ -677,12 +494,12 @@ INSERT INTO `project_request_reference` (`id`, `project_id`, `request_id`, `crea
 -- --------------------------------------------------------
 
 --
--- Table structure for table `task_type`
+-- Table structure for table `project_type`
 --
 
-CREATE TABLE IF NOT EXISTS `task_type` (
-  `id` int(11) NOT NULL PRIMARY KEY AUTO_INCREMENT,
-  `task_type` varchar(100) NOT NULL,
+CREATE TABLE `project_type` (
+  `id` int(11) NOT NULL,
+  `project_type` varchar(100) NOT NULL,
   `description` text DEFAULT NULL,
   `quantification` varchar(100) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
@@ -690,114 +507,44 @@ CREATE TABLE IF NOT EXISTS `task_type` (
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
 --
--- Dumping data for table `task_type`
+-- Dumping data for table `project_type`
 --
 
-INSERT INTO `task_type` (`id`, `task_type`, `description`, `quantification`, `created_at`, `updated_at`) VALUES
-(1, 'Front-End Development', 'Coding', 'No. of screens developed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(2, 'Back-End Development', 'Coding', 'No. of screens developed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(3, 'API Development', 'Coding', 'No. of apis'' developed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(4, 'Database Development', 'Coding', 'No. of data tables created', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(5, 'Schema - Data Modelling, ERD', 'Coding', 'No. of erd created', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(6, 'Application Testing', 'Coding', 'No. of applications tested', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(7, 'Application Deployment', 'Coding', 'No. of times application was deployed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(8, 'QR Generation', 'Coding', 'No. of qr codes generated', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(9, 'User Research Reports (Interviews, Surveys, Usability Testing)', 'UIUX', 'No. of reports generated', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(10, 'User Personas and Segmentation', 'UIUX', 'No. of reports generated', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(11, 'Product Vision and Strategy', 'UIUX', 'No. of reports generated', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(12, 'Product Roadmap and Release Plan', 'UIUX', 'No. of reports generated', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(13, 'User Journey Maps or User Flow Diagrams', 'UIUX', 'No. of diagrams made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(14, 'Information Architecture and Content Structures', 'UIUX', 'No. of structures made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(15, 'High-Fidelity UI Mockups and Prototypes', 'UIUX', 'No. of screens designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(16, 'Responsive UI Design Adaptations', 'UIUX', 'No. of screens adapted', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(17, 'Emailers', 'Creative Copywriting + Brand Communication Strategy', 'No. of emailers written', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(18, 'Speech Write-up', 'Creative Copywriting + Brand Communication Strategy', 'No. of speeches written', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(19, 'Social Media Content', 'Creative Copywriting + Brand Communication Strategy', 'No. of content written', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(20, 'Graphic Content', 'Creative Copywriting + Brand Communication Strategy', 'No. of content written', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(21, 'Video Script', 'Creative Copywriting + Brand Communication Strategy', 'No. of script written', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(22, 'Storyboarding', 'Creative Copywriting + Brand Communication Strategy', 'No. of story written', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(23, 'Festival Content', 'Creative Copywriting + Brand Communication Strategy', 'No. of content written', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(24, 'Articles/Blogs', 'Creative Copywriting + Brand Communication Strategy', 'No. of articles/blogs written', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(25, 'UI write-up', 'Creative Copywriting + Brand Communication Strategy', 'No. of screens written', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(26, 'Proofreading', 'Creative Copywriting + Brand Communication Strategy', 'No. of collateral checked', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(27, 'Transcription', 'Creative Copywriting + Brand Communication Strategy', 'No. of collateral checked', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(28, 'Concept', 'Brand Communication Strategy', 'No. of collateral written', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(29, 'Brand Stories & Narratives', 'Brand Communication Strategy', 'No. of story built', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(30, 'Brand Mascot Profiles', 'Brand Communication Strategy', 'No. of plans created', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(31, 'Slogan/Pay-off/Tag Line', 'Brand Communication Strategy', 'No. of line made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(32, 'Festival Greetings', 'Marketing & Social Media Creatives', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(33, 'Whatsapp Creative', 'Marketing & Social Media Creatives', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(34, 'Teaser', 'Marketing & Social Media Creatives', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(35, 'Leaflet', 'Marketing & Social Media Creatives', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(36, 'Flyer', 'Marketing & Social Media Creatives', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(37, 'Mailer', 'Marketing & Social Media Creatives', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(38, 'Certificate', 'Marketing & Social Media Creatives', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(39, 'Banner', 'Marketing & Social Media Creatives', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(40, 'Poster', 'Marketing & Social Media Creatives', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(41, 'Card', 'Marketing & Social Media Creatives', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(42, 'Invitation Card', 'Marketing & Social Media Creatives', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(43, 'Logo', 'Branding & Corporate Identity', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(44, 'Mascot', 'Branding & Corporate Identity + 2D Animation', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(45, 'Visiting Card', 'Branding & Corporate Identity', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(46, 'Bookmark', 'Branding & Corporate Identity', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(47, 'Badge', 'Branding & Corporate Identity', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(48, 'Sticker', 'Branding & Corporate Identity', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(49, 'Packaging', 'Packaging & Label Design', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(50, 'Jacket Folder', 'Packaging & Label Design', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(51, 'Booklet', 'Publication & Print Layouts', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(52, 'Diary', 'Publication & Print Layouts', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(53, 'Comicbook', 'Publication & Print Layouts', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(54, 'Calendar Design', 'Publication & Print Layouts', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(55, 'Illustrations', 'Illustrations & Visual Art', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(56, 'Sketches', 'Illustrations & Visual Art', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(57, 'Wallpaper', 'Illustrations & Visual Art', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(58, 'Visual Aid', 'Pharma/Medical Artwork', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(59, 'Cover Page', 'Pharma/Medical Artwork', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(60, 'LBL', 'Pharma/Medical Artwork', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(61, 'Detailer', 'Pharma/Medical Artwork', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(62, 'Prescription Pad', 'Pharma/Medical Artwork', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(63, 'RCPA Card', 'Pharma/Medical Artwork', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(64, 'Chit Pad', 'Pharma/Medical Artwork', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(65, 'Reminder Card', 'Pharma/Medical Artwork', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(66, 'Gimmick', 'Pharma/Medical Artwork', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(67, 'Magazine Ad', 'Pharma/Medical Artwork', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(68, 'Questionnaire Design', 'Pharma/Medical Artwork', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(69, 'Stall Panel', 'Exhibition & Display Assets', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(70, 'Table Top', 'Exhibition & Display Assets', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(71, 'Standee', 'Exhibition & Display Assets', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(72, 'Dangler', 'Exhibition & Display Assets', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(73, 'Photo Manipulation', 'Photo Manipulation & Advanced Edits', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(74, 'Template', 'UI & Other Asset Production', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(75, 'Photo Frame', 'UI & Other Asset Production', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(76, '3D Animation', '3D Animation', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(77, '3D Modelling', '3D Animation', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(78, 'Logo & Identity Animation', '2D Animation + Motion Graphics', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(79, 'Explainer & Instructional Motion Videos', '2D Animation + Motion Graphics', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(80, 'Infographic & Data Visualization Motion Videos', '2D Animation + Motion Graphics', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(81, 'Promo & Marketing Motion Videos', '2D Animation + Motion Graphics', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(82, 'Corporate & Brand Storytelling Motions', '2D Animation + Motion Graphics', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(83, 'Mode of Action Videos', '2D Animation + Motion Graphics', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(84, 'VA Animation', 'Short-form Animated Assets', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(85, 'GIF', 'Short-form Animated Assets', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(86, 'Stop Motion', 'Short-form Animated Assets', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(87, 'Animated Stickers', 'Short-form Animated Assets', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(88, 'Festival Video', 'Short-form Animated Assets', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(89, 'Video Editing', 'Video Editing & Post Production + Video Shoot & Editing', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(90, 'Testimonial Shoot', 'Video Shoot & Editing', 'No. of video collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(91, 'Event Shoot', 'Video Shoot & Editing', 'No. of video collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(92, 'Detailing Shoot', 'Video Shoot & Editing', 'No. of video collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(93, 'Concept Shoot', 'Video Shoot & Editing', 'No. of video collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(94, 'Portrait Photography', 'Photography & Post-Production', 'No. of still collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(95, 'Product Photography', 'Photography & Post-Production', 'No. of still collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(96, 'Event Photography', 'Photography & Post-Production', 'No. of still collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(97, 'Stop Motion Shoot', 'Photography & Post-Production', 'No. of still collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(98, 'Photo Editing', 'Photography & Post-Production', 'No. of still collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(99, 'Voice Over', 'Audio Recording & Post-Production', 'No. of audio collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(100, 'SFX', 'Audio Recording & Post-Production', 'No. of audio collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
-(101, 'Audio Editing', 'Audio Recording & Post-Production', 'No. of audio collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31');
+INSERT INTO `project_type` (`id`, `project_type`, `description`, `quantification`, `created_at`, `updated_at`) VALUES
+(1, 'VA HTMLization', 'Converting Visual Aids into interactive HTML format', 'No. of vas htmlised', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(2, 'Photo Framer', 'Framing photos digitally', 'No. of photo framers made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(3, 'Poster Maker', 'Online tool to create posters', 'No. of poster makers made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(4, 'Video Framer', 'Tool to generate framed or templated videos', 'No. of video framers made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(5, 'Custom Form', 'Tailor-made online form for data collection', 'No. of forms made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(6, 'Brand Gamification', 'Interactive game-based experience for brand engagement', 'No. of gamiifications made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(7, 'E- Flipbook', 'Digital booklet with flip-page effect', 'No. of e-flipbook made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(8, 'Quiz Application', 'Online quiz tool with scoring and logic', 'No. of quiz applications made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(9, 'HTML Mailer', 'Email template coded in HTML', 'No. of mailers made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(10, 'QR Code', 'Generate custom QR codes', 'No. of qr codes made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(11, 'Static Website', 'Simple informational website without backend', 'No. of websites made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(12, 'Dynamic Website', 'Website with backend, database, and dynamic content', 'No. of dynamic websites made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(13, 'Custom Web Application', 'Applications based on custom requirements', 'No. of applications made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(14, 'Brand Communication Strategy', 'Creation of brand identity, strategy, and core assets', 'No. of collaterals/story/slogan/pay-off line made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(15, 'Creative Copywriting', 'Written content for all kind of digital, print, UX, and communications', 'No. of collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(16, 'Marketing & Social Media Creatives', 'All posts, ads, static graphics', 'No. of graphic collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(17, 'Branding & Corporate Identity', 'Identity-building assets', 'No. of graphic collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(18, 'Packaging & Label Design', 'Print packaging-related projects', 'No. of graphic collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(19, 'Publication & Print Layouts', 'Long-format or structured print', 'No. of graphic collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(20, 'Illustrations & Visual Art', 'Any sketch or creative drawing', 'No. of graphic collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(21, 'Pharma/Medical Artwork', 'Pharma-specific assets like VA, LBL, etc', 'No. of graphic collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(22, 'Exhibition & Display Assets', 'Event/stall materials', 'No. of graphic collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(23, 'Photo Manipulation & Advanced Edits', 'Creative photo work', 'No. of graphic collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(24, 'UI & Other Asset Production', 'Assets for web/app UI and other things', 'No. of graphic collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(25, '2D Animation', 'Full 2D animated video creation', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(26, '3D Animation', '3D animation creation', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(27, 'Motion Graphics', 'Animated explainers and corporate videos', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(28, 'Short-form Animated Assets', 'Small looping/unlooped media', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(29, 'Video Editing & Post Production', 'Editing of recorded/raw footage', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(30, 'Video Shoot & Editing', 'All types of shooting & editing work', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(31, 'Photography & Post-Production', 'Products, people or event shoots & editing work', 'No. of still collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(32, 'Audio Recording & Post-Production', 'All types of recording & editing of recorded/raw audio', 'No. of audio collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31');
 
 -- --------------------------------------------------------
-
 
 --
 -- Table structure for table `request_division_reference`
@@ -829,149 +576,143 @@ INSERT INTO `request_division_reference` (`id`, `request_id`, `division_id`, `cr
 
 -- --------------------------------------------------------
 
-
 --
--- Table structure for table `project_type`
---
---
--- Table structure for table `work_requests`
+-- Table structure for table `request_type`
 --
 
-CREATE TABLE `work_requests` (
+CREATE TABLE `request_type` (
   `id` int(11) NOT NULL,
-  `user_id` int(11) NOT NULL,
-  `project_name` varchar(255) NOT NULL,
-  `brand` varchar(100) DEFAULT NULL,
-  `request_type_id` int(11) NOT NULL,
-  `project_id` int(11) DEFAULT NULL,
-  `project_details` text DEFAULT NULL,
-  `priority` enum('low','medium','high','critical') DEFAULT 'medium',
-  `status` enum('draft','pending','accepted','assigned','in_progress','completed','rejected') DEFAULT 'pending',
-  `requested_at` datetime DEFAULT NULL,
-  `remarks` text DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-
---
--- Dumping data for table `work_requests`
---
-
-INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `request_type_id`, `project_id`, `project_details`, `priority`, `status`, `requested_at`, `remarks`, `created_at`, `updated_at`) VALUES
-(45, 12, 'Resync Project', 'Resync', 2, NULL, 'Resync Eyes strain ', 'medium', 'pending', '2025-11-25 06:35:16', NULL, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(47, 12, 'Resync Poster maker', 'Resync', 1, NULL, 'Resync Poster maker', 'high', 'pending', '2025-11-25 06:41:39', '', '2025-11-25 06:41:39', '2025-11-25 06:41:39'),
-(48, 12, 'Eye strain poster banner', 'Resync', 1, NULL, 'Eye strain poster banner event', 'high', 'pending', '2025-11-25 06:44:54', NULL, '2025-11-25 06:44:54', '2025-11-25 07:27:36'),
-(55, 11, 'file upload testing big file', 'Testing', 2, NULL, 'Detailed description of the project requirements', 'high', 'pending', '2025-11-25 09:45:44', 'Any additional remarks', '2025-11-25 09:45:44', '2025-11-25 09:45:44');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `work_request_managers`
---
-
-CREATE TABLE `work_request_managers` (
-  `id` int(11) NOT NULL,
-  `work_request_id` int(11) NOT NULL,
-  `manager_id` int(11) NOT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-
---
--- Dumping data for table `work_request_managers`
---
-
-INSERT INTO `work_request_managers` (`id`, `work_request_id`, `manager_id`, `created_at`, `updated_at`) VALUES
-(1, 45, 11, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(2, 47, 9, '2025-11-25 06:41:39', '2025-11-25 06:41:39'),
-(3, 48, 9, '2025-11-25 06:44:54', '2025-11-25 06:44:54'),
-(4, 55, 11, '2025-11-25 09:45:44', '2025-11-25 09:45:44');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `work_request_documents`
---
-
-CREATE TABLE `work_request_documents` (
-  `id` int(11) NOT NULL,
-  `work_request_id` int(11) NOT NULL,
-  `document_name` varchar(255) NOT NULL,
-  `document_path` varchar(500) NOT NULL,
-  `document_type` varchar(50) DEFAULT NULL,
-  `document_size` int(11) DEFAULT NULL,
-  `status` enum('uploading','uploaded','failed') DEFAULT 'uploading',
-  `uploaded_at` timestamp NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-
---
--- Dumping data for table `work_request_documents`
---
-
-INSERT INTO `work_request_documents` (`id`, `work_request_id`, `document_name`, `document_path`, `document_type`, `document_size`, `status`, `uploaded_at`) VALUES
-(124, 45, 'alembicdigilabs_Digi_dmap.csv', '/work-requests/uploads/Resync_Project/alembicdigilabs_Digi_dmap.csv-1764052516740-502954236.csv', 'text/csv', 3939, 'uploaded', '2025-11-25 06:35:16'),
-(125, 45, 'alembicdigilabs_Digi_dmap.sql', '/work-requests/uploads/Resync_Project/alembicdigilabs_Digi_dmap.sql-1764052516765-978964861.sql', 'application/x-sql', 28042, 'uploaded', '2025-11-25 06:35:16'),
-(126, 45, 'D-Map-Upgraded API.postman_collection.json', '/work-requests/uploads/Resync_Project/D_Map_Upgraded_API.postman_collection.json-1764052516776-782527887.json', 'application/json', 76385, 'uploaded', '2025-11-25 06:35:16'),
-(130, 47, 'alembicdigilabs_Digi_dmap.csv', '/work-requests/uploads/Resync_Poster_maker/alembicdigilabs_Digi_dmap.csv-1764052899244-848021088.csv', 'text/csv', 3939, 'uploaded', '2025-11-25 06:41:39'),
-(131, 47, 'alembicdigilabs_Digi_dmap.sql', '/work-requests/uploads/Resync_Poster_maker/alembicdigilabs_Digi_dmap.sql-1764052899267-297870515.sql', 'application/x-sql', 28042, 'uploaded', '2025-11-25 06:41:39'),
-(132, 47, 'D-Map-Upgraded API.postman_collection.json', '/work-requests/uploads/Resync_Poster_maker/D_Map_Upgraded_API.postman_collection.json-1764052899278-1385401.json', 'application/json', 76385, 'uploaded', '2025-11-25 06:41:39'),
-(141, 55, 'World_Diabetes_Day.mp4', '/uploads/file_upload_testing_big_file/World_Diabetes_Day.mp4-1764063944254-161854996.mp4', 'video/mp4', 51401011, 'uploaded', '2025-11-25 09:45:44'),
-(142, 55, 'World_Heart_Day_2025_with_videoframer.mp4', '/uploads/file_upload_testing_big_file/World_Heart_Day_2025_with_videoframer.mp4-1764063944309-29912950.mp4', 'video/mp4', 12336237, 'uploaded', '2025-11-25 09:45:44');
-
---
--- --------------------------------------------------------
---
--- Table structure for table `issue_register`
---
-
-CREATE TABLE `issue_register` (
-  `id` int(11) NOT NULL,
-  `change_issue_type` varchar(100) NOT NULL,
+  `request_type` varchar(100) NOT NULL,
   `description` text DEFAULT NULL,
-  `quantification` varchar(100) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
 --
--- Dumping data for table `issue_register`
+-- Dumping data for table `request_type`
 --
 
-INSERT INTO `issue_register` (`id`, `change_issue_type`, `description`, `quantification`, `created_at`, `updated_at`) VALUES
-(1, 'Content Update', 'Web + Graphics + Videos', 'No. of issues reported/changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(2, 'Button/Icon Replacement', 'Web', 'No. of issues reported', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(3, 'Layout Restructure', 'Web', 'No. of issues reported', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(4, 'Device Responsiveness Fix', 'Web', 'No. of issues reported', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(5, 'Colour/Theme Update', 'Web', 'No. of issues reported', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(6, 'Bug fixes', 'Web', 'No. of issues reported', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(7, 'Form Field Update', 'Web', 'No. of issues reported', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(8, 'API/Link Update', 'Web', 'No. of issues reported', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(9, 'Grammar & Spell Check', 'Content Writing', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(10, 'Copy/Fact Update', 'Content Writing', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(11, 'Brand Tone/Language Alignment', 'Content Writing', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(12, 'SEO Addition/Optimization', 'Content Writing', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(13, 'Brand Terminology Consistency', 'Content Writing', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(14, 'Regional Language Translation', 'Content Writing', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(15, 'Add Compliance/Legal Points', 'Content Writing', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(16, 'Shorten/Expand Content', 'Content Writing', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(17, 'Resize Layout', 'Graphics + Videos', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(18, 'Font Change/Alignment', 'Graphics', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(19, 'Colour Change', 'Graphics', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(20, 'Image Replacement', 'Graphics', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(21, 'Brand Identity Update', 'Graphics', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(22, 'Language Adaptation', 'Graphics', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(23, 'Print Margin Update', 'Graphics', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(24, 'Print Format Compatibility', 'Graphics', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(25, 'Theme Change', 'Graphics', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(26, 'Voice-Over Replacement', 'Videos', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(27, 'Music Track Update', 'Videos', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(28, 'Trimming/Sequencing', 'Videos', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(29, 'Logo Update', 'Videos', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(30, 'Add Animation/Transitions', 'Videos', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
-(31, 'Replace Product Shots/Visuals', 'Videos', 'No. of changes requested', '2025-11-25 06:35:16', '2025-11-25 06:35:16');
+INSERT INTO `request_type` (`id`, `request_type`, `description`, `created_at`, `updated_at`) VALUES
+(1, 'Content Writing', 'Non-medical copywriting, Storyboarding, etc.', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(2, 'Design & Graphics', 'LBL, Standees, Social media post, Magazine, etc.', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(3, 'Video & Animation', 'Motivational video, Short clips, 2D/3D video animations, etc.', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(4, 'Photo, Video & Audio Shoot', 'Voice-overs, Product demos, Testimonials, etc.', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(5, 'Web & Digital Solutions', 'VA HTMLization, Websites, Brand gamifications, etc.', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(6, 'Consulting & Advisory', 'Preparation and guidance for outsourced projects', '2025-11-11 06:52:31', '2025-11-11 06:52:31');
 
---
 -- --------------------------------------------------------
+
+--
+-- Table structure for table `sales`
+--
+
+CREATE TABLE `sales` (
+  `id` int(11) NOT NULL,
+  `emp_code` int(11) NOT NULL,
+  `emp_name` varchar(100) NOT NULL,
+  `level` varchar(50) DEFAULT NULL,
+  `hq` varchar(100) DEFAULT NULL,
+  `region` varchar(100) DEFAULT NULL,
+  `zone` varchar(100) DEFAULT NULL,
+  `division_id` int(11) DEFAULT NULL,
+  `sap_code` int(11) NOT NULL,
+  `mobile_number` varchar(15) DEFAULT NULL,
+  `email_id` varchar(100) NOT NULL,
+  `user_type` enum('sales') DEFAULT 'sales',
+  `email_verified_status` tinyint(1) DEFAULT 0,
+  `password` varchar(255) DEFAULT NULL,
+  `account_status` enum('pending','active','inactive','locked','rejected','vacant') DEFAULT 'pending',
+  `last_login` datetime DEFAULT NULL,
+  `login_attempts` int(11) DEFAULT 0,
+  `lock_until` datetime DEFAULT NULL,
+  `password_changed_at` datetime DEFAULT NULL,
+  `password_expires_at` datetime DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Dumping data for table `sales`
+--
+
+INSERT INTO `sales` (`id`, `emp_code`, `emp_name`, `level`, `hq`, `region`, `zone`, `division_id`, `sap_code`, `mobile_number`, `email_id`, `user_type`, `email_verified_status`, `password`, `account_status`, `last_login`, `login_attempts`, `lock_until`, `password_changed_at`, `password_expires_at`, `created_at`, `updated_at`) VALUES
+(1, 12345, 'Demo Sales User', 'Junior', 'Mumbai', 'West', 'Zone A', 14, 67890, '9876543210', 'demo.sales@alembic.co.in', 'sales', 1, '$2b$10$demo.hash.for.sales.user.password123', 'active', NULL, 0, NULL, '2025-11-21 07:24:00', '2026-02-19 07:24:00', '2025-11-21 07:24:00', '2025-11-21 07:24:00');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `tasks`
+--
+
+CREATE TABLE `tasks` (
+  `id` int(11) NOT NULL,
+  `task_name` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `assigned_to_manager_id` int(11) DEFAULT NULL,
+  `task_type_id` int(11) NOT NULL,
+  `work_request_id` int(11) NOT NULL,
+  `deadline` date DEFAULT NULL,
+  `status` enum('draft','pending','accepted','assigned','in_progress','completed','rejected','deferred') DEFAULT 'pending',
+  `intimate_team` tinyint(1) DEFAULT 0,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Dumping data for table `tasks`
+--
+
+INSERT INTO `tasks` (`id`, `task_name`, `description`, `assigned_to_manager_id`, `task_type_id`, `work_request_id`, `deadline`, `status`, `intimate_team`, `created_at`, `updated_at`) VALUES
+(1, 'Design Landing Page', 'Create responsive landing page design', 9, 43, 56, '2025-12-15', 'pending', 0, '2025-12-02 08:29:36', '2025-12-02 08:29:36'),
+(2, 'Design Landing Page', 'Create responsive landing page design', NULL, 1, 56, '2025-12-15', 'pending', 0, '2025-12-02 08:30:09', '2025-12-02 08:30:09'),
+(3, 'Design Landing Page', 'Create responsive landing page design', NULL, 2, 56, '2025-12-15', 'pending', 0, '2025-12-02 08:31:59', '2025-12-02 08:31:59');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `task_assignments`
+--
+
+CREATE TABLE `task_assignments` (
+  `id` int(11) NOT NULL,
+  `task_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Dumping data for table `task_assignments`
+--
+
+INSERT INTO `task_assignments` (`id`, `task_id`, `user_id`, `created_at`, `updated_at`) VALUES
+(1, 1, 9, '2025-12-02 08:29:36', '2025-12-02 08:29:36'),
+(2, 2, 10, '2025-12-02 08:30:09', '2025-12-02 08:30:09'),
+(3, 3, 10, '2025-12-02 08:32:07', '2025-12-02 08:32:07');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `task_dependencies`
+--
+
+CREATE TABLE `task_dependencies` (
+  `id` int(11) NOT NULL,
+  `task_id` int(11) NOT NULL,
+  `dependency_task_id` int(11) NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Dumping data for table `task_dependencies`
+--
+
+INSERT INTO `task_dependencies` (`id`, `task_id`, `dependency_task_id`, `created_at`, `updated_at`) VALUES
+(1, 3, 1, '2025-12-02 08:32:11', '2025-12-02 08:32:11');
+
+-- --------------------------------------------------------
+
 --
 -- Table structure for table `task_project_reference`
 --
@@ -1300,6 +1041,267 @@ INSERT INTO `task_project_reference` (`id`, `task_id`, `project_id`, `created_at
 (309, 82, 25, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
 (310, 83, 25, '2025-11-25 06:35:16', '2025-11-25 06:35:16'),
 (311, 89, 30, '2025-11-25 06:35:16', '2025-11-25 06:35:16');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `task_type`
+--
+
+CREATE TABLE `task_type` (
+  `id` int(11) NOT NULL,
+  `task_type` varchar(100) NOT NULL,
+  `description` text DEFAULT NULL,
+  `quantification` varchar(100) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Dumping data for table `task_type`
+--
+
+INSERT INTO `task_type` (`id`, `task_type`, `description`, `quantification`, `created_at`, `updated_at`) VALUES
+(1, 'Front-End Development', 'Coding', 'No. of screens developed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(2, 'Back-End Development', 'Coding', 'No. of screens developed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(3, 'API Development', 'Coding', 'No. of apis\' developed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(4, 'Database Development', 'Coding', 'No. of data tables created', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(5, 'Schema - Data Modelling, ERD', 'Coding', 'No. of erd created', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(6, 'Application Testing', 'Coding', 'No. of applications tested', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(7, 'Application Deployment', 'Coding', 'No. of times application was deployed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(8, 'QR Generation', 'Coding', 'No. of qr codes generated', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(9, 'User Research Reports (Interviews, Surveys, Usability Testing)', 'UIUX', 'No. of reports generated', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(10, 'User Personas and Segmentation', 'UIUX', 'No. of reports generated', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(11, 'Product Vision and Strategy', 'UIUX', 'No. of reports generated', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(12, 'Product Roadmap and Release Plan', 'UIUX', 'No. of reports generated', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(13, 'User Journey Maps or User Flow Diagrams', 'UIUX', 'No. of diagrams made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(14, 'Information Architecture and Content Structures', 'UIUX', 'No. of structures made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(15, 'High-Fidelity UI Mockups and Prototypes', 'UIUX', 'No. of screens designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(16, 'Responsive UI Design Adaptations', 'UIUX', 'No. of screens adapted', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(17, 'Emailers', 'Creative Copywriting + Brand Communication Strategy', 'No. of emailers written', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(18, 'Speech Write-up', 'Creative Copywriting + Brand Communication Strategy', 'No. of speeches written', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(19, 'Social Media Content', 'Creative Copywriting + Brand Communication Strategy', 'No. of content written', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(20, 'Graphic Content', 'Creative Copywriting + Brand Communication Strategy', 'No. of content written', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(21, 'Video Script', 'Creative Copywriting + Brand Communication Strategy', 'No. of script written', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(22, 'Storyboarding', 'Creative Copywriting + Brand Communication Strategy', 'No. of story written', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(23, 'Festival Content', 'Creative Copywriting + Brand Communication Strategy', 'No. of content written', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(24, 'Articles/Blogs', 'Creative Copywriting + Brand Communication Strategy', 'No. of articles/blogs written', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(25, 'UI write-up', 'Creative Copywriting + Brand Communication Strategy', 'No. of screens written', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(26, 'Proofreading', 'Creative Copywriting + Brand Communication Strategy', 'No. of collateral checked', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(27, 'Transcription', 'Creative Copywriting + Brand Communication Strategy', 'No. of collateral checked', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(28, 'Concept', 'Brand Communication Strategy', 'No. of collateral written', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(29, 'Brand Stories & Narratives', 'Brand Communication Strategy', 'No. of story built', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(30, 'Brand Mascot Profiles', 'Brand Communication Strategy', 'No. of plans created', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(31, 'Slogan/Pay-off/Tag Line', 'Brand Communication Strategy', 'No. of line made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(32, 'Festival Greetings', 'Marketing & Social Media Creatives', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(33, 'Whatsapp Creative', 'Marketing & Social Media Creatives', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(34, 'Teaser', 'Marketing & Social Media Creatives', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(35, 'Leaflet', 'Marketing & Social Media Creatives', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(36, 'Flyer', 'Marketing & Social Media Creatives', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(37, 'Mailer', 'Marketing & Social Media Creatives', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(38, 'Certificate', 'Marketing & Social Media Creatives', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(39, 'Banner', 'Marketing & Social Media Creatives', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(40, 'Poster', 'Marketing & Social Media Creatives', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(41, 'Card', 'Marketing & Social Media Creatives', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(42, 'Invitation Card', 'Marketing & Social Media Creatives', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(43, 'Logo', 'Branding & Corporate Identity', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(44, 'Mascot', 'Branding & Corporate Identity + 2D Animation', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(45, 'Visiting Card', 'Branding & Corporate Identity', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(46, 'Bookmark', 'Branding & Corporate Identity', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(47, 'Badge', 'Branding & Corporate Identity', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(48, 'Sticker', 'Branding & Corporate Identity', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(49, 'Packaging', 'Packaging & Label Design', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(50, 'Jacket Folder', 'Packaging & Label Design', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(51, 'Booklet', 'Publication & Print Layouts', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(52, 'Diary', 'Publication & Print Layouts', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(53, 'Comicbook', 'Publication & Print Layouts', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(54, 'Calendar Design', 'Publication & Print Layouts', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(55, 'Illustrations', 'Illustrations & Visual Art', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(56, 'Sketches', 'Illustrations & Visual Art', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(57, 'Wallpaper', 'Illustrations & Visual Art', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(58, 'Visual Aid', 'Pharma/Medical Artwork', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(59, 'Cover Page', 'Pharma/Medical Artwork', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(60, 'LBL', 'Pharma/Medical Artwork', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(61, 'Detailer', 'Pharma/Medical Artwork', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(62, 'Prescription Pad', 'Pharma/Medical Artwork', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(63, 'RCPA Card', 'Pharma/Medical Artwork', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(64, 'Chit Pad', 'Pharma/Medical Artwork', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(65, 'Reminder Card', 'Pharma/Medical Artwork', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(66, 'Gimmick', 'Pharma/Medical Artwork', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(67, 'Magazine Ad', 'Pharma/Medical Artwork', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(68, 'Questionnaire Design', 'Pharma/Medical Artwork', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(69, 'Stall Panel', 'Exhibition & Display Assets', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(70, 'Table Top', 'Exhibition & Display Assets', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(71, 'Standee', 'Exhibition & Display Assets', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(72, 'Dangler', 'Exhibition & Display Assets', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(73, 'Photo Manipulation', 'Photo Manipulation & Advanced Edits', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(74, 'Template', 'UI & Other Asset Production', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(75, 'Photo Frame', 'UI & Other Asset Production', 'No. of collaterals designed', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(76, '3D Animation', '3D Animation', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(77, '3D Modelling', '3D Animation', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(78, 'Logo & Identity Animation', '2D Animation + Motion Graphics', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(79, 'Explainer & Instructional Motion Videos', '2D Animation + Motion Graphics', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(80, 'Infographic & Data Visualization Motion Videos', '2D Animation + Motion Graphics', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(81, 'Promo & Marketing Motion Videos', '2D Animation + Motion Graphics', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(82, 'Corporate & Brand Storytelling Motions', '2D Animation + Motion Graphics', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(83, 'Mode of Action Videos', '2D Animation + Motion Graphics', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(84, 'VA Animation', 'Short-form Animated Assets', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(85, 'GIF', 'Short-form Animated Assets', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(86, 'Stop Motion', 'Short-form Animated Assets', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(87, 'Animated Stickers', 'Short-form Animated Assets', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(88, 'Festival Video', 'Short-form Animated Assets', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(89, 'Video Editing', 'Video Editing & Post Production + Video Shoot & Editing', 'No. of video collaterals made', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(90, 'Testimonial Shoot', 'Video Shoot & Editing', 'No. of video collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(91, 'Event Shoot', 'Video Shoot & Editing', 'No. of video collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(92, 'Detailing Shoot', 'Video Shoot & Editing', 'No. of video collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(93, 'Concept Shoot', 'Video Shoot & Editing', 'No. of video collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(94, 'Portrait Photography', 'Photography & Post-Production', 'No. of still collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(95, 'Product Photography', 'Photography & Post-Production', 'No. of still collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(96, 'Event Photography', 'Photography & Post-Production', 'No. of still collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(97, 'Stop Motion Shoot', 'Photography & Post-Production', 'No. of still collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(98, 'Photo Editing', 'Photography & Post-Production', 'No. of still collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(99, 'Voice Over', 'Audio Recording & Post-Production', 'No. of audio collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(100, 'SFX', 'Audio Recording & Post-Production', 'No. of audio collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31'),
+(101, 'Audio Editing', 'Audio Recording & Post-Production', 'No. of audio collaterals shot', '2025-11-11 06:52:31', '2025-11-11 06:52:31');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `users`
+--
+
+CREATE TABLE `users` (
+  `id` int(11) NOT NULL,
+  `name` varchar(100) DEFAULT NULL,
+  `email` varchar(100) NOT NULL,
+  `phone` varchar(15) DEFAULT NULL,
+  `password` varchar(255) DEFAULT NULL,
+  `department_id` int(11) DEFAULT NULL,
+  `job_role_id` int(11) DEFAULT NULL,
+  `location_id` int(11) DEFAULT NULL,
+  `designation_id` int(11) DEFAULT NULL,
+  `email_verified_status` tinyint(1) DEFAULT 0,
+  `account_status` enum('pending','active','inactive','locked','rejected','vacant') DEFAULT 'pending',
+  `last_login` datetime DEFAULT NULL,
+  `login_attempts` int(11) DEFAULT 0,
+  `lock_until` datetime DEFAULT NULL,
+  `password_changed_at` datetime DEFAULT NULL,
+  `password_expires_at` datetime DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Dumping data for table `users`
+--
+
+INSERT INTO `users` (`id`, `name`, `email`, `phone`, `password`, `department_id`, `job_role_id`, `location_id`, `designation_id`, `email_verified_status`, `account_status`, `last_login`, `login_attempts`, `lock_until`, `password_changed_at`, `password_expires_at`, `created_at`, `updated_at`) VALUES
+(1, 'System Admin', 'admin@alembic.co.in', '8080302041', '$2a$12$/.rT3avNPO1l0ZjqSRS/Ru09mKVNuIRSLaHjBDeMwLHscVLq1ETY6', 2, 1, 1, NULL, 1, 'active', '2025-11-12 06:04:52', 0, NULL, '2025-11-12 06:04:52', '2026-02-10 06:04:52', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(9, 'Bhagwan Parab', 'bhagwan.parab@alembic.co.in', '1234567890', '$2a$10$13zqXGBAuAF/pcF4XHxvi.lEo8flBZCOnw/qq.fBJfZ57eAJcfj42', 9, 2, 1, 16, 1, 'active', NULL, 0, NULL, '2025-11-25 06:14:31', '2026-02-23 06:14:31', '2025-11-25 06:10:40', '2025-11-25 06:14:31'),
+(10, 'Harsh Gohil', 'harsh.gohil@alembic.co.in', '1234567890', '$2a$10$Kc.lwpVnKYKTOyVEkEaR5eCEcMqK7SjbnjpwgIB.LiAN/pLagxVeO', 9, 4, 1, 20, 1, 'active', '2025-11-26 04:00:05', 0, NULL, '2025-11-25 06:15:53', '2026-02-23 06:15:53', '2025-11-25 06:14:56', '2025-11-26 04:00:05'),
+(11, 'Mohanish Padwal', 'mohanish.padwal@alembic.co.in', '1234567890', '$2a$10$lbDnrhd.6O4EvCFNTeDt1.SngPt.IqHZkvw3jtUwjKTrEWoIbcDO.', 9, 2, 1, 16, 1, 'active', '2025-12-02 08:29:34', 0, NULL, '2025-11-25 06:17:31', '2026-02-23 06:17:31', '2025-11-25 06:16:23', '2025-12-02 08:29:34'),
+(12, 'Nikhil Nadkar', 'nikhil.nadkar@alembic.co.in', '1234567890', '$2a$10$Txudkx41QciW8euyVoodNOIa4seUXViVsWc.UN3RCdxg0KrcFfssW', 1, 5, 1, 8, 1, 'active', '2025-12-02 08:26:57', 0, NULL, '2025-11-25 06:19:02', '2026-02-23 06:19:02', '2025-11-25 06:17:55', '2025-12-02 08:26:57'),
+(13, 'Gautam Barnawal', 'gautam.baranwal@alembic.co.in', '1234567890', '$2a$10$ELYSn.TNQYl4.ppKulgaFeenW5Stt3wzMzeymt1O0hyAfzxnKGxZq', 9, 4, 1, 19, 1, 'active', NULL, 0, NULL, '2025-11-26 02:42:48', '2026-02-24 02:42:48', '2025-11-25 10:46:13', '2025-11-26 02:42:48'),
+(14, 'Vinisha Chadala', 'vinisha.chadala@alembic.co.in', '1234567890', '$2a$10$Fehw59cHdrrS0KdlB.koo.3aqM85F0soHulTlyn7Ga9ICb7XBbFGe', 9, 4, 1, 19, 1, 'active', NULL, 0, NULL, '2025-11-26 04:20:56', '2026-02-24 04:20:56', '2025-11-26 04:19:06', '2025-11-26 04:20:56'),
+(15, 'Vikaram Rai', 'vikramr.rai@alembic.co.in', '1234567890', '$2a$10$eMdj3uvEko0L26oRtV0veeoxZzMsiHwaHdW66FQ63bBN3ssboQN6q', 9, 2, 1, 16, 1, 'active', NULL, 0, NULL, '2025-11-26 04:33:08', '2026-02-24 04:33:08', '2025-11-26 04:31:28', '2025-11-26 04:33:08');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `user_divisions`
+--
+
+CREATE TABLE `user_divisions` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `division_id` int(11) NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Dumping data for table `user_divisions`
+--
+
+INSERT INTO `user_divisions` (`id`, `user_id`, `division_id`, `created_at`, `updated_at`) VALUES
+(12, 9, 1, '2025-11-25 06:14:31', '2025-11-25 06:14:31'),
+(13, 10, 5, '2025-11-25 06:15:53', '2025-11-25 06:15:53'),
+(14, 11, 2, '2025-11-25 06:17:31', '2025-11-25 06:17:31'),
+(15, 11, 4, '2025-11-25 06:17:31', '2025-11-25 06:17:31'),
+(16, 11, 5, '2025-11-25 06:17:31', '2025-11-25 06:17:31'),
+(17, 12, 22, '2025-11-25 06:19:02', '2025-11-25 06:19:02'),
+(18, 13, 5, '2025-11-26 02:42:48', '2025-11-26 02:42:48'),
+(19, 14, 4, '2025-11-26 04:20:56', '2025-11-26 04:20:56'),
+(20, 15, 3, '2025-11-26 04:33:07', '2025-11-26 04:33:07'),
+(21, 15, 4, '2025-11-26 04:33:08', '2025-11-26 04:33:08');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `work_requests`
+--
+
+CREATE TABLE `work_requests` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `project_name` varchar(255) NOT NULL,
+  `brand` varchar(100) DEFAULT NULL,
+  `request_type_id` int(11) NOT NULL,
+  `project_id` int(11) DEFAULT NULL,
+  `project_details` text DEFAULT NULL,
+  `priority` enum('low','medium','high','critical') DEFAULT 'medium',
+  `status` enum('draft','pending','accepted','assigned','in_progress','completed','rejected') DEFAULT 'pending',
+  `requested_at` datetime DEFAULT NULL,
+  `remarks` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Dumping data for table `work_requests`
+--
+
+INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `request_type_id`, `project_id`, `project_details`, `priority`, `status`, `requested_at`, `remarks`, `created_at`, `updated_at`) VALUES
+(56, 12, 'New Product Launch Campaign', 'Alembic Pharma', 5, 5, 'Detailed description of the project requirements', 'high', 'accepted', '2025-12-02 08:27:36', 'Any additional remarks', '2025-12-02 08:27:36', '2025-12-02 08:28:08');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `work_request_documents`
+--
+
+CREATE TABLE `work_request_documents` (
+  `id` int(11) NOT NULL,
+  `work_request_id` int(11) NOT NULL,
+  `document_name` varchar(255) NOT NULL,
+  `document_path` varchar(500) NOT NULL,
+  `document_type` varchar(50) DEFAULT NULL,
+  `document_size` int(11) DEFAULT NULL,
+  `status` enum('uploading','uploaded','failed') DEFAULT 'uploading',
+  `uploaded_at` timestamp NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `work_request_managers`
+--
+
+CREATE TABLE `work_request_managers` (
+  `id` int(11) NOT NULL,
+  `work_request_id` int(11) NOT NULL,
+  `manager_id` int(11) NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Dumping data for table `work_request_managers`
+--
+
+INSERT INTO `work_request_managers` (`id`, `work_request_id`, `manager_id`, `created_at`, `updated_at`) VALUES
+(5, 56, 11, '2025-12-02 08:27:36', '2025-12-02 08:27:36');
+
 --
 -- Indexes for dumped tables
 --
@@ -1342,6 +1344,12 @@ ALTER TABLE `division`
   ADD KEY `department_id` (`department_id`);
 
 --
+-- Indexes for table `issue_register`
+--
+ALTER TABLE `issue_register`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `job_role`
 --
 ALTER TABLE `job_role`
@@ -1352,6 +1360,34 @@ ALTER TABLE `job_role`
 -- Indexes for table `location`
 --
 ALTER TABLE `location`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `project_request_reference`
+--
+ALTER TABLE `project_request_reference`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `project_request_reference_ibfk_1` (`project_id`),
+  ADD KEY `project_request_reference_ibfk_2` (`request_id`);
+
+--
+-- Indexes for table `project_type`
+--
+ALTER TABLE `project_type`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `request_division_reference`
+--
+ALTER TABLE `request_division_reference`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `request_id` (`request_id`),
+  ADD KEY `division_id` (`division_id`);
+
+--
+-- Indexes for table `request_type`
+--
+ALTER TABLE `request_type`
   ADD PRIMARY KEY (`id`);
 
 --
@@ -1370,7 +1406,38 @@ ALTER TABLE `sales`
 ALTER TABLE `tasks`
   ADD PRIMARY KEY (`id`),
   ADD KEY `task_type_id` (`task_type_id`),
-  ADD KEY `work_request_id` (`work_request_id`);
+  ADD KEY `work_request_id` (`work_request_id`),
+  ADD KEY `tasks_ibfk_1` (`assigned_to_manager_id`);
+
+--
+-- Indexes for table `task_assignments`
+--
+ALTER TABLE `task_assignments`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `task_id` (`task_id`),
+  ADD KEY `user_id` (`user_id`);
+
+--
+-- Indexes for table `task_dependencies`
+--
+ALTER TABLE `task_dependencies`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `task_id` (`task_id`),
+  ADD KEY `dependency_task_id` (`dependency_task_id`);
+
+--
+-- Indexes for table `task_project_reference`
+--
+ALTER TABLE `task_project_reference`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `task_id` (`task_id`),
+  ADD KEY `project_id` (`project_id`);
+
+--
+-- Indexes for table `task_type`
+--
+ALTER TABLE `task_type`
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `users`
@@ -1392,20 +1459,6 @@ ALTER TABLE `user_divisions`
   ADD KEY `division_id` (`division_id`);
 
 --
--- Indexes for table `request_type`
---
-ALTER TABLE `request_type`
-  ADD PRIMARY KEY (`id`);
-
---
--- Indexes for table `request_division_reference`
---
-ALTER TABLE `request_division_reference`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `request_id` (`request_id`),
-  ADD KEY `division_id` (`division_id`);
-
---
 -- Indexes for table `work_requests`
 --
 ALTER TABLE `work_requests`
@@ -1424,14 +1477,6 @@ ALTER TABLE `work_requests`
 ALTER TABLE `work_requests` ADD FULLTEXT KEY `ft_work_requests_content` (`project_name`,`brand`,`project_details`);
 
 --
--- Indexes for table `work_request_managers`
---
-ALTER TABLE `work_request_managers`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `work_request_id` (`work_request_id`),
-  ADD KEY `manager_id` (`manager_id`);
-
---
 -- Indexes for table `work_request_documents`
 --
 ALTER TABLE `work_request_documents`
@@ -1439,35 +1484,12 @@ ALTER TABLE `work_request_documents`
   ADD KEY `work_request_id` (`work_request_id`);
 
 --
--- Indexes for table `issue_register`
+-- Indexes for table `work_request_managers`
 --
-ALTER TABLE `issue_register`
-  ADD PRIMARY KEY (`id`);
-
---
--- Indexes for table `task_dependencies`
---
-ALTER TABLE `task_dependencies`
+ALTER TABLE `work_request_managers`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `task_id` (`task_id`),
-  ADD KEY `dependency_task_id` (`dependency_task_id`);
-
---
--- Indexes for table `task_assignments`
---
-ALTER TABLE `task_assignments`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `task_id` (`task_id`),
-  ADD KEY `user_id` (`user_id`);
-
---
--- Indexes for table `task_project_reference`
---
-ALTER TABLE `task_project_reference`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `task_id` (`task_id`),
-  ADD KEY `project_id` (`project_id`);
-
+  ADD KEY `work_request_id` (`work_request_id`),
+  ADD KEY `manager_id` (`manager_id`);
 
 --
 -- AUTO_INCREMENT for dumped tables
@@ -1504,6 +1526,12 @@ ALTER TABLE `division`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
 
 --
+-- AUTO_INCREMENT for table `issue_register`
+--
+ALTER TABLE `issue_register`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
+
+--
 -- AUTO_INCREMENT for table `job_role`
 --
 ALTER TABLE `job_role`
@@ -1516,6 +1544,30 @@ ALTER TABLE `location`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
+-- AUTO_INCREMENT for table `project_request_reference`
+--
+ALTER TABLE `project_request_reference`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=65;
+
+--
+-- AUTO_INCREMENT for table `project_type`
+--
+ALTER TABLE `project_type`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
+
+--
+-- AUTO_INCREMENT for table `request_division_reference`
+--
+ALTER TABLE `request_division_reference`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+
+--
+-- AUTO_INCREMENT for table `request_type`
+--
+ALTER TABLE `request_type`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+
+--
 -- AUTO_INCREMENT for table `sales`
 --
 ALTER TABLE `sales`
@@ -1525,7 +1577,31 @@ ALTER TABLE `sales`
 -- AUTO_INCREMENT for table `tasks`
 --
 ALTER TABLE `tasks`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `task_assignments`
+--
+ALTER TABLE `task_assignments`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `task_dependencies`
+--
+ALTER TABLE `task_dependencies`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `task_project_reference`
+--
+ALTER TABLE `task_project_reference`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=312;
+
+--
+-- AUTO_INCREMENT for table `task_type`
+--
+ALTER TABLE `task_type`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=102;
 
 --
 -- AUTO_INCREMENT for table `users`
@@ -1540,28 +1616,10 @@ ALTER TABLE `user_divisions`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
--- AUTO_INCREMENT for table `request_type`
---
-ALTER TABLE `request_type`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
-
---
--- AUTO_INCREMENT for table `request_division_reference`
---
-ALTER TABLE `request_division_reference`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
-
---
 -- AUTO_INCREMENT for table `work_requests`
 --
 ALTER TABLE `work_requests`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=56;
-
---
--- AUTO_INCREMENT for table `work_request_managers`
---
-ALTER TABLE `work_request_managers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=57;
 
 --
 -- AUTO_INCREMENT for table `work_request_documents`
@@ -1570,29 +1628,10 @@ ALTER TABLE `work_request_documents`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=143;
 
 --
--- AUTO_INCREMENT for table `issue_register`
+-- AUTO_INCREMENT for table `work_request_managers`
 --
-ALTER TABLE `issue_register`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
-
---
--- AUTO_INCREMENT for table `task_dependencies`
---
-ALTER TABLE `task_dependencies`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `task_assignments`
---
-ALTER TABLE `task_assignments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `task_project_reference`
---
-ALTER TABLE `task_project_reference`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=302;
-
+ALTER TABLE `work_request_managers`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- Constraints for dumped tables
@@ -1625,6 +1664,20 @@ ALTER TABLE `job_role`
   ADD CONSTRAINT `job_role_ibfk_1` FOREIGN KEY (`department_id`) REFERENCES `department` (`id`) ON DELETE SET NULL;
 
 --
+-- Constraints for table `project_request_reference`
+--
+ALTER TABLE `project_request_reference`
+  ADD CONSTRAINT `project_request_reference_ibfk_1` FOREIGN KEY (`project_id`) REFERENCES `project_type` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `project_request_reference_ibfk_2` FOREIGN KEY (`request_id`) REFERENCES `request_type` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `request_division_reference`
+--
+ALTER TABLE `request_division_reference`
+  ADD CONSTRAINT `request_division_reference_ibfk_1` FOREIGN KEY (`request_id`) REFERENCES `request_type` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `request_division_reference_ibfk_2` FOREIGN KEY (`division_id`) REFERENCES `division` (`id`) ON DELETE CASCADE;
+
+--
 -- Constraints for table `sales`
 --
 ALTER TABLE `sales`
@@ -1637,6 +1690,27 @@ ALTER TABLE `tasks`
   ADD CONSTRAINT `tasks_ibfk_1` FOREIGN KEY (`assigned_to_manager_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `tasks_ibfk_2` FOREIGN KEY (`task_type_id`) REFERENCES `task_type` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `tasks_ibfk_3` FOREIGN KEY (`work_request_id`) REFERENCES `work_requests` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `task_assignments`
+--
+ALTER TABLE `task_assignments`
+  ADD CONSTRAINT `task_assignments_ibfk_1` FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `task_assignments_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `task_dependencies`
+--
+ALTER TABLE `task_dependencies`
+  ADD CONSTRAINT `task_dependencies_ibfk_1` FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `task_dependencies_ibfk_2` FOREIGN KEY (`dependency_task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `task_project_reference`
+--
+ALTER TABLE `task_project_reference`
+  ADD CONSTRAINT `task_project_reference_ibfk_1` FOREIGN KEY (`task_id`) REFERENCES `task_type` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `task_project_reference_ibfk_2` FOREIGN KEY (`project_id`) REFERENCES `project_type` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `users`
@@ -1655,18 +1729,6 @@ ALTER TABLE `user_divisions`
   ADD CONSTRAINT `user_divisions_ibfk_2` FOREIGN KEY (`division_id`) REFERENCES `division` (`id`) ON DELETE CASCADE;
 
 --
--- Constraints for table `request_type`
---
--- No constraints for request_type
-
---
--- Constraints for table `request_division_reference`
---
-ALTER TABLE `request_division_reference`
-  ADD CONSTRAINT `request_division_reference_ibfk_1` FOREIGN KEY (`request_id`) REFERENCES `request_type` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `request_division_reference_ibfk_2` FOREIGN KEY (`division_id`) REFERENCES `division` (`id`) ON DELETE CASCADE;
-
---
 -- Constraints for table `work_requests`
 --
 ALTER TABLE `work_requests`
@@ -1675,47 +1737,17 @@ ALTER TABLE `work_requests`
   ADD CONSTRAINT `work_requests_ibfk_3` FOREIGN KEY (`project_id`) REFERENCES `project_type` (`id`) ON DELETE SET NULL;
 
 --
--- Constraints for table `work_request_managers`
---
-ALTER TABLE `work_request_managers`
-  ADD CONSTRAINT `work_request_managers_ibfk_1` FOREIGN KEY (`work_request_id`) REFERENCES `work_requests` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `work_request_managers_ibfk_2` FOREIGN KEY (`manager_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
-
---
 -- Constraints for table `work_request_documents`
 --
 ALTER TABLE `work_request_documents`
   ADD CONSTRAINT `work_request_documents_ibfk_1` FOREIGN KEY (`work_request_id`) REFERENCES `work_requests` (`id`) ON DELETE CASCADE;
 
 --
--- Constraints for table `project_request_reference`
+-- Constraints for table `work_request_managers`
 --
-ALTER TABLE `project_request_reference`
-  ADD CONSTRAINT `project_request_reference_ibfk_1` FOREIGN KEY (`project_id`) REFERENCES `project_type` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `project_request_reference_ibfk_2` FOREIGN KEY (`request_id`) REFERENCES `request_type` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `task_dependencies`
---
-ALTER TABLE `task_dependencies`
-  ADD CONSTRAINT `task_dependencies_ibfk_1` FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `task_dependencies_ibfk_2` FOREIGN KEY (`dependency_task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `task_assignments`
---
-ALTER TABLE `task_assignments`
-  ADD CONSTRAINT `task_assignments_ibfk_1` FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `task_assignments_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `task_project_reference`
---
-ALTER TABLE `task_project_reference`
-  ADD CONSTRAINT `task_project_reference_ibfk_1` FOREIGN KEY (`task_id`) REFERENCES `task_type` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `task_project_reference_ibfk_2` FOREIGN KEY (`project_id`) REFERENCES `project_type` (`id`) ON DELETE CASCADE;
-
-
+ALTER TABLE `work_request_managers`
+  ADD CONSTRAINT `work_request_managers_ibfk_1` FOREIGN KEY (`work_request_id`) REFERENCES `work_requests` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `work_request_managers_ibfk_2` FOREIGN KEY (`manager_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
