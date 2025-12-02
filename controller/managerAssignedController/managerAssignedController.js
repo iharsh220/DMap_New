@@ -849,92 +849,6 @@ const createTask = async (req, res) => {
     }
 };
 
-const getTasks = async (req, res) => {
-    try {
-        const manager_id = req.user.id;
-
-        // Get tasks for work requests assigned to this manager
-        const tasksResult = await Tasks.findAll({
-            include: [
-                {
-                    model: WorkRequests,
-                    include: [
-                        {
-                            model: WorkRequestManagers,
-                            where: { manager_id: manager_id },
-                            required: true,
-                            attributes: []
-                        }
-                    ],
-                    attributes: ['id', 'project_name', 'brand', 'status']
-                },
-                {
-                    model: User,
-                    as: 'assignedTo',
-                    attributes: ['id', 'name', 'email']
-                },
-                {
-                    model: TaskType,
-                    attributes: ['id', 'task_type', 'description']
-                },
-                {
-                    model: TaskDependencies,
-                    as: 'dependencies',
-                    include: [
-                        {
-                            model: Tasks,
-                            as: 'dependencyTask',
-                            attributes: ['id', 'task_name']
-                        }
-                    ]
-                }
-            ],
-            order: [['created_at', 'DESC']]
-        });
-
-        // Group tasks by work_request_id
-        const groupedTasks = {};
-        tasksResult.forEach(task => {
-            const workRequestId = task.work_request_id;
-            if (!groupedTasks[workRequestId]) {
-                groupedTasks[workRequestId] = {
-                    work_request: task.WorkRequest,
-                    tasks: []
-                };
-            }
-            groupedTasks[workRequestId].tasks.push(task);
-        });
-
-        // Convert to array format for easier consumption
-        const result = Object.keys(groupedTasks).map(workRequestId => ({
-            work_request_id: parseInt(workRequestId),
-            work_request: groupedTasks[workRequestId].work_request,
-            tasks: groupedTasks[workRequestId].tasks
-        }));
-
-        await logUserActivity({
-            event: 'tasks_viewed',
-            userId: req.user.id,
-            taskCount: tasksResult.length,
-            workRequestCount: result.length,
-            ...extractRequestDetails(req)
-        });
-
-        res.json({
-            success: true,
-            data: result,
-            message: 'Tasks retrieved successfully'
-        });
-    } catch (error) {
-        console.error('Error fetching tasks:', error);
-        res.status(500).json({
-            success: false,
-            error: error.message,
-            message: 'Failed to fetch tasks'
-        });
-    }
-};
-
 const getTasksByWorkRequestId = async (req, res) => {
     try {
         const workRequestId = parseInt(req.params.work_request_id, 10);
@@ -1030,6 +944,5 @@ module.exports = {
     getAssignableUsers,
     getTaskTypesByWorkRequest,
     createTask,
-    getTasks,
     getTasksByWorkRequestId
 };
