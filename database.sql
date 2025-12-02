@@ -403,7 +403,7 @@ CREATE TABLE `tasks` (
   `id` int(11) NOT NULL,
   `task_name` varchar(255) NOT NULL,
   `description` text DEFAULT NULL,
-  `assigned_to_id` int(11) NOT NULL,
+  `assigned_to_manager_id` int(11) DEFAULT NULL,
   `task_type_id` int(11) NOT NULL,
   `work_request_id` int(11) NOT NULL,
   `deadline` date DEFAULT NULL,
@@ -424,6 +424,18 @@ CREATE TABLE `task_dependencies` (
   `id` int(11) NOT NULL,
   `task_id` int(11) NOT NULL,
   `dependency_task_id` int(11) NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Table structure for table `task_assignments`
+--
+
+CREATE TABLE `task_assignments` (
+  `id` int(11) NOT NULL,
+  `task_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
@@ -1357,7 +1369,6 @@ ALTER TABLE `sales`
 --
 ALTER TABLE `tasks`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `assigned_to_id` (`assigned_to_id`),
   ADD KEY `task_type_id` (`task_type_id`),
   ADD KEY `work_request_id` (`work_request_id`);
 
@@ -1440,6 +1451,14 @@ ALTER TABLE `task_dependencies`
   ADD PRIMARY KEY (`id`),
   ADD KEY `task_id` (`task_id`),
   ADD KEY `dependency_task_id` (`dependency_task_id`);
+
+--
+-- Indexes for table `task_assignments`
+--
+ALTER TABLE `task_assignments`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `task_id` (`task_id`),
+  ADD KEY `user_id` (`user_id`);
 
 --
 -- Indexes for table `task_project_reference`
@@ -1563,6 +1582,12 @@ ALTER TABLE `task_dependencies`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `task_assignments`
+--
+ALTER TABLE `task_assignments`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `task_project_reference`
 --
 ALTER TABLE `task_project_reference`
@@ -1609,7 +1634,7 @@ ALTER TABLE `sales`
 -- Constraints for table `tasks`
 --
 ALTER TABLE `tasks`
-  ADD CONSTRAINT `tasks_ibfk_1` FOREIGN KEY (`assigned_to_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `tasks_ibfk_1` FOREIGN KEY (`assigned_to_manager_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `tasks_ibfk_2` FOREIGN KEY (`task_type_id`) REFERENCES `task_type` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `tasks_ibfk_3` FOREIGN KEY (`work_request_id`) REFERENCES `work_requests` (`id`) ON DELETE CASCADE;
 
@@ -1675,6 +1700,13 @@ ALTER TABLE `project_request_reference`
 ALTER TABLE `task_dependencies`
   ADD CONSTRAINT `task_dependencies_ibfk_1` FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `task_dependencies_ibfk_2` FOREIGN KEY (`dependency_task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `task_assignments`
+--
+ALTER TABLE `task_assignments`
+  ADD CONSTRAINT `task_assignments_ibfk_1` FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `task_assignments_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `task_project_reference`

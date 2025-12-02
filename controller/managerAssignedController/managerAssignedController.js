@@ -16,7 +16,8 @@ const {
     Location,
     Designation,
     Tasks,
-    TaskDependencies
+    TaskDependencies,
+    TaskAssignments
 } = require('../../models');
 
 const { sendMail } = require('../../services/mailService');
@@ -225,12 +226,13 @@ const getAssignedWorkRequestById = async (req, res) => {
                 { model: WorkRequestDocuments, attributes: { exclude: ['created_at', 'updated_at'] } },
                 {
                     model: Tasks,
-                    attributes: { exclude: ['created_at', 'updated_at'] },
+                    attributes: ['id', 'task_name', 'description', 'task_type_id', 'work_request_id', 'deadline', 'status', 'intimate_team', 'assigned_to_manager_id'],
                     include: [
                         {
                             model: User,
-                            as: 'assignedTo',
-                            attributes: ['id', 'name', 'email']
+                            as: 'assignedUsers',
+                            attributes: ['id', 'name', 'email'],
+                            through: { attributes: [] }
                         },
                         {
                             model: TaskType,
@@ -243,7 +245,7 @@ const getAssignedWorkRequestById = async (req, res) => {
                                 {
                                     model: Tasks,
                                     as: 'dependencyTask',
-                                    attributes: ['id', 'task_name', 'deadline']
+                                    attributes: ['id', 'task_name', 'deadline', 'status']
                                 }
                             ]
                         }
@@ -730,14 +732,31 @@ const getTaskTypesByWorkRequest = async (req, res) => {
 const createTask = async (req, res) => {
     try {
         const manager_id = req.user.id;
-        const { work_request_id, task_name, description, assigned_to_id, task_type_id, deadline, dependencies } = req.body;
+        const { work_request_id, task_name, description, assigned_to_ids, task_type_id, deadline, dependencies } = req.body;
 
         // Validate required fields
-        if (!work_request_id || !task_name || !assigned_to_id || !task_type_id) {
+        if (!work_request_id || !task_name || !assigned_to_ids || !task_type_id) {
             return res.status(400).json({
                 success: false,
-                error: 'work_request_id, task_name, assigned_to_id, and task_type_id are required'
+                error: 'work_request_id, task_name, assigned_to_ids, and task_type_id are required'
             });
+        }
+
+        // Validate assigned_to_ids is an array of integers
+        if (!Array.isArray(assigned_to_ids) || assigned_to_ids.length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'assigned_to_ids must be a non-empty array of user IDs'
+            });
+        }
+
+        for (const id of assigned_to_ids) {
+            if (!Number.isInteger(id)) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'All assigned_to_ids must be integers'
+                });
+            }
         }
 
         // Check if work request exists and is assigned to this manager
@@ -804,18 +823,34 @@ const createTask = async (req, res) => {
             }
         }
 
+        // Check if any assigned user is a manager
+        const assignedUsers = await User.findAll({
+            where: { id: assigned_to_ids },
+            attributes: ['id', 'job_role_id']
+        });
+
+        const managerUser = assignedUsers.find(user => [2, 3].includes(user.job_role_id));
+        const assignedToManagerId = managerUser ? managerUser.id : null;
+
         // Create the task
         const taskData = {
             work_request_id,
             task_name,
             description,
-            assigned_to_id,
+            assigned_to_manager_id: assignedToManagerId,
             task_type_id,
             deadline,
             status: 'pending'
         };
 
         const taskResult = await Tasks.create(taskData);
+
+        // Create task assignments
+        const assignmentRecords = assigned_to_ids.map(userId => ({
+            task_id: taskResult.id,
+            user_id: userId
+        }));
+        await TaskAssignments.bulkCreate(assignmentRecords);
 
         // Create dependencies if provided
         if (dependencies && Array.isArray(dependencies) && dependencies.length > 0) {
@@ -933,6 +968,7 @@ const getTasksByWorkRequestId = async (req, res) => {
         });
     }
 };
+
 
 
 
