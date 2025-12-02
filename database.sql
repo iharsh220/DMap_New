@@ -648,7 +648,7 @@ CREATE TABLE `tasks` (
   `id` int(11) NOT NULL,
   `task_name` varchar(255) NOT NULL,
   `description` text DEFAULT NULL,
-  `assigned_to_manager_id` int(11) DEFAULT NULL,
+  `request_type_id` int(11) NOT NULL,
   `task_type_id` int(11) NOT NULL,
   `work_request_id` int(11) NOT NULL,
   `deadline` date DEFAULT NULL,
@@ -662,10 +662,10 @@ CREATE TABLE `tasks` (
 -- Dumping data for table `tasks`
 --
 
-INSERT INTO `tasks` (`id`, `task_name`, `description`, `assigned_to_manager_id`, `task_type_id`, `work_request_id`, `deadline`, `status`, `intimate_team`, `created_at`, `updated_at`) VALUES
-(1, 'Design Landing Page', 'Create responsive landing page design', 9, 43, 56, '2025-12-15', 'pending', 0, '2025-12-02 08:29:36', '2025-12-02 08:29:36'),
-(2, 'Design Landing Page', 'Create responsive landing page design', NULL, 1, 56, '2025-12-15', 'pending', 0, '2025-12-02 08:30:09', '2025-12-02 08:30:09'),
-(3, 'Design Landing Page', 'Create responsive landing page design', NULL, 2, 56, '2025-12-15', 'pending', 0, '2025-12-02 08:31:59', '2025-12-02 08:31:59');
+INSERT INTO `tasks` (`id`, `task_name`, `description`, `request_type_id`, `task_type_id`, `work_request_id`, `deadline`, `status`, `intimate_team`, `created_at`, `updated_at`) VALUES
+(1, 'Design Landing Page', 'Create responsive landing page design', 2, 43, 56, '2025-12-15', 'pending', 0, '2025-12-02 08:29:36', '2025-12-02 08:29:36'),
+(2, 'Design Landing Page', 'Create responsive landing page design', 2, 1, 56, '2025-12-15', 'pending', 0, '2025-12-02 08:30:09', '2025-12-02 08:30:09'),
+(3, 'Design Landing Page', 'Create responsive landing page design', 2, 2, 56, '2025-12-15', 'pending', 0, '2025-12-02 08:31:59', '2025-12-02 08:31:59');
 
 -- --------------------------------------------------------
 
@@ -1407,7 +1407,7 @@ ALTER TABLE `tasks`
   ADD PRIMARY KEY (`id`),
   ADD KEY `task_type_id` (`task_type_id`),
   ADD KEY `work_request_id` (`work_request_id`),
-  ADD KEY `tasks_ibfk_1` (`assigned_to_manager_id`);
+  ADD KEY `request_type_id` (`request_type_id`);
 
 --
 -- Indexes for table `task_assignments`
@@ -1687,9 +1687,9 @@ ALTER TABLE `sales`
 -- Constraints for table `tasks`
 --
 ALTER TABLE `tasks`
-  ADD CONSTRAINT `tasks_ibfk_1` FOREIGN KEY (`assigned_to_manager_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `tasks_ibfk_2` FOREIGN KEY (`task_type_id`) REFERENCES `task_type` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `tasks_ibfk_3` FOREIGN KEY (`work_request_id`) REFERENCES `work_requests` (`id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `tasks_ibfk_3` FOREIGN KEY (`work_request_id`) REFERENCES `work_requests` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `tasks_ibfk_4` FOREIGN KEY (`request_type_id`) REFERENCES `request_type` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `task_assignments`

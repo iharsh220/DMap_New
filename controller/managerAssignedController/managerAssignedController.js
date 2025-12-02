@@ -226,7 +226,7 @@ const getAssignedWorkRequestById = async (req, res) => {
                 { model: WorkRequestDocuments, attributes: { exclude: ['created_at', 'updated_at'] } },
                 {
                     model: Tasks,
-                    attributes: ['id', 'task_name', 'description', 'task_type_id', 'work_request_id', 'deadline', 'status', 'intimate_team', 'assigned_to_manager_id'],
+                    attributes: ['id', 'task_name', 'description', 'task_type_id', 'work_request_id', 'deadline', 'status', 'intimate_team', 'request_type_id'],
                     include: [
                         {
                             model: User,
@@ -237,6 +237,10 @@ const getAssignedWorkRequestById = async (req, res) => {
                         {
                             model: TaskType,
                             attributes: ['id', 'task_type', 'description']
+                        },
+                        {
+                            model: RequestType,
+                            attributes: ['id', 'request_type', 'description']
                         },
                         {
                             model: TaskDependencies,
@@ -732,13 +736,13 @@ const getTaskTypesByWorkRequest = async (req, res) => {
 const createTask = async (req, res) => {
     try {
         const manager_id = req.user.id;
-        const { work_request_id, task_name, description, assigned_to_ids, task_type_id, deadline, dependencies } = req.body;
+        const { work_request_id, task_name, description, assigned_to_ids, task_type_id, request_type_id, deadline, dependencies } = req.body;
 
         // Validate required fields
-        if (!work_request_id || !task_name || !assigned_to_ids || !task_type_id) {
+        if (!work_request_id || !task_name || !assigned_to_ids || !task_type_id || !request_type_id) {
             return res.status(400).json({
                 success: false,
-                error: 'work_request_id, task_name, assigned_to_ids, and task_type_id are required'
+                error: 'work_request_id, task_name, assigned_to_ids, task_type_id, and request_type_id are required'
             });
         }
 
@@ -823,21 +827,12 @@ const createTask = async (req, res) => {
             }
         }
 
-        // Check if any assigned user is a manager
-        const assignedUsers = await User.findAll({
-            where: { id: assigned_to_ids },
-            attributes: ['id', 'job_role_id']
-        });
-
-        const managerUser = assignedUsers.find(user => [2, 3].includes(user.job_role_id));
-        const assignedToManagerId = managerUser ? managerUser.id : null;
-
         // Create the task
         const taskData = {
             work_request_id,
             task_name,
             description,
-            assigned_to_manager_id: assignedToManagerId,
+            request_type_id,
             task_type_id,
             deadline,
             status: 'pending'

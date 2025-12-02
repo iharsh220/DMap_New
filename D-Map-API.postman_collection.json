@@ -607,7 +607,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"work_request_id\": 56,\n  \"task_name\": \"Design Landing Page\",\n  \"description\": \"Create responsive landing page design\",\n  \"assigned_to_ids\": [10],\n  \"task_type_id\": 2,\n  \"deadline\": \"2025-12-15\",\n  \"dependencies\": [1]\n}\n\n// For single user assignment:\n// {\n//   \"work_request_id\": 56,\n//   \"task_name\": \"Design Landing Page\",\n//   \"description\": \"Create responsive landing page design\",\n//   \"assigned_to_ids\": [10],\n//   \"task_type_id\": 1,\n//   \"deadline\": \"2025-12-15\",\n//   \"dependencies\": []\n// }"
+									"raw": "{\n  \"work_request_id\": 56,\n  \"task_name\": \"Design Landing Page\",\n  \"description\": \"Create responsive landing page design\",\n  \"assigned_to_ids\": [10],\n  \"task_type_id\": 2,\n  \"request_type_id\": 2,\n  \"deadline\": \"2025-12-15\",\n  \"dependencies\": [1]\n}\n\n// For single user assignment:\n// {\n//   \"work_request_id\": 56,\n//   \"task_name\": \"Design Landing Page\",\n//   \"description\": \"Create responsive landing page design\",\n//   \"assigned_to_ids\": [10],\n//   \"task_type_id\": 1,\n//   \"request_type_id\": 2,\n//   \"deadline\": \"2025-12-15\",\n//   \"dependencies\": []\n// }"
 								},
 								"url": {
 									"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/tasks",
