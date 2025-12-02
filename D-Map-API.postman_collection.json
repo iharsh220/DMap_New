@@ -973,6 +973,42 @@
 					"response": []
 				},
 				{
+					"name": "Send Task Assignment Notifications",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id/assign-tasks",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"digilabs",
+								"dmap",
+								"api",
+								"manager",
+								"assigned-work-requests",
+								":id",
+								"assign-tasks"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1",
+									"description": "Work request ID"
+								}
+							]
+						},
+						"description": "Send email notifications to all users assigned to tasks in the work request (requires authentication and manager role)"
+					},
+					"response": []
+				},
+				{
 					"name": "Get My Team",
 					"request": {
 						"method": "GET",

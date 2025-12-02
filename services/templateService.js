@@ -1,17 +1,17 @@
 const fs = require('fs');
 const path = require('path');
+const handlebars = require('handlebars');
 
 // Function to render email template
 const renderTemplate = (templateName, data) => {
   const templatePath = path.join(__dirname, '../email-templates', `${templateName}.html`);
-  let template = fs.readFileSync(templatePath, 'utf8');
+  const templateSource = fs.readFileSync(templatePath, 'utf8');
 
-  // Replace placeholders
-  Object.keys(data).forEach(key => {
-    template = template.replace(new RegExp(`{{${key}}}`, 'g'), data[key]);
-  });
+  // Compile the template with Handlebars
+  const template = handlebars.compile(templateSource);
 
-  return template;
+  // Render the template with data
+  return template(data);
 };
 
 module.exports = { renderTemplate };

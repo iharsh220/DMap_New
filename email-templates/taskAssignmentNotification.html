@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Assigned - D-Map</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 40px 30px;
+        }
+        .welcome-message {
+            font-size: 18px;
+            font-weight: 500;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #155724;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #0c5460;
+        }
+        .task-list {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+        }
+        .task-list ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .task-list li {
+            margin-bottom: 8px;
+            color: #495057;
+        }
+        .support {
+            background-color: #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 25px 0;
+            text-align: center;
+        }
+        .support a {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .action-button {
+            display: inline-block;
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            margin: 10px 0;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            font-size: 12px;
+            color: #6c757d;
+            border-top: 1px solid #dee2e6;
+        }
+        .footer p {
+            margin: 0;
+        }
+        @media (max-width: 600px) {
+            .container {
+                margin: 10px;
+                border-radius: 8px;
+            }
+            .header, .content, .footer {
+                padding: 20px;
+            }
+            .header h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Task Assigned</h1>
+        </div>
+        <div class="content">
+            <div class="welcome-message">
+                Great News! You Have Been Assigned New Tasks
+            </div>
+
+            <div class="success">
+                <strong>Congratulations!</strong><br>
+                You have been assigned tasks for a new work request. Please review and start working on them.
+            </div>
+
+            <div class="info">
+                <strong>Work Request Details:</strong>
+                <ul>
+                    <li><strong>Project Name:</strong> {{project_name}}</li>
+                    <li><strong>Brand:</strong> {{brand}}</li>
+                    <li><strong>Request Type:</strong> {{request_type}}</li>
+                    <li><strong>Priority:</strong> {{priority}}</li>
+                    <li><strong>Request ID:</strong> #{{request_id}}</li>
+                    <li><strong>Assigned At:</strong> {{assigned_at}}</li>
+                </ul>
+            </div>
+
+            <div class="task-list">
+                <p><strong>Your Assigned Tasks:</strong></p>
+                <ul>
+                    {{#each tasks}}
+                    <li>
+                        <strong>Task Name:</strong> {{task_name}}<br>
+                        {{#if description}}<strong>Description:</strong> {{description}}<br>{{/if}}
+                        {{#if deadline}}<strong>Deadline:</strong> {{deadline}}{{/if}}
+                    </li>
+                    {{/each}}
+                </ul>
+            </div>
+
+            <div class="info">
+                <strong>Status:</strong> Tasks assigned and ready to start<br>
+                <strong>Next Steps:</strong> Begin working on your assigned tasks
+            </div>
+
+            <p><strong>What to do next?</strong></p>
+            <div class="task-list">
+                <ul>
+                    <li>Review all assigned tasks and their requirements</li>
+                    <li>Check deadlines and plan your work accordingly</li>
+                    <li>Update task status as you progress</li>
+                    <li>Contact your manager if you need clarification</li>
+                </ul>
+            </div>
+
+            <div style="text-align: center;">
+                <a href="{{frontend_url}}/dashboard" class="action-button">
+                    View Your Tasks
+                </a>
+            </div>
+
+            <div class="support">
+                <p>For any questions, contact your manager or support at <a href="mailto:support@alembicdigilabs.com">support@alembicdigilabs.com</a></p>
+            </div>
+        </div>
+        <div class="footer">
+            <p>This is an automated message from D-Map. Please do not reply to this email.</p>
+            <p>&copy; 2025 Alembic Digital Labs. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

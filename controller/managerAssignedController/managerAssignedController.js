@@ -1154,7 +1154,7 @@ const getMyTeam = async (req, res) => {
                 const taskCount = await TaskAssignments.count({
                     where: { user_id: user.id }
                 });
-                
+
                 divisionTeam.teamMembers.push({
                     id: user.id,
                     name: user.name,
@@ -1193,6 +1193,165 @@ const getMyTeam = async (req, res) => {
     }
 };
 
+const assignTasksToUsers = async (req, res) => {
+    try {
+        console.log('assignTasksToUsers called with params:', req.params);
+        const workRequestId = parseInt(req.params.id, 10);
+        if (isNaN(workRequestId)) {
+            return res.status(400).json({ success: false, error: 'Invalid work request ID' });
+        }
+
+        const manager_id = req.user.id;
+        console.log('Manager ID:', manager_id, 'Work Request ID:', workRequestId);
+
+        // Check if work request exists and is assigned to this manager
+        const workRequestResult = await workRequestService.getAll({
+            where: { id: workRequestId },
+            include: [
+                {
+                    model: WorkRequestManagers,
+                    where: { manager_id: manager_id },
+                    required: true,
+                    attributes: []
+                },
+                {
+                    model: RequestType,
+                    attributes: ['request_type']
+                }
+            ],
+            limit: 1
+        });
+
+        if (!workRequestResult.success || workRequestResult.data.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Work request not found or not assigned to you'
+            });
+        }
+
+        const workRequest = workRequestResult.data[0];
+
+        // Check if work request is accepted
+        if (workRequest.status !== 'accepted') {
+            return res.status(400).json({
+                success: false,
+                error: 'Work request must be accepted before sending task notifications'
+            });
+        }
+
+        // Get all tasks for this work request with assigned users
+        console.log('Fetching tasks for work request:', workRequestId);
+        const tasksWithUsers = await Tasks.findAll({
+            where: { work_request_id: workRequestId },
+            include: [
+                {
+                    model: User,
+                    as: 'assignedUsers',
+                    attributes: ['id', 'name', 'email'],
+                    through: { attributes: [] }
+                }
+            ],
+            attributes: ['id', 'task_name', 'description', 'deadline']
+        });
+        console.log('Tasks found:', tasksWithUsers.length);
+
+        // Group tasks by user
+        const userTasksMap = new Map();
+
+        for (const task of tasksWithUsers) {
+            for (const user of task.assignedUsers) {
+                if (!userTasksMap.has(user.id)) {
+                    userTasksMap.set(user.id, { user, tasks: [] });
+                }
+                userTasksMap.get(user.id).tasks.push({
+                    id: task.id,
+                    task_name: task.task_name,
+                    description: task.description,
+                    deadline: task.deadline
+                });
+            }
+        }
+
+        // Send emails to all assigned users
+        console.log('Sending emails to users:', Array.from(userTasksMap.keys()));
+        const emailPromises = [];
+        const assignedUsers = [];
+
+        for (const [userId, userData] of userTasksMap) {
+            const { user, tasks } = userData;
+            assignedUsers.push({
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                taskCount: tasks.length
+            });
+
+            console.log('Preparing email for user:', user.email, 'with tasks:', tasks.length);
+
+            const html = renderTemplate('taskAssignmentNotification', {
+                project_name: workRequest.project_name,
+                brand: workRequest.brand,
+                request_type: workRequest.RequestType?.request_type || 'N/A',
+                priority: workRequest.priority,
+                request_id: workRequest.id,
+                assigned_at: new Date().toLocaleDateString('en-IN', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }),
+                tasks: tasks,
+                frontend_url: process.env.FRONTEND_URL
+            });
+
+            const mailOptions = {
+                to: user.email,
+                subject: 'Tasks Assigned - D-Map',
+                html
+            };
+
+            emailPromises.push(sendMail(mailOptions));
+        }
+
+        // Wait for all emails to be sent
+        await Promise.all(emailPromises);
+
+        // Update intimate_team to 1 for all tasks in this work request
+        console.log('Updating intimate_team to 1 for all tasks in work request:', workRequestId);
+        await Tasks.update(
+            { intimate_team: 1 },
+            { where: { work_request_id: workRequestId } }
+        );
+
+        await logUserActivity({
+            event: 'task_assignment_notifications_sent',
+            userId: req.user.id,
+            workRequestId: workRequestId,
+            notificationCount: assignedUsers.length,
+            totalTasks: tasksWithUsers.length,
+            ...extractRequestDetails(req)
+        });
+
+        res.json({
+            success: true,
+            data: {
+                assignedUsers,
+                totalTasks: tasksWithUsers.length,
+                notificationsSent: assignedUsers.length
+            },
+            message: 'Task assignment notifications sent successfully'
+        });
+    } catch (error) {
+        console.error('Error sending task assignment notifications:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            message: 'Failed to send task assignment notifications'
+        });
+    }
+};
+
 
 
 
@@ -1206,5 +1365,6 @@ module.exports = {
     createTask,
     getTasksByWorkRequestId,
     getTaskAnalytics,
-    getMyTeam
+    getMyTeam,
+    assignTasksToUsers
 };
