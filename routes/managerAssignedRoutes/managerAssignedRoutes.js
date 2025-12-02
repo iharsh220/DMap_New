@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getAssignedWorkRequests, getAssignedWorkRequestById, acceptWorkRequest, deferWorkRequest, getAssignableUsers, getTaskTypesByWorkRequest, createTask, getTasks, getTasksForDependencies } = require('../../controller/managerAssignedController/managerAssignedController');
+const { getAssignedWorkRequests, getAssignedWorkRequestById, acceptWorkRequest, deferWorkRequest, getAssignableUsers, getTaskTypesByWorkRequest, createTask, getTasks, getTasksByWorkRequestId } = require('../../controller/managerAssignedController/managerAssignedController');
 const { authenticateToken } = require('../../middleware/jwtMiddleware');
 const { checkRole } = require('../../middleware/roleMiddleware');
 const filterMiddleware = require('../../middleware/filterMiddleware');
@@ -10,7 +10,7 @@ const searchMiddleware = require('../../middleware/searchMiddleware');
 // Task management routes (must come before parameterized routes)
 router.post('/tasks', authenticateToken, checkRole([1, 2, 3]), createTask); // Create a new task
 router.get('/tasks', authenticateToken, checkRole([1, 2, 3]), getTasks); // Get all tasks for the manager
-router.get('/tasks/work-request/:work_request_id', authenticateToken, checkRole([1, 2, 3]), getTasksForDependencies); // Get tasks for a work request to select as dependencies
+router.get('/work-request/:work_request_id/tasks', authenticateToken, checkRole([1, 2, 3]), getTasksByWorkRequestId); // Get tasks for a specific work request
 
 // Manager-specific routes for viewing assigned work requests
 router.get('/', authenticateToken, checkRole([1, 2, 3]), filterMiddleware, paginationMiddleware, searchMiddleware, getAssignedWorkRequests); // Get all requests assigned to the manager

@@ -329,7 +329,7 @@
       ]
     },
     {
-      "name": "Departments",
+      "name": "Workflow",
       "item": [
         {
           "name": "Get All Departments",
@@ -350,14 +350,9 @@
             },
             "description": "Get all departments with nested divisions and designations"
           }
-        }
-      ]
-    },
-    {
-      "name": "RequestType",
-      "item": [
+        },
         {
-          "name": "Get All request types",
+          "name": "Get All Request Types",
           "request": {
             "method": "GET",
             "header": [
@@ -387,11 +382,44 @@
             },
             "description": "Get all request types grouped by type, optionally excluding a specific request type (requires authentication)"
           }
+        },
+        {
+          "name": "Get Project Types by Request Type",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/digilabs/dmap/api/work-requests/project-types?request_type_id=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "digilabs",
+                "dmap",
+                "api",
+                "work-requests",
+                "project-types"
+              ],
+              "query": [
+                {
+                  "key": "request_type_id",
+                  "value": "1",
+                  "description": "Request type ID to get associated project types"
+                }
+              ]
+            },
+            "description": "Get list of project types associated with a specific request type (requires authentication)"
+          }
         }
       ]
     },
     {
-      "name": "workRequests",
+      "name": "Work Requests",
       "item": [
         {
           "name": "Get My Work Requests",
@@ -485,172 +513,6 @@
           }
         },
         {
-          "name": "Get Assigned Work Requests (Manager)",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests?page=1&limit=10&search=&searchFields=project_name,brand&priority=&status=",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "digilabs",
-                "dmap",
-                "api",
-                "manager",
-                "assigned-work-requests"
-              ],
-              "query": [
-                {
-                  "key": "page",
-                  "value": "1",
-                  "description": "Page number for pagination"
-                },
-                {
-                  "key": "limit",
-                  "value": "10",
-                  "description": "Number of items per page"
-                },
-                {
-                  "key": "search",
-                  "value": "",
-                  "description": "Search term"
-                },
-                {
-                  "key": "searchFields",
-                  "value": "project_name,brand",
-                  "description": "Fields to search in"
-                },
-                {
-                  "key": "priority",
-                  "value": "",
-                  "description": "Filter by priority"
-                },
-                {
-                  "key": "status",
-                  "value": "",
-                  "description": "Filter by status"
-                }
-              ]
-            },
-            "description": "Get list of work requests assigned to the authenticated manager with filtering, pagination, and search (requires authentication and manager role)"
-          }
-        },
-        {
-          "name": "Get Assigned Work Request by ID (Manager)",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "digilabs",
-                "dmap",
-                "api",
-                "manager",
-                "assigned-work-requests",
-                ":id"
-              ],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": "1",
-                  "description": "Work request ID"
-                }
-              ]
-            },
-            "description": "Get details of a specific work request assigned to the authenticated manager, including all tasks assigned to users for this work request (requires authentication and manager role)"
-          }
-        },
-        {
-          "name": "Accept Work Request (Manager)",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id/accept",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "digilabs",
-                "dmap",
-                "api",
-                "manager",
-                "assigned-work-requests",
-                ":id",
-                "accept"
-              ],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": "1",
-                  "description": "Work request ID"
-                }
-              ]
-            },
-            "description": "Accept a work request assigned to the authenticated manager (requires authentication and manager role)"
-          }
-        },
-        {
-          "name": "Defer Work Request (Manager)",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"reason\": \"insufficient_details\",\n  \"message\": \"Please provide more details about the project requirements\"\n}\n\n// For incorrect_request_type:\n// {\n//   \"reason\": \"incorrect_request_type\",\n//   \"new_request_type_id\": 2\n// }"
-            },
-            "url": {
-              "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id/defer",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "digilabs",
-                "dmap",
-                "api",
-                "manager",
-                "assigned-work-requests",
-                ":id",
-                "defer"
-              ],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": "1",
-                  "description": "Work request ID"
-                }
-              ]
-            },
-            "description": "Defer a work request with reason (insufficient_details or incorrect_request_type) and optional message for insufficient_details (requires authentication and manager role)"
-          }
-        },
-        {
           "name": "Create Work Request",
           "request": {
             "method": "POST",
@@ -720,9 +582,14 @@
             },
             "description": "Create a new work request with optional file uploads (requires authentication)"
           }
-        },
+        }
+      ]
+    },
+    {
+      "name": "Manager",
+      "item": [
         {
-          "name": "Access Uploaded File",
+          "name": "Get Assigned Work Requests",
           "request": {
             "method": "GET",
             "header": [
@@ -732,7 +599,7 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/digilabs/dmap/api/work-requests/uploads/New_Product_Launch_Campaign/filename.csv",
+              "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests?page=1&limit=10&search=&searchFields=project_name,brand&priority=&status=",
               "host": [
                 "{{base_url}}"
               ],
@@ -740,36 +607,155 @@
                 "digilabs",
                 "dmap",
                 "api",
-                "work-requests",
-                "uploads",
-                "New_Product_Launch_Campaign",
-                "filename.csv"
+                "manager",
+                "assigned-work-requests"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number for pagination"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of items per page"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search term"
+                },
+                {
+                  "key": "searchFields",
+                  "value": "project_name,brand",
+                  "description": "Fields to search in"
+                },
+                {
+                  "key": "priority",
+                  "value": "",
+                  "description": "Filter by priority"
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "description": "Filter by status"
+                }
               ]
             },
-            "description": "Access an uploaded file (requires authentication)"
+            "description": "Get list of work requests assigned to the authenticated manager with filtering, pagination, and search (requires authentication and manager role)"
           }
         },
         {
-          "name": "Access Uploaded File (Static)",
+          "name": "Get Assigned Work Request by ID",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
             "url": {
-              "raw": "{{base_url}}/uploads/New_Product_Launch_Campaign/filename.csv",
+              "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "uploads",
-                "New_Product_Launch_Campaign",
-                "filename.csv"
+                "digilabs",
+                "dmap",
+                "api",
+                "manager",
+                "assigned-work-requests",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Work request ID"
+                }
               ]
             },
-            "description": "Access an uploaded file via static serving (public access)"
+            "description": "Get details of a specific work request assigned to the authenticated manager, including all tasks assigned to users for this work request (requires authentication and manager role)"
           }
         },
         {
-          "name": "Get Assignable Users for Work Request (Manager)",
+          "name": "Accept Work Request",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id/accept",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "digilabs",
+                "dmap",
+                "api",
+                "manager",
+                "assigned-work-requests",
+                ":id",
+                "accept"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Work request ID"
+                }
+              ]
+            },
+            "description": "Accept a work request assigned to the authenticated manager (requires authentication and manager role)"
+          }
+        },
+        {
+          "name": "Defer Work Request",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"insufficient_details\",\n  \"message\": \"Please provide more details about the project requirements\"\n}\n\n// For incorrect_request_type:\n// {\n//   \"reason\": \"incorrect_request_type\",\n//   \"new_request_type_id\": 2\n// }"
+            },
+            "url": {
+              "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id/defer",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "digilabs",
+                "dmap",
+                "api",
+                "manager",
+                "assigned-work-requests",
+                ":id",
+                "defer"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Work request ID"
+                }
+              ]
+            },
+            "description": "Defer a work request with reason (insufficient_details or incorrect_request_type) and optional message for insufficient_details (requires authentication and manager role)"
+          }
+        },
+        {
+          "name": "Get Assignable Users for Work Request",
           "request": {
             "method": "GET",
             "header": [
@@ -804,7 +790,7 @@
           }
         },
         {
-          "name": "Get Task Types for Work Request (Manager)",
+          "name": "Get Task Types for Work Request",
           "request": {
             "method": "GET",
             "header": [
@@ -839,140 +825,107 @@
           }
         },
         {
-          "name": "Get Project Types by Request Type",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
+          "name": "Tasks",
+          "item": [
+            {
+              "name": "Create Task",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"work_request_id\": 45,\n  \"task_name\": \"Design Landing Page\",\n  \"description\": \"Create responsive landing page design\",\n  \"assigned_to_id\": 10,\n  \"task_type_id\": 15,\n  \"deadline\": \"2025-12-15\",\n  \"dependencies\": [1, 2]\n}\n\n// For no dependencies, remove the dependencies array or send empty array:\n// {\n//   \"work_request_id\": 45,\n//   \"task_name\": \"Design Landing Page\",\n//   \"description\": \"Create responsive landing page design\",\n//   \"assigned_to_id\": 10,\n//   \"task_type_id\": 15,\n//   \"deadline\": \"2025-12-15\",\n//   \"dependencies\": []\n// }"
+                },
+                "url": {
+                  "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/tasks",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "digilabs",
+                    "dmap",
+                    "api",
+                    "manager",
+                    "assigned-work-requests",
+                    "tasks"
+                  ]
+                },
+                "description": "Create a new task for an accepted work request. Supports optional dependencies array for task relationships (handled via task_dependencies table). Dependencies must be existing tasks from the same work request and deadline must be after latest dependency deadline (requires authentication and manager role)"
               }
-            ],
-            "url": {
-              "raw": "{{base_url}}/digilabs/dmap/api/work-requests/project-types?request_type_id=1",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "digilabs",
-                "dmap",
-                "api",
-                "work-requests",
-                "project-types"
-              ],
-              "query": [
-                {
-                  "key": "request_type_id",
-                  "value": "1",
-                  "description": "Request type ID to get associated project types"
-                }
-              ]
             },
-            "description": "Get list of project types associated with a specific request type (requires authentication)"
-          }
-        }
-      ]
-    },
-    {
-      "name": "Tasks",
-      "item": [
-        {
-          "name": "Create Task (Manager)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
+            {
+              "name": "Get All Tasks",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/tasks",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "digilabs",
+                    "dmap",
+                    "api",
+                    "manager",
+                    "assigned-work-requests",
+                    "tasks"
+                  ]
+                },
+                "description": "Get all tasks for work requests assigned to the authenticated manager, grouped by work_request_id. Returns an array of objects containing work_request details and associated tasks (requires authentication and manager role)"
               }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"work_request_id\": 45,\n  \"task_name\": \"Design Landing Page\",\n  \"description\": \"Create responsive landing page design\",\n  \"assigned_to_id\": 10,\n  \"task_type_id\": 15,\n  \"deadline\": \"2025-12-15\",\n  \"dependencies\": [1, 2]\n}\n\n// For no dependencies, remove the dependencies array or send empty array:\n// {\n//   \"work_request_id\": 45,\n//   \"task_name\": \"Design Landing Page\",\n//   \"description\": \"Create responsive landing page design\",\n//   \"assigned_to_id\": 10,\n//   \"task_type_id\": 15,\n//   \"deadline\": \"2025-12-15\",\n//   \"dependencies\": []\n// }"
             },
-            "url": {
-              "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/tasks",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "digilabs",
-                "dmap",
-                "api",
-                "manager",
-                "assigned-work-requests",
-                "tasks"
-              ]
-            },
-            "description": "Create a new task for an accepted work request. Supports optional dependencies array for task relationships (handled via task_dependencies table). Dependencies must be existing tasks from the same work request and deadline must be after latest dependency deadline (requires authentication and manager role)"
-          }
-        },
-        {
-          "name": "Get All Tasks (Manager)",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
+            {
+              "name": "Get Tasks by Work Request ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwt_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/work-request/:work_request_id/tasks",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "digilabs",
+                    "dmap",
+                    "api",
+                    "manager",
+                    "assigned-work-requests",
+                    "work-request",
+                    ":work_request_id",
+                    "tasks"
+                  ],
+                  "variable": [
+                    {
+                      "key": "work_request_id",
+                      "value": "45",
+                      "description": "Work request ID to get all tasks for"
+                    }
+                  ]
+                },
+                "description": "Get basic list of all tasks for a specific work request assigned to the authenticated manager, returning id, task_name, deadline, and dependencies (requires authentication and manager role)"
               }
-            ],
-            "url": {
-              "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/tasks",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "digilabs",
-                "dmap",
-                "api",
-                "manager",
-                "assigned-work-requests",
-                "tasks"
-              ]
-            },
-            "description": "Get all tasks for work requests assigned to the authenticated manager, grouped by work_request_id. Returns an array of objects containing work_request details and associated tasks (requires authentication and manager role)"
-          }
-        },
-        {
-          "name": "Get Tasks for Dependencies (Manager)",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/tasks/work-request/:work_request_id",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "digilabs",
-                "dmap",
-                "api",
-                "manager",
-                "assigned-work-requests",
-                "tasks",
-                "work-request",
-                ":work_request_id"
-              ],
-              "variable": [
-                {
-                  "key": "work_request_id",
-                  "value": "45",
-                  "description": "Work request ID to get tasks for dependency selection"
-                }
-              ]
-            },
-            "description": "Get all tasks for a specific work request to select as dependencies when creating new tasks (requires authentication and manager role)"
-          }
+            }
+          ]
         }
       ]
     }

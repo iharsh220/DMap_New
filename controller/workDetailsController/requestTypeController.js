@@ -35,6 +35,7 @@ const getAllRequestTypes = async (req, res) => {
             }
             acc[item.request_type].push({
                 id: item.id,
+                request_type: item.request_type,
                 description: item.description
             });
             return acc;

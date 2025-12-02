@@ -243,7 +243,7 @@ const getAssignedWorkRequestById = async (req, res) => {
                                 {
                                     model: Tasks,
                                     as: 'dependencyTask',
-                                    attributes: ['id', 'task_name']
+                                    attributes: ['id', 'task_name', 'deadline']
                                 }
                             ]
                         }
@@ -935,7 +935,7 @@ const getTasks = async (req, res) => {
     }
 };
 
-const getTasksForDependencies = async (req, res) => {
+const getTasksByWorkRequestId = async (req, res) => {
     try {
         const workRequestId = parseInt(req.params.work_request_id, 10);
         if (isNaN(workRequestId)) {
@@ -965,26 +965,40 @@ const getTasksForDependencies = async (req, res) => {
             });
         }
 
-        // Get all tasks for this work request
+        // Get all tasks for this work request with basic details and dependencies
         const tasksResult = await Tasks.findAll({
             where: { work_request_id: workRequestId },
-            attributes: ['id', 'task_name', 'description', 'deadline', 'status'],
+            attributes: ['id', 'task_name', 'deadline'],
             include: [
                 {
-                    model: User,
-                    as: 'assignedTo',
-                    attributes: ['id', 'name']
-                },
-                {
-                    model: TaskType,
-                    attributes: ['id', 'task_type']
+                    model: TaskDependencies,
+                    as: 'dependencies',
+                    include: [
+                        {
+                            model: Tasks,
+                            as: 'dependencyTask',
+                            attributes: ['id', 'task_name']
+                        }
+                    ]
                 }
             ],
             order: [['created_at', 'ASC']]
         });
 
+        // Transform the data to flatten dependencies
+        const transformedTasks = tasksResult.map(task => ({
+            id: task.id,
+            task_name: task.task_name,
+            deadline: task.deadline,
+            dependencies: task.dependencies.map(dep => ({
+                id: dep.dependencyTask.id,
+                task_name: dep.dependencyTask.task_name,
+                deadline: dep.dependencyTask.deadline
+            }))
+        }));
+
         await logUserActivity({
-            event: 'tasks_for_dependencies_viewed',
+            event: 'tasks_by_work_request_viewed',
             userId: req.user.id,
             workRequestId: workRequestId,
             taskCount: tasksResult.length,
@@ -993,18 +1007,19 @@ const getTasksForDependencies = async (req, res) => {
 
         res.json({
             success: true,
-            data: tasksResult,
-            message: 'Tasks for dependencies retrieved successfully'
+            data: transformedTasks,
+            message: 'Tasks retrieved successfully'
         });
     } catch (error) {
-        console.error('Error fetching tasks for dependencies:', error);
+        console.error('Error fetching tasks:', error);
         res.status(500).json({
             success: false,
             error: error.message,
-            message: 'Failed to fetch tasks for dependencies'
+            message: 'Failed to fetch tasks'
         });
     }
 };
+
 
 
 module.exports = {
@@ -1016,5 +1031,5 @@ module.exports = {
     getTaskTypesByWorkRequest,
     createTask,
     getTasks,
-    getTasksForDependencies
+    getTasksByWorkRequestId
 };
