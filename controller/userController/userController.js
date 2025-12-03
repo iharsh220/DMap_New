@@ -3,6 +3,7 @@ const {
     RequestType,
     TaskType,
     WorkRequests,
+    WorkRequestManagers,
     User
 } = require('../../models');
 const { logUserActivity, extractRequestDetails } = require('../../services/elasticsearchService');
@@ -32,16 +33,34 @@ const getAssignedTasks = async (req, res) => {
                     required: true
                 },
                 {
-                    model: RequestType,
-                    attributes: ['id', 'request_type', 'description']
-                },
-                {
                     model: TaskType,
                     attributes: ['id', 'task_type', 'description']
                 },
                 {
                     model: WorkRequests,
-                    attributes: ['id', 'project_name', 'brand', 'priority', 'status']
+                    attributes: ['id', 'project_name', 'brand', 'priority', 'status'],
+                    include: [
+                        {
+                            model: User,
+                            as: 'users',
+                            attributes: ['id', 'name', 'email']
+                        },
+                        {
+                            model: RequestType,
+                            attributes: ['id', 'request_type', 'description']
+                        },
+                        {
+                            model: WorkRequestManagers,
+                            attributes: ['id'],
+                            include: [
+                                {
+                                    model: User,
+                                    as: 'manager',
+                                    attributes: ['id', 'name', 'email']
+                                }
+                            ]
+                        }
+                    ]
                 }
             ],
             attributes: { exclude: ['created_at', 'updated_at'] },
@@ -61,7 +80,6 @@ const getAssignedTasks = async (req, res) => {
             message: 'Assigned tasks retrieved successfully'
         });
     } catch (error) {
-        console.error('Error fetching assigned tasks:', error);
         res.status(500).json({
             success: false,
             error: error.message,
