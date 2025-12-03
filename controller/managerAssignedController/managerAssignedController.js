@@ -31,57 +31,93 @@ const userDivisionsService = new CrudService(UserDivisions);
 
 const getAssignableUsers = async (req, res) => {
     try {
-        const workRequestId = parseInt(req.params.id, 10);
-        if (isNaN(workRequestId)) {
-            return res.status(400).json({ success: false, error: 'Invalid work request ID' });
-        }
-
         const manager_id = req.user.id;
+        let divisionIds = [];
 
-        // Get work request with request type to find the division
-        const workRequestResult = await workRequestService.getAll({
-            where: { id: workRequestId },
-            include: [
-                {
-                    model: WorkRequestManagers,
-                    where: { manager_id: manager_id },
-                    required: true,
-                    attributes: []
-                },
-                {
-                    model: RequestType,
-                    include: [{ model: Division, through: { attributes: [] } }]
-                }
-            ],
-            limit: 1
-        });
+        // Check if task_id is provided in query params
+        if (req.query.task_id) {
+            const taskId = parseInt(req.query.task_id, 10);
+            if (isNaN(taskId)) {
+                return res.status(400).json({ success: false, error: 'Invalid task ID' });
+            }
 
-        if (!workRequestResult.success || workRequestResult.data.length === 0) {
-            return res.status(404).json({
-                success: false,
-                error: 'Work request not found or not assigned to you'
+            // Find the task and get its request_type_id
+            const task = await Tasks.findByPk(taskId, {
+                attributes: ['id', 'request_type_id'],
+                include: [
+                    {
+                        model: RequestType,
+                        include: [{ model: Division, through: { attributes: [] }, attributes: ['id'] }]
+                    }
+                ]
             });
+
+            if (!task) {
+                return res.status(404).json({ success: false, error: 'Task not found' });
+            }
+
+            // Get division IDs from the task's request type
+            divisionIds = task.RequestType?.Divisions?.map(d => d.id) || [];
+
+            if (divisionIds.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'No divisions found for this task\'s request type'
+                });
+            }
+        } else {
+            // Use work_request_id from params (original functionality)
+            const workRequestId = parseInt(req.params.id, 10);
+            if (isNaN(workRequestId)) {
+                return res.status(400).json({ success: false, error: 'Invalid work request ID' });
+            }
+
+            // Get work request with request type to find the division
+            const workRequestResult = await workRequestService.getAll({
+                where: { id: workRequestId },
+                include: [
+                    {
+                        model: WorkRequestManagers,
+                        where: { manager_id: manager_id },
+                        required: true,
+                        attributes: []
+                    },
+                    {
+                        model: RequestType,
+                        include: [{ model: Division, through: { attributes: [] }, attributes: ['id'] }]
+                    }
+                ],
+                limit: 1
+            });
+
+            if (!workRequestResult.success || workRequestResult.data.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Work request not found or not assigned to you'
+                });
+            }
+
+            const workRequest = workRequestResult.data[0];
+
+            // Check if work request is accepted
+            if (workRequest.status !== 'accepted') {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Work request must be accepted before assigning users'
+                });
+            }
+
+            divisionIds = workRequest.RequestType?.Divisions?.map(d => d.id) || [];
+
+            if (divisionIds.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Division not found for this work request'
+                });
+            }
         }
 
-        const workRequest = workRequestResult.data[0];
-
-        // Check if work request is accepted
-        if (workRequest.status !== 'accepted') {
-            return res.status(400).json({
-                success: false,
-                error: 'Work request must be accepted before assigning users'
-            });
-        }
-        const divisionId = workRequest.RequestType?.Divisions?.[0]?.id;
-
-        if (!divisionId) {
-            return res.status(404).json({
-                success: false,
-                error: 'Division not found for this work request'
-            });
-        }
-
-        // Find all active users in this division
+        // Find all active users in these divisions
         const assignableUsersResult = await userService.getAll({
             where: {
                 [Op.and]: [
@@ -92,7 +128,7 @@ const getAssignableUsers = async (req, res) => {
                 {
                     model: Division,
                     as: 'Divisions',
-                    where: { id: divisionId },
+                    where: { id: { [Op.in]: divisionIds } },
                     attributes: ['id', 'title'],
                     through: { attributes: [] },
                     required: true
@@ -149,16 +185,17 @@ const getAssignableUsers = async (req, res) => {
                 id: manager.id,
                 name: manager.name
             },
-            division: {
-                id: user.Divisions[0].id,
-                name: user.Divisions[0].title
-            }
+            divisions: user.Divisions.map(div => ({
+                id: div.id,
+                name: div.title
+            }))
         }));
 
         await logUserActivity({
             event: 'assignable_users_viewed',
             userId: req.user.id,
-            workRequestId: workRequestId,
+            workRequestId: req.query.task_id ? null : parseInt(req.params.id),
+            taskId: req.query.task_id ? parseInt(req.query.task_id) : null,
             count: formattedData.length,
             ...extractRequestDetails(req)
         });

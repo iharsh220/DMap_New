@@ -1034,6 +1034,42 @@
 						"description": "Get list of tasks assigned to the authenticated user. Only available for users in department 9 (requires authentication)"
 					},
 					"response": []
+				},
+				{
+					"name": "Get Tasks by Work Request ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/digilabs/dmap/api/users/work-requests/:work_request_id/tasks",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"digilabs",
+								"dmap",
+								"api",
+								"users",
+								"work-requests",
+								":work_request_id",
+								"tasks"
+							],
+							"variable": [
+								{
+									"key": "work_request_id",
+									"value": "1",
+									"description": "Work request ID to get all tasks for"
+								}
+							]
+						},
+						"description": "Get all tasks for a specific work request with full details including assigned users, request types, task types, work request info, and dependencies. Only available for users in department 9 (requires authentication)"
+					},
+					"response": []
 				}
 			]
 		},
