@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "6fc041bf-050b-4dbd-ba8d-0a911fc02d4f",
+		"_postman_id": "bbe9051b-dfe7-427f-91bf-153fa18b1e1f",
 		"name": "D-Map API",
 		"description": "API collection for D-Map application",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
@@ -148,7 +148,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "// {\n//   \"identifier\": \"nikhil.nadkar@alembic.co.in\",\n//   \"password\": \"Harsh@1234\",\n//   \"loginType\": \"email\"\n// }\n\n{\n  \"identifier\": \"mohanish.padwal@alembic.co.in\",\n  \"password\": \"Harsh@1234\",\n  \"loginType\": \"email\"\n}"
+							"raw": "// {\n//   \"identifier\": \"nikhil.nadkar@alembic.co.in\",\n//   \"password\": \"Harsh@1234\",\n//   \"loginType\": \"email\"\n// }\n\n// {\n//   \"identifier\": \"mohanish.padwal@alembic.co.in\",\n//   \"password\": \"Harsh@1234\",\n//   \"loginType\": \"email\"\n// }\n\n// {\n//   \"identifier\": \"harsh.gohil@alembic.co.in\",\n//   \"password\": \"Harsh@1234\",\n//   \"loginType\": \"email\"\n// }\n\n// {\n//   \"identifier\": \"mohanish.padwal@alembic.co.in\",\n//   \"password\": \"Harsh@1234\",\n//   \"loginType\": \"email\"\n// }\n\n\n{\n  \"identifier\": \"vikramr.rai@alembic.co.in\",\n  \"password\": \"Harsh@1234\",\n  \"loginType\": \"email\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/digilabs/dmap/api/auth/login",
@@ -769,7 +769,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:work_request_id/assignable-users",
+							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:work_request_id/assignable-users?task_id=7",
 							"host": [
 								"{{base_url}}"
 							],
@@ -781,6 +781,12 @@
 								"assigned-work-requests",
 								":work_request_id",
 								"assignable-users"
+							],
+							"query": [
+								{
+									"key": "task_id",
+									"value": "7"
+								}
 							],
 							"variable": [
 								{
@@ -1061,7 +1067,7 @@
 							"variable": [
 								{
 									"key": "task_id",
-									"value": "1",
+									"value": "7",
 									"description": "Task ID to get details for"
 								}
 							]

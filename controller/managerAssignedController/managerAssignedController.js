@@ -57,12 +57,30 @@ const getAssignableUsers = async (req, res) => {
             }
 
             // Get division IDs from the task's request type
-            divisionIds = task.RequestType?.Divisions?.map(d => d.id) || [];
+            const taskDivisionIds = task.RequestType?.Divisions?.map(d => d.id) || [];
+
+            if (taskDivisionIds.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'No divisions found for this task\'s request type'
+                });
+            }
+
+            // Get divisions that the manager belongs to
+            const managerDivisions = await UserDivisions.findAll({
+                where: { user_id: manager_id },
+                attributes: ['division_id']
+            });
+
+            const managerDivisionIds = managerDivisions.map(md => md.division_id);
+
+            // Only use divisions that are both in the task's request type AND belong to the manager
+            divisionIds = taskDivisionIds.filter(id => managerDivisionIds.includes(id));
 
             if (divisionIds.length === 0) {
                 return res.status(404).json({
                     success: false,
-                    error: 'No divisions found for this task\'s request type'
+                    error: 'No divisions found that both match the task and belong to you'
                 });
             }
         } else {
