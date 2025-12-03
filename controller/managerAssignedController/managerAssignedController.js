@@ -113,10 +113,38 @@ const getAssignableUsers = async (req, res) => {
         const managerDetails = await userService.getById(manager_id);
         const manager = managerDetails.success ? managerDetails.data : { id: manager_id, name: 'Unknown' };
 
+        // Get ongoing task count for each user
+        const userIds = assignableUsersResult.data.map(user => user.id);
+        const ongoingTaskCounts = await TaskAssignments.findAll({
+            where: {
+                user_id: { [Op.in]: userIds }
+            },
+            include: [
+                {
+                    model: Tasks,
+                    where: { status: 'in_progress' },
+                    attributes: []
+                }
+            ],
+            attributes: [
+                'user_id',
+                [Tasks.sequelize.fn('COUNT', Tasks.sequelize.col('task_id')), 'ongoing_count']
+            ],
+            group: ['user_id'],
+            raw: true
+        });
+
+        // Create a map of user_id to ongoing count
+        const ongoingCountMap = new Map();
+        ongoingTaskCounts.forEach(count => {
+            ongoingCountMap.set(count.user_id, parseInt(count.ongoing_count));
+        });
+
         // Format the response
         const formattedData = assignableUsersResult.data.map(user => ({
             id: user.id,
             name: user.id === manager_id ? 'Self' : user.name,
+            ongoingTasks: ongoingCountMap.get(user.id) || 0,
             manager: {
                 id: manager.id,
                 name: manager.name
