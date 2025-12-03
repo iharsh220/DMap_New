@@ -59,7 +59,6 @@ UserDivisions.belongsTo(Division, { foreignKey: 'division_id', as: 'division' })
 
 Sales.belongsTo(Division, { foreignKey: 'division_id' });
 
-Tasks.belongsTo(User, { as: 'assignedTo', foreignKey: 'assigned_to_id' });
 Tasks.belongsTo(TaskType, { foreignKey: 'task_type_id' });
 Tasks.belongsTo(WorkRequests, { foreignKey: 'work_request_id' });
 Tasks.belongsTo(RequestType, { foreignKey: 'request_type_id' });

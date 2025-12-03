@@ -7,7 +7,7 @@ const departmentRoutes = require('./workDetailsRoutes/departmentRoutes');
 const requestTypeRoutes = require('./workDetailsRoutes/requestTypeRoutes');
 const workRequestRoutes = require('./workRequestRoutes/workRequestRoutes');
 const managerAssignedRoutes = require('./managerAssignedRoutes/managerAssignedRoutes');
-
+const userRoutes = require('./userRoutes/userRoutes');
 
 // Use routes
 router.use('/auth', authRoutes);
@@ -20,7 +20,8 @@ router.use('/work-requests', workRequestRoutes);
 
 router.use('/manager/assigned-work-requests', managerAssignedRoutes);
 
+router.use('/users', userRoutes);
+
 // Add other routes here as needed
-// router.use('/users', userRoutes);
 
 module.exports = router;
