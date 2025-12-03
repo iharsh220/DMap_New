@@ -27,6 +27,7 @@ const getAssignedTasks = async (req, res) => {
 
         // Get tasks assigned to the user through TaskAssignments junction table
         const tasks = await Tasks.findAll({
+            where: { intimate_team: 1 }, // Only show tasks where intimate_team = 1
             include: [
                 {
                     model: User,
@@ -298,9 +299,9 @@ const getTaskById = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Invalid task ID' });
         }
 
-        // Get single task with full details - only if assigned to current user
+        // Get single task with full details - only if assigned to current user and intimate_team = 1
         const taskResult = await Tasks.findOne({
-            where: { id: taskId },
+            where: { id: taskId, intimate_team: 1 },
             include: [
                 {
                     model: User,
@@ -316,7 +317,7 @@ const getTaskById = async (req, res) => {
                 },
                 {
                     model: TaskType,
-                    attributes: ['id', 'task_type', 'description']
+                    attributes: ['id', 'task_type', 'description', 'quantification']
                 },
                 {
                     model: WorkRequests,
@@ -385,8 +386,109 @@ const getTaskById = async (req, res) => {
     }
 };
 
+const acceptTask = async (req, res) => {
+    try {
+        const taskId = parseInt(req.params.taskId, 10);
+        const { start_date } = req.body;
+        const user_id = req.user.id;
+
+        if (isNaN(taskId)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid task ID'
+            });
+        }
+
+        // Check if task exists and is assigned to the user
+        const task = await Tasks.findOne({
+            where: { id: taskId },
+            include: [
+                {
+                    model: User,
+                    as: 'assignedUsers',
+                    where: { id: user_id },
+                    attributes: [],
+                    through: { attributes: [] },
+                    required: true
+                }
+            ]
+        });
+
+        if (!task) {
+            return res.status(404).json({
+                success: false,
+                error: 'Task not found or not assigned to you'
+            });
+        }
+
+        // Check if intimate_team is 1
+        if (task.intimate_team !== 1) {
+            return res.status(403).json({
+                success: false,
+                error: 'You do not have permission to accept this task'
+            });
+        }
+
+        // Check if task is already accepted
+        if (task.status === 'accepted') {
+            return res.status(400).json({
+                success: false,
+                error: 'Task is already accepted'
+            });
+        }
+
+        // Prepare update data
+        const updateData = {
+            status: 'accepted'
+        };
+
+        // If start_date is provided, update it
+        if (start_date) {
+            updateData.start_date = start_date;
+        }
+
+        // Update the task
+        const [updatedRowsCount] = await Tasks.update(updateData, {
+            where: { id: taskId }
+        });
+
+        if (updatedRowsCount === 0) {
+            return res.status(500).json({
+                success: false,
+                error: 'Failed to update task'
+            });
+        }
+
+        await logUserActivity({
+            event: 'task_accepted',
+            userId: req.user.id,
+            taskId: taskId,
+            startDate: start_date || null,
+            ...extractRequestDetails(req)
+        });
+
+        res.json({
+            success: true,
+            message: 'Task accepted successfully',
+            data: {
+                task_id: taskId,
+                status: 'accepted',
+                start_date: start_date || task.start_date
+            }
+        });
+    } catch (error) {
+        console.error('Error accepting task:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            message: 'Failed to accept task'
+        });
+    }
+};
+
 module.exports = {
     getAssignedTasks,
     getTaskById,
-    assignTaskToUser
+    assignTaskToUser,
+    acceptTask
 };

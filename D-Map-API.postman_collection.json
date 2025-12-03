@@ -1065,7 +1065,7 @@
 								"tasks"
 							]
 						},
-						"description": "Get list of tasks assigned to the authenticated user. Only available for users in department 9 (requires authentication)"
+						"description": "Get list of tasks assigned to the authenticated user where intimate_team = 1. Only available for users in department 9 (requires authentication)"
 					},
 					"response": []
 				},
@@ -1100,7 +1100,7 @@
 								}
 							]
 						},
-						"description": "Get detailed information for a specific task including who requested it, assigned users, work request details, managers, and dependencies. No division restrictions (requires authentication)"
+						"description": "Get detailed information for a specific task where intimate_team = 1, including who requested it, assigned users, work request details, managers, and dependencies. No division restrictions (requires authentication)"
 					},
 					"response": []
 				},
@@ -1136,6 +1136,50 @@
 							]
 						},
 						"description": "Assign a task to a specific user. Only managers and super admins can use this API. When a task is assigned, all manager assignments for that work request are removed and the task is assigned to the user with email notification (requires authentication and manager/super admin role)"
+					},
+					"response": []
+				},
+				{
+					"name": "Accept Task",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"start_date\": \"2025-12-03\"\n}\n\n// start_date is optional - if not provided, task will be accepted without setting start_date"
+						},
+						"url": {
+							"raw": "{{base_url}}/digilabs/dmap/api/users/tasks/:taskId/accept",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"digilabs",
+								"dmap",
+								"api",
+								"users",
+								"tasks",
+								":taskId",
+								"accept"
+							],
+							"variable": [
+								{
+									"key": "taskId",
+									"value": "1",
+									"description": "Task ID to accept"
+								}
+							]
+						},
+						"description": "Accept a task assigned to the authenticated user. Only works if task.intimate_team = 1. Changes task status to 'accepted' and optionally sets start_date. Returns error if task is already accepted (requires authentication)"
 					},
 					"response": []
 				}
