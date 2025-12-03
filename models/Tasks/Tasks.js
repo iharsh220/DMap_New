@@ -39,6 +39,19 @@ const Tasks = sequelize.define('Tasks', {
     type: DataTypes.TINYINT(1),
     defaultValue: 0,
   },
+  task_count: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: 0,
+  },
+  start_date: {
+    type: DataTypes.DATEONLY,
+    allowNull: true,
+  },
+  end_date: {
+    type: DataTypes.DATEONLY,
+    allowNull: true,
+  },
   created_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,
