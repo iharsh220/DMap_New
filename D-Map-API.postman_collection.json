@@ -1075,6 +1075,41 @@
 						"description": "Get detailed information for a specific task including who requested it, assigned users, work request details, managers, and dependencies. No division restrictions (requires authentication)"
 					},
 					"response": []
+				},
+				{
+					"name": "Assign Task to User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"task_id\": 1,\n  \"user_id\": 10,\n  \"work_request_id\": 56\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/digilabs/dmap/api/users/assign-task",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"digilabs",
+								"dmap",
+								"api",
+								"users",
+								"assign-task"
+							]
+						},
+						"description": "Assign a task to a specific user. Only managers and super admins can use this API. When a task is assigned, all manager assignments for that work request are removed and the task is assigned to the user with email notification (requires authentication and manager/super admin role)"
+					},
+					"response": []
 				}
 			]
 		},
