@@ -14,7 +14,7 @@ const fileUploadQueue = new Queue('file-upload-queue', {
 
 // Worker to process file upload jobs
 const fileUploadWorker = new Worker('file-upload-queue', async (job) => {
-  const { documentId, tempFilepath, uploadPath, filename } = job.data;
+  const { documentId, tempFilepath, uploadPath, filename, type = 'work_request' } = job.data;
 
   try {
     // Ensure upload directory exists
@@ -36,10 +36,18 @@ const fileUploadWorker = new Worker('file-upload-queue', async (job) => {
     }
 
     // Update document status to uploaded
-    await WorkRequestDocuments.update(
-      { status: 'uploaded' },
-      { where: { id: documentId } }
-    );
+    if (type === 'task') {
+      const { TaskDocuments } = require('../models');
+      await TaskDocuments.update(
+        { status: 'uploaded' },
+        { where: { id: documentId } }
+      );
+    } else {
+      await WorkRequestDocuments.update(
+        { status: 'uploaded' },
+        { where: { id: documentId } }
+      );
+    }
 
     return { success: true, filepath: finalFilepath };
   } catch (error) {
@@ -53,10 +61,18 @@ const fileUploadWorker = new Worker('file-upload-queue', async (job) => {
     }
 
     // Update document status to failed
-    await WorkRequestDocuments.update(
-      { status: 'failed' },
-      { where: { id: documentId } }
-    );
+    if (type === 'task') {
+      const { TaskDocuments } = require('../models');
+      await TaskDocuments.update(
+        { status: 'failed' },
+        { where: { id: documentId } }
+      );
+    } else {
+      await WorkRequestDocuments.update(
+        { status: 'failed' },
+        { where: { id: documentId } }
+      );
+    }
     throw error;
   }
 }, {

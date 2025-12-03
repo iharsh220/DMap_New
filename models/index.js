@@ -24,6 +24,7 @@ const IssueRegister = require('./IssueRegister/IssueRegister');
 const TaskProjectReference = require('./TaskProjectReference/TaskProjectReference');
 const TaskDependencies = require('./TaskDependencies/TaskDependencies');
 const TaskAssignments = require('./TaskAssignments/TaskAssignments');
+const TaskDocuments = require('./TaskDocuments/TaskDocuments');
 const AboutProject = require('./AboutProject/AboutProject');
 
 // Associations
@@ -105,6 +106,9 @@ User.belongsToMany(Tasks, { through: TaskAssignments, foreignKey: 'user_id', as:
 TaskAssignments.belongsTo(Tasks, { foreignKey: 'task_id' });
 TaskAssignments.belongsTo(User, { foreignKey: 'user_id' });
 
+TaskDocuments.belongsTo(TaskAssignments, { foreignKey: 'task_assignment_id' });
+TaskAssignments.hasMany(TaskDocuments, { foreignKey: 'task_assignment_id' });
+
 module.exports = {
   sequelize,
   Department,
@@ -130,5 +134,6 @@ module.exports = {
   TaskProjectReference,
   TaskDependencies,
   TaskAssignments,
+  TaskDocuments,
   AboutProject
 };

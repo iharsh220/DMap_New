@@ -680,8 +680,24 @@ CREATE TABLE `task_assignments` (
   `id` int(11) NOT NULL,
   `task_id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
+  `link` varchar(500) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Table structure for table `task_documents`
+--
+
+CREATE TABLE `task_documents` (
+  `id` int(11) NOT NULL,
+  `task_assignment_id` int(11) NOT NULL,
+  `document_name` varchar(255) NOT NULL,
+  `document_path` varchar(500) NOT NULL,
+  `document_type` varchar(50) DEFAULT NULL,
+  `document_size` int(11) DEFAULT NULL,
+  `status` enum('uploading','uploaded','failed') DEFAULT 'uploading',
+  `uploaded_at` timestamp NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
 --
@@ -1451,6 +1467,13 @@ ALTER TABLE `task_assignments`
   ADD KEY `user_id` (`user_id`);
 
 --
+-- Indexes for table `task_documents`
+--
+ALTER TABLE `task_documents`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `task_assignment_id` (`task_assignment_id`);
+
+--
 -- Indexes for table `task_dependencies`
 --
 ALTER TABLE `task_dependencies`
@@ -1626,6 +1649,12 @@ ALTER TABLE `task_assignments`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
+-- AUTO_INCREMENT for table `task_documents`
+--
+ALTER TABLE `task_documents`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
+
+--
 -- AUTO_INCREMENT for table `task_dependencies`
 --
 ALTER TABLE `task_dependencies`
@@ -1743,6 +1772,12 @@ ALTER TABLE `tasks`
 ALTER TABLE `task_assignments`
   ADD CONSTRAINT `task_assignments_ibfk_1` FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `task_assignments_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `task_documents`
+--
+ALTER TABLE `task_documents`
+  ADD CONSTRAINT `task_documents_ibfk_1` FOREIGN KEY (`task_assignment_id`) REFERENCES `task_assignments` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `task_dependencies`

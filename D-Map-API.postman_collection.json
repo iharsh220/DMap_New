@@ -1182,6 +1182,57 @@
 						"description": "Accept a task assigned to the authenticated user. Only works if task.intimate_team = 1. Changes task status to 'accepted' and optionally sets start_date. Returns error if task is already accepted (requires authentication)"
 					},
 					"response": []
+				},
+				{
+					"name": "Submit Task",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "task_id",
+									"value": "1",
+									"type": "text",
+									"description": "Task ID to submit"
+								},
+								{
+									"key": "link",
+									"value": "https://example.com/delivered-work",
+									"type": "text",
+									"description": "Optional link to submitted work"
+								},
+								{
+									"key": "documents",
+									"type": "file",
+									"src": [],
+									"description": "Optional file uploads for task submission"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/digilabs/dmap/api/users/tasks/submit",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"digilabs",
+								"dmap",
+								"api",
+								"users",
+								"tasks",
+								"submit"
+							]
+						},
+						"description": "Submit a completed task with optional link and file uploads. Finds task assignment based on task_id and user, updates with link and stores uploaded files in task_documents table. Marks task as completed if files or link are provided (requires authentication)"
+					},
+					"response": []
 				}
 			]
 		},

@@ -6,11 +6,15 @@ const {
     TaskDependencies,
     WorkRequests,
     WorkRequestManagers,
-    User
+    User,
+    TaskDocuments
 } = require('../../models');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
 const { logUserActivity, extractRequestDetails } = require('../../services/elasticsearchService');
+const { queueFileUpload } = require('../../services/fileUploadService');
+const path = require('path');
+const fs = require('fs');
 
 const getAssignedTasks = async (req, res) => {
     try {
@@ -486,9 +490,165 @@ const acceptTask = async (req, res) => {
     }
 };
 
+const submitTask = async (req, res) => {
+    try {
+        const user_id = req.user.id;
+        const { task_id, link } = req.body;
+
+        if (!task_id) {
+            return res.status(400).json({
+                success: false,
+                error: 'task_id is required'
+            });
+        }
+
+        const taskId = parseInt(task_id, 10);
+        if (isNaN(taskId)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid task_id'
+            });
+        }
+
+        // Get task assignment with task and work request details
+        const taskAssignment = await TaskAssignments.findOne({
+            where: { task_id: taskId, user_id },
+            include: [
+                {
+                    model: Tasks,
+                    include: [
+                        {
+                            model: WorkRequests,
+                            attributes: ['project_name']
+                        }
+                    ]
+                },
+                {
+                    model: User,
+                    attributes: ['name']
+                }
+            ]
+        });
+
+        if (!taskAssignment) {
+            return res.status(404).json({
+                success: false,
+                error: 'Task assignment not found or not assigned to you'
+            });
+        }
+
+        const task = taskAssignment.Task;
+        const workRequest = task.WorkRequest;
+        const user = taskAssignment.User;
+
+        // Update task assignment with link if provided
+        const updateData = {};
+        if (link) {
+            updateData.link = link;
+        }
+
+        if (Object.keys(updateData).length > 0) {
+            await TaskAssignments.update(updateData, {
+                where: { id: taskAssignment.id }
+            });
+        }
+
+        // Handle file uploads
+        const documents = [];
+        if (req.files && req.files.documents) {
+            const files = Array.isArray(req.files.documents) ? req.files.documents : [req.files.documents];
+
+            // Create user folder if it doesn't exist
+            const uploadDir = path.join(__dirname, '../../uploads');
+            const sanitizedProjectName = workRequest.project_name.replace(/[^a-zA-Z0-9]/g, '_');
+            const projectFolder = path.join(uploadDir, sanitizedProjectName);
+            const taskFolder = path.join(projectFolder, task.task_name);
+            const userFolder = path.join(taskFolder, user.name);
+
+            if (!fs.existsSync(userFolder)) {
+                fs.mkdirSync(userFolder, { recursive: true });
+            }
+
+            for (const file of files) {
+                // Generate unique filename
+                const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+                const filename = file.name.replace(/[^a-zA-Z0-9.]/g, '_') + '-' + uniqueSuffix + path.extname(file.name);
+
+                // Create temp directory if it doesn't exist
+                const tempDir = path.join('temp', 'uploads');
+                if (!fs.existsSync(tempDir)) {
+                    fs.mkdirSync(tempDir, { recursive: true });
+                }
+
+                // Save file to temp location
+                const tempFilename = `temp-${uniqueSuffix}-${filename}`;
+                const tempFilepath = path.join(tempDir, tempFilename);
+                await file.mv(tempFilepath);
+
+                const documentData = {
+                    task_assignment_id: taskAssignment.id,
+                    document_name: file.name,
+                    document_path: `/uploads/${sanitizedProjectName}/${task.task_name}/${user.name}/${filename}`,
+                    document_type: file.mimetype,
+                    document_size: file.size,
+                    status: 'uploading',
+                    uploaded_at: new Date()
+                };
+
+                const docResult = await TaskDocuments.create(documentData);
+                documents.push(docResult);
+
+                // Queue file upload
+                await queueFileUpload({
+                    documentId: docResult.id,
+                    tempFilepath: tempFilepath,
+                    uploadPath: userFolder,
+                    filename: filename,
+                    type: 'task'
+                });
+            }
+        }
+
+        // Update task status to completed if files were uploaded or link provided
+        if ((documents.length > 0 || link) && task.status !== 'completed') {
+            await Tasks.update(
+                { status: 'completed', end_date: new Date() },
+                { where: { id: task.id } }
+            );
+        }
+
+        await logUserActivity({
+            event: 'task_submitted',
+            userId: req.user.id,
+            taskId: task.id,
+            taskAssignmentId: taskAssignment.id,
+            documentCount: documents.length,
+            ...extractRequestDetails(req)
+        });
+
+        res.json({
+            success: true,
+            data: {
+                task_assignment_id: taskAssignment.id,
+                link: link || null,
+                documents: documents
+            },
+            message: 'Task submitted successfully'
+        });
+    } catch (error) {
+        console.error('Error submitting task:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            message: 'Failed to submit task'
+        });
+    }
+};
+
 module.exports = {
     getAssignedTasks,
     getTaskById,
     assignTaskToUser,
-    acceptTask
+    acceptTask,
+    submitTask
 };
