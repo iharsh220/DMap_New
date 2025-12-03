@@ -1233,6 +1233,77 @@
 						"description": "Submit a completed task with optional link and file uploads. Finds task assignment based on task_id and user, updates with link and stores uploaded files in task_documents table. Marks task as completed if files or link are provided (requires authentication)"
 					},
 					"response": []
+				},
+				{
+					"name": "Get Task Documents",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/digilabs/dmap/api/users/tasks/:task_id/documents",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"digilabs",
+								"dmap",
+								"api",
+								"users",
+								"tasks",
+								":task_id",
+								"documents"
+							],
+							"variable": [
+								{
+									"key": "task_id",
+									"value": "1",
+									"description": "Task ID to get documents for"
+								}
+							]
+						},
+						"description": "Get all documents uploaded for a specific task. Only returns documents for tasks assigned to the authenticated user (requires authentication)"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Task Document",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/digilabs/dmap/api/users/documents/:document_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"digilabs",
+								"dmap",
+								"api",
+								"users",
+								"documents",
+								":document_id"
+							],
+							"variable": [
+								{
+									"key": "document_id",
+									"value": "1",
+									"description": "Document ID to delete"
+								}
+							]
+						},
+						"description": "Delete a task document by ID. Only allows deletion of documents owned by the authenticated user. Also deletes the physical file from storage (requires authentication)"
+					},
+					"response": []
 				}
 			]
 		},

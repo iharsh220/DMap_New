@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../../middleware/jwtMiddleware');
-const { getAssignedTasks, getTaskById, assignTaskToUser, acceptTask, submitTask } = require('../../controller/userController/userController');
+const { getAssignedTasks, getTaskById, assignTaskToUser, acceptTask, submitTask, getTaskDocuments, deleteTaskDocument } = require('../../controller/userController/userController');
 
 // GET /api/users/tasks - Get assigned tasks (only for division 9 users)
 router.get('/tasks', authenticateToken, getAssignedTasks);
@@ -17,5 +17,11 @@ router.put('/tasks/:taskId/accept', authenticateToken, acceptTask);
 
 // POST /api/users/tasks/submit - Submit a task with optional link and files
 router.post('/tasks/submit', authenticateToken, submitTask);
+
+// GET /api/users/tasks/:task_id/documents - Get all documents for a task
+router.get('/tasks/:task_id/documents', authenticateToken, getTaskDocuments);
+
+// DELETE /api/users/documents/:document_id - Delete a document by ID
+router.delete('/documents/:document_id', authenticateToken, deleteTaskDocument);
 
 module.exports = router;

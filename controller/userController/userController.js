@@ -645,10 +645,138 @@ const submitTask = async (req, res) => {
     }
 };
 
+const getTaskDocuments = async (req, res) => {
+    try {
+        const user_id = req.user.id;
+        const taskId = parseInt(req.params.task_id, 10);
+
+        if (isNaN(taskId)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid task ID'
+            });
+        }
+
+        // Check if task exists and is assigned to the user
+        const taskAssignment = await TaskAssignments.findOne({
+            where: { task_id: taskId, user_id },
+            attributes: ['id']
+        });
+
+        if (!taskAssignment) {
+            return res.status(404).json({
+                success: false,
+                error: 'Task not found or not assigned to you'
+            });
+        }
+
+        // Get all documents for this task assignment
+        const documents = await TaskDocuments.findAll({
+            where: { task_assignment_id: taskAssignment.id },
+            order: [['uploaded_at', 'DESC']]
+        });
+
+        await logUserActivity({
+            event: 'task_documents_viewed',
+            userId: req.user.id,
+            taskId: taskId,
+            documentCount: documents.length,
+            ...extractRequestDetails(req)
+        });
+
+        res.json({
+            success: true,
+            data: documents,
+            message: 'Task documents retrieved successfully'
+        });
+    } catch (error) {
+        console.error('Error fetching task documents:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            message: 'Failed to fetch task documents'
+        });
+    }
+};
+
+const deleteTaskDocument = async (req, res) => {
+    try {
+        const user_id = req.user.id;
+        const documentId = parseInt(req.params.document_id, 10);
+
+        if (isNaN(documentId)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid document ID'
+            });
+        }
+
+        // Find the document and check ownership through task assignment
+        const document = await TaskDocuments.findOne({
+            where: { id: documentId },
+            include: [
+                {
+                    model: TaskAssignments,
+                    where: { user_id },
+                    attributes: ['id'],
+                    required: true
+                }
+            ]
+        });
+
+        if (!document) {
+            return res.status(404).json({
+                success: false,
+                error: 'Document not found or not authorized to delete'
+            });
+        }
+
+        // Delete the physical file if it exists
+        const fs = require('fs');
+        const path = require('path');
+        const filePath = path.join(__dirname, '../../', document.document_path);
+
+        try {
+            if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+            }
+        } catch (fileError) {
+            console.error('Error deleting file:', fileError);
+            // Continue with database deletion even if file deletion fails
+        }
+
+        // Delete from database
+        await TaskDocuments.destroy({
+            where: { id: documentId }
+        });
+
+        await logUserActivity({
+            event: 'task_document_deleted',
+            userId: req.user.id,
+            documentId: documentId,
+            ...extractRequestDetails(req)
+        });
+
+        res.json({
+            success: true,
+            message: 'Document deleted successfully'
+        });
+    } catch (error) {
+        console.error('Error deleting task document:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            message: 'Failed to delete task document'
+        });
+    }
+};
+
 module.exports = {
     getAssignedTasks,
     getTaskById,
     assignTaskToUser,
     acceptTask,
-    submitTask
+    submitTask,
+    getTaskDocuments,
+    deleteTaskDocument
 };
