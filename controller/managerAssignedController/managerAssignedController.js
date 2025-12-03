@@ -1,4 +1,6 @@
 const { Op } = require('sequelize');
+const fs = require('fs');
+const path = require('path');
 
 const CrudService = require('../../services/crudService');
 const {
@@ -877,6 +879,45 @@ const createTask = async (req, res) => {
             });
         }
 
+        // Validate and format deadline date
+        let formattedDeadline = null;
+        if (deadline) {
+            // Validate date format and ensure proper YYYY-MM-DD format
+            const dateRegex = /^\d{4}-\d{1,2}-\d{1,2}$/;
+            if (!dateRegex.test(deadline)) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Deadline must be in YYYY-MM-DD format'
+                });
+            }
+
+            // Parse and format the date to ensure proper padding
+            const dateParts = deadline.split('-');
+            const year = parseInt(dateParts[0]);
+            const month = parseInt(dateParts[1]);
+            const day = parseInt(dateParts[2]);
+
+            // Validate date components
+            if (month < 1 || month > 12 || day < 1 || day > 31) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Invalid date components in deadline'
+                });
+            }
+
+            // Format with proper zero-padding
+            formattedDeadline = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+
+            // Additional validation: check if it's a valid date
+            const testDate = new Date(formattedDeadline);
+            if (isNaN(testDate.getTime())) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Invalid date provided for deadline'
+                });
+            }
+        }
+
         // Validate dependencies if provided
         if (dependencies && Array.isArray(dependencies) && dependencies.length > 0) {
             // Check if all dependency tasks exist and belong to the same work_request
@@ -896,12 +937,12 @@ const createTask = async (req, res) => {
             }
 
             // Check if deadline is on or after the latest dependency deadline
-            if (deadline) {
+            if (formattedDeadline) {
                 const latestDependencyDeadline = dependencyTasks.reduce((latest, task) => {
                     return task.deadline && (!latest || task.deadline > latest) ? task.deadline : latest;
                 }, null);
 
-                if (latestDependencyDeadline && new Date(deadline) < new Date(latestDependencyDeadline)) {
+                if (latestDependencyDeadline && new Date(formattedDeadline) < new Date(latestDependencyDeadline)) {
                     return res.status(400).json({
                         success: false,
                         error: 'Task deadline cannot be before the latest dependency deadline'
@@ -917,7 +958,7 @@ const createTask = async (req, res) => {
             description,
             request_type_id,
             task_type_id,
-            deadline,
+            deadline: formattedDeadline,
             status: 'pending'
         };
 
@@ -942,6 +983,42 @@ const createTask = async (req, res) => {
                 dependency_task_id: depTaskId
             }));
             await TaskDependencies.bulkCreate(dependencyRecords);
+        }
+
+        // Create folder structure under existing project folder: project_name/task_name/user_folders
+        try {
+            const uploadDir = path.join(__dirname, '../../uploads');
+            const sanitizedProjectName = workRequest.project_name.replace(/[^a-zA-Z0-9]/g, '_');
+            const projectFolder = path.join(uploadDir, sanitizedProjectName);
+            const taskFolder = path.join(projectFolder, task_name);
+
+            // Check if project folder exists (should be created by createWorkRequest)
+            if (!fs.existsSync(projectFolder)) {
+                console.error(`Project folder does not exist: ${projectFolder}`);
+                // Don't fail the task creation if folder creation fails
+            } else {
+                // Create task folder under existing project folder
+                if (!fs.existsSync(taskFolder)) {
+                    fs.mkdirSync(taskFolder);
+                    console.log(`Created task folder: ${taskFolder}`);
+                }
+
+                // Create user folders for each assigned user
+                for (const userId of assigned_to_ids) {
+                    // Get user details to get the name
+                    const user = await User.findByPk(userId, { attributes: ['name'] });
+                    if (user && user.name) {
+                        const userFolder = path.join(taskFolder, user.name);
+                        if (!fs.existsSync(userFolder)) {
+                            fs.mkdirSync(userFolder, { recursive: true });
+                            console.log(`Created user folder: ${userFolder}`);
+                        }
+                    }
+                }
+            }
+        } catch (folderError) {
+            console.error('Error creating folders:', folderError);
+            // Don't fail the task creation if folder creation fails
         }
 
         await logUserActivity({
