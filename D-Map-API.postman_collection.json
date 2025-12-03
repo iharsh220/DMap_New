@@ -1036,7 +1036,7 @@
 					"response": []
 				},
 				{
-					"name": "Get Tasks by Work Request ID",
+					"name": "Get Task Details by Task ID",
 					"request": {
 						"method": "GET",
 						"header": [
@@ -1046,7 +1046,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/users/work-requests/:work_request_id/tasks",
+							"raw": "{{base_url}}/digilabs/dmap/api/users/tasks/:task_id",
 							"host": [
 								"{{base_url}}"
 							],
@@ -1055,19 +1055,18 @@
 								"dmap",
 								"api",
 								"users",
-								"work-requests",
-								":work_request_id",
-								"tasks"
+								"tasks",
+								":task_id"
 							],
 							"variable": [
 								{
-									"key": "work_request_id",
+									"key": "task_id",
 									"value": "1",
-									"description": "Work request ID to get all tasks for"
+									"description": "Task ID to get details for"
 								}
 							]
 						},
-						"description": "Get all tasks for a specific work request with full details including assigned users, request types, task types, work request info, and dependencies. Only available for users in department 9 (requires authentication)"
+						"description": "Get detailed information for a specific task including who requested it, assigned users, work request details, managers, and dependencies. No division restrictions (requires authentication)"
 					},
 					"response": []
 				}

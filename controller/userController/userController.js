@@ -2,6 +2,8 @@ const {
     Tasks,
     RequestType,
     TaskType,
+    TaskAssignments,
+    TaskDependencies,
     WorkRequests,
     WorkRequestManagers,
     User
@@ -88,38 +90,24 @@ const getAssignedTasks = async (req, res) => {
     }
 };
 
-const getTasksByWorkRequestId = async (req, res) => {
+const getTaskById = async (req, res) => {
     try {
-        const workRequestId = parseInt(req.params.work_request_id, 10);
-        if (isNaN(workRequestId)) {
-            return res.status(400).json({ success: false, error: 'Invalid work request ID' });
+        const taskId = parseInt(req.params.task_id, 10);
+        if (isNaN(taskId)) {
+            return res.status(400).json({ success: false, error: 'Invalid task ID' });
         }
 
-        const user_id = req.user.id;
-
-        // Check if user is in division 9
-        const isInDivision9 = req.user.divisions.some(division => division.id === 9);
-        if (!isInDivision9) {
-            return res.status(403).json({
-                success: false,
-                error: 'Access denied. This endpoint is only available for division 9 users.'
-            });
-        }
-
-        // Get tasks for the work request with full details
-        const tasksResult = await Tasks.findAll({
-            where: { work_request_id: workRequestId },
+        // Get single task with full details - only if assigned to current user
+        const taskResult = await Tasks.findOne({
+            where: { id: taskId },
             include: [
                 {
-                    model: TaskAssignments,
-                    include: [
-                        {
-                            model: User,
-                            as: 'user',
-                            attributes: ['id', 'name', 'email']
-                        }
-                    ],
-                    attributes: ['id', 'assigned_at']
+                    model: User,
+                    as: 'assignedUsers',
+                    where: { id: req.user.id }, // Only show if current user is assigned
+                    attributes: ['id', 'name', 'email'],
+                    through: { attributes: ['created_at'] },
+                    required: true // This ensures the task must be assigned to the user
                 },
                 {
                     model: RequestType,
@@ -167,34 +155,36 @@ const getTasksByWorkRequestId = async (req, res) => {
                     ]
                 }
             ],
-            attributes: { exclude: ['created_at', 'updated_at'] },
-            order: [['created_at', 'ASC']]
+            attributes: { exclude: ['created_at', 'updated_at'] }
         });
 
+        if (!taskResult) {
+            return res.status(404).json({ success: false, error: 'Task not found' });
+        }
+
         await logUserActivity({
-            event: 'work_request_tasks_viewed',
+            event: 'task_details_viewed',
             userId: req.user.id,
-            workRequestId: workRequestId,
-            taskCount: tasksResult.length,
+            taskId: taskId,
             ...extractRequestDetails(req)
         });
 
         res.json({
             success: true,
-            data: tasksResult,
-            message: 'Tasks retrieved successfully'
+            data: taskResult,
+            message: 'Task details retrieved successfully'
         });
     } catch (error) {
-        console.error('Error fetching tasks by work request:', error);
+        console.error('Error fetching task details:', error);
         res.status(500).json({
             success: false,
             error: error.message,
-            message: 'Failed to fetch tasks'
+            message: 'Failed to fetch task details'
         });
     }
 };
 
 module.exports = {
     getAssignedTasks,
-    getTasksByWorkRequestId
+    getTaskById
 };
