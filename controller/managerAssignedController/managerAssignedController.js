@@ -819,7 +819,7 @@ const getTaskTypesByWorkRequest = async (req, res) => {
 const createTask = async (req, res) => {
     try {
         const manager_id = req.user.id;
-        const { work_request_id, task_name, description, assigned_to_ids, task_type_id, request_type_id, deadline, dependencies } = req.body;
+        const { work_request_id, task_name, description, assigned_to_ids, task_type_id, request_type_id, deadline, dependencies, project_type_id } = req.body;
 
         // Validate required fields
         if (!work_request_id || !task_name || !assigned_to_ids || !task_type_id || !request_type_id) {
@@ -920,6 +920,11 @@ const createTask = async (req, res) => {
             deadline,
             status: 'pending'
         };
+
+        // Add project_type_id if provided
+        if (project_type_id) {
+            taskData.project_type_id = project_type_id;
+        }
 
         const taskResult = await Tasks.create(taskData);
 

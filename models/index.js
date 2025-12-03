@@ -24,6 +24,7 @@ const IssueRegister = require('./IssueRegister/IssueRegister');
 const TaskProjectReference = require('./TaskProjectReference/TaskProjectReference');
 const TaskDependencies = require('./TaskDependencies/TaskDependencies');
 const TaskAssignments = require('./TaskAssignments/TaskAssignments');
+const AboutProject = require('./AboutProject/AboutProject');
 
 // Associations
 Department.hasMany(Division, { foreignKey: 'department_id', as: 'divisions' });
@@ -128,5 +129,6 @@ module.exports = {
   IssueRegister,
   TaskProjectReference,
   TaskDependencies,
-  TaskAssignments
+  TaskAssignments,
+  AboutProject
 };

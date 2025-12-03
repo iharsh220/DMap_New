@@ -27,7 +27,7 @@ const WorkRequests = sequelize.define('WorkRequests', {
     type: DataTypes.INTEGER,
     allowNull: true,
   },
-  project_details: {
+  about_project: {
     type: DataTypes.TEXT,
     allowNull: true,
   },

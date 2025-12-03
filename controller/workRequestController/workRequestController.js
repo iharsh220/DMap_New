@@ -15,7 +15,8 @@ const {
     Designation,
     Tasks,
     TaskType,
-    TaskDependencies
+    TaskDependencies,
+    AboutProject
 } = require('../../models');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
@@ -28,7 +29,7 @@ const workRequestService = new CrudService(WorkRequests);
 // Create work request
 const createWorkRequest = async (req, res) => {
     try {
-        const { project_name, brand, request_type_id, project_id, project_details, priority = 'medium', remarks, isdraft = 'false' } = req.body;
+        let { project_name, brand, request_type_id, project_id, about_project, priority = 'medium', remarks, isdraft = 'false' } = req.body;
         const user_id = req.user.id; // From JWT middleware
         // Validate required fields
         if (!project_name || !request_type_id) {
@@ -84,6 +85,48 @@ const createWorkRequest = async (req, res) => {
             });
         }
 
+        // Validate about_project JSON structure if provided
+        if (about_project) {
+            try {
+                let aboutProjectData;
+
+                // Handle different input formats
+                if (typeof about_project === 'string') {
+                    // Clean the string first (remove extra whitespace/newlines)
+                    const cleanString = about_project.trim();
+                    aboutProjectData = JSON.parse(cleanString);
+                } else if (typeof about_project === 'object') {
+                    aboutProjectData = about_project;
+                } else {
+                    throw new Error('Invalid format');
+                }
+
+                // Validate structure - should have output_devices and target_audience
+                if (!aboutProjectData.output_devices || !aboutProjectData.target_audience) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'about_project must contain output_devices and target_audience arrays'
+                    });
+                }
+
+                // Validate that arrays are not empty
+                if (!Array.isArray(aboutProjectData.output_devices) || !Array.isArray(aboutProjectData.target_audience)) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'output_devices and target_audience must be arrays'
+                    });
+                }
+
+                // Store as JSON string
+                about_project = JSON.stringify(aboutProjectData);
+            } catch (error) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Invalid JSON format for about_project'
+                });
+            }
+        }
+
         // Create work request
         const workRequestData = {
             user_id,
@@ -91,7 +134,7 @@ const createWorkRequest = async (req, res) => {
             brand,
             request_type_id: request_type_id,
             project_id,
-            project_details,
+            about_project,
             priority,
             status: isdraft === 'true' ? 'draft' : 'pending',
             requested_at: new Date(),
@@ -192,7 +235,7 @@ const createWorkRequest = async (req, res) => {
                     hour: '2-digit',
                     minute: '2-digit'
                 }),
-                project_details: result.data.project_details || 'No detailed description provided.',
+                about_project: result.data.about_project ? JSON.parse(result.data.about_project) : null,
                 priority_capitalized: result.data.priority.charAt(0).toUpperCase() + result.data.priority.slice(1),
                 frontend_url: process.env.FRONTEND_URL
             });
@@ -229,7 +272,7 @@ const createWorkRequest = async (req, res) => {
                 user_job_role: req.user.jobRole?.role_title || 'Not specified',
                 user_location: req.user.location?.location_name || 'Not specified',
                 user_designation: req.user.designation?.designation_name || 'Not specified',
-                project_details: result.data.project_details || 'No detailed description provided.',
+                about_project: result.data.about_project ? JSON.parse(result.data.about_project) : null,
                 priority_capitalized: result.data.priority.charAt(0).toUpperCase() + result.data.priority.slice(1),
                 frontend_url: process.env.FRONTEND_URL
             });
@@ -422,4 +465,35 @@ const getProjectTypesByRequestType = async (req, res) => {
     }
 };
 
-module.exports = { createWorkRequest, getMyWorkRequests, getWorkRequestById, getProjectTypesByRequestType };
+const getAboutProjectOptions = async (req, res) => {
+    try {
+        // Get all about_project options grouped by type
+        const outputDevices = await AboutProject.findAll({
+            where: { type: 'output_devices' },
+            attributes: ['category'],
+            order: [['category', 'ASC']]
+        });
+
+        const targetAudience = await AboutProject.findAll({
+            where: { type: 'target_audience' },
+            attributes: ['category'],
+            order: [['category', 'ASC']]
+        });
+
+        res.json({
+            success: true,
+            data: {
+                output_devices: outputDevices.map(item => item.category),
+                target_audience: targetAudience.map(item => item.category)
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching about project options:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+};
+
+module.exports = { createWorkRequest, getMyWorkRequests, getWorkRequestById, getProjectTypesByRequestType, getAboutProjectOptions };

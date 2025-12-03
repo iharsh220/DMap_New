@@ -512,9 +512,10 @@
 									"type": "text"
 								},
 								{
-									"key": "project_details",
-									"value": "Detailed description of the project requirements",
-									"type": "text"
+									"key": "about_project",
+									"value": "{\n  \"output_devices\": [\"iPad 9\", \"Mobile\"],\n  \"target_audience\": [\"Doctors\", \"Chemists\"]\n}",
+									"type": "text",
+									"description": "JSON object containing output_devices and target_audience arrays for multi-selection"
 								},
 								{
 									"key": "priority",
@@ -580,6 +581,33 @@
 							]
 						},
 						"description": "Get list of project types associated with a specific request type via project_request_reference table (requires authentication)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get About Project Options",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/digilabs/dmap/api/work-requests/about-project-options",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"digilabs",
+								"dmap",
+								"api",
+								"work-requests",
+								"about-project-options"
+							]
+						},
+						"description": "Get available options for about_project field with output_devices and target_audience categories (requires authentication)"
 					},
 					"response": []
 				}
@@ -924,7 +952,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"work_request_id\": 56,\n  \"task_name\": \"Design Landing Page\",\n  \"description\": \"Create responsive landing page design\",\n  \"assigned_to_ids\": [10],\n  \"task_type_id\": 2,\n  \"request_type_id\": 2,\n  \"deadline\": \"2025-12-15\",\n  \"dependencies\": [1]\n}\n\n// For single user assignment:\n// {\n//   \"work_request_id\": 56,\n//   \"task_name\": \"Design Landing Page\",\n//   \"description\": \"Create responsive landing page design\",\n//   \"assigned_to_ids\": [10],\n//   \"task_type_id\": 1,\n//   \"request_type_id\": 2,\n//   \"deadline\": \"2025-12-15\",\n//   \"dependencies\": []\n// }"
+							"raw": "{\n  \"work_request_id\": 56,\n  \"task_name\": \"Design Landing Page\",\n  \"description\": \"Create responsive landing page design\",\n  \"assigned_to_ids\": [10],\n  \"task_type_id\": 2,\n  \"request_type_id\": 2,\n  \"project_type_id\": 5,\n  \"deadline\": \"2025-12-15\",\n  \"dependencies\": [1]\n}\n\n// For single user assignment:\n// {\n//   \"work_request_id\": 56,\n//   \"task_name\": \"Design Landing Page\",\n//   \"description\": \"Create responsive landing page design\",\n//   \"assigned_to_ids\": [10],\n//   \"task_type_id\": 1,\n//   \"request_type_id\": 2,\n//   \"project_type_id\": 5,\n//   \"deadline\": \"2025-12-15\",\n//   \"dependencies\": []\n// }"
 						},
 						"url": {
 							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/tasks",
@@ -940,7 +968,7 @@
 								"tasks"
 							]
 						},
-						"description": "Create a new task for an accepted work request. Supports optional dependencies array for task relationships (handled via task_dependencies table). Dependencies must be existing tasks from the same work request and deadline must be after latest dependency deadline (requires authentication and manager role)"
+						"description": "Create a new task for an accepted work request. Supports optional project_type_id for easier work request creation, and optional dependencies array for task relationships (handled via task_dependencies table). Dependencies must be existing tasks from the same work request and deadline must be after latest dependency deadline (requires authentication and manager role)"
 					},
 					"response": []
 				},

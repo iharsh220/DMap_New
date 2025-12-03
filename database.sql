@@ -1248,7 +1248,7 @@ CREATE TABLE `work_requests` (
   `brand` varchar(100) DEFAULT NULL,
   `request_type_id` int(11) NOT NULL,
   `project_id` int(11) DEFAULT NULL,
-  `project_details` text DEFAULT NULL,
+  `about_project` text DEFAULT NULL,
   `priority` enum('low','medium','high','critical') DEFAULT 'medium',
   `status` enum('draft','pending','accepted','assigned','in_progress','completed','rejected') DEFAULT 'pending',
   `requested_at` datetime DEFAULT NULL,
@@ -1261,8 +1261,38 @@ CREATE TABLE `work_requests` (
 -- Dumping data for table `work_requests`
 --
 
-INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `request_type_id`, `project_id`, `project_details`, `priority`, `status`, `requested_at`, `remarks`, `created_at`, `updated_at`) VALUES
-(56, 12, 'New Product Launch Campaign', 'Alembic Pharma', 5, 5, 'Detailed description of the project requirements', 'high', 'accepted', '2025-12-02 08:27:36', 'Any additional remarks', '2025-12-02 08:27:36', '2025-12-02 08:28:08');
+INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `request_type_id`, `project_id`, `about_project`, `priority`, `status`, `requested_at`, `remarks`, `created_at`, `updated_at`) VALUES
+(56, 12, 'New Product Launch Campaign', 'Alembic Pharma', 5, 5, '{\"output_devices\":[\"iPad 9\",\"Mobile\"],\"target_audience\":[\"Doctors\",\"Chemists\"]}', 'high', 'accepted', '2025-12-02 08:27:36', 'Any additional remarks', '2025-12-02 08:27:36', '2025-12-02 08:28:08');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `about_project`
+--
+
+CREATE TABLE `about_project` (
+  `id` int(11) NOT NULL,
+  `type` enum('output_devices','target_audience') NOT NULL,
+  `category` varchar(100) NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Dumping data for table `about_project`
+--
+
+INSERT INTO `about_project` (`id`, `type`, `category`, `created_at`, `updated_at`) VALUES
+(1, 'output_devices', 'iPad 9', '2025-12-03 05:52:15', '2025-12-03 05:52:15'),
+(2, 'output_devices', 'iPad 10', '2025-12-03 05:52:15', '2025-12-03 05:52:15'),
+(3, 'output_devices', 'Mobile', '2025-12-03 05:52:15', '2025-12-03 05:52:15'),
+(4, 'output_devices', 'Desktop', '2025-12-03 05:52:15', '2025-12-03 05:52:15'),
+(5, 'output_devices', 'Print', '2025-12-03 05:52:15', '2025-12-03 05:52:15'),
+(6, 'target_audience', 'Doctors', '2025-12-03 05:52:15', '2025-12-03 05:52:15'),
+(7, 'target_audience', 'Field Representatives', '2025-12-03 05:52:15', '2025-12-03 05:52:15'),
+(8, 'target_audience', 'Alembic HO', '2025-12-03 05:52:15', '2025-12-03 05:52:15'),
+(9, 'target_audience', 'Chemists', '2025-12-03 05:52:15', '2025-12-03 05:52:15'),
+(10, 'target_audience', 'Others', '2025-12-03 05:52:15', '2025-12-03 05:52:15');
 
 -- --------------------------------------------------------
 
@@ -1474,7 +1504,14 @@ ALTER TABLE `work_requests`
   ADD KEY `idx_work_requests_brand` (`brand`),
   ADD KEY `idx_work_requests_search` (`status`,`priority`,`created_at`),
   ADD KEY `idx_work_requests_user_search` (`user_id`,`status`,`created_at`);
-ALTER TABLE `work_requests` ADD FULLTEXT KEY `ft_work_requests_content` (`project_name`,`brand`,`project_details`);
+ALTER TABLE `work_requests` ADD FULLTEXT KEY `ft_work_requests_content` (`project_name`,`brand`,`about_project`);
+
+--
+-- Indexes for table `about_project`
+--
+ALTER TABLE `about_project`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `type` (`type`);
 
 --
 -- Indexes for table `work_request_documents`
@@ -1620,6 +1657,12 @@ ALTER TABLE `user_divisions`
 --
 ALTER TABLE `work_requests`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=57;
+
+--
+-- AUTO_INCREMENT for table `about_project`
+--
+ALTER TABLE `about_project`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `work_request_documents`
