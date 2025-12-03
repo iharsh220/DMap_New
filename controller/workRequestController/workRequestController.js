@@ -390,8 +390,9 @@ const getWorkRequestById = async (req, res) => {
                     include: [
                         {
                             model: User,
-                            as: 'assignedTo',
-                            attributes: ['id', 'name', 'email']
+                            as: 'assignedUsers',
+                            attributes: ['id', 'name', 'email'],
+                            through: { attributes: [] }
                         },
                         {
                             model: TaskType,
