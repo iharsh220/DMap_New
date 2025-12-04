@@ -53,7 +53,7 @@ if (cluster.isMaster) {
     // Make io accessible in routes
     app.set('io', io);
     app.set('apiIo', apiIo);
-
+    app.set('trust proxy', 1);
     // Middleware
     app.use(helmet({
         crossOriginResourcePolicy: false,
@@ -69,7 +69,7 @@ if (cluster.isMaster) {
     }));
     app.use(compression());
     app.use(express.json());
-    
+
     app.use(express.urlencoded({ extended: true }));
     app.use(fileUpload());
     app.use('/uploads', express.static('uploads'));
