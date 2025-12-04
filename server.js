@@ -11,6 +11,9 @@ const socketIo = require('socket.io');
 require('./models'); // Initialize models
 require('dotenv').config();
 
+// Initialize task scheduler
+const { scheduleTaskProgression } = require('./services/taskSchedulerService');
+
 if (cluster.isMaster) {
     const numCPUs = os.cpus().length;
     console.log(`Master ${process.pid} is running`);
@@ -101,6 +104,11 @@ if (cluster.isMaster) {
 
     // Connect to database
     connectDB();
+
+    // Initialize task scheduler (only in first worker to avoid duplicates)
+    if (cluster.worker.id === 1) {
+        scheduleTaskProgression();
+    }
 
     server.listen(PORT, () => {
         console.log(`Worker ${process.pid} started, server running on port ${PORT}`);

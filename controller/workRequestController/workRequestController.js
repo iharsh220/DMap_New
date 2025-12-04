@@ -433,7 +433,7 @@ const getWorkRequestById = async (req, res) => {
                                 {
                                     model: Tasks,
                                     as: 'dependencyTask',
-                                    attributes: ['id', 'task_name']
+                                    attributes: ['id', 'task_name', 'status', 'deadline', 'description']
                                 }
                             ]
                         }
