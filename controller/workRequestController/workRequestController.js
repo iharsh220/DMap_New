@@ -339,6 +339,33 @@ const getMyWorkRequests = async (req, res) => {
                             ]
                         }
                     ]
+                },
+                {
+                    model: Tasks,
+                    attributes: { exclude: ['created_at', 'updated_at'] },
+                    include: [
+                        {
+                            model: User,
+                            as: 'assignedUsers',
+                            attributes: ['id', 'name', 'email'],
+                            through: { attributes: [] }
+                        },
+                        {
+                            model: TaskType,
+                            attributes: ['id', 'task_type', 'description']
+                        },
+                        {
+                            model: TaskDependencies,
+                            as: 'dependencies',
+                            include: [
+                                {
+                                    model: Tasks,
+                                    as: 'dependencyTask',
+                                    attributes: ['id', 'task_name']
+                                }
+                            ]
+                        }
+                    ]
                 }
             ],
             limit: req.pagination.limit,

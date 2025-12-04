@@ -1358,6 +1358,102 @@ const getMyTeam = async (req, res) => {
     }
 };
 
+const getAssignedRequestsWithStatus = async (req, res) => {
+    try {
+        const manager_id = req.user.id;
+        const { status } = req.query; // Optional status query parameter
+
+        let where = { status: { [Op.ne]: 'draft' } };
+
+        // Apply status filter if provided
+        if (status) {
+            if (!['pending', 'accepted', 'in_progress', 'assinged'].includes(status)) {
+                return res.status(400).json({ success: false, error: 'Invalid status. Allowed values: pending, accepted, in_progress' });
+            }
+            where.status = status;
+        }
+
+        // Apply filters
+        if (req.filters) {
+            where = { ...where, ...req.filters };
+        }
+
+        // Apply search
+        if (req.search.term && req.search.fields.length > 0) {
+            where[Op.or] = req.search.fields.map(field => ({
+                [field]: { [Op.like]: `%${req.search.term}%` }
+            }));
+        }
+
+        // Prepare includes
+        const includes = [
+            {
+                model: WorkRequestManagers,
+                where: { manager_id: manager_id },
+                required: true,
+                attributes: []
+            },
+            { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
+            { model: RequestType, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, through: { attributes: [] }, attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
+        ];
+
+        // If status is in_progress, include tasks with deadline
+        if (status === 'in_progress' || status === 'assinged') {
+            includes.push({
+                model: Tasks,
+                attributes: ['id', 'task_name', 'description', 'deadline', 'status'],
+                include: [
+                    {
+                        model: User,
+                        as: 'assignedUsers',
+                        attributes: ['id', 'name', 'email'],
+                        through: { attributes: [] }
+                    }
+                ]
+            });
+        }
+
+        const result = await workRequestService.getAll({
+            where,
+            attributes: { exclude: ['request_type_id', 'requested_manager_link_id', 'updated_at'] },
+            include: includes,
+            limit: req.pagination.limit,
+            offset: req.pagination.offset,
+            order: [['created_at', 'DESC']]
+        });
+
+        if (result.success) {
+            // If status is in_progress, add latestTaskDeadline to each work request
+            if (status === 'in_progress') {
+                for (const workRequest of result.data) {
+                    if (workRequest.Tasks && workRequest.Tasks.length > 0) {
+                        const latestDeadline = workRequest.Tasks.reduce((latest, task) => {
+                            return task.deadline && (!latest || task.deadline > latest) ? task.deadline : latest;
+                        }, null);
+                        workRequest.dataValues.latestTaskDeadline = latestDeadline;
+                    } else {
+                        workRequest.dataValues.latestTaskDeadline = null;
+                    }
+                }
+            }
+
+            await logUserActivity({
+                event: 'assigned_requests_with_status_viewed',
+                userId: req.user.id,
+                status: status || 'all',
+                count: result.data.length,
+                ...extractRequestDetails(req)
+            });
+            res.json({ success: true, data: result.data, pagination: req.pagination });
+        } else {
+            res.status(500).json({ success: false, error: result.error });
+        }
+    } catch (error) {
+        console.error('Error fetching assigned requests with status:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
 const assignTasksToUsers = async (req, res) => {
     try {
         console.log('assignTasksToUsers called with params:', req.params);
@@ -1489,6 +1585,20 @@ const assignTasksToUsers = async (req, res) => {
             { where: { work_request_id: workRequestId } }
         );
 
+        // Update work request status to in_progress
+        console.log('Updating work request status to in_progress:', workRequestId);
+        await workRequestService.updateById(workRequestId, { status: 'in_progress' });
+
+        await logUserActivity({
+            event: 'work_request_status_updated',
+            userId: req.user.id,
+            workRequestId: workRequestId,
+            oldStatus: 'accepted',
+            newStatus: 'in_progress',
+            reason: 'tasks_assigned_to_users',
+            ...extractRequestDetails(req)
+        });
+
         await logUserActivity({
             event: 'task_assignment_notifications_sent',
             userId: req.user.id,
@@ -1505,7 +1615,7 @@ const assignTasksToUsers = async (req, res) => {
                 totalTasks: tasksWithUsers.length,
                 notificationsSent: assignedUsers.length
             },
-            message: 'Task assignment notifications sent successfully'
+            message: 'Task assignment notifications sent successfully and work request status updated to in_progress'
         });
     } catch (error) {
         console.error('Error sending task assignment notifications:', error);
@@ -1531,5 +1641,6 @@ module.exports = {
     getTasksByWorkRequestId,
     getTaskAnalytics,
     getMyTeam,
-    assignTasksToUsers
+    assignTasksToUsers,
+    getAssignedRequestsWithStatus
 };

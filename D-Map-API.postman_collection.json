@@ -676,6 +676,65 @@
 					"response": []
 				},
 				{
+					"name": "Get Assigned Requests with Status Filter",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/digilabs/dmap/api/manager/requests?page=1&limit=10&search=&searchFields=project_name,brand&priority=&status=",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"digilabs",
+								"dmap",
+								"api",
+								"manager",
+								"requests"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number for pagination"
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Number of items per page"
+								},
+								{
+									"key": "search",
+									"value": "",
+									"description": "Search term"
+								},
+								{
+									"key": "searchFields",
+									"value": "project_name,brand",
+									"description": "Fields to search in"
+								},
+								{
+									"key": "priority",
+									"value": "",
+									"description": "Filter by priority"
+								},
+								{
+									"key": "status",
+									"value": "",
+									"description": "Filter by status (pending, accepted, in_progress). If not provided, returns all requests. For in_progress, includes latestTaskDeadline field"
+								}
+							]
+						},
+						"description": "Get work requests assigned to the authenticated manager with optional status filtering. For in_progress requests, includes the latest task deadline. Supports pagination, search, and filtering (requires authentication and manager role)"
+					},
+					"response": []
+				},
+				{
 					"name": "Get Assigned Work Request by ID",
 					"request": {
 						"method": "GET",
