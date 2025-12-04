@@ -1203,6 +1203,12 @@
 									"description": "Task ID to submit"
 								},
 								{
+									"key": "task_count",
+									"value": "5",
+									"type": "text",
+									"description": "Task count (required)"
+								},
+								{
 									"key": "link",
 									"value": "https://example.com/delivered-work",
 									"type": "text",
@@ -1230,7 +1236,7 @@
 								"submit"
 							]
 						},
-						"description": "Submit a completed task with optional link and file uploads. Finds task assignment based on task_id and user, updates with link and stores uploaded files in task_documents table. Marks task as completed if files or link are provided (requires authentication)"
+						"description": "Submit a completed task with required task_count, optional link and file uploads. Updates task with task_count and link, stores uploaded files in task_documents table. Marks task as completed if files or link are provided (requires authentication)"
 					},
 					"response": []
 				},

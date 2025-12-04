@@ -655,6 +655,7 @@ CREATE TABLE `tasks` (
   `status` enum('draft','pending','accepted','assigned','in_progress','completed','rejected','deferred') DEFAULT 'pending',
   `intimate_team` tinyint(1) DEFAULT 0,
   `task_count` int(11) DEFAULT 0,
+  `link` varchar(500) DEFAULT NULL,
   `start_date` date DEFAULT NULL,
   `end_date` date DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp(),

@@ -44,6 +44,10 @@ const Tasks = sequelize.define('Tasks', {
     allowNull: true,
     defaultValue: 0,
   },
+  link: {
+    type: DataTypes.STRING(500),
+    allowNull: true,
+  },
   start_date: {
     type: DataTypes.DATEONLY,
     allowNull: true,

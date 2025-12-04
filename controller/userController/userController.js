@@ -493,20 +493,22 @@ const acceptTask = async (req, res) => {
 const submitTask = async (req, res) => {
     try {
         const user_id = req.user.id;
-        const { task_id, link } = req.body;
+        const { task_id, task_count, link } = req.body;
 
-        if (!task_id) {
+        if (!task_id || !task_count) {
             return res.status(400).json({
                 success: false,
-                error: 'task_id is required'
+                error: 'task_id and task_count are required'
             });
         }
 
         const taskId = parseInt(task_id, 10);
-        if (isNaN(taskId)) {
+        const taskCount = parseInt(task_count, 10);
+
+        if (isNaN(taskId) || isNaN(taskCount)) {
             return res.status(400).json({
                 success: false,
-                error: 'Invalid task_id'
+                error: 'Invalid task_id or task_count'
             });
         }
 
@@ -541,17 +543,18 @@ const submitTask = async (req, res) => {
         const workRequest = task.WorkRequest;
         const user = taskAssignment.User;
 
-        // Update task assignment with link if provided
-        const updateData = {};
+        // Update task with task_count and link
+        const taskUpdateData = {
+            task_count: taskCount
+        };
+
         if (link) {
-            updateData.link = link;
+            taskUpdateData.link = link;
         }
 
-        if (Object.keys(updateData).length > 0) {
-            await TaskAssignments.update(updateData, {
-                where: { id: taskAssignment.id }
-            });
-        }
+        await Tasks.update(taskUpdateData, {
+            where: { id: taskId }
+        });
 
         // Handle file uploads
         const documents = [];
@@ -629,7 +632,8 @@ const submitTask = async (req, res) => {
         res.json({
             success: true,
             data: {
-                task_assignment_id: taskAssignment.id,
+                task_id: taskId,
+                task_count: taskCount,
                 link: link || null,
                 documents: documents
             },
