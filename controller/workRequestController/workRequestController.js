@@ -524,4 +524,208 @@ const getAboutProjectOptions = async (req, res) => {
     }
 };
 
-module.exports = { createWorkRequest, getMyWorkRequests, getWorkRequestById, getProjectTypesByRequestType, getAboutProjectOptions };
+const getDivisionWorkRequests = async (req, res) => {
+    try {
+        const user_id = req.user.id;
+
+        // Get user's divisions
+        const userDivisions = await UserDivisions.findAll({
+            where: { user_id: user_id },
+            attributes: ['division_id']
+        });
+
+        if (!userDivisions || userDivisions.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'No divisions found for this user'
+            });
+        }
+
+        const divisionIds = userDivisions.map(ud => ud.division_id);
+
+        // Get all users in the same divisions
+        const divisionUsers = await UserDivisions.findAll({
+            where: { division_id: { [Op.in]: divisionIds } },
+            attributes: ['user_id']
+        });
+
+        const userIds = [...new Set(divisionUsers.map(du => du.user_id))];
+
+        let where = {
+            user_id: { [Op.in]: userIds },
+            status: { [Op.ne]: 'draft' } // Exclude draft work requests
+        };
+
+        // Apply filters
+        if (req.filters) {
+            where = { ...where, ...req.filters };
+        }
+
+        // Apply search
+        if (req.search.term && req.search.fields.length > 0) {
+            where[Op.or] = req.search.fields.map(field => ({
+                [field]: { [Op.like]: `%${req.search.term}%` }
+            }));
+        }
+
+        const result = await workRequestService.getAll({
+            where,
+            attributes: { exclude: ['request_type_id', 'updated_at'] },
+            include: [
+                { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
+                { model: RequestType, attributes: { exclude: ['created_at', 'updated_at'] } },
+                {
+                    model: WorkRequestManagers, attributes: { exclude: ['created_at', 'updated_at'] }, include: [
+                        {
+                            model: User, as: 'manager', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] }, include: [
+                                { model: Department, as: 'Department', attributes: { exclude: ['created_at', 'updated_at'] } },
+                                { model: Division, as: 'Divisions', attributes: { exclude: ['created_at', 'updated_at'] }, through: { attributes: [] } },
+                                { model: JobRole, as: 'JobRole', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } },
+                                { model: Location, as: 'Location', attributes: { exclude: ['created_at', 'updated_at'] } }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    model: Tasks,
+                    attributes: { exclude: ['created_at', 'updated_at'] },
+                    include: [
+                        {
+                            model: User,
+                            as: 'assignedUsers',
+                            attributes: ['id', 'name', 'email'],
+                            through: { attributes: [] }
+                        },
+                        {
+                            model: TaskType,
+                            attributes: ['id', 'task_type', 'description']
+                        },
+                        {
+                            model: TaskDependencies,
+                            as: 'dependencies',
+                            include: [
+                                {
+                                    model: Tasks,
+                                    as: 'dependencyTask',
+                                    attributes: ['id', 'task_name']
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            limit: req.pagination.limit,
+            offset: req.pagination.offset,
+            order: [['created_at', 'DESC']]
+        });
+
+        if (result.success) {
+            res.json({ success: true, data: result.data, pagination: req.pagination });
+        } else {
+            res.status(500).json({ success: false, error: result.error });
+        }
+    } catch (error) {
+        console.error('Error fetching division work requests:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+const getDivisionWorkRequestById = async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) {
+            return res.status(400).json({ success: false, error: 'Invalid work request ID' });
+        }
+
+        const user_id = req.user.id;
+
+        // Get user's divisions
+        const userDivisions = await UserDivisions.findAll({
+            where: { user_id: user_id },
+            attributes: ['division_id']
+        });
+
+        if (!userDivisions || userDivisions.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'No divisions found for this user'
+            });
+        }
+
+        const divisionIds = userDivisions.map(ud => ud.division_id);
+
+        // Get all users in the same divisions
+        const divisionUsers = await UserDivisions.findAll({
+            where: { division_id: { [Op.in]: divisionIds } },
+            attributes: ['user_id']
+        });
+
+        const userIds = [...new Set(divisionUsers.map(du => du.user_id))];
+
+        const result = await workRequestService.getAll({
+            where: {
+                id,
+                user_id: { [Op.in]: userIds },
+                status: { [Op.ne]: 'draft' }
+            },
+            attributes: { exclude: ['request_type_id', 'created_at', 'updated_at'] },
+            include: [
+                { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
+                { model: RequestType, attributes: { exclude: ['created_at', 'updated_at'] } },
+                {
+                    model: WorkRequestManagers, attributes: { exclude: ['created_at', 'updated_at'] }, include: [
+                        {
+                            model: User, as: 'manager', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] }, include: [
+                                { model: Department, as: 'Department', attributes: { exclude: ['created_at', 'updated_at'] } },
+                                { model: Division, as: 'Divisions', attributes: { exclude: ['created_at', 'updated_at'] }, through: { attributes: [] } },
+                                { model: JobRole, as: 'JobRole', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } },
+                                { model: Location, as: 'Location', attributes: { exclude: ['created_at', 'updated_at'] } }
+                            ]
+                        }
+                    ]
+                },
+                { model: WorkRequestDocuments, attributes: { exclude: ['created_at', 'updated_at'] } },
+                {
+                    model: Tasks,
+                    attributes: { exclude: ['created_at', 'updated_at'] },
+                    include: [
+                        {
+                            model: User,
+                            as: 'assignedUsers',
+                            attributes: ['id', 'name', 'email'],
+                            through: { attributes: [] }
+                        },
+                        {
+                            model: TaskType,
+                            attributes: ['id', 'task_type', 'description']
+                        },
+                        {
+                            model: TaskDependencies,
+                            as: 'dependencies',
+                            include: [
+                                {
+                                    model: Tasks,
+                                    as: 'dependencyTask',
+                                    attributes: ['id', 'task_name']
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            limit: 1,
+            order: []
+        });
+
+        if (result.success && result.data.length > 0) {
+            res.json({ success: true, data: result.data[0] });
+        } else {
+            res.status(404).json({ success: false, error: 'Work request not found or not accessible' });
+        }
+    } catch (error) {
+        console.error('Error fetching division work request:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+module.exports = { createWorkRequest, getMyWorkRequests, getWorkRequestById, getProjectTypesByRequestType, getAboutProjectOptions, getDivisionWorkRequests, getDivisionWorkRequestById };

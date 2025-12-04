@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createWorkRequest, getMyWorkRequests, getWorkRequestById, getProjectTypesByRequestType, getAboutProjectOptions } = require('../../controller/workRequestController/workRequestController');
+const { createWorkRequest, getMyWorkRequests, getWorkRequestById, getProjectTypesByRequestType, getAboutProjectOptions, getDivisionWorkRequests, getDivisionWorkRequestById } = require('../../controller/workRequestController/workRequestController');
 const { authenticateToken } = require('../../middleware/jwtMiddleware');
 const filterMiddleware = require('../../middleware/filterMiddleware');
 const paginationMiddleware = require('../../middleware/paginationMiddleware');
@@ -20,6 +20,12 @@ router.get('/about-project-options', authenticateToken, getAboutProjectOptions);
 
 // GET /work-requests/:id - Get work request by ID
 router.get('/:id', authenticateToken, getWorkRequestById);
+
+// GET /work-requests/division/all - Get all work requests from users in same division
+router.get('/division/all', authenticateToken, filterMiddleware, paginationMiddleware, searchMiddleware, getDivisionWorkRequests);
+
+// GET /work-requests/division/:id - Get work request by ID from same division
+router.get('/division/:id', authenticateToken, getDivisionWorkRequestById);
 
 // POST /work-requests - Create work request
 router.post('/', authenticateToken, (req, res, next) => {

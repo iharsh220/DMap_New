@@ -610,6 +610,101 @@
 						"description": "Get available options for about_project field with output_devices and target_audience categories (requires authentication)"
 					},
 					"response": []
+				},
+				{
+					"name": "Get Division Work Requests",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/digilabs/dmap/api/work-requests/division/all?page=1&limit=10&search=&searchFields=project_name,brand&priority=&status=",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"digilabs",
+								"dmap",
+								"api",
+								"work-requests",
+								"division",
+								"all"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number for pagination"
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Number of items per page"
+								},
+								{
+									"key": "search",
+									"value": "",
+									"description": "Search term"
+								},
+								{
+									"key": "searchFields",
+									"value": "project_name,brand",
+									"description": "Fields to search in"
+								},
+								{
+									"key": "priority",
+									"value": "",
+									"description": "Filter by priority"
+								},
+								{
+									"key": "status",
+									"value": "",
+									"description": "Filter by status (excludes draft by default)"
+								}
+							]
+						},
+						"description": "Get all running work requests from users in the same division as the authenticated user, including complete task details (requires authentication)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Division Work Request by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/digilabs/dmap/api/work-requests/division/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"digilabs",
+								"dmap",
+								"api",
+								"work-requests",
+								"division",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1",
+									"description": "Work request ID"
+								}
+							]
+						},
+						"description": "Get a specific work request by ID from users in the same division as the authenticated user, including complete task details and documents (requires authentication, only accessible if work request belongs to same division)"
+					},
+					"response": []
 				}
 			]
 		},

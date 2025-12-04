@@ -1315,9 +1315,16 @@ const getMyTeam = async (req, res) => {
             for (const userDivision of creativeUsers) {
                 const user = userDivision.User;
 
-                // Count total tasks assigned to this user
+                // Count active tasks (accepted or in_progress) assigned to this user
                 const taskCount = await TaskAssignments.count({
-                    where: { user_id: user.id }
+                    where: { user_id: user.id },
+                    include: [
+                        {
+                            model: Tasks,
+                            where: { status: { [Op.in]: ['accepted', 'in_progress'] } },
+                            attributes: []
+                        }
+                    ]
                 });
 
                 divisionTeam.teamMembers.push({
