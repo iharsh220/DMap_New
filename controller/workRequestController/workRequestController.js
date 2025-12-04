@@ -795,7 +795,7 @@ const getUserDashboardStats = async (req, res) => {
         const upcomingDeadlinesCount = await Tasks.count({
             where: {
                 request_type_id: request_type_id,
-                status: { [Op.in]: ['assigned','accepted', 'in_progress'] },
+                status: { [Op.in]: ['assigned', 'accepted', 'in_progress'] },
                 deadline: {
                     [Op.gte]: today,
                     [Op.lte]: sevenDaysFromNow
