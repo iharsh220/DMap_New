@@ -16,7 +16,8 @@ const {
     Tasks,
     TaskType,
     TaskDependencies,
-    AboutProject
+    AboutProject,
+    RequestDivisionReference
 } = require('../../models');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
@@ -728,4 +729,133 @@ const getDivisionWorkRequestById = async (req, res) => {
     }
 };
 
-module.exports = { createWorkRequest, getMyWorkRequests, getWorkRequestById, getProjectTypesByRequestType, getAboutProjectOptions, getDivisionWorkRequests, getDivisionWorkRequestById };
+const getUserDashboardStats = async (req, res) => {
+    try {
+        const { request_type_id } = req.query;
+
+        if (!request_type_id) {
+            return res.status(400).json({
+                success: false,
+                error: 'request_type_id is required'
+            });
+        }
+
+        // Validate request type exists
+        const requestType = await RequestType.findByPk(request_type_id);
+        if (!requestType) {
+            return res.status(404).json({
+                success: false,
+                error: 'Request type not found'
+            });
+        }
+
+        // Get divisions linked to this request type with division details
+        const requestTypeDivisions = await RequestDivisionReference.findAll({
+            where: { request_id: request_type_id },
+            include: [{
+                model: Division,
+                attributes: ['id', 'title']
+            }]
+        });
+
+        if (!requestTypeDivisions || requestTypeDivisions.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'No divisions found for this request type'
+            });
+        }
+
+        const divisionIds = requestTypeDivisions.map(rtd => rtd.division_id);
+        const divisions = requestTypeDivisions.map(rtd => ({
+            id: rtd.Division.id,
+            title: rtd.Division.title
+        }));
+
+        // 1. Count accepted + in_progress tasks for this request type
+        const ongoingTasksCount = await Tasks.count({
+            where: {
+                status: { [Op.in]: ['accepted', 'in_progress'] },
+                request_type_id: request_type_id
+            }
+        });
+
+        // 2. Count accepted + in_progress projects for this request type
+        const ongoingProjectsCount = await WorkRequests.count({
+            where: {
+                request_type_id: request_type_id,
+                status: { [Op.in]: ['accepted', 'in_progress'] }
+            }
+        });
+
+        // 3. Count accepted + in_progress tasks with deadlines in the next 7 days for this request type
+        const today = new Date();
+        const sevenDaysFromNow = new Date();
+        sevenDaysFromNow.setDate(today.getDate() + 7);
+
+        const upcomingDeadlinesCount = await Tasks.count({
+            where: {
+                request_type_id: request_type_id,
+                status: { [Op.in]: ['assigned','accepted', 'in_progress'] },
+                deadline: {
+                    [Op.gte]: today,
+                    [Op.lte]: sevenDaysFromNow
+                }
+            }
+        });
+
+        // 4. Find creative manager for this request type
+        const managerAssignment = await WorkRequestManagers.findOne({
+            include: [{
+                model: WorkRequests,
+                where: {
+                    request_type_id: request_type_id,
+                    status: { [Op.in]: ['accepted', 'in_progress'] }
+                },
+                attributes: []
+            }, {
+                model: User,
+                as: 'manager',
+                where: {
+                    job_role_id: 2, // Creative Manager
+                    account_status: 'active'
+                },
+                include: [
+                    { model: Department, as: 'Department', attributes: ['id', 'department_name'] },
+                    { model: Division, as: 'Divisions', attributes: ['id', 'title'] },
+                    { model: JobRole, as: 'JobRole', attributes: ['id', 'role_title'] },
+                    { model: Location, as: 'Location', attributes: ['id', 'location_name'] }
+                ]
+            }],
+            limit: 1
+        });
+
+        let creativeManagerInfo = null;
+        if (managerAssignment && managerAssignment.manager) {
+            const manager = managerAssignment.manager;
+            creativeManagerInfo = {
+                id: manager.id,
+                name: manager.name,
+                email: manager.email,
+                department: manager.Department?.department_name,
+                division: divisions.length > 0 ? divisions[0].title : null, // Use request type's division
+                job_role: manager.JobRole?.role_title,
+                location: manager.Location?.location_name
+            };
+        }
+
+        res.json({
+            success: true,
+            data: {
+                ongoing_tasks: ongoingTasksCount,
+                ongoing_projects: ongoingProjectsCount,
+                upcoming_deadlines: upcomingDeadlinesCount,
+                creative_manager: creativeManagerInfo
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching user dashboard stats:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+module.exports = { createWorkRequest, getMyWorkRequests, getWorkRequestById, getProjectTypesByRequestType, getAboutProjectOptions, getDivisionWorkRequests, getDivisionWorkRequestById, getUserDashboardStats };

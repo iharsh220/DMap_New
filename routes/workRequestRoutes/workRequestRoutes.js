@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createWorkRequest, getMyWorkRequests, getWorkRequestById, getProjectTypesByRequestType, getAboutProjectOptions, getDivisionWorkRequests, getDivisionWorkRequestById } = require('../../controller/workRequestController/workRequestController');
+const { createWorkRequest, getMyWorkRequests, getWorkRequestById, getProjectTypesByRequestType, getAboutProjectOptions, getDivisionWorkRequests, getDivisionWorkRequestById, getUserDashboardStats } = require('../../controller/workRequestController/workRequestController');
 const { authenticateToken } = require('../../middleware/jwtMiddleware');
 const filterMiddleware = require('../../middleware/filterMiddleware');
 const paginationMiddleware = require('../../middleware/paginationMiddleware');
@@ -17,6 +17,9 @@ router.get('/project-types', authenticateToken, getProjectTypesByRequestType);
 
 // GET /work-requests/about-project-options - Get about project options
 router.get('/about-project-options', authenticateToken, getAboutProjectOptions);
+
+// GET /work-requests/dashboard-stats - Get user dashboard statistics
+router.get('/dashboard-stats', authenticateToken, getUserDashboardStats);
 
 // GET /work-requests/:id - Get work request by ID
 router.get('/:id', authenticateToken, getWorkRequestById);

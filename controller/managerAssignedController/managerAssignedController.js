@@ -1374,7 +1374,7 @@ const getAssignedRequestsWithStatus = async (req, res) => {
 
         // Apply status filter if provided
         if (status) {
-            if (!['pending', 'accepted', 'in_progress', 'assinged'].includes(status)) {
+            if (!['pending', 'accepted', 'in_progress', 'assigned'].includes(status)) {
                 return res.status(400).json({ success: false, error: 'Invalid status. Allowed values: pending, accepted, in_progress' });
             }
             where.status = status;
@@ -1405,7 +1405,7 @@ const getAssignedRequestsWithStatus = async (req, res) => {
         ];
 
         // If status is in_progress, include tasks with deadline
-        if (status === 'in_progress' || status === 'assinged') {
+        if (status === 'in_progress' || status === 'assigned') {
             includes.push({
                 model: Tasks,
                 attributes: ['id', 'task_name', 'description', 'deadline', 'status'],

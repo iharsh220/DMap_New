@@ -705,6 +705,40 @@
 						"description": "Get a specific work request by ID from users in the same division as the authenticated user, including complete task details and documents (requires authentication, only accessible if work request belongs to same division)"
 					},
 					"response": []
+				},
+				{
+					"name": "Get User Dashboard Stats",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/digilabs/dmap/api/work-requests/dashboard-stats?request_type_id=1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"digilabs",
+								"dmap",
+								"api",
+								"work-requests",
+								"dashboard-stats"
+							],
+							"query": [
+								{
+									"key": "request_type_id",
+									"value": "1",
+									"description": "Request type ID to get dashboard stats for"
+								}
+							]
+						},
+						"description": "Get dashboard statistics for a specific request type including divisions linked to the request type, accepted+in_progress tasks count, accepted+in_progress projects count, upcoming deadlines count in the next 7 days, and creative manager information for divisions linked to that request type (requires authentication)"
+					},
+					"response": []
 				}
 			]
 		},
