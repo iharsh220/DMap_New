@@ -1065,7 +1065,73 @@
 								"tasks"
 							]
 						},
-						"description": "Get list of tasks assigned to the authenticated user where intimate_team = 1. Only available for users in department 9 (requires authentication)"
+						"description": "Get list of tasks assigned to the authenticated user. By default shows pending tasks (not yet accepted). Use query param 'status=accepted' for accepted tasks or 'status=in_progress' for in-progress tasks. Only available for users in department 9 (requires authentication)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Accepted Tasks",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/digilabs/dmap/api/users/tasks?status=accepted",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"digilabs",
+								"dmap",
+								"api",
+								"users",
+								"tasks"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "accepted"
+								}
+							]
+						},
+						"description": "Get only accepted tasks for the authenticated user"
+					},
+					"response": []
+				},
+				{
+					"name": "Get In-Progress Tasks",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/digilabs/dmap/api/users/tasks?status=in_progress",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"digilabs",
+								"dmap",
+								"api",
+								"users",
+								"tasks"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "in_progress"
+								}
+							]
+						},
+						"description": "Get only in-progress tasks for the authenticated user"
 					},
 					"response": []
 				},

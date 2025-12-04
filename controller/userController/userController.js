@@ -1,3 +1,4 @@
+const { Op } = require('sequelize');
 const {
     Tasks,
     RequestType,
@@ -19,6 +20,7 @@ const fs = require('fs');
 const getAssignedTasks = async (req, res) => {
     try {
         const user_id = req.user.id;
+        const { status } = req.query; // Get status filter from query params
 
         // Check if user is in department 9
         const isInDepartment9 = req.user.department && req.user.department.id === 9;
@@ -29,9 +31,20 @@ const getAssignedTasks = async (req, res) => {
             });
         }
 
+        // Build where condition based on status filter
+        let whereCondition;
+        if (status === 'accepted') {
+            whereCondition = { status: 'accepted' };
+        } else if (status === 'in_progress') {
+            whereCondition = { status: 'in_progress' };
+        } else {
+            // Default: show pending tasks (not yet accepted)
+            whereCondition = { status: 'pending', intimate_team: 1 };
+        }
+
         // Get tasks assigned to the user through TaskAssignments junction table
         const tasks = await Tasks.findAll({
-            where: { intimate_team: 1 }, // Only show tasks where intimate_team = 1
+            where: whereCondition,
             include: [
                 {
                     model: User,
@@ -540,6 +553,15 @@ const submitTask = async (req, res) => {
         }
 
         const task = taskAssignment.Task;
+
+        // Check if task status is accepted
+        if (task.status !== 'accepted') {
+            return res.status(400).json({
+                success: false,
+                error: 'Task must be in accepted status to submit'
+            });
+        }
+
         const workRequest = task.WorkRequest;
         const user = taskAssignment.User;
 
@@ -664,13 +686,29 @@ const getTaskDocuments = async (req, res) => {
         // Check if task exists and is assigned to the user
         const taskAssignment = await TaskAssignments.findOne({
             where: { task_id: taskId, user_id },
-            attributes: ['id']
+            attributes: ['id'],
+            include: [
+                {
+                    model: Tasks,
+                    attributes: ['id', 'status']
+                }
+            ]
         });
 
         if (!taskAssignment) {
             return res.status(404).json({
                 success: false,
                 error: 'Task not found or not assigned to you'
+            });
+        }
+
+        const task = taskAssignment.Task;
+
+        // Check if task status is accepted
+        if (task.status !== 'accepted') {
+            return res.status(400).json({
+                success: false,
+                error: 'Task must be in accepted status to view documents'
             });
         }
 
@@ -723,7 +761,13 @@ const deleteTaskDocument = async (req, res) => {
                     model: TaskAssignments,
                     where: { user_id },
                     attributes: ['id'],
-                    required: true
+                    required: true,
+                    include: [
+                        {
+                            model: Tasks,
+                            attributes: ['id', 'status']
+                        }
+                    ]
                 }
             ]
         });
@@ -732,6 +776,16 @@ const deleteTaskDocument = async (req, res) => {
             return res.status(404).json({
                 success: false,
                 error: 'Document not found or not authorized to delete'
+            });
+        }
+
+        const task = document.TaskAssignments[0]?.Task;
+
+        // Check if task status is accepted
+        if (!task || task.status !== 'accepted') {
+            return res.status(400).json({
+                success: false,
+                error: 'Task must be in accepted status to delete documents'
             });
         }
 
