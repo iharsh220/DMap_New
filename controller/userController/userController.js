@@ -534,13 +534,29 @@ const submitTask = async (req, res) => {
                     include: [
                         {
                             model: WorkRequests,
-                            attributes: ['project_name']
+                            attributes: ['id', 'project_name', 'brand', 'priority'],
+                            include: [
+                                {
+                                    model: RequestType,
+                                    attributes: ['request_type']
+                                },
+                                {
+                                    model: WorkRequestManagers,
+                                    include: [
+                                        {
+                                            model: User,
+                                            as: 'manager',
+                                            attributes: ['id', 'name', 'email']
+                                        }
+                                    ]
+                                }
+                            ]
                         }
                     ]
                 },
                 {
                     model: User,
-                    attributes: ['name']
+                    attributes: ['id', 'name', 'email']
                 }
             ]
         });
@@ -635,11 +651,60 @@ const submitTask = async (req, res) => {
         }
 
         // Update task status to completed if files were uploaded or link provided
+        let taskCompleted = false;
         if ((documents.length > 0 || link) && task.status !== 'completed') {
             await Tasks.update(
                 { status: 'completed', end_date: new Date() },
                 { where: { id: task.id } }
             );
+            taskCompleted = true;
+        }
+
+        // Send email notification if task was completed
+        if (taskCompleted) {
+            const workRequest = task.WorkRequest;
+            const completedBy = taskAssignment.User;
+
+            // Find the creative lead manager (assuming the first manager is the creative lead)
+            const creativeLead = workRequest.WorkRequestManagers && workRequest.WorkRequestManagers.length > 0
+                ? workRequest.WorkRequestManagers[0].manager
+                : null;
+
+            if (creativeLead) {
+                const completedAt = new Date().toLocaleDateString('en-IN', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                const emailData = {
+                    project_name: workRequest.project_name,
+                    brand: workRequest.brand,
+                    request_type: workRequest.RequestType?.request_type || 'N/A',
+                    priority: workRequest.priority,
+                    request_id: workRequest.id,
+                    completed_at: completedAt,
+                    task_name: task.task_name,
+                    description: task.description,
+                    completed_by: completedBy.name,
+                    task_count: taskCount,
+                    link: link || null,
+                    frontend_url: process.env.FRONTEND_URL
+                };
+
+                const html = renderTemplate('taskCompletionNotification', emailData);
+
+                const mailOptions = {
+                    to: creativeLead.email,
+                    cc: completedBy.email,
+                    subject: 'Task Completed - D-Map',
+                    html
+                };
+
+                await sendMail(mailOptions);
+            }
         }
 
         await logUserActivity({

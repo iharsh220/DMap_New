@@ -15,10 +15,6 @@ const TaskAssignments = sequelize.define('TaskAssignments', {
     type: DataTypes.INTEGER,
     allowNull: false,
   },
-  link: {
-    type: DataTypes.STRING(500),
-    allowNull: true,
-  },
   created_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,

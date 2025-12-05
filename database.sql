@@ -681,7 +681,6 @@ CREATE TABLE `task_assignments` (
   `id` int(11) NOT NULL,
   `task_id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
-  `link` varchar(500) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
