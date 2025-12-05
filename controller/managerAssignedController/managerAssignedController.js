@@ -495,8 +495,8 @@ const deferWorkRequest = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Invalid reason' });
         }
 
-        if (reason === 'incorrect_request_type' && !req.body.new_request_type_id) {
-            return res.status(400).json({ success: false, error: 'new_request_type_id is required for incorrect_request_type reason' });
+        if (reason === 'incorrect_request_type' && (!req.body.new_request_type_id || !req.body.new_project_type_id)) {
+            return res.status(400).json({ success: false, error: 'new_request_type_id and new_project_type_id are required for incorrect_request_type reason' });
         }
 
         // Check if work request exists and is assigned to this manager, get all needed data in one query
@@ -604,10 +604,14 @@ const deferWorkRequest = async (req, res) => {
                 ...extractRequestDetails(req)
             });
         } else if (reason === 'incorrect_request_type') {
-            // Reassign to new request type - assign all managers and leads
+            // Reassign to new request type and project type - assign all managers and leads
             const newRequestTypeId = parseInt(req.body.new_request_type_id);
+            const newProjectTypeId = parseInt(req.body.new_project_type_id);
             if (isNaN(newRequestTypeId)) {
                 return res.status(400).json({ success: false, error: 'Invalid new_request_type_id' });
+            }
+            if (isNaN(newProjectTypeId)) {
+                return res.status(400).json({ success: false, error: 'Invalid new_project_type_id' });
             }
 
             // Get new request type
@@ -638,7 +642,8 @@ const deferWorkRequest = async (req, res) => {
 
             // Update work request
             const updateResult = await workRequestService.updateById(id, {
-                request_type_id: newRequestTypeId
+                request_type_id: newRequestTypeId,
+                project_id: newProjectTypeId
             });
 
             if (!updateResult.success) {
@@ -723,6 +728,7 @@ const deferWorkRequest = async (req, res) => {
                 workRequestId: id,
                 deferReason: reason,
                 newRequestTypeId: req.body.new_request_type_id,
+                newProjectTypeId: req.body.new_project_type_id,
                 ...extractRequestDetails(req)
             });
         }
@@ -1072,7 +1078,7 @@ const getTasksByWorkRequestId = async (req, res) => {
             });
         }
 
-        // Get all tasks for this work request with basic details and dependencies
+        // Get all tasks for this work request with basic details, dependencies, assigned users, request type, and task type
         const tasksResult = await Tasks.findAll({
             where: { work_request_id: workRequestId },
             attributes: ['id', 'task_name', 'deadline'],
@@ -1087,20 +1093,61 @@ const getTasksByWorkRequestId = async (req, res) => {
                             attributes: ['id', 'task_name']
                         }
                     ]
+                },
+                {
+                    model: User,
+                    as: 'assignedUsers',
+                    attributes: ['id', 'name', 'email'],
+                    through: { attributes: [] },
+                    include: [
+                        {
+                            model: Division,
+                            as: 'Divisions',
+                            attributes: ['id', 'title'],
+                            through: { attributes: [] }
+                        }
+                    ]
+                },
+                {
+                    model: RequestType,
+                    attributes: ['id', 'request_type', 'description']
+                },
+                {
+                    model: TaskType,
+                    attributes: ['id', 'task_type', 'description']
                 }
             ],
             order: [['created_at', 'ASC']]
         });
 
-        // Transform the data to flatten dependencies
+        // Transform the data to flatten dependencies and include users with divisions, request type, and task type
         const transformedTasks = tasksResult.map(task => ({
             id: task.id,
             task_name: task.task_name,
             deadline: task.deadline,
+            requestType: task.RequestType ? {
+                id: task.RequestType.id,
+                request_type: task.RequestType.request_type,
+                description: task.RequestType.description
+            } : null,
+            taskType: task.TaskType ? {
+                id: task.TaskType.id,
+                task_type: task.TaskType.task_type,
+                description: task.TaskType.description
+            } : null,
             dependencies: task.dependencies.map(dep => ({
                 id: dep.dependencyTask.id,
                 task_name: dep.dependencyTask.task_name,
                 deadline: dep.dependencyTask.deadline
+            })),
+            assignedUsers: task.assignedUsers.map(user => ({
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                divisions: user.Divisions.map(division => ({
+                    id: division.id,
+                    title: division.title
+                }))
             }))
         }));
 
