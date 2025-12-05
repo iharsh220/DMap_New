@@ -38,9 +38,7 @@ const getAllRequestTypes = async (req, res) => {
         // Collect all division ids
         const divisionIds = [];
         RequestTypeResult.data.forEach(item => {
-            console.log('RequestType item:', item.request_type, 'Divisions:', item.Divisions.length);
             item.Divisions.forEach(division => {
-                console.log('Division:', division.id, division.title);
                 if (!divisionIds.includes(division.id)) {
                     divisionIds.push(division.id);
                 }
@@ -79,8 +77,6 @@ const getAllRequestTypes = async (req, res) => {
                 }
             });
         }
-        // console.log(creativeLeads);
-        // console.log(creativeManagers);
         // Group by request_type and collect divisions
         const groupedData = RequestTypeResult.data.reduce((acc, item) => {
             if (!acc[item.request_type]) {

@@ -1000,7 +1000,6 @@ const createTask = async (req, res) => {
                 // Create task folder under existing project folder
                 if (!fs.existsSync(taskFolder)) {
                     fs.mkdirSync(taskFolder);
-                    console.log(`Created task folder: ${taskFolder}`);
                 }
 
                 // Create user folders for each assigned user
@@ -1011,7 +1010,6 @@ const createTask = async (req, res) => {
                         const userFolder = path.join(taskFolder, user.name);
                         if (!fs.existsSync(userFolder)) {
                             fs.mkdirSync(userFolder, { recursive: true });
-                            console.log(`Created user folder: ${userFolder}`);
                         }
                     }
                 }
@@ -1463,14 +1461,13 @@ const getAssignedRequestsWithStatus = async (req, res) => {
 
 const assignTasksToUsers = async (req, res) => {
     try {
-        console.log('assignTasksToUsers called with params:', req.params);
+        
         const workRequestId = parseInt(req.params.id, 10);
         if (isNaN(workRequestId)) {
             return res.status(400).json({ success: false, error: 'Invalid work request ID' });
         }
 
         const manager_id = req.user.id;
-        console.log('Manager ID:', manager_id, 'Work Request ID:', workRequestId);
 
         // Check if work request exists and is assigned to this manager
         const workRequestResult = await workRequestService.getAll({
@@ -1508,7 +1505,6 @@ const assignTasksToUsers = async (req, res) => {
         }
 
         // Get all tasks for this work request with assigned users
-        console.log('Fetching tasks for work request:', workRequestId);
         const tasksWithUsers = await Tasks.findAll({
             where: { work_request_id: workRequestId },
             include: [
@@ -1521,7 +1517,6 @@ const assignTasksToUsers = async (req, res) => {
             ],
             attributes: ['id', 'task_name', 'description', 'deadline']
         });
-        console.log('Tasks found:', tasksWithUsers.length);
 
         // Group tasks by user
         const userTasksMap = new Map();
@@ -1541,7 +1536,6 @@ const assignTasksToUsers = async (req, res) => {
         }
 
         // Send emails to all assigned users
-        console.log('Sending emails to users:', Array.from(userTasksMap.keys()));
         const emailPromises = [];
         const assignedUsers = [];
 
@@ -1553,8 +1547,6 @@ const assignTasksToUsers = async (req, res) => {
                 email: user.email,
                 taskCount: tasks.length
             });
-
-            console.log('Preparing email for user:', user.email, 'with tasks:', tasks.length);
 
             const html = renderTemplate('taskAssignmentNotification', {
                 project_name: workRequest.project_name,
@@ -1586,14 +1578,12 @@ const assignTasksToUsers = async (req, res) => {
         await Promise.all(emailPromises);
 
         // Update intimate_team to 1 for all tasks in this work request
-        console.log('Updating intimate_team to 1 for all tasks in work request:', workRequestId);
         await Tasks.update(
             { intimate_team: 1 },
             { where: { work_request_id: workRequestId } }
         );
 
         // Update work request status to in_progress
-        console.log('Updating work request status to in_progress:', workRequestId);
         await workRequestService.updateById(workRequestId, { status: 'in_progress' });
 
         await logUserActivity({

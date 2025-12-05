@@ -12,7 +12,7 @@ const logout = async (req, res) => {
             const { jwtDecrypt } = require('jose');
             const keyBytes = Uint8Array.from(Buffer.from(process.env.JWT_ENCRYPTION_KEY, 'base64'));
             const { payload } = await jwtDecrypt(token, keyBytes);
-            console.log(token);
+            
             const exp = payload.exp;
             const now = Math.floor(Date.now() / 1000);
             const ttl = exp - now;
