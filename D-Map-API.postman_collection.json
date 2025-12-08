@@ -1299,6 +1299,33 @@
 					"response": []
 				},
 				{
+					"name": "Get My Team Tasks",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/digilabs/dmap/api/users/my-team",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"digilabs",
+								"dmap",
+								"api",
+								"users",
+								"my-team"
+							]
+						},
+						"description": "Get all in-progress tasks from users in the same division as the authenticated user (only for department 9 users)"
+					},
+					"response": []
+				},
+				{
 					"name": "Get Accepted Tasks",
 					"request": {
 						"method": "GET",

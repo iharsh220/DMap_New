@@ -1017,8 +1017,187 @@ const deleteTaskDocument = async (req, res) => {
     }
 };
 
+const getMyTeamTasks = async (req, res) => {
+    try {
+        const user_id = req.user.id;
+
+        // Check if user is in department 9
+        const isInDepartment9 = req.user.department && req.user.department.id === 9;
+        if (!isInDepartment9) {
+            return res.status(403).json({
+                success: false,
+                error: 'Access denied. This endpoint is only available for department 9 users.'
+            });
+        }
+
+        // Get user's divisions
+        const userDivisions = await UserDivisions.findAll({
+            where: { user_id: user_id },
+            attributes: ['division_id']
+        });
+
+        if (userDivisions.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'No divisions found for the user.'
+            });
+        }
+
+        const divisionIds = userDivisions.map(ud => ud.division_id);
+
+        // Get all users in these divisions
+        const divisionUsers = await UserDivisions.findAll({
+            where: { division_id: { [Op.in]: divisionIds } },
+            include: [{
+                model: User,
+                attributes: ['id']
+            }],
+            attributes: []
+        });
+
+        const userIds = divisionUsers.map(du => du.User.id);
+
+        // Get in_progress tasks assigned to these users
+        const tasks = await Tasks.findAll({
+            where: {
+                status: 'in_progress'
+            },
+            include: [
+                {
+                    model: User,
+                    as: 'assignedUsers',
+                    where: { id: { [Op.in]: userIds } },
+                    attributes: ['id', 'name', 'email'],
+                    through: { attributes: [] },
+                    required: true
+                },
+                {
+                    model: TaskType,
+                    attributes: ['id', 'task_type', 'description']
+                },
+                {
+                    model: WorkRequests,
+                    attributes: ['id', 'project_name', 'brand', 'priority', 'status'],
+                    include: [
+                        {
+                            model: User,
+                            as: 'users',
+                            attributes: ['id', 'name', 'email']
+                        },
+                        {
+                            model: RequestType,
+                            attributes: ['id', 'request_type', 'description']
+                        },
+                        {
+                            model: WorkRequestManagers,
+                            attributes: ['id'],
+                            include: [
+                                {
+                                    model: User,
+                                    as: 'manager',
+                                    attributes: ['id', 'name', 'email']
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            attributes: { exclude: ['created_at', 'updated_at'] },
+            order: [['deadline', 'ASC']]
+        });
+
+        // Collect all unique user IDs from assigned users
+        const allAssignedUserIds = [...new Set(tasks.flatMap(task => task.assignedUsers.map(user => user.id)))];
+
+        // Get task counts for these users
+        let userTaskCounts = {};
+        if (allAssignedUserIds.length > 0) {
+            // Get accepted tasks count
+            const acceptedCounts = await TaskAssignments.findAll({
+                where: { user_id: { [Op.in]: allAssignedUserIds } },
+                include: [
+                    {
+                        model: Tasks,
+                        where: { status: 'accepted' },
+                        attributes: []
+                    }
+                ],
+                attributes: [
+                    'user_id',
+                    [Tasks.sequelize.fn('COUNT', Tasks.sequelize.col('task_id')), 'accepted_count']
+                ],
+                group: ['user_id'],
+                raw: true
+            });
+
+            // Get in_progress tasks count
+            const inProgressCounts = await TaskAssignments.findAll({
+                where: { user_id: { [Op.in]: allAssignedUserIds } },
+                include: [
+                    {
+                        model: Tasks,
+                        where: { status: 'in_progress' },
+                        attributes: []
+                    }
+                ],
+                attributes: [
+                    'user_id',
+                    [Tasks.sequelize.fn('COUNT', Tasks.sequelize.col('task_id')), 'in_progress_count']
+                ],
+                group: ['user_id'],
+                raw: true
+            });
+
+            // Organize counts
+            acceptedCounts.forEach(count => {
+                if (!userTaskCounts[count.user_id]) {
+                    userTaskCounts[count.user_id] = { accepted: 0, in_progress: 0 };
+                }
+                userTaskCounts[count.user_id].accepted = parseInt(count.accepted_count);
+            });
+
+            inProgressCounts.forEach(count => {
+                if (!userTaskCounts[count.user_id]) {
+                    userTaskCounts[count.user_id] = { accepted: 0, in_progress: 0 };
+                }
+                userTaskCounts[count.user_id].in_progress = parseInt(count.in_progress_count);
+            });
+        }
+
+        // Add task counts to assigned users in tasks
+        tasks.forEach(task => {
+            task.assignedUsers.forEach(user => {
+                const counts = userTaskCounts[user.id] || { accepted: 0, in_progress: 0 };
+                user.dataValues.acceptedTasksCount = counts.accepted;
+                user.dataValues.inProgressTasksCount = counts.in_progress;
+            });
+        });
+
+        await logUserActivity({
+            event: 'my_team_tasks_viewed',
+            userId: req.user.id,
+            taskCount: tasks.length,
+            ...extractRequestDetails(req)
+        });
+
+        res.json({
+            success: true,
+            data: tasks,
+            message: 'My team tasks retrieved successfully'
+        });
+    } catch (error) {
+        console.error('Error fetching my team tasks:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            message: 'Failed to fetch my team tasks'
+        });
+    }
+};
+
 module.exports = {
     getAssignedTasks,
+    getMyTeamTasks,
     getTaskById,
     assignTaskToUser,
     acceptTask,

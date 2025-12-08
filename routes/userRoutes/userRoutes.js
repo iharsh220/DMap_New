@@ -4,10 +4,13 @@ const { authenticateToken } = require('../../middleware/jwtMiddleware');
 const filterMiddleware = require('../../middleware/filterMiddleware');
 const paginationMiddleware = require('../../middleware/paginationMiddleware');
 const searchMiddleware = require('../../middleware/searchMiddleware');
-const { getAssignedTasks, getTaskById, assignTaskToUser, acceptTask, submitTask, getTaskDocuments, deleteTaskDocument } = require('../../controller/userController/userController');
+const { getAssignedTasks, getMyTeamTasks, getTaskById, assignTaskToUser, acceptTask, submitTask, getTaskDocuments, deleteTaskDocument } = require('../../controller/userController/userController');
 
 // GET /api/users/tasks - Get assigned tasks (only for division 9 users or managers)
 router.get('/tasks', authenticateToken, filterMiddleware, paginationMiddleware, searchMiddleware, getAssignedTasks);
+
+// GET /api/users/my-team - Get in-progress tasks from user's division (only for division 9 users)
+router.get('/my-team', authenticateToken, getMyTeamTasks);
 
 // GET /api/users/tasks/:task_id - Get single task details by task ID (no division restriction)
 router.get('/tasks/:task_id', authenticateToken, getTaskById);
