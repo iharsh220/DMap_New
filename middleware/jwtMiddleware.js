@@ -29,6 +29,11 @@ const verifyToken = async (req, res, next) => {
   const { token } = req.query;
 
   if (!token) {
+    // Emit error via socket
+    const apiIo = req.app.get('apiIo');
+    if (apiIo) {
+      apiIo.emit('verificationError', { success: false, error: 'Token is required' });
+    }
     return res.status(400).json({ success: false, error: 'Token is required' });
   }
 
@@ -38,6 +43,13 @@ const verifyToken = async (req, res, next) => {
     req.user = payload;
     next();
   } catch (error) {
+    // Emit error via socket
+    const apiIo = req.app.get('apiIo');
+    if (apiIo) {
+      apiIo.emit('verificationError', {
+        message: 'Invalid or expired token'
+      });
+    }
     return res.status(400).json({ success: false, error: 'Invalid or expired token' });
   }
 };

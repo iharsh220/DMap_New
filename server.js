@@ -1,5 +1,3 @@
-const cluster = require('cluster');
-const os = require('os');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -14,105 +12,87 @@ require('dotenv').config();
 // Initialize task scheduler
 const { scheduleTaskProgression } = require('./services/taskSchedulerService');
 
-if (cluster.isMaster) {
-    const numCPUs = os.cpus().length;
-    console.log(`Master ${process.pid} is running`);
-
-    // Fork workers
-    for (let i = 0; i < numCPUs; i++) {
-        cluster.fork();
-    }
-
-    cluster.on('exit', (worker, code, signal) => {
-        console.log(`Worker ${worker.process.pid} died`);
-        cluster.fork(); // Restart worker
-    });
-} else {
-
-    const app = express();
-    const server = http.createServer(app);
-    const io = socketIo(server, {
-        cors: {
-            origin: "*",
-            methods: ["GET", "POST"],
-            credentials: true
-        }
-    });
-
-    // Socket.io setup
-    const apiIo = io.of('/digilabs/dmap/api/socket');
-
-    apiIo.on('connection', (socket) => {
-        // console.log(`✅ User connected to API namespace: ${socket.id}`);
-
-        socket.on('disconnect', () => {
-            // console.log(`❌ User disconnected: ${socket.id}`);
-        });
-    });
-
-    // Make io accessible in routes
-    app.set('io', io);
-    app.set('apiIo', apiIo);
-    app.set('trust proxy', 1);
-    // Middleware
-    app.use(helmet({
-        crossOriginResourcePolicy: false,
-        crossOriginEmbedderPolicy: false,
-        crossOriginOpenerPolicy: false,
-        contentSecurityPolicy: false
-    }));
-    app.use(cors({
+const app = express();
+const server = http.createServer(app);
+const io = socketIo(server, {
+    cors: {
         origin: "*",
-        methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-        credentials: true,
-        allowedHeaders: ["Content-Type", "Authorization"]
-    }));
-    app.use(compression());
-    app.use(express.json());
-
-    app.use(express.urlencoded({ extended: true }));
-    app.use(fileUpload());
-    app.use('/uploads', express.static('uploads'));
-
-    // Rate limiting
-    const limiter = require('./middleware/rateLimitMiddleware');
-    app.use(limiter);
-
-    // Base route
-    const baseRoute = process.env.BASE_ROUTE || '/digilabs/dmap/api';
-
-    // Routes
-    app.use(baseRoute, require('./routes/indexRoute'));
-
-    // Health check
-    app.get(`${baseRoute}/health`, (req, res) => {
-        res.json({ status: 'OK', message: 'D-Map API is running' });
-    });
-
-    // Error handling middleware
-    app.use((err, req, res, next) => {
-        console.error(err.stack);
-        res.status(500).json({ error: 'Something went wrong!' });
-    });
-
-    // 404 handler
-    app.use('*', (req, res) => {
-        res.status(404).json({ error: 'Route not found' });
-    });
-
-    const PORT = process.env.PORT || 1005;
-
-    // Connect to database
-    connectDB();
-
-    // Initialize task scheduler (only in first worker to avoid duplicates)
-    if (cluster.worker.id === 1) {
-        scheduleTaskProgression();
+        methods: ["GET", "POST"],
+        credentials: true
     }
+});
 
-    server.listen(PORT, () => {
-        console.log(`Worker ${process.pid} started, server running on port ${PORT}`);
+// Socket.io setup
+const apiIo = io.of('/digilabs/dmap/api/socket');
+
+apiIo.on('connection', (socket) => {
+    console.log(`✅ User connected to API namespace: ${socket.id}`);
+
+    socket.on('disconnect', () => {
+        console.log(`❌ User disconnected: ${socket.id}`);
     });
+});
 
-    module.exports = app;
-}
+// Make io accessible in routes
+app.set('io', io);
+app.set('apiIo', apiIo);
+app.set('trust proxy', 1);
+// Middleware
+app.use(helmet({
+    crossOriginResourcePolicy: false,
+    crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: false,
+    contentSecurityPolicy: false
+}));
+app.use(cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"]
+}));
+app.use(compression());
+app.use(express.json());
+
+app.use(express.urlencoded({ extended: true }));
+app.use(fileUpload());
+app.use('/uploads', express.static('uploads'));
+
+// Rate limiting
+const limiter = require('./middleware/rateLimitMiddleware');
+app.use(limiter);
+
+// Base route
+const baseRoute = process.env.BASE_ROUTE || '/digilabs/dmap/api';
+
+// Routes
+app.use(baseRoute, require('./routes/indexRoute'));
+
+// Health check
+app.get(`${baseRoute}/health`, (req, res) => {
+    res.json({ status: 'OK', message: 'D-Map API is running' });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ error: 'Something went wrong!' });
+});
+
+// 404 handler
+app.use('*', (req, res) => {
+    res.status(404).json({ error: 'Route not found' });
+});
+
+const PORT = process.env.PORT || 1005;
+
+// Connect to database
+connectDB();
+
+// Initialize task scheduler
+scheduleTaskProgression();
+
+server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
+
+module.exports = app;

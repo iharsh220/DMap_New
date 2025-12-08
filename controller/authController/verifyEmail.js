@@ -22,10 +22,14 @@ const verifyEmail = async (req, res) => {
             });
             // Emit error via socket
             const apiIo = req.app.get('apiIo');
-            apiIo.emit('verificationError', {
-                email,
-                message: 'User not found. Please initiate registration first.'
-            });
+            console.log('Emitting verificationError for user not found, apiIo defined:', !!apiIo);
+            if (apiIo) {
+                console.log('Connected sockets in namespace:', apiIo.sockets.size);
+                apiIo.emit('verificationError', {
+                    email,
+                    message: 'User not found. Please initiate registration first.'
+                });
+            }
 
             return res.status(400).json({
                 success: false,
@@ -44,10 +48,14 @@ const verifyEmail = async (req, res) => {
             });
             // Emit error via socket
             const apiIo = req.app.get('apiIo');
-            apiIo.emit('verificationError', {
-                email,
-                message: 'Email already verified. Please login.'
-            });
+            console.log('Emitting verificationError for already verified, apiIo defined:', !!apiIo);
+            if (apiIo) {
+                console.log('Connected sockets in namespace:', apiIo.sockets.size);
+                apiIo.emit('verificationError', {
+                    email,
+                    message: 'Email already verified. Please login.'
+                });
+            }
 
             return res.status(400).json({
                 success: false,
@@ -70,24 +78,32 @@ const verifyEmail = async (req, res) => {
             });
             // Emit error via socket
             const apiIo = req.app.get('apiIo');
-            apiIo.emit('verificationError', {
-                email,
-                message: 'Failed to update verification status'
-            });
+            console.log('Emitting verificationError for update failed, apiIo defined:', !!apiIo);
+            if (apiIo) {
+                console.log('Connected sockets in namespace:', apiIo.sockets.size);
+                apiIo.emit('verificationError', {
+                    email,
+                    message: 'Failed to update verification status'
+                });
+            }
 
             return res.status(500).json({
                 success: false,
                 error: 'Failed to update verification status'
             });
         }
-
+        console.log("aaya idhr kuch to");
         // Emit success via socket
         const apiIo = req.app.get('apiIo');
-        apiIo.emit('emailVerified', {
-            success: true,
-            email,
-            message: 'Email verified successfully. Please complete your registration.'
-        });
+        console.log('Emitting emailVerified, apiIo defined:', !!apiIo);
+        if (apiIo) {
+            console.log('Connected sockets in namespace:', apiIo.sockets.size);
+            apiIo.emit('emailVerified', {
+                success: true,
+                email,
+                message: 'Email verified successfully. Please complete your registration.'
+            });
+        }
 
         // Blacklist the verification token (24 hours TTL)
         const { token } = req.query;
@@ -113,10 +129,14 @@ const verifyEmail = async (req, res) => {
         });
         // Emit error via socket
         const apiIo = req.app.get('apiIo');
-        apiIo.emit('verificationError', {
-            email: req.user?.email || 'unknown',
-            message: 'Verification failed'
-        });
+        console.log('Emitting verificationError for server error, apiIo defined:', !!apiIo);
+        if (apiIo) {
+            console.log('Connected sockets in namespace:', apiIo.sockets.size);
+            apiIo.emit('verificationError', {
+                email: req.user?.email || 'unknown',
+                message: 'Verification failed'
+            });
+        }
 
         res.status(500).json({ success: false, error: 'Verification failed' });
     }
