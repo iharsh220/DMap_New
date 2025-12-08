@@ -66,15 +66,30 @@ const getAssignedTasks = async (req, res) => {
             }
         }
 
-        // Build where condition based on status filter
-        let whereCondition;
+        // Build where condition
+        let whereCondition = {};
+
+        // Apply filters
+        if (req.filters) {
+            whereCondition = { ...whereCondition, ...req.filters };
+        }
+
+        // Apply search
+        if (req.search.term && req.search.fields.length > 0) {
+            whereCondition[Op.or] = req.search.fields.map(field => ({
+                [field]: { [Op.like]: `%${req.search.term}%` }
+            }));
+        }
+
+        // Override with status filter if provided
         if (status === 'accepted') {
-            whereCondition = { status: 'accepted' };
+            whereCondition.status = 'accepted';
         } else if (status === 'in_progress') {
-            whereCondition = { status: 'in_progress' };
+            whereCondition.status = 'in_progress';
         } else {
             // Default: show pending tasks (not yet accepted)
-            whereCondition = { status: 'pending', intimate_team: 1 };
+            whereCondition.status = 'pending';
+            whereCondition.intimate_team = 1;
         }
 
         // Get tasks assigned to the user(s) through TaskAssignments junction table
@@ -121,6 +136,8 @@ const getAssignedTasks = async (req, res) => {
                 }
             ],
             attributes: { exclude: ['created_at', 'updated_at'] },
+            limit: req.pagination.limit,
+            offset: req.pagination.offset,
             order: [['deadline', 'ASC']] // Sort by deadline ascending by default
         });
 
@@ -201,6 +218,7 @@ const getAssignedTasks = async (req, res) => {
         res.json({
             success: true,
             data: tasks,
+            pagination: req.pagination,
             message: 'Assigned tasks retrieved successfully'
         });
     } catch (error) {

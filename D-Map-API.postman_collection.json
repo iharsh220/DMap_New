@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "bbe9051b-dfe7-427f-91bf-153fa18b1e1f",
+		"_postman_id": "513236bd-f3cb-444b-8b17-dc4e7017b8ad",
 		"name": "D-Map API",
 		"description": "API collection for D-Map application",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
@@ -46,7 +46,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/auth/verify-email?token=your_jwt_token_here",
+							"raw": "{{base_url}}/digilabs/dmap/api/auth/verify-email?token=eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..dODGC40Kz1h4YmxO.zvaq_0tXPwsOBnqH_jGCJA3SvPpMr4TGTDxcY1pxDyxzBOwZCQE2z5Xt2HwzbjqoH7ug9eS_.UeCfUwYt9YXzTCAQ-379AA",
 							"host": [
 								"{{base_url}}"
 							],
@@ -60,7 +60,7 @@
 							"query": [
 								{
 									"key": "token",
-									"value": "your_jwt_token_here"
+									"value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..dODGC40Kz1h4YmxO.zvaq_0tXPwsOBnqH_jGCJA3SvPpMr4TGTDxcY1pxDyxzBOwZCQE2z5Xt2HwzbjqoH7ug9eS_.UeCfUwYt9YXzTCAQ-379AA"
 								}
 							]
 						}
@@ -148,7 +148,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "// {\n//   \"identifier\": \"nikhil.nadkar@alembic.co.in\",\n//   \"password\": \"Harsh@1234\",\n//   \"loginType\": \"email\"\n// }\n\n// {\n//   \"identifier\": \"mohanish.padwal@alembic.co.in\",\n//   \"password\": \"Harsh@1234\",\n//   \"loginType\": \"email\"\n// }\n\n// {\n//   \"identifier\": \"harsh.gohil@alembic.co.in\",\n//   \"password\": \"Harsh@1234\",\n//   \"loginType\": \"email\"\n// }\n\n// {\n//   \"identifier\": \"mohanish.padwal@alembic.co.in\",\n//   \"password\": \"Harsh@1234\",\n//   \"loginType\": \"email\"\n// }\n\n\n{\n  \"identifier\": \"vikramr.rai@alembic.co.in\",\n  \"password\": \"Harsh@1234\",\n  \"loginType\": \"email\"\n}"
+							"raw": "// {\n//   \"identifier\": \"nikhil.nadkar@alembic.co.in\",\n//   \"password\": \"Harsh@1234\",\n//   \"loginType\": \"email\"\n// }\n\n// {\n//   \"identifier\": \"mohanish.padwal@alembic.co.in\",\n//   \"password\": \"Harsh@1234\",\n//   \"loginType\": \"email\"\n// }\n\n{\n  \"identifier\": \"harsh.gohil@alembic.co.in\",\n  \"password\": \"Harsh@1234\",\n  \"loginType\": \"email\"\n}\n\n// {\n//   \"identifier\": \"bhagwan.parab@alembic.co.in\",\n//   \"password\": \"Harsh@1234\",\n//   \"loginType\": \"email\"\n// }\n\n\n// {\n//   \"identifier\": \"vikramr.rai@alembic.co.in\",\n//   \"password\": \"Harsh@1234\",\n//   \"loginType\": \"email\"\n// }"
 						},
 						"url": {
 							"raw": "{{base_url}}/digilabs/dmap/api/auth/login",
@@ -514,8 +514,8 @@
 								{
 									"key": "about_project",
 									"value": "{\n  \"output_devices\": [\"iPad 9\", \"Mobile\"],\n  \"target_audience\": [\"Doctors\", \"Chemists\"]\n}",
-									"type": "text",
-									"description": "JSON object containing output_devices and target_audience arrays for multi-selection"
+									"description": "JSON object containing output_devices and target_audience arrays for multi-selection",
+									"type": "text"
 								},
 								{
 									"key": "priority",
@@ -756,7 +756,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests?page=1&limit=10&search=&searchFields=project_name,brand&priority=&status=",
+							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests?page=1&limit=10",
 							"host": [
 								"{{base_url}}"
 							],
@@ -781,22 +781,26 @@
 								{
 									"key": "search",
 									"value": "",
-									"description": "Search term"
+									"description": "Search term",
+									"disabled": true
 								},
 								{
 									"key": "searchFields",
 									"value": "project_name,brand",
-									"description": "Fields to search in"
+									"description": "Fields to search in",
+									"disabled": true
 								},
 								{
 									"key": "priority",
 									"value": "",
-									"description": "Filter by priority"
+									"description": "Filter by priority",
+									"disabled": true
 								},
 								{
 									"key": "status",
 									"value": "",
-									"description": "Filter by status"
+									"description": "Filter by status",
+									"disabled": true
 								}
 							]
 						},
@@ -1241,7 +1245,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/users/tasks",
+							"raw": "{{base_url}}/digilabs/dmap/api/users/tasks?page=1&limit=10&search=&searchFields=task_name,description&status=",
 							"host": [
 								"{{base_url}}"
 							],
@@ -1251,9 +1255,36 @@
 								"api",
 								"users",
 								"tasks"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number for pagination"
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Number of items per page"
+								},
+								{
+									"key": "search",
+									"value": "",
+									"description": "Search term"
+								},
+								{
+									"key": "searchFields",
+									"value": "task_name,description",
+									"description": "Fields to search in"
+								},
+								{
+									"key": "status",
+									"value": "",
+									"description": "Filter by status (pending, accepted, in_progress). If not provided, shows pending tasks"
+								}
 							]
 						},
-						"description": "Get list of tasks assigned to the authenticated user. By default shows pending tasks (not yet accepted). Use query param 'status=accepted' for accepted tasks or 'status=in_progress' for in-progress tasks. Only available for users in department 9 (requires authentication)"
+						"description": "Get list of tasks assigned to the authenticated user with filtering, pagination, and search. For managers, shows tasks for themselves and their team members. Includes assigned user details with task counts. Sorted by deadline ascending (requires authentication)"
 					},
 					"response": []
 				},
@@ -1453,26 +1484,26 @@
 								{
 									"key": "task_id",
 									"value": "1",
-									"type": "text",
-									"description": "Task ID to submit"
+									"description": "Task ID to submit",
+									"type": "text"
 								},
 								{
 									"key": "task_count",
 									"value": "5",
-									"type": "text",
-									"description": "Task count (required)"
+									"description": "Task count (required)",
+									"type": "text"
 								},
 								{
 									"key": "link",
 									"value": "https://example.com/delivered-work",
-									"type": "text",
-									"description": "Optional link to submitted work"
+									"description": "Optional link to submitted work",
+									"type": "text"
 								},
 								{
 									"key": "documents",
+									"description": "Optional file uploads for task submission",
 									"type": "file",
-									"src": [],
-									"description": "Optional file uploads for task submission"
+									"src": []
 								}
 							]
 						},
