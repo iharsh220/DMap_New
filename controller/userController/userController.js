@@ -8,7 +8,8 @@ const {
     WorkRequests,
     WorkRequestManagers,
     User,
-    TaskDocuments
+    TaskDocuments,
+    UserDivisions
 } = require('../../models');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
@@ -22,13 +23,47 @@ const getAssignedTasks = async (req, res) => {
         const user_id = req.user.id;
         const { status } = req.query; // Get status filter from query params
 
-        // Check if user is in department 9
-        const isInDepartment9 = req.user.department && req.user.department.id === 9;
-        if (!isInDepartment9) {
-            return res.status(403).json({
-                success: false,
-                error: 'Access denied. This endpoint is only available for department 9 users.'
+        // Check if user is manager (job_role_id = 2)
+        const isManager = req.user.jobRole && req.user.jobRole.id === 2;
+
+        let userIds = [user_id]; // Start with current user
+
+        if (isManager) {
+            // Get divisions the manager belongs to
+            const managerDivisions = await UserDivisions.findAll({
+                where: { user_id: user_id },
+                attributes: ['division_id']
             });
+
+            if (managerDivisions.length > 0) {
+                const divisionIds = managerDivisions.map(md => md.division_id);
+
+                // Get creative users and leads in these divisions
+                const teamUsers = await UserDivisions.findAll({
+                    where: { division_id: { [Op.in]: divisionIds } },
+                    include: [{
+                        model: User,
+                        where: {
+                            id: { [Op.ne]: user_id }, // Exclude manager himself
+                            account_status: 'active'
+                        },
+                        attributes: ['id']
+                    }],
+                    attributes: []
+                });
+
+                const teamUserIds = teamUsers.map(tu => tu.User.id);
+                userIds = userIds.concat(teamUserIds);
+            }
+        } else {
+            // Check if user is in department 9
+            const isInDepartment9 = req.user.department && req.user.department.id === 9;
+            if (!isInDepartment9) {
+                return res.status(403).json({
+                    success: false,
+                    error: 'Access denied. This endpoint is only available for department 9 users or managers.'
+                });
+            }
         }
 
         // Build where condition based on status filter
@@ -42,15 +77,15 @@ const getAssignedTasks = async (req, res) => {
             whereCondition = { status: 'pending', intimate_team: 1 };
         }
 
-        // Get tasks assigned to the user through TaskAssignments junction table
+        // Get tasks assigned to the user(s) through TaskAssignments junction table
         const tasks = await Tasks.findAll({
             where: whereCondition,
             include: [
                 {
                     model: User,
                     as: 'assignedUsers',
-                    where: { id: user_id },
-                    attributes: [],
+                    where: { id: { [Op.in]: userIds } },
+                    attributes: ['id', 'name', 'email'],
                     through: { attributes: [] },
                     required: true
                 },
@@ -86,7 +121,74 @@ const getAssignedTasks = async (req, res) => {
                 }
             ],
             attributes: { exclude: ['created_at', 'updated_at'] },
-            order: [['deadline', 'ASC']]
+            order: [['deadline', 'ASC']] // Sort by deadline ascending by default
+        });
+
+        // Collect all unique user IDs from assigned users
+        const allAssignedUserIds = [...new Set(tasks.flatMap(task => task.assignedUsers.map(user => user.id)))];
+
+        // Get task counts for these users
+        let userTaskCounts = {};
+        if (allAssignedUserIds.length > 0) {
+            // Get accepted tasks count
+            const acceptedCounts = await TaskAssignments.findAll({
+                where: { user_id: { [Op.in]: allAssignedUserIds } },
+                include: [
+                    {
+                        model: Tasks,
+                        where: { status: 'accepted' },
+                        attributes: []
+                    }
+                ],
+                attributes: [
+                    'user_id',
+                    [Tasks.sequelize.fn('COUNT', Tasks.sequelize.col('task_id')), 'accepted_count']
+                ],
+                group: ['user_id'],
+                raw: true
+            });
+
+            // Get in_progress tasks count
+            const inProgressCounts = await TaskAssignments.findAll({
+                where: { user_id: { [Op.in]: allAssignedUserIds } },
+                include: [
+                    {
+                        model: Tasks,
+                        where: { status: 'in_progress' },
+                        attributes: []
+                    }
+                ],
+                attributes: [
+                    'user_id',
+                    [Tasks.sequelize.fn('COUNT', Tasks.sequelize.col('task_id')), 'in_progress_count']
+                ],
+                group: ['user_id'],
+                raw: true
+            });
+
+            // Organize counts
+            acceptedCounts.forEach(count => {
+                if (!userTaskCounts[count.user_id]) {
+                    userTaskCounts[count.user_id] = { accepted: 0, in_progress: 0 };
+                }
+                userTaskCounts[count.user_id].accepted = parseInt(count.accepted_count);
+            });
+
+            inProgressCounts.forEach(count => {
+                if (!userTaskCounts[count.user_id]) {
+                    userTaskCounts[count.user_id] = { accepted: 0, in_progress: 0 };
+                }
+                userTaskCounts[count.user_id].in_progress = parseInt(count.in_progress_count);
+            });
+        }
+
+        // Add task counts to assigned users in tasks
+        tasks.forEach(task => {
+            task.assignedUsers.forEach(user => {
+                const counts = userTaskCounts[user.id] || { accepted: 0, in_progress: 0 };
+                user.dataValues.acceptedTasksCount = counts.accepted;
+                user.dataValues.inProgressTasksCount = counts.in_progress;
+            });
         });
 
         await logUserActivity({
