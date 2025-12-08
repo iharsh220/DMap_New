@@ -25,7 +25,7 @@ const refreshToken = async (req, res) => {
         const userResult = await userService.getById(decoded.id, {
             include: [
                 { model: Department },
-                { model: Division },
+                { model: Division, as: 'Divisions' },
                 { model: JobRole },
                 { model: Location },
                 { model: Designation }
@@ -62,11 +62,12 @@ const refreshToken = async (req, res) => {
             delete userData.department.updated_at;
             delete userData.Department;
         }
-        if (userData.Division) {
-            userData.division = userData.Division;
-            delete userData.division.created_at;
-            delete userData.division.updated_at;
-            delete userData.Division;
+        if (userData.Divisions && userData.Divisions.length > 0) {
+            userData.divisions = userData.Divisions.map(div => {
+                const { created_at, updated_at, ...divData } = div;
+                return divData;
+            });
+            delete userData.Divisions;
         }
         if (userData.JobRole) {
             userData.jobRole = userData.JobRole;

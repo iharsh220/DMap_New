@@ -265,6 +265,19 @@ const getAssignedWorkRequests = async (req, res) => {
                 },
                 { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
                 { model: RequestType, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, through: { attributes: [] }, attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
+                {
+                    model: Tasks,
+                    attributes: ['id', 'task_name', 'description', 'deadline', 'status'],
+                    include: [
+                        {
+                            model: User,
+                            as: 'assignedUsers',
+                            attributes: ['id', 'name', 'email'],
+                            through: { attributes: [] }
+                        }
+                    ],
+                    required: false
+                }
             ],
             limit: req.pagination.limit,
             offset: req.pagination.offset,
