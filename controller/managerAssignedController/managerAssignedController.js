@@ -285,6 +285,18 @@ const getAssignedWorkRequests = async (req, res) => {
         });
 
         if (result.success) {
+            // Add deadline field as the latest task deadline for each work request
+            for (const workRequest of result.data) {
+                if (workRequest.Tasks && workRequest.Tasks.length > 0) {
+                    const latestDeadline = workRequest.Tasks.reduce((latest, task) => {
+                        return task.deadline && (!latest || task.deadline > latest) ? task.deadline : latest;
+                    }, null);
+                    workRequest.dataValues.deadline = latestDeadline;
+                } else {
+                    workRequest.dataValues.deadline = null;
+                }
+            }
+
             await logUserActivity({
                 event: 'assigned_work_requests_viewed',
                 userId: req.user.id,
