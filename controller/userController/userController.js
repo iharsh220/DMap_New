@@ -74,11 +74,14 @@ const getAssignedTasks = async (req, res) => {
             whereCondition = { ...whereCondition, ...req.filters };
         }
 
-        // Apply search
+        // Apply search (only for text fields to avoid date parsing issues)
         if (req.search.term && req.search.fields.length > 0) {
-            whereCondition[Op.or] = req.search.fields.map(field => ({
-                [field]: { [Op.like]: `%${req.search.term}%` }
-            }));
+            const textFields = req.search.fields.filter(field => !['deadline', 'created_at', 'updated_at'].includes(field));
+            if (textFields.length > 0) {
+                whereCondition[Op.or] = textFields.map(field => ({
+                    [field]: { [Op.like]: `%${req.search.term}%` }
+                }));
+            }
         }
 
         // Override with status filter if provided

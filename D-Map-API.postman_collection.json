@@ -1245,7 +1245,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/users/tasks?page=1&limit=10&search=&searchFields=task_name,description&status=",
+							"raw": "{{base_url}}/digilabs/dmap/api/users/tasks?page=1&limit=10&search=&searchFields=task_name,description&status=&deadline[gte]=&deadline[lte]=",
 							"host": [
 								"{{base_url}}"
 							],
@@ -1270,17 +1270,27 @@
 								{
 									"key": "search",
 									"value": "",
-									"description": "Search term"
+									"description": "Search term for text fields"
 								},
 								{
 									"key": "searchFields",
 									"value": "task_name,description",
-									"description": "Fields to search in"
+									"description": "Fields to search in (text fields only)"
 								},
 								{
 									"key": "status",
 									"value": "",
 									"description": "Filter by status (pending, accepted, in_progress). If not provided, shows pending tasks"
+								},
+								{
+									"key": "deadline[gte]",
+									"value": "",
+									"description": "Filter deadline greater than or equal to date (YYYY-MM-DD)"
+								},
+								{
+									"key": "deadline[lte]",
+									"value": "",
+									"description": "Filter deadline less than or equal to date (YYYY-MM-DD)"
 								}
 							]
 						},

@@ -1656,14 +1656,14 @@ const assignTasksToUsers = async (req, res) => {
         );
 
         // Update work request status to in_progress
-        await workRequestService.updateById(workRequestId, { status: 'in_progress' });
+        await workRequestService.updateById(workRequestId, { status: 'assigned' });
 
         await logUserActivity({
             event: 'work_request_status_updated',
             userId: req.user.id,
             workRequestId: workRequestId,
             oldStatus: 'accepted',
-            newStatus: 'in_progress',
+            newStatus: 'assigned',
             reason: 'tasks_assigned_to_users',
             ...extractRequestDetails(req)
         });
