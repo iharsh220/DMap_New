@@ -10,6 +10,13 @@ const fileUploadQueue = new Queue('file-upload-queue', {
     host: process.env.REDIS_HOST || 'localhost',
     port: process.env.REDIS_PORT || 6379,
   },
+  defaultJobOptions: {
+    attempts: 3,
+    backoff: {
+      type: 'exponential',
+      delay: 2000
+    }
+  }
 });
 
 // Worker to process file upload jobs
@@ -86,8 +93,37 @@ fileUploadWorker.on('completed', (job) => {
   console.log(`File uploaded successfully for job ${job.id}`);
 });
 
-fileUploadWorker.on('failed', (job, err) => {
+fileUploadWorker.on('failed', async (job, err) => {
   console.error(`File upload failed for job ${job.id}:`, err);
+
+  const { documentId, tempFilepath, type = 'work_request' } = job.data;
+
+  // Update document status to failed
+  try {
+    if (type === 'task') {
+      const { TaskDocuments } = require('../models');
+      await TaskDocuments.update(
+        { status: 'failed' },
+        { where: { id: documentId } }
+      );
+    } else {
+      await WorkRequestDocuments.update(
+        { status: 'failed' },
+        { where: { id: documentId } }
+      );
+    }
+  } catch (updateError) {
+    console.error('Error updating document status to failed:', updateError);
+  }
+
+  // Remove temp file
+  try {
+    if (fsSync.existsSync(tempFilepath)) {
+      fsSync.unlinkSync(tempFilepath);
+    }
+  } catch (removeError) {
+    console.error('Error removing temp file:', removeError);
+  }
 });
 
 // Function to queue file upload

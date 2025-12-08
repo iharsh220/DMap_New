@@ -19,7 +19,8 @@ const {
     Designation,
     Tasks,
     TaskDependencies,
-    TaskAssignments
+    TaskAssignments,
+    TaskDocuments
 } = require('../../models');
 
 const { sendMail } = require('../../services/mailService');
@@ -28,8 +29,6 @@ const { logUserActivity, extractRequestDetails } = require('../../services/elast
 
 const workRequestService = new CrudService(WorkRequests);
 const userService = new CrudService(User);
-const requestTypeService = new CrudService(RequestType);
-const userDivisionsService = new CrudService(UserDivisions);
 
 const getAssignableUsers = async (req, res) => {
     try {
@@ -237,6 +236,10 @@ const getAssignableUsers = async (req, res) => {
 
 const getAssignedWorkRequests = async (req, res) => {
     try {
+        // Define associations for TaskAssignments
+        Tasks.hasMany(TaskAssignments, { foreignKey: 'task_id' });
+        TaskAssignments.belongsTo(Tasks, { foreignKey: 'task_id' });
+
         const manager_id = req.user.id;
 
         let where = { status: { [Op.ne]: 'draft' } };
@@ -274,6 +277,15 @@ const getAssignedWorkRequests = async (req, res) => {
                             as: 'assignedUsers',
                             attributes: ['id', 'name', 'email'],
                             through: { attributes: [] }
+                        },
+                        {
+                            model: TaskAssignments,
+                            include: [
+                                {
+                                    model: TaskDocuments,
+                                    attributes: ['id', 'document_name', 'document_path', 'uploaded_at', 'status']
+                                }
+                            ]
                         }
                     ],
                     required: false
@@ -315,6 +327,10 @@ const getAssignedWorkRequests = async (req, res) => {
 
 const getAssignedWorkRequestById = async (req, res) => {
     try {
+        // Define associations for TaskAssignments
+        Tasks.hasMany(TaskAssignments, { foreignKey: 'task_id' });
+        TaskAssignments.belongsTo(Tasks, { foreignKey: 'task_id' });
+
         const id = parseInt(req.params.id, 10);
         if (isNaN(id)) {
             return res.status(400).json({ success: false, error: 'Invalid work request ID' });
@@ -339,10 +355,17 @@ const getAssignedWorkRequestById = async (req, res) => {
                     attributes: ['id', 'task_name', 'description', 'task_type_id', 'work_request_id', 'deadline', 'status', 'intimate_team', 'request_type_id'],
                     include: [
                         {
-                            model: User,
-                            as: 'assignedUsers',
-                            attributes: ['id', 'name', 'email'],
-                            through: { attributes: [] }
+                            model: TaskAssignments,
+                            include: [
+                                {
+                                    model: User,
+                                    attributes: ['id', 'name', 'email']
+                                },
+                                {
+                                    model: TaskDocuments,
+                                    attributes: ['id', 'document_name', 'document_path', 'uploaded_at', 'status']
+                                }
+                            ]
                         },
                         {
                             model: TaskType,
@@ -1075,6 +1098,10 @@ const createTask = async (req, res) => {
 
 const getTasksByWorkRequestId = async (req, res) => {
     try {
+        // Define associations for TaskAssignments
+        Tasks.hasMany(TaskAssignments, { foreignKey: 'task_id' });
+        TaskAssignments.belongsTo(Tasks, { foreignKey: 'task_id' });
+
         const workRequestId = parseInt(req.params.work_request_id, 10);
         if (isNaN(workRequestId)) {
             return res.status(400).json({ success: false, error: 'Invalid work request ID' });
@@ -1120,16 +1147,23 @@ const getTasksByWorkRequestId = async (req, res) => {
                     ]
                 },
                 {
-                    model: User,
-                    as: 'assignedUsers',
-                    attributes: ['id', 'name', 'email'],
-                    through: { attributes: [] },
+                    model: TaskAssignments,
                     include: [
                         {
-                            model: Division,
-                            as: 'Divisions',
-                            attributes: ['id', 'title'],
-                            through: { attributes: [] }
+                            model: User,
+                            attributes: ['id', 'name', 'email'],
+                            include: [
+                                {
+                                    model: Division,
+                                    as: 'Divisions',
+                                    attributes: ['id', 'title'],
+                                    through: { attributes: [] }
+                                }
+                            ]
+                        },
+                        {
+                            model: TaskDocuments,
+                            attributes: ['id', 'document_name', 'document_path', 'uploaded_at', 'status']
                         }
                     ]
                 },
@@ -1165,14 +1199,15 @@ const getTasksByWorkRequestId = async (req, res) => {
                 task_name: dep.dependencyTask.task_name,
                 deadline: dep.dependencyTask.deadline
             })),
-            assignedUsers: task.assignedUsers.map(user => ({
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                divisions: user.Divisions.map(division => ({
+            assignedUsers: task.TaskAssignments.map(assignment => ({
+                id: assignment.User.id,
+                name: assignment.User.name,
+                email: assignment.User.email,
+                divisions: assignment.User.Divisions.map(division => ({
                     id: division.id,
                     title: division.title
-                }))
+                })),
+                documents: assignment.TaskDocuments
             }))
         }));
 
