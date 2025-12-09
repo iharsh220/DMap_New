@@ -80,9 +80,9 @@ const progressTasksWithTodayDeadline = async () => {
 
 // Function to schedule the daily task progression job
 const scheduleTaskProgression = () => {
-  // Run every day at 9:00 AM IST (3:30 AM UTC)
-  cron.schedule('30 3 * * *', async () => {
-    console.log('Running scheduled task: Progress tasks with today\'s deadline');
+  // Runs at 12:01 AM IST (6:31 PM UTC - previous day)
+  cron.schedule('31 18 * * *', async () => {
+    console.log("Running scheduled task: New day task progression");
 
     try {
       await taskSchedulerQueue.add('progress-tasks', { type: 'progress_tasks' });
@@ -94,8 +94,9 @@ const scheduleTaskProgression = () => {
     timezone: 'UTC'
   });
 
-  console.log('Task progression scheduler initialized - runs daily at 9:00 AM IST');
+  console.log('Task progression scheduler initialized - runs daily at 12:01 AM IST');
 };
+
 
 // Function to manually trigger task progression (for testing)
 const triggerTaskProgression = async () => {
