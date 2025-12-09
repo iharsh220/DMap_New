@@ -4,14 +4,6 @@ const fs = require('fs').promises;
 const fsSync = require('fs');
 const { WorkRequestDocuments } = require('../models');
 
-// Create file upload queue
-console.log('Initializing file upload queue with Redis config:', {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: process.env.REDIS_PORT || 6379,
-  hasPassword: !!process.env.REDIS_PASSWORD,
-  hasUsername: !!process.env.REDIS_USERNAME,
-});
-
 const fileUploadQueue = new Queue('file-upload-queue', {
   connection: {
     host: process.env.REDIS_HOST || 'localhost',
