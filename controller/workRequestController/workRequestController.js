@@ -16,6 +16,7 @@ const {
     Tasks,
     TaskType,
     TaskDependencies,
+    TaskAssignments,
     AboutProject,
     RequestDivisionReference
 } = require('../../models');
@@ -423,6 +424,10 @@ const getMyWorkRequests = async (req, res) => {
 
 const getWorkRequestById = async (req, res) => {
     try {
+        // Define associations for TaskAssignments
+        Tasks.hasMany(TaskAssignments, { foreignKey: 'task_id' });
+        TaskAssignments.belongsTo(Tasks, { foreignKey: 'task_id' });
+
         const id = parseInt(req.params.id, 10);
         if (isNaN(id)) {
             return res.status(400).json({ success: false, error: 'Invalid work request ID' });
@@ -453,10 +458,13 @@ const getWorkRequestById = async (req, res) => {
                     attributes: { exclude: ['created_at', 'updated_at'] },
                     include: [
                         {
-                            model: User,
-                            as: 'assignedUsers',
-                            attributes: ['id', 'name', 'email'],
-                            through: { attributes: [] }
+                            model: TaskAssignments,
+                            include: [
+                                {
+                                    model: User,
+                                    attributes: ['id', 'name', 'email']
+                                }
+                            ]
                         },
                         {
                             model: TaskType,
@@ -481,7 +489,100 @@ const getWorkRequestById = async (req, res) => {
         });
 
         if (result.success && result.data.length > 0) {
-            res.json({ success: true, data: result.data[0] });
+            const workRequest = result.data[0];
+
+            // Get user task counts (accepted + in_progress) for all assigned users
+            const allAssignedUserIds = [];
+            if (workRequest.Tasks && workRequest.Tasks.length > 0) {
+                for (const task of workRequest.Tasks) {
+                    if (task.TaskAssignments && task.TaskAssignments.length > 0) {
+                        for (const assignment of task.TaskAssignments) {
+                            if (assignment.User && assignment.User.id) {
+                                allAssignedUserIds.push(assignment.User.id);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Remove duplicates
+            const uniqueUserIds = [...new Set(allAssignedUserIds)];
+
+            let userTaskCounts = {};
+            if (uniqueUserIds.length > 0) {
+                // Get accepted tasks count
+                const acceptedCounts = await TaskAssignments.findAll({
+                    where: {
+                        user_id: { [Op.in]: uniqueUserIds }
+                    },
+                    include: [
+                        {
+                            model: Tasks,
+                            where: { status: 'accepted' },
+                            attributes: []
+                        }
+                    ],
+                    attributes: [
+                        'user_id',
+                        [Tasks.sequelize.fn('COUNT', Tasks.sequelize.col('task_id')), 'accepted_count']
+                    ],
+                    group: ['user_id'],
+                    raw: true
+                });
+
+                // Get in_progress tasks count
+                const inProgressCounts = await TaskAssignments.findAll({
+                    where: {
+                        user_id: { [Op.in]: uniqueUserIds }
+                    },
+                    include: [
+                        {
+                            model: Tasks,
+                            where: { status: 'in_progress' },
+                            attributes: []
+                        }
+                    ],
+                    attributes: [
+                        'user_id',
+                        [Tasks.sequelize.fn('COUNT', Tasks.sequelize.col('task_id')), 'in_progress_count']
+                    ],
+                    group: ['user_id'],
+                    raw: true
+                });
+
+                // Organize counts
+                acceptedCounts.forEach(count => {
+                    if (!userTaskCounts[count.user_id]) {
+                        userTaskCounts[count.user_id] = { accepted: 0, in_progress: 0 };
+                    }
+                    userTaskCounts[count.user_id].accepted = parseInt(count.accepted_count);
+                });
+
+                inProgressCounts.forEach(count => {
+                    if (!userTaskCounts[count.user_id]) {
+                        userTaskCounts[count.user_id] = { accepted: 0, in_progress: 0 };
+                    }
+                    userTaskCounts[count.user_id].in_progress = parseInt(count.in_progress_count);
+                });
+            }
+
+            // Add task counts to assigned users in the response
+            if (workRequest.Tasks && workRequest.Tasks.length > 0) {
+                for (const task of workRequest.Tasks) {
+                    if (task.TaskAssignments && task.TaskAssignments.length > 0) {
+                        for (const assignment of task.TaskAssignments) {
+                            if (assignment.User && assignment.User.id) {
+                                const counts = userTaskCounts[assignment.User.id] || { accepted: 0, in_progress: 0 };
+                                assignment.User.dataValues.acceptedTasksCount = counts.accepted;
+                                assignment.User.dataValues.inProgressTasksCount = counts.in_progress;
+                                assignment.User.dataValues.totalActiveTasks = counts.accepted + counts.in_progress;
+                            }
+                        }
+                    }
+                }
+            }
+
+            res.json({ success: true, data: workRequest });
         } else {
             res.status(404).json({ success: false, error: 'Work request not found' });
         }
