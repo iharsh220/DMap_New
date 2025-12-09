@@ -14,7 +14,6 @@ const {
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
 const { logUserActivity, extractRequestDetails } = require('../../services/elasticsearchService');
-const { queueFileUpload } = require('../../services/fileUploadService');
 const path = require('path');
 const fs = require('fs');
 
@@ -734,19 +733,20 @@ const submitTask = async (req, res) => {
             }
 
             for (const file of files) {
-                // Generate unique filename
+                // Generate unique filename for each file
                 const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
                 const filename = file.name.replace(/[^a-zA-Z0-9.]/g, '_') + '-' + uniqueSuffix + path.extname(file.name);
 
-                // Create temp directory if it doesn't exist
-                const tempDir = path.join('temp', 'uploads');
+                // Create unique temp directory for this file to avoid conflicts
+                const tempDir = path.join('temp', 'uploads', uniqueSuffix);
                 if (!fs.existsSync(tempDir)) {
                     fs.mkdirSync(tempDir, { recursive: true });
                 }
 
                 // Save file to temp location
-                const tempFilename = `temp-${uniqueSuffix}-${filename}`;
+                const tempFilename = `${filename}`;
                 const tempFilepath = path.join(tempDir, tempFilename);
+                console.log(`Saving task file ${file.name} to temp location: ${tempFilepath}`);
                 await file.mv(tempFilepath);
 
                 const documentData = {
@@ -762,14 +762,53 @@ const submitTask = async (req, res) => {
                 const docResult = await TaskDocuments.create(documentData);
                 documents.push(docResult);
 
-                // Queue file upload
-                await queueFileUpload({
-                    documentId: docResult.id,
-                    tempFilepath: tempFilepath,
-                    uploadPath: userFolder,
-                    filename: filename,
-                    type: 'task'
-                });
+                // Move file synchronously instead of using queue
+                try {
+                    console.log(`Moving task file synchronously from ${tempFilepath} to ${userFolder}/${filename}`);
+
+                    // Ensure upload directory exists
+                    if (!fs.existsSync(userFolder)) {
+                        fs.mkdirSync(userFolder, { recursive: true });
+                    }
+
+                    const finalFilepath = path.join(userFolder, filename);
+                    fs.renameSync(tempFilepath, finalFilepath);
+
+                    // Update document status to uploaded
+                    await TaskDocuments.update(
+                        { status: 'uploaded' },
+                        { where: { id: docResult.id } }
+                    );
+
+                    console.log(`Task file uploaded successfully: ${finalFilepath}`);
+
+                    // Clean up temp directory
+                    try {
+                        fs.rmdirSync(tempDir);
+                    } catch (cleanupError) {
+                        console.error('Failed to cleanup temp directory:', cleanupError);
+                    }
+
+                } catch (uploadError) {
+                    console.error(`Failed to upload task file ${filename}:`, uploadError);
+
+                    // Update document status to failed
+                    await TaskDocuments.update(
+                        { status: 'failed' },
+                        { where: { id: docResult.id } }
+                    );
+
+                    // Clean up temp directory
+                    try {
+                        if (fs.existsSync(tempDir)) {
+                            fs.rmSync(tempDir, { recursive: true, force: true });
+                        }
+                    } catch (cleanupError) {
+                        console.error('Failed to cleanup temp directory on error:', cleanupError);
+                    }
+
+                    throw uploadError;
+                }
             }
         }
 
