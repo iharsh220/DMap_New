@@ -16,7 +16,7 @@ const taskSchedulerWorker = new Worker('task-scheduler-queue', async (job) => {
   const { type } = job.data;
 
   if (type === 'progress_tasks') {
-    return await progressTasksWithTodayDeadline();
+    return await progressTasksWithTodayStartDate();
   }
 
   throw new Error(`Unknown job type: ${type}`);
@@ -27,17 +27,20 @@ const taskSchedulerWorker = new Worker('task-scheduler-queue', async (job) => {
   },
 });
 
-// Function to progress tasks with today's deadline
-const progressTasksWithTodayDeadline = async () => {
+// Function to progress tasks with today's start date
+const progressTasksWithTodayStartDate = async () => {
   try {
     const today = new Date();
     const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
-    // Find all tasks with deadline today and status 'accepted'
-    const tasksWithTodayDeadline = await Tasks.findAll({
+    // Find all tasks with start_date today and status 'accepted'
+    const tasksWithTodayStartDate = await Tasks.findAll({
       where: {
         status: 'accepted',
-        deadline: todayDate
+        start_date: {
+          [Op.gte]: todayDate,
+          [Op.lt]: new Date(todayDate.getTime() + 24 * 60 * 60 * 1000) // Next day
+        }
       },
       include: [{
         model: WorkRequests,
@@ -48,7 +51,7 @@ const progressTasksWithTodayDeadline = async () => {
     let updatedTasks = 0;
     let updatedWorkRequests = 0;
 
-    for (const task of tasksWithTodayDeadline) {
+    for (const task of tasksWithTodayStartDate) {
       // Update task status to 'in_progress'
       await Tasks.update(
         { status: 'in_progress' },
@@ -68,7 +71,7 @@ const progressTasksWithTodayDeadline = async () => {
 
     return {
       success: true,
-      message: `Processed ${tasksWithTodayDeadline.length} tasks with today's deadline`,
+      message: `Processed ${tasksWithTodayStartDate.length} tasks with today's start date`,
       updatedTasks,
       updatedWorkRequests
     };
@@ -94,7 +97,7 @@ const scheduleTaskProgression = () => {
     timezone: 'Asia/Kolkata'
   });
 
-  console.log('Task progression scheduler initialized - runs daily at 12:01 AM IST');
+  console.log('Task progression scheduler initialized - runs daily at 12:01 AM IST (checks start_date)');
 };
 
 
@@ -120,5 +123,5 @@ taskSchedulerWorker.on('failed', (job, err) => {
 module.exports = {
   scheduleTaskProgression,
   triggerTaskProgression,
-  progressTasksWithTodayDeadline
+  progressTasksWithTodayStartDate
 };
