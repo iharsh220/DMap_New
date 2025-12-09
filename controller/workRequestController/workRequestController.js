@@ -169,20 +169,22 @@ const createWorkRequest = async (req, res) => {
         if (req.files && req.files.documents) {
             const files = Array.isArray(req.files.documents) ? req.files.documents : [req.files.documents];
             for (const file of files) {
-                // Generate unique filename
+                // Generate unique filename for each file
                 const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
                 const filename = file.name.replace(/[^a-zA-Z0-9.]/g, '_') + '-' + uniqueSuffix + path.extname(file.name);
 
-                // Create temp directory if it doesn't exist
-                const tempDir = path.join('temp', 'uploads');
+                // Create unique temp directory for this file to avoid conflicts
+                const tempDir = path.join('temp', 'uploads', uniqueSuffix);
                 if (!fs.existsSync(tempDir)) {
                     fs.mkdirSync(tempDir, { recursive: true });
                 }
 
                 // Save file to temp location
-                const tempFilename = `temp-${uniqueSuffix}-${filename}`;
+                const tempFilename = `${filename}`;
                 const tempFilepath = path.join(tempDir, tempFilename);
+                console.log(`Saving file ${file.name} to temp location: ${tempFilepath}`);
                 await file.mv(tempFilepath);
+                console.log(`File saved to temp location successfully`);
 
                 const documentData = {
                     work_request_id: workRequestId,
@@ -197,13 +199,53 @@ const createWorkRequest = async (req, res) => {
                 const docResult = await WorkRequestDocuments.create(documentData);
                 documents.push(docResult);
 
-                // Queue file upload
-                await queueFileUpload({
-                    documentId: docResult.id,
-                    tempFilepath: tempFilepath,
-                    uploadPath: req.uploadPath,
-                    filename: filename
-                });
+                // Move file synchronously instead of using queue
+                try {
+                    console.log(`Moving file synchronously from ${tempFilepath} to ${req.uploadPath}/${filename}`);
+
+                    // Ensure upload directory exists
+                    if (!fs.existsSync(req.uploadPath)) {
+                        fs.mkdirSync(req.uploadPath, { recursive: true });
+                    }
+
+                    const finalFilepath = path.join(req.uploadPath, filename);
+                    fs.renameSync(tempFilepath, finalFilepath);
+
+                    // Update document status to uploaded
+                    await WorkRequestDocuments.update(
+                        { status: 'uploaded' },
+                        { where: { id: docResult.id } }
+                    );
+
+                    console.log(`File uploaded successfully: ${finalFilepath}`);
+
+                    // Clean up temp directory
+                    try {
+                        fs.rmdirSync(tempDir);
+                    } catch (cleanupError) {
+                        console.error('Failed to cleanup temp directory:', cleanupError);
+                    }
+
+                } catch (uploadError) {
+                    console.error(`Failed to upload file ${filename}:`, uploadError);
+
+                    // Update document status to failed
+                    await WorkRequestDocuments.update(
+                        { status: 'failed' },
+                        { where: { id: docResult.id } }
+                    );
+
+                    // Clean up temp directory
+                    try {
+                        if (fs.existsSync(tempDir)) {
+                            fs.rmSync(tempDir, { recursive: true, force: true });
+                        }
+                    } catch (cleanupError) {
+                        console.error('Failed to cleanup temp directory on error:', cleanupError);
+                    }
+
+                    throw uploadError;
+                }
             }
         }
 
