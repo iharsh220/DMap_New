@@ -1534,6 +1534,15 @@ const getMyTeam = async (req, res) => {
                 });
             }
 
+            // Apply search filter if provided
+            if (req.search && req.search.term) {
+                const searchTerm = req.search.term.toLowerCase();
+                divisionTeam.teamMembers = divisionTeam.teamMembers.filter(member =>
+                    member.name.toLowerCase().includes(searchTerm) ||
+                    member.email.toLowerCase().includes(searchTerm)
+                );
+            }
+
             // Only add division if it has team members
             if (divisionTeam.teamMembers.length > 0) {
                 teamData.push(divisionTeam);
@@ -1545,6 +1554,7 @@ const getMyTeam = async (req, res) => {
             userId: req.user.id,
             divisionCount: teamData.length,
             totalMembers: teamData.reduce((sum, div) => sum + div.teamMembers.length, 0),
+            search: req.search,
             ...extractRequestDetails(req)
         });
 

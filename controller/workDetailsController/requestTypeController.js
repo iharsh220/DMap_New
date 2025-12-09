@@ -1,6 +1,7 @@
 const { Op } = require('sequelize');
 const CrudService = require('../../services/crudService');
 const { RequestType, Division, User, UserDivisions } = require('../../models');
+const { logUserActivity, extractRequestDetails } = require('../../services/elasticsearchService');
 
 // Create service instance
 const RequestTypeService = new CrudService(RequestType);

@@ -781,26 +781,22 @@
 								{
 									"key": "search",
 									"value": "",
-									"description": "Search term",
-									"disabled": true
+									"description": "Search term for work request titles, brands, request types, project types, divisions, or user names"
 								},
 								{
 									"key": "searchFields",
 									"value": "project_name,brand",
-									"description": "Fields to search in",
-									"disabled": true
+									"description": "Fields to search in"
 								},
 								{
 									"key": "priority",
 									"value": "",
-									"description": "Filter by priority",
-									"disabled": true
+									"description": "Filter by priority"
 								},
 								{
 									"key": "status",
 									"value": "",
-									"description": "Filter by status",
-									"disabled": true
+									"description": "Filter by status"
 								}
 							]
 						},
@@ -1212,7 +1208,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/my-team",
+							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/my-team?page=1&limit=10&search=&searchFields=name,email&division=",
 							"host": [
 								"{{base_url}}"
 							],
@@ -1223,6 +1219,33 @@
 								"manager",
 								"assigned-work-requests",
 								"my-team"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number for pagination"
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Number of items per page"
+								},
+								{
+									"key": "search",
+									"value": "",
+									"description": "Search term for team member names or emails"
+								},
+								{
+									"key": "searchFields",
+									"value": "name,email",
+									"description": "Fields to search in"
+								},
+								{
+									"key": "division",
+									"value": "",
+									"description": "Filter by division name"
+								}
 							]
 						},
 						"description": "Get manager's team members with task counts, grouped by division. Shows creative users and creative leads from all divisions the manager belongs to (requires authentication and manager role)"
