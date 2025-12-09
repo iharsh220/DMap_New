@@ -576,13 +576,36 @@ const acceptTask = async (req, res) => {
             });
         }
 
+        // Check if deadline is today or in the future
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Set to start of day for date comparison
+        const deadlineDate = new Date(task.deadline);
+        deadlineDate.setHours(0, 0, 0, 0); // Set to start of day for date comparison
+
+        const isDeadlineTodayOrFuture = deadlineDate >= today;
+        const isDeadlineToday = deadlineDate.getTime() === today.getTime();
+
+        // Validate start_date if provided
+        if (start_date) {
+            const providedStartDate = new Date(start_date);
+            providedStartDate.setHours(0, 0, 0, 0);
+            if (providedStartDate < today) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Start date cannot be before today'
+                });
+            }
+        }
+
         // Prepare update data
         const updateData = {
-            status: 'accepted'
+            status: isDeadlineToday ? 'in_progress' : 'accepted'
         };
 
-        // If start_date is provided, update it
-        if (start_date) {
+        // Set start_date automatically if deadline is today or in the future and no start_date provided
+        if (isDeadlineTodayOrFuture && !start_date) {
+            updateData.start_date = new Date();
+        } else if (start_date) {
             updateData.start_date = start_date;
         }
 
@@ -602,7 +625,7 @@ const acceptTask = async (req, res) => {
             event: 'task_accepted',
             userId: req.user.id,
             taskId: taskId,
-            startDate: start_date || null,
+            startDate: updateData.start_date || start_date || null,
             ...extractRequestDetails(req)
         });
 
@@ -611,8 +634,8 @@ const acceptTask = async (req, res) => {
             message: 'Task accepted successfully',
             data: {
                 task_id: taskId,
-                status: 'accepted',
-                start_date: start_date || task.start_date
+                status: updateData.status,
+                start_date: updateData.start_date || start_date || task.start_date
             }
         });
     } catch (error) {
