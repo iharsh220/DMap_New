@@ -263,6 +263,7 @@ const login = async (req, res) => {
             userId: user.id,
             email: user.email || user.email_id,
             userType,
+            userDetails: userData,
             ...extractRequestDetails(req)
         });
 
