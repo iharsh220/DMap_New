@@ -81,7 +81,7 @@ const progressTasksWithTodayDeadline = async () => {
 // Function to schedule the daily task progression job
 const scheduleTaskProgression = () => {
   // Runs at 12:01 AM IST (6:31 PM UTC - previous day)
-  cron.schedule('31 18 * * *', async () => {
+  cron.schedule('1 0 * * *', async () => {
     console.log("Running scheduled task: New day task progression");
 
     try {
@@ -91,7 +91,7 @@ const scheduleTaskProgression = () => {
       console.error('Failed to queue task progression job:', error);
     }
   }, {
-    timezone: 'UTC'
+    timezone: 'Asia/Kolkata'
   });
 
   console.log('Task progression scheduler initialized - runs daily at 12:01 AM IST');
