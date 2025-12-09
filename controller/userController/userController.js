@@ -746,7 +746,6 @@ const submitTask = async (req, res) => {
                 // Save file to temp location
                 const tempFilename = `${filename}`;
                 const tempFilepath = path.join(tempDir, tempFilename);
-                console.log(`Saving task file ${file.name} to temp location: ${tempFilepath}`);
                 await file.mv(tempFilepath);
 
                 const documentData = {
@@ -764,7 +763,6 @@ const submitTask = async (req, res) => {
 
                 // Move file synchronously instead of using queue
                 try {
-                    console.log(`Moving task file synchronously from ${tempFilepath} to ${userFolder}/${filename}`);
 
                     // Ensure upload directory exists
                     if (!fs.existsSync(userFolder)) {
@@ -779,8 +777,6 @@ const submitTask = async (req, res) => {
                         { status: 'uploaded' },
                         { where: { id: docResult.id } }
                     );
-
-                    console.log(`Task file uploaded successfully: ${finalFilepath}`);
 
                     // Clean up temp directory
                     try {

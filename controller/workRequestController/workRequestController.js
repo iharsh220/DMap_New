@@ -182,9 +182,7 @@ const createWorkRequest = async (req, res) => {
                 // Save file to temp location
                 const tempFilename = `${filename}`;
                 const tempFilepath = path.join(tempDir, tempFilename);
-                console.log(`Saving file ${file.name} to temp location: ${tempFilepath}`);
                 await file.mv(tempFilepath);
-                console.log(`File saved to temp location successfully`);
 
                 const documentData = {
                     work_request_id: workRequestId,
@@ -201,8 +199,6 @@ const createWorkRequest = async (req, res) => {
 
                 // Move file synchronously instead of using queue
                 try {
-                    console.log(`Moving file synchronously from ${tempFilepath} to ${req.uploadPath}/${filename}`);
-
                     // Ensure upload directory exists
                     if (!fs.existsSync(req.uploadPath)) {
                         fs.mkdirSync(req.uploadPath, { recursive: true });
@@ -216,8 +212,6 @@ const createWorkRequest = async (req, res) => {
                         { status: 'uploaded' },
                         { where: { id: docResult.id } }
                     );
-
-                    console.log(`File uploaded successfully: ${finalFilepath}`);
 
                     // Clean up temp directory
                     try {
