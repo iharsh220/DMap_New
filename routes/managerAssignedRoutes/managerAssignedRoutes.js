@@ -16,7 +16,7 @@ router.get('/', authenticateToken, checkRole([1, 2, 3]), filterMiddleware, pagin
 router.get('/requests', authenticateToken, checkRole([1, 2, 3]), filterMiddleware, paginationMiddleware, searchMiddleware, getAssignedRequestsWithStatus); // Get requests assigned to the manager with optional status filter
 
 router.get('/my-team', authenticateToken, checkRole([1, 2, 3]), searchMiddleware, paginationMiddleware, getMyTeam); // Get manager's team with task counts grouped by division
-router.get('/:id', authenticateToken, getAssignedWorkRequestById); // Get specific assigned work request by ID
+router.get('/:id', authenticateToken, checkRole([1, 2, 3, 4]), getAssignedWorkRequestById); // Get specific assigned work request by ID
 router.put('/:id/accept', authenticateToken, checkRole([1, 2, 3]), acceptWorkRequest); // Accept a work request
 router.put('/:id/defer', authenticateToken, checkRole([1, 2, 3]), deferWorkRequest); // Defer a work request
 

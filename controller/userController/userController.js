@@ -234,7 +234,7 @@ const getAssignedTasks = async (req, res) => {
 
 const assignTaskToUser = async (req, res) => {
     try {
-        const { task_id, user_id, work_request_id } = req.body;
+        const { task_id, user_id, work_request_id, deadline } = req.body;
 
         if (!task_id || !user_id || !work_request_id) {
             return res.status(400).json({
@@ -314,6 +314,39 @@ const assignTaskToUser = async (req, res) => {
 
         if (!assignedUser) {
             return res.status(404).json({ success: false, error: 'User not found' });
+        }
+
+        // Prepare task update data
+        const taskUpdateData = {};
+
+        // Validate and set deadline if provided
+        if (deadline) {
+            const deadlineDate = new Date(deadline);
+            if (isNaN(deadlineDate.getTime())) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Invalid deadline format'
+                });
+            }
+
+            // Validate that deadline is not in the past
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Set to start of day for date comparison
+            if (deadlineDate < today) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Deadline cannot be in the past'
+                });
+            }
+
+            taskUpdateData.deadline = deadlineDate;
+        }
+
+        // Update task deadline if provided
+        if (Object.keys(taskUpdateData).length > 0) {
+            await Tasks.update(taskUpdateData, {
+                where: { id: taskId }
+            });
         }
 
         // Delete all existing task assignments for this task
@@ -405,6 +438,7 @@ const assignTaskToUser = async (req, res) => {
             taskId: taskId,
             assignedUserId: userId,
             workRequestId: workRequest.id,
+            deadline: taskUpdateData.deadline || null,
             ...extractRequestDetails(req)
         });
 

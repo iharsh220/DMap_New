@@ -335,167 +335,299 @@ const getAssignedWorkRequestById = async (req, res) => {
         if (isNaN(id)) {
             return res.status(400).json({ success: false, error: 'Invalid work request ID' });
         }
-        const manager_id = req.user.id;
+        const user_id = req.user.id;
+        const user_type = req.user.userType;
 
-        const result = await workRequestService.getAll({
-            where: { id },
-            attributes: { exclude: ['request_type_id', 'requested_manager_link_id', 'updated_at'] },
-            include: [
-                {
-                    model: WorkRequestManagers,
-                    where: { manager_id: manager_id },
-                    required: true,
-                    attributes: []
-                },
-                { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
-                { model: RequestType, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, through: { attributes: [] }, attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
-                { model: WorkRequestDocuments, attributes: { exclude: ['created_at', 'updated_at'] } },
-                {
-                    model: Tasks,
-                    attributes: ['id', 'task_name', 'description', 'task_type_id', 'work_request_id', 'deadline', 'status', 'intimate_team', 'request_type_id'],
+        let workRequest = null;
+        let hasAccess = false;
+
+        // First, try to get work request if user is a manager assigned to it
+        if (user_type === 'user') {
+            const managerResult = await workRequestService.getAll({
+                where: { id },
+                attributes: { exclude: ['request_type_id', 'requested_manager_link_id', 'updated_at'] },
+                include: [
+                    {
+                        model: WorkRequestManagers,
+                        where: { manager_id: user_id },
+                        required: true,
+                        attributes: []
+                    },
+                    { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
+                    { model: RequestType, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, through: { attributes: [] }, attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
+                    { model: WorkRequestDocuments, attributes: { exclude: ['created_at', 'updated_at'] } },
+                    {
+                        model: Tasks,
+                        attributes: ['id', 'task_name', 'description', 'task_type_id', 'work_request_id', 'deadline', 'status', 'intimate_team', 'request_type_id'],
+                        include: [
+                            {
+                                model: TaskAssignments,
+                                include: [
+                                    {
+                                        model: User,
+                                        attributes: ['id', 'name', 'email']
+                                    },
+                                    {
+                                        model: TaskDocuments,
+                                        attributes: ['id', 'document_name', 'document_path', 'uploaded_at', 'status']
+                                    }
+                                ]
+                            },
+                            {
+                                model: TaskType,
+                                attributes: ['id', 'task_type', 'description']
+                            },
+                            {
+                                model: RequestType,
+                                attributes: ['id', 'request_type', 'description']
+                            },
+                            {
+                                model: TaskDependencies,
+                                as: 'dependencies',
+                                include: [
+                                    {
+                                        model: Tasks,
+                                        as: 'dependencyTask',
+                                        attributes: ['id', 'task_name', 'deadline', 'status']
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                limit: 1
+            });
+
+            if (managerResult.success && managerResult.data.length > 0) {
+                workRequest = managerResult.data[0];
+                hasAccess = true;
+            }
+        }
+
+        // If not a manager or manager access failed, check if user is assigned to tasks in this work request
+        if (!hasAccess) {
+            // Check if user is assigned to any tasks in this work request
+            const taskCheck = await Tasks.findAll({
+                where: { work_request_id: id },
+                include: [
+                    {
+                        model: TaskAssignments,
+                        where: { user_id: user_id },
+                        required: true,
+                        attributes: []
+                    }
+                ],
+                limit: 1
+            });
+
+            if (taskCheck.length > 0) {
+                // User is assigned to tasks, get the work request
+                const userResult = await workRequestService.getAll({
+                    where: { id },
+                    attributes: { exclude: ['request_type_id', 'requested_manager_link_id', 'updated_at'] },
                     include: [
+                        { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
+                        { model: RequestType, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, through: { attributes: [] }, attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
+                        { model: WorkRequestDocuments, attributes: { exclude: ['created_at', 'updated_at'] } },
                         {
-                            model: TaskAssignments,
+                            model: Tasks,
+                            attributes: ['id', 'task_name', 'description', 'task_type_id', 'work_request_id', 'deadline', 'status', 'intimate_team', 'request_type_id'],
                             include: [
                                 {
-                                    model: User,
-                                    attributes: ['id', 'name', 'email']
+                                    model: TaskAssignments,
+                                    include: [
+                                        {
+                                            model: User,
+                                            attributes: ['id', 'name', 'email']
+                                        },
+                                        {
+                                            model: TaskDocuments,
+                                            attributes: ['id', 'document_name', 'document_path', 'uploaded_at', 'status']
+                                        }
+                                    ]
                                 },
                                 {
-                                    model: TaskDocuments,
-                                    attributes: ['id', 'document_name', 'document_path', 'uploaded_at', 'status']
-                                }
-                            ]
-                        },
-                        {
-                            model: TaskType,
-                            attributes: ['id', 'task_type', 'description']
-                        },
-                        {
-                            model: RequestType,
-                            attributes: ['id', 'request_type', 'description']
-                        },
-                        {
-                            model: TaskDependencies,
-                            as: 'dependencies',
-                            include: [
+                                    model: TaskType,
+                                    attributes: ['id', 'task_type', 'description']
+                                },
                                 {
-                                    model: Tasks,
-                                    as: 'dependencyTask',
-                                    attributes: ['id', 'task_name', 'deadline', 'status']
+                                    model: RequestType,
+                                    attributes: ['id', 'request_type', 'description']
+                                },
+                                {
+                                    model: TaskDependencies,
+                                    as: 'dependencies',
+                                    include: [
+                                        {
+                                            model: Tasks,
+                                            as: 'dependencyTask',
+                                            attributes: ['id', 'task_name', 'deadline', 'status']
+                                        }
+                                    ]
                                 }
                             ]
                         }
-                    ]
-                }
-            ],
-            limit: 1
-        });
+                    ],
+                    limit: 1
+                });
 
-        if (result.success && result.data.length > 0) {
-            const workRequest = result.data[0];
-
-            // Get user task counts (accepted + in_progress) for all assigned users
-            const allAssignedUserIds = [];
-            if (workRequest.Tasks && workRequest.Tasks.length > 0) {
-                for (const task of workRequest.Tasks) {
-                    if (task.TaskAssignments && task.TaskAssignments.length > 0) {
-                        for (const assignment of task.TaskAssignments) {
-                            if (assignment.User && assignment.User.id) {
-                                allAssignedUserIds.push(assignment.User.id);
-                            }
-                        }
-                    }
+                if (userResult.success && userResult.data.length > 0) {
+                    workRequest = userResult.data[0];
+                    hasAccess = true;
                 }
             }
-
-            // Remove duplicates
-            const uniqueUserIds = [...new Set(allAssignedUserIds)];
-
-            let userTaskCounts = {};
-            if (uniqueUserIds.length > 0) {
-                // Get accepted tasks count
-                const acceptedCounts = await TaskAssignments.findAll({
-                    where: {
-                        user_id: { [Op.in]: uniqueUserIds }
-                    },
-                    include: [
-                        {
-                            model: Tasks,
-                            where: { status: 'accepted' },
-                            attributes: []
-                        }
-                    ],
-                    attributes: [
-                        'user_id',
-                        [Tasks.sequelize.fn('COUNT', Tasks.sequelize.col('task_id')), 'accepted_count']
-                    ],
-                    group: ['user_id'],
-                    raw: true
-                });
-
-                // Get in_progress tasks count
-                const inProgressCounts = await TaskAssignments.findAll({
-                    where: {
-                        user_id: { [Op.in]: uniqueUserIds }
-                    },
-                    include: [
-                        {
-                            model: Tasks,
-                            where: { status: 'in_progress' },
-                            attributes: []
-                        }
-                    ],
-                    attributes: [
-                        'user_id',
-                        [Tasks.sequelize.fn('COUNT', Tasks.sequelize.col('task_id')), 'in_progress_count']
-                    ],
-                    group: ['user_id'],
-                    raw: true
-                });
-
-                // Organize counts
-                acceptedCounts.forEach(count => {
-                    if (!userTaskCounts[count.user_id]) {
-                        userTaskCounts[count.user_id] = { accepted: 0, in_progress: 0 };
-                    }
-                    userTaskCounts[count.user_id].accepted = parseInt(count.accepted_count);
-                });
-
-                inProgressCounts.forEach(count => {
-                    if (!userTaskCounts[count.user_id]) {
-                        userTaskCounts[count.user_id] = { accepted: 0, in_progress: 0 };
-                    }
-                    userTaskCounts[count.user_id].in_progress = parseInt(count.in_progress_count);
-                });
-            }
-
-            // Add task counts to assigned users in the response
-            if (workRequest.Tasks && workRequest.Tasks.length > 0) {
-                for (const task of workRequest.Tasks) {
-                    if (task.TaskAssignments && task.TaskAssignments.length > 0) {
-                        for (const assignment of task.TaskAssignments) {
-                            if (assignment.User && assignment.User.id) {
-                                const counts = userTaskCounts[assignment.User.id] || { accepted: 0, in_progress: 0 };
-                                assignment.User.dataValues.acceptedTasksCount = counts.accepted;
-                                assignment.User.dataValues.inProgressTasksCount = counts.in_progress;
-                                assignment.User.dataValues.totalActiveTasks = counts.accepted + counts.in_progress;
-                            }
-                        }
-                    }
-                }
-            }
-
-            await logUserActivity({
-                event: 'assigned_work_request_viewed',
-                userId: req.user.id,
-                workRequestId: id,
-                ...extractRequestDetails(req)
-            });
-            res.json({ success: true, data: workRequest });
-        } else {
-            res.status(404).json({ success: false, error: 'Assigned work request not found' });
         }
+
+        if (!hasAccess || !workRequest) {
+            return res.status(404).json({ success: false, error: 'Assigned work request not found' });
+        }
+
+        // Get user task counts (accepted + in_progress) for all assigned users
+        const allAssignedUserIds = [];
+        if (workRequest.Tasks && workRequest.Tasks.length > 0) {
+            for (const task of workRequest.Tasks) {
+                if (task.TaskAssignments && task.TaskAssignments.length > 0) {
+                    for (const assignment of task.TaskAssignments) {
+                        if (assignment.User && assignment.User.id) {
+                            allAssignedUserIds.push(assignment.User.id);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Remove duplicates
+        const uniqueUserIds = [...new Set(allAssignedUserIds)];
+
+        let userTaskCounts = {};
+        if (uniqueUserIds.length > 0) {
+            // Get accepted tasks count
+            const acceptedCounts = await TaskAssignments.findAll({
+                where: {
+                    user_id: { [Op.in]: uniqueUserIds }
+                },
+                include: [
+                    {
+                        model: Tasks,
+                        where: { status: 'accepted' },
+                        attributes: []
+                    }
+                ],
+                attributes: [
+                    'user_id',
+                    [Tasks.sequelize.fn('COUNT', Tasks.sequelize.col('task_id')), 'accepted_count']
+                ],
+                group: ['user_id'],
+                raw: true
+            });
+
+            // Get in_progress tasks count
+            const inProgressCounts = await TaskAssignments.findAll({
+                where: {
+                    user_id: { [Op.in]: uniqueUserIds }
+                },
+                include: [
+                    {
+                        model: Tasks,
+                        where: { status: 'in_progress' },
+                        attributes: []
+                    }
+                ],
+                attributes: [
+                    'user_id',
+                    [Tasks.sequelize.fn('COUNT', Tasks.sequelize.col('task_id')), 'in_progress_count']
+                ],
+                group: ['user_id'],
+                raw: true
+            });
+
+            // Organize counts
+            acceptedCounts.forEach(count => {
+                if (!userTaskCounts[count.user_id]) {
+                    userTaskCounts[count.user_id] = { accepted: 0, in_progress: 0 };
+                }
+                userTaskCounts[count.user_id].accepted = parseInt(count.accepted_count);
+            });
+
+            inProgressCounts.forEach(count => {
+                if (!userTaskCounts[count.user_id]) {
+                    userTaskCounts[count.user_id] = { accepted: 0, in_progress: 0 };
+                }
+                userTaskCounts[count.user_id].in_progress = parseInt(count.in_progress_count);
+            });
+        }
+
+        // Add task counts to assigned users in the response
+        if (workRequest.Tasks && workRequest.Tasks.length > 0) {
+            for (const task of workRequest.Tasks) {
+                if (task.TaskAssignments && task.TaskAssignments.length > 0) {
+                    for (const assignment of task.TaskAssignments) {
+                        if (assignment.User && assignment.User.id) {
+                            const counts = userTaskCounts[assignment.User.id] || { accepted: 0, in_progress: 0 };
+                            assignment.User.dataValues.acceptedTasksCount = counts.accepted;
+                            assignment.User.dataValues.inProgressTasksCount = counts.in_progress;
+                            assignment.User.dataValues.totalActiveTasks = counts.accepted + counts.in_progress;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Collect all unique users from tasks with their full details
+        const taskUsers = [];
+        const userIds = new Set();
+
+        if (workRequest.Tasks && workRequest.Tasks.length > 0) {
+            for (const task of workRequest.Tasks) {
+                if (task.TaskAssignments && task.TaskAssignments.length > 0) {
+                    for (const assignment of task.TaskAssignments) {
+                        if (assignment.User && assignment.User.id && !userIds.has(assignment.User.id)) {
+                            userIds.add(assignment.User.id);
+
+                            // Get full user details with associations
+                            const userDetails = await User.findByPk(assignment.User.id, {
+                                include: [
+                                    { model: Department, attributes: ['id', 'department_name'] },
+                                    { model: JobRole, attributes: ['id', 'role_title'] },
+                                    { model: Location, attributes: ['id', 'location_name'] },
+                                    { model: Designation, attributes: ['id', 'designation_name'] },
+                                    {
+                                        model: Division,
+                                        as: 'Divisions',
+                                        attributes: ['id', 'title'],
+                                        through: { attributes: [] }
+                                    }
+                                ],
+                                attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] }
+                            });
+
+                            if (userDetails) {
+                                const counts = userTaskCounts[assignment.User.id] || { accepted: 0, in_progress: 0 };
+                                taskUsers.push({
+                                    ...userDetails.toJSON(),
+                                    acceptedTasksCount: counts.accepted,
+                                    inProgressTasksCount: counts.in_progress,
+                                    totalActiveTasks: counts.accepted + counts.in_progress
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Add task users to the work request response
+        workRequest.dataValues.taskUsers = taskUsers;
+
+        await logUserActivity({
+            event: 'assigned_work_request_viewed',
+            userId: req.user.id,
+            workRequestId: id,
+            taskUserCount: taskUsers.length,
+            userType: user_type,
+            ...extractRequestDetails(req)
+        });
+        res.json({ success: true, data: workRequest });
     } catch (error) {
         console.error('Error fetching assigned work request:', error);
         res.status(500).json({ success: false, error: error.message });
