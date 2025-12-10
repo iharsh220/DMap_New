@@ -12,6 +12,9 @@ require('dotenv').config();
 // Initialize task scheduler
 const { scheduleTaskProgression } = require('./services/taskSchedulerService');
 
+// Base route
+const baseRoute = process.env.BASE_ROUTE || '/digilabs/dmap/api';
+
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
@@ -23,7 +26,7 @@ const io = socketIo(server, {
 });
 
 // Socket.io setup
-const apiIo = io.of('/digilabs/dmap/api/socket');
+const apiIo = io.of(`${baseRoute}/socket`);
 
 apiIo.on('connection', (socket) => {
     console.log(`✅ User connected to API namespace: ${socket.id}`);
@@ -60,9 +63,6 @@ app.use('/uploads', express.static('uploads'));
 // Rate limiting
 const limiter = require('./middleware/rateLimitMiddleware');
 app.use(limiter);
-
-// Base route
-const baseRoute = process.env.BASE_ROUTE || '/digilabs/dmap/api';
 
 // Routes
 app.use(baseRoute, require('./routes/indexRoute'));

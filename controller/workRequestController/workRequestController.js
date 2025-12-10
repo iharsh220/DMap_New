@@ -25,6 +25,7 @@ const { renderTemplate } = require('../../services/templateService');
 const { queueFileUpload } = require('../../services/fileUploadService');
 const path = require('path');
 const fs = require('fs');
+require('dotenv').config();
 
 const workRequestService = new CrudService(WorkRequests);
 
@@ -188,7 +189,7 @@ const createWorkRequest = async (req, res) => {
                 const documentData = {
                     work_request_id: workRequestId,
                     document_name: file.name,
-                    document_path: `/uploads/${req.projectName}/${filename}`,
+                    document_path: `${process.env.BASE_ROUTE}/uploads/${req.projectName}/${filename}`,
                     document_type: file.mimetype,
                     document_size: file.size,
                     status: 'uploading',

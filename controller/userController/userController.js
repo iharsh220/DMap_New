@@ -16,6 +16,8 @@ const { renderTemplate } = require('../../services/templateService');
 const { logUserActivity, extractRequestDetails } = require('../../services/elasticsearchService');
 const path = require('path');
 const fs = require('fs');
+require('dotenv').config();
+
 
 const getAssignedTasks = async (req, res) => {
     try {
@@ -808,7 +810,7 @@ const submitTask = async (req, res) => {
                 const documentData = {
                     task_assignment_id: taskAssignment.id,
                     document_name: file.name,
-                    document_path: `/uploads/${sanitizedProjectName}/${task.task_name}/${user.name}/${filename}`,
+                    document_path: `${process.env.BASE_ROUTE}/uploads/${sanitizedProjectName}/${task.task_name}/${user.name}/${filename}`,
                     document_type: file.mimetype,
                     document_size: file.size,
                     status: 'uploading',
