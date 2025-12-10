@@ -119,7 +119,7 @@ const getAssignableUsers = async (req, res) => {
             const workRequest = workRequestResult.data[0];
 
             // Check if work request is accepted
-            if (workRequest.status !== 'accepted') {
+            if (workRequest.status !== 'accepted' || workRequest.status !== 'assigned') {
                 return res.status(400).json({
                     success: false,
                     error: 'Work request must be accepted before assigning users'
