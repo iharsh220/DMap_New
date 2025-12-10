@@ -1465,7 +1465,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"task_id\": 1,\n  \"user_id\": 10,\n  \"work_request_id\": 56\n}"
+							"raw": "{\n  \"task_id\": 1,\n  \"user_id\": 10,\n  \"work_request_id\": 56,\n  \"deadline\": \"2025-12-15\"\n}\n\n// deadline is optional - if provided, must be a valid future date (YYYY-MM-DD format)"
 						},
 						"url": {
 							"raw": "{{base_url}}/digilabs/dmap/api/users/assign-task",
