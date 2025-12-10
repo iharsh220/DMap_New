@@ -22,6 +22,21 @@ router.use('/manager/assigned-work-requests', managerAssignedRoutes);
 
 router.use('/users', userRoutes);
 
+const { authenticateToken } = require('../middleware/jwtMiddleware');
+
+router.get(`/uploads/*`, authenticateToken, (req, res) => {
+    const filePath = req.params[0];
+    const fullPath = path.resolve('uploads', filePath);
+    if (!fullPath.startsWith(path.resolve('uploads') + path.sep)) {
+        return res.status(404).json({ error: 'File not found' });
+    }
+    if (fs.existsSync(fullPath)) {
+        res.sendFile(fullPath);
+    } else {
+        res.status(404).json({ error: 'File not found' });
+    }
+});
+
 // Add other routes here as needed
 
 module.exports = router;
