@@ -26,7 +26,7 @@ const io = socketIo(server, {
         methods: ["GET", "POST"],
         credentials: true
     },
-    // transports: ['websocket', 'polling'] // Ensure both transports are enabled
+    transports: ['websocket', 'polling'] // Ensure both transports are enabled
 });
 
 // 1. Target Namespace (Correct One)
