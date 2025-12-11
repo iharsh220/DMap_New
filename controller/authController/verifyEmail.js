@@ -20,15 +20,25 @@ const verifyEmail = async (req, res) => {
                 email,
                 ...extractRequestDetails(req)
             });
-            // Emit error via socket
+            // Emit error via socket - ONLY to the requesting socket
             const apiIo = req.app.get('apiIo');
+            const socketId = req.socketId; // Get socket ID from request
             console.log('Emitting verificationError for user not found, apiIo defined:', !!apiIo);
-            if (apiIo) {
-                console.log('Connected sockets in namespace:', apiIo.sockets.size);
-                apiIo.emit('verificationError', {
-                    email,
-                    message: 'User not found. Please initiate registration first.'
-                });
+            console.log('Target socket ID:', socketId);
+
+            if (apiIo && socketId) {
+                const targetSocket = apiIo.sockets.get(socketId);
+                if (targetSocket) {
+                    console.log(`🎯 Emitting to requesting socket only (${socketId})`);
+                    targetSocket.emit('verificationError', {
+                        email,
+                        message: 'User not found. Please initiate registration first.'
+                    });
+                } else {
+                    console.log(`⚠️ Requesting socket ${socketId} not found - cannot emit`);
+                }
+            } else {
+                console.log('⚠️ No socket ID in request or apiIo not available - cannot emit');
             }
 
             return res.status(400).json({
@@ -46,15 +56,25 @@ const verifyEmail = async (req, res) => {
                 email,
                 ...extractRequestDetails(req)
             });
-            // Emit error via socket
+            // Emit error via socket - ONLY to the requesting socket
             const apiIo = req.app.get('apiIo');
+            const socketId = req.socketId; // Get socket ID from request
             console.log('Emitting verificationError for already verified, apiIo defined:', !!apiIo);
-            if (apiIo) {
-                console.log('Connected sockets in namespace:', apiIo.sockets.size);
-                apiIo.emit('verificationError', {
-                    email,
-                    message: 'Email already verified. Please login.'
-                });
+            console.log('Target socket ID:', socketId);
+
+            if (apiIo && socketId) {
+                const targetSocket = apiIo.sockets.get(socketId);
+                if (targetSocket) {
+                    console.log(`🎯 Emitting to requesting socket only (${socketId})`);
+                    targetSocket.emit('verificationError', {
+                        email,
+                        message: 'Email already verified. Please login.'
+                    });
+                } else {
+                    console.log(`⚠️ Requesting socket ${socketId} not found - cannot emit`);
+                }
+            } else {
+                console.log('⚠️ No socket ID in request or apiIo not available - cannot emit');
             }
 
             return res.status(400).json({
@@ -76,15 +96,25 @@ const verifyEmail = async (req, res) => {
                 error: updateError.message,
                 ...extractRequestDetails(req)
             });
-            // Emit error via socket
+            // Emit error via socket - ONLY to the requesting socket
             const apiIo = req.app.get('apiIo');
+            const socketId = req.socketId; // Get socket ID from request
             console.log('Emitting verificationError for update failed, apiIo defined:', !!apiIo);
-            if (apiIo) {
-                console.log('Connected sockets in namespace:', apiIo.sockets.size);
-                apiIo.emit('verificationError', {
-                    email,
-                    message: 'Failed to update verification status'
-                });
+            console.log('Target socket ID:', socketId);
+
+            if (apiIo && socketId) {
+                const targetSocket = apiIo.sockets.get(socketId);
+                if (targetSocket) {
+                    console.log(`🎯 Emitting to requesting socket only (${socketId})`);
+                    targetSocket.emit('verificationError', {
+                        email,
+                        message: 'Failed to update verification status'
+                    });
+                } else {
+                    console.log(`⚠️ Requesting socket ${socketId} not found - cannot emit`);
+                }
+            } else {
+                console.log('⚠️ No socket ID in request or apiIo not available - cannot emit');
             }
 
             return res.status(500).json({
@@ -93,16 +123,26 @@ const verifyEmail = async (req, res) => {
             });
         }
         console.log("aaya idhr kuch to");
-        // Emit success via socket
+        // Emit success via socket - ONLY to the requesting socket
         const apiIo = req.app.get('apiIo');
+        const socketId = req.socketId; // Get socket ID from request
         console.log('Emitting emailVerified, apiIo defined:', !!apiIo);
-        if (apiIo) {
-            console.log('Connected sockets in namespace:', apiIo.sockets.size);
-            apiIo.emit('emailVerified', {
-                success: true,
-                email,
-                message: 'Email verified successfully. Please complete your registration.'
-            });
+        console.log('Target socket ID:', socketId);
+
+        if (apiIo && socketId) {
+            const targetSocket = apiIo.sockets.get(socketId);
+            if (targetSocket) {
+                console.log(`🎯 Emitting to requesting socket only (${socketId})`);
+                targetSocket.emit('emailVerified', {
+                    success: true,
+                    email,
+                    message: 'Email verified successfully. Please complete your registration.'
+                });
+            } else {
+                console.log(`⚠️ Requesting socket ${socketId} not found - cannot emit`);
+            }
+        } else {
+            console.log('⚠️ No socket ID in request or apiIo not available - cannot emit');
         }
 
         // Blacklist the verification token (24 hours TTL)
@@ -127,15 +167,25 @@ const verifyEmail = async (req, res) => {
             error: error.message,
             ...extractRequestDetails(req)
         });
-        // Emit error via socket
+        // Emit error via socket - ONLY to the requesting socket
         const apiIo = req.app.get('apiIo');
+        const socketId = req.socketId; // Get socket ID from request
         console.log('Emitting verificationError for server error, apiIo defined:', !!apiIo);
-        if (apiIo) {
-            console.log('Connected sockets in namespace:', apiIo.sockets.size);
-            apiIo.emit('verificationError', {
-                email: req.user?.email || 'unknown',
-                message: 'Verification failed'
-            });
+        console.log('Target socket ID:', socketId);
+
+        if (apiIo && socketId) {
+            const targetSocket = apiIo.sockets.get(socketId);
+            if (targetSocket) {
+                console.log(`🎯 Emitting to requesting socket only (${socketId})`);
+                targetSocket.emit('verificationError', {
+                    email: req.user?.email || 'unknown',
+                    message: 'Verification failed'
+                });
+            } else {
+                console.log(`⚠️ Requesting socket ${socketId} not found - cannot emit`);
+            }
+        } else {
+            console.log('⚠️ No socket ID in request or apiIo not available - cannot emit');
         }
 
         res.status(500).json({ success: false, error: 'Verification failed' });

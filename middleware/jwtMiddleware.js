@@ -26,32 +26,69 @@ const authenticateToken = async (req, res, next) => {
 };
 
 const verifyToken = async (req, res, next) => {
-  const { token } = req.query;
+    const { token } = req.query;
 
-  if (!token) {
-    // Emit error via socket
-    const apiIo = req.app.get('apiIo');
-    if (apiIo) {
-      apiIo.emit('verificationError', { success: false, error: 'Token is required' });
-    }
-    return res.status(400).json({ success: false, error: 'Token is required' });
-  }
+    if (!token) {
+        // Get the socket ID from request headers if available
+        const socketId = req.headers['x-socket-id'];
+        const apiIo = req.app.get('apiIo');
 
-  try {
-    const keyBytes = Uint8Array.from(Buffer.from(process.env.JWT_ENCRYPTION_KEY, 'base64'));
-    const { payload } = await jwtDecrypt(token, keyBytes);
-    req.user = payload;
-    next();
-  } catch (error) {
-    // Emit error via socket
-    const apiIo = req.app.get('apiIo');
-    if (apiIo) {
-      apiIo.emit('verificationError', {
-        message: 'Invalid or expired token'
-      });
+        // Emit error only to the specific socket if available, otherwise broadcast
+        if (apiIo && socketId) {
+            const socket = apiIo.sockets.get(socketId);
+            if (socket) {
+                console.log(`🎯 Emitting token required error to specific socket ${socketId}`);
+                socket.emit('verificationError', { success: false, error: 'Token is required' });
+            } else {
+                console.log(`⚠️ Socket ${socketId} not found, broadcasting token required error`);
+                apiIo.emit('verificationError', { success: false, error: 'Token is required' });
+            }
+        } else if (apiIo) {
+            console.log('⚠️ No socket ID in request, broadcasting token required error');
+            apiIo.emit('verificationError', { success: false, error: 'Token is required' });
+        }
+
+        return res.status(400).json({ success: false, error: 'Token is required' });
     }
-    return res.status(400).json({ success: false, error: 'Invalid or expired token' });
-  }
+
+    try {
+        const keyBytes = Uint8Array.from(Buffer.from(process.env.JWT_ENCRYPTION_KEY, 'base64'));
+        const { payload } = await jwtDecrypt(token, keyBytes);
+        req.user = payload;
+
+        // Store the socket ID from headers in the request for later use
+        req.socketId = req.headers['x-socket-id'];
+        console.log(`🔗 Associated request with socket ID: ${req.socketId}`);
+
+        next();
+    } catch (error) {
+        // Get the socket ID from request headers if available
+        const socketId = req.headers['x-socket-id'];
+        const apiIo = req.app.get('apiIo');
+
+        // Emit error only to the specific socket if available, otherwise broadcast
+        if (apiIo && socketId) {
+            const socket = apiIo.sockets.get(socketId);
+            if (socket) {
+                console.log(`🎯 Emitting token error to specific socket ${socketId}`);
+                socket.emit('verificationError', {
+                    message: 'Invalid or expired token'
+                });
+            } else {
+                console.log(`⚠️ Socket ${socketId} not found, broadcasting token error`);
+                apiIo.emit('verificationError', {
+                    message: 'Invalid or expired token'
+                });
+            }
+        } else if (apiIo) {
+            console.log('⚠️ No socket ID in request, broadcasting token error');
+            apiIo.emit('verificationError', {
+                message: 'Invalid or expired token'
+            });
+        }
+
+        return res.status(400).json({ success: false, error: 'Invalid or expired token' });
+    }
 };
 
 const generateToken = async (payload, key, expiresIn) => {
