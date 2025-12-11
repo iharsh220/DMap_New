@@ -17,45 +17,56 @@ const baseRoute = process.env.BASE_ROUTE || '/digilabs/dmap/api';
 
 const app = express();
 const server = http.createServer(app);
+
+// --- SOCKET.IO SETUP ---
 const io = socketIo(server, {
+    path: '/digilabs/dmap/api/socket.io', // This must match the client "path" option
     cors: {
-        origin: "*",
+        origin: "*", // Allow all origins
         methods: ["GET", "POST"],
         credentials: true
-    }
+    },
+    // transports: ['websocket', 'polling'] // Ensure both transports are enabled
 });
 
-// Socket.io setup
-const apiIo = io.of(`${baseRoute}/socket`);
-
+// 1. Target Namespace (Correct One)
+const apiIo = io.of(`/socket`);
 apiIo.on('connection', (socket) => {
-    console.log(`✅ User connected to API namespace: ${socket.id}`);
+    console.log(`✅ User connected to API namespace (/socket): ${socket.id}`);
 
     socket.on('disconnect', () => {
-        console.log(`❌ User disconnected: ${socket.id}`);
+        console.log(`❌ User disconnected from API namespace: ${socket.id}`);
     });
+});
+
+// 2. Global Debug Namespace (To catch misconfigured clients)
+io.on('connection', (socket) => {
+    console.log(`⚠️ User connected to DEFAULT namespace (Root): ${socket.id}`);
+    console.log(`   (Hint: Client should connect to namespace '/socket')`);
 });
 
 // Make io accessible in routes
 app.set('io', io);
 app.set('apiIo', apiIo);
 app.set('trust proxy', 1);
-// Middleware
+
+// --- MIDDLEWARE ---
 app.use(helmet({
     crossOriginResourcePolicy: false,
     crossOriginEmbedderPolicy: false,
     crossOriginOpenerPolicy: false,
     contentSecurityPolicy: false
 }));
+
 app.use(cors({
     origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"]
 }));
+
 app.use(compression());
 app.use(express.json());
-
 app.use(express.urlencoded({ extended: true }));
 app.use(fileUpload());
 app.use('/uploads', express.static('uploads'));
@@ -93,6 +104,7 @@ scheduleTaskProgression();
 
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+    console.log(`Socket path configured at: /digilabs/dmap/api/socket.io`);
 });
 
 module.exports = app;
