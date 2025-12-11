@@ -40,13 +40,14 @@ apiIo.on('connection', (socket) => {
 });
 
 // 2. Global Debug Namespace (To catch misconfigured clients)
-io.on('connection', (socket) => {
-    console.log(`⚠️ User connected to DEFAULT namespace (Root): ${socket.id}`);
-    console.log(`   (Hint: Client should connect to namespace '/socket')`);
-});
+// io.on('connection', (socket) => {
+//     console.log(`⚠️ User connected to DEFAULT namespace (Root): ${socket.id}`);
+//     console.log(`   (Hint: Client should connect to namespace '/socket')`);
+// });
 
 // Make io accessible in routes
-app.set('io', io);
+// app.set('io', io);
+
 app.set('apiIo', apiIo);
 app.set('trust proxy', 1);
 
