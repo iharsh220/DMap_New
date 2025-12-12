@@ -1200,6 +1200,7 @@ CREATE TABLE `users` (
   `location_id` int(11) DEFAULT NULL,
   `designation_id` int(11) DEFAULT NULL,
   `email_verified_status` tinyint(1) DEFAULT 0,
+  `latest_verification_token` varchar(512) DEFAULT NULL,
   `account_status` enum('pending','active','inactive','locked','rejected','vacant') DEFAULT 'pending',
   `last_login` datetime DEFAULT NULL,
   `login_attempts` int(11) DEFAULT 0,

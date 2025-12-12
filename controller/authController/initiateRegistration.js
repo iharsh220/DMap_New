@@ -13,8 +13,8 @@ const designationJobRoleService = new CrudService(DesignationJobRole);
 // Initiate registration
 const initiateRegistration = async (req, res) => {
     try {
-        const { email } = req.body;
-
+        const { email, session_id } = req.body;
+        
         if (!email) {
             await logUserActivity({
                 event: 'initiate_registration_failed',
@@ -71,8 +71,15 @@ const initiateRegistration = async (req, res) => {
                 });
             } else {
                 // User exists but not verified, resend verification email
-                // Generate encrypted JWT token
-                const token = await generateEmailVerificationToken({ email });
+                // Generate encrypted JWT token with session_id
+                const tokenPayload = { email };
+                if (session_id) {
+                    tokenPayload.session_id = session_id;
+                }
+                const token = await generateEmailVerificationToken(tokenPayload);
+
+                // Store the latest verification token
+                await userService.updateById(existingUser.id, { latest_verification_token: token });
 
                 // Create verification URL
                 const verificationUrl = `${process.env.FRONTEND_URL}/verifyemailtab?token=${token}`;
@@ -113,8 +120,15 @@ const initiateRegistration = async (req, res) => {
             });
         }
 
-        // Generate encrypted JWT token
-        const token = await generateEmailVerificationToken({ email });
+        // Generate encrypted JWT token with session_id
+        const tokenPayload = { email };
+        if (session_id) {
+            tokenPayload.session_id = session_id;
+        }
+        const token = await generateEmailVerificationToken(tokenPayload);
+
+        // Store the latest verification token in the newly created user
+        await userService.updateById(createResult.data.id, { latest_verification_token: token });
 
         // Create verification URL
         const verificationUrl = `${process.env.FRONTEND_URL}/verifyemailtab?token=${token}`;

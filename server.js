@@ -39,15 +39,6 @@ apiIo.on('connection', (socket) => {
     });
 });
 
-// 2. Global Debug Namespace (To catch misconfigured clients)
-// io.on('connection', (socket) => {
-//     console.log(`⚠️ User connected to DEFAULT namespace (Root): ${socket.id}`);
-//     console.log(`   (Hint: Client should connect to namespace '/socket')`);
-// });
-
-// Make io accessible in routes
-// app.set('io', io);
-
 app.set('apiIo', apiIo);
 app.set('trust proxy', 1);
 
@@ -106,7 +97,6 @@ scheduleTaskProgression();
 
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
-    console.log(`Socket path configured at: /digilabs/dmap/api/socket.io`);
 });
 
 module.exports = app;

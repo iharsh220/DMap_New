@@ -44,6 +44,10 @@ const User = sequelize.define('User', {
     type: DataTypes.TINYINT,
     defaultValue: 0,
   },
+  latest_verification_token: {
+    type: DataTypes.STRING(512),
+    allowNull: true,
+  },
   account_status: {
     type: DataTypes.ENUM('pending', 'active', 'inactive', 'locked', 'rejected', 'vacant'),
     defaultValue: 'pending',

@@ -29,22 +29,10 @@ const verifyToken = async (req, res, next) => {
     const { token } = req.query;
 
     if (!token) {
-        // Get the socket ID from request headers if available
-        const socketId = req.headers['x-socket-id'];
+        // Broadcast error since we don't have token to extract session_id
         const apiIo = req.app.get('apiIo');
-
-        // Emit error only to the specific socket if available, otherwise broadcast
-        if (apiIo && socketId) {
-            const socket = apiIo.sockets.get(socketId);
-            if (socket) {
-                console.log(`🎯 Emitting token required error to specific socket ${socketId}`);
-                socket.emit('verificationError', { success: false, error: 'Token is required' });
-            } else {
-                console.log(`⚠️ Socket ${socketId} not found, broadcasting token required error`);
-                apiIo.emit('verificationError', { success: false, error: 'Token is required' });
-            }
-        } else if (apiIo) {
-            console.log('⚠️ No socket ID in request, broadcasting token required error');
+        if (apiIo) {
+            console.log('⚠️ No token provided, broadcasting token required error');
             apiIo.emit('verificationError', { success: false, error: 'Token is required' });
         }
 
@@ -54,34 +42,19 @@ const verifyToken = async (req, res, next) => {
     try {
         const keyBytes = Uint8Array.from(Buffer.from(process.env.JWT_ENCRYPTION_KEY, 'base64'));
         const { payload } = await jwtDecrypt(token, keyBytes);
+        console.log('🔑 Token payload:', payload);
         req.user = payload;
 
-        // Store the socket ID from headers in the request for later use
-        req.socketId = req.headers['x-socket-id'];
-        console.log(`🔗 Associated request with socket ID: ${req.socketId}`);
+        // Extract session_id from token payload only
+        req.socketId = payload.session_id;
+        console.log(`🔗 Associated request with session ID from token: ${req.socketId}`);
 
         next();
     } catch (error) {
-        // Get the socket ID from request headers if available
-        const socketId = req.headers['x-socket-id'];
+        // Broadcast error since we couldn't extract session_id from invalid token
         const apiIo = req.app.get('apiIo');
-
-        // Emit error only to the specific socket if available, otherwise broadcast
-        if (apiIo && socketId) {
-            const socket = apiIo.sockets.get(socketId);
-            if (socket) {
-                console.log(`🎯 Emitting token error to specific socket ${socketId}`);
-                socket.emit('verificationError', {
-                    message: 'Invalid or expired token'
-                });
-            } else {
-                console.log(`⚠️ Socket ${socketId} not found, broadcasting token error`);
-                apiIo.emit('verificationError', {
-                    message: 'Invalid or expired token'
-                });
-            }
-        } else if (apiIo) {
-            console.log('⚠️ No socket ID in request, broadcasting token error');
+        if (apiIo) {
+            console.log('⚠️ Invalid token, broadcasting token error');
             apiIo.emit('verificationError', {
                 message: 'Invalid or expired token'
             });

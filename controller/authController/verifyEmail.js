@@ -9,6 +9,7 @@ const userService = new CrudService(User);
 const verifyEmail = async (req, res) => {
     try {
         const { email } = req.user;
+        const { token } = req.query;
 
         // Check if user exists
         const userResult = await userService.getAll({ where: { email }, limit: 1 });
@@ -22,14 +23,11 @@ const verifyEmail = async (req, res) => {
             });
             // Emit error via socket - ONLY to the requesting socket
             const apiIo = req.app.get('apiIo');
-            const socketId = req.socketId; // Get socket ID from request
-            console.log('Emitting verificationError for user not found, apiIo defined:', !!apiIo);
-            console.log('Target socket ID:', socketId);
+            const socketId = req.socketId; // Get session ID from token
 
             if (apiIo && socketId) {
                 const targetSocket = apiIo.sockets.get(socketId);
                 if (targetSocket) {
-                    console.log(`🎯 Emitting to requesting socket only (${socketId})`);
                     targetSocket.emit('verificationError', {
                         email,
                         message: 'User not found. Please initiate registration first.'
@@ -58,14 +56,11 @@ const verifyEmail = async (req, res) => {
             });
             // Emit error via socket - ONLY to the requesting socket
             const apiIo = req.app.get('apiIo');
-            const socketId = req.socketId; // Get socket ID from request
-            console.log('Emitting verificationError for already verified, apiIo defined:', !!apiIo);
-            console.log('Target socket ID:', socketId);
+            const socketId = req.socketId; // Get session ID from token
 
             if (apiIo && socketId) {
                 const targetSocket = apiIo.sockets.get(socketId);
                 if (targetSocket) {
-                    console.log(`🎯 Emitting to requesting socket only (${socketId})`);
                     targetSocket.emit('verificationError', {
                         email,
                         message: 'Email already verified. Please login.'
@@ -84,11 +79,43 @@ const verifyEmail = async (req, res) => {
             });
         }
 
+        // Check if the token matches the latest verification token
+        if (existingUser.latest_verification_token && existingUser.latest_verification_token !== token) {
+            await logUserActivity({
+                event: 'verify_email_failed',
+                reason: 'invalid_token',
+                email,
+                ...extractRequestDetails(req)
+            });
+            // Emit error via socket - ONLY to the requesting socket
+            const apiIo = req.app.get('apiIo');
+            const socketId = req.socketId; // Get session ID from token
+
+            if (apiIo && socketId) {
+                const targetSocket = apiIo.sockets.get(socketId);
+                if (targetSocket) {
+                    targetSocket.emit('verificationError', {
+                        email,
+                        message: 'Invalid verification token. Please use the latest verification email.'
+                    });
+                } else {
+                    console.log(`⚠️ Requesting socket ${socketId} not found - cannot emit`);
+                }
+            } else {
+                console.log('⚠️ No socket ID in request or apiIo not available - cannot emit');
+            }
+
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid verification token. Please use the latest verification email.',
+                action: 'resend_verification'
+            });
+        }
+
         // Update user's email_verified_status to 1
         try {
             await userService.updateById(existingUser.id, { email_verified_status: 1 });
         } catch (updateError) {
-            console.error('Error updating user verification status:', updateError);
             await logUserActivity({
                 event: 'verify_email_failed',
                 reason: 'update_failed',
@@ -98,14 +125,11 @@ const verifyEmail = async (req, res) => {
             });
             // Emit error via socket - ONLY to the requesting socket
             const apiIo = req.app.get('apiIo');
-            const socketId = req.socketId; // Get socket ID from request
-            console.log('Emitting verificationError for update failed, apiIo defined:', !!apiIo);
-            console.log('Target socket ID:', socketId);
+            const socketId = req.socketId; // Get session ID from token
 
             if (apiIo && socketId) {
                 const targetSocket = apiIo.sockets.get(socketId);
                 if (targetSocket) {
-                    console.log(`🎯 Emitting to requesting socket only (${socketId})`);
                     targetSocket.emit('verificationError', {
                         email,
                         message: 'Failed to update verification status'
@@ -122,17 +146,17 @@ const verifyEmail = async (req, res) => {
                 error: 'Failed to update verification status'
             });
         }
-        console.log("aaya idhr kuch to");
+        
+        // Clear the latest verification token after successful verification
+        await userService.updateById(existingUser.id, { latest_verification_token: null });
+
         // Emit success via socket - ONLY to the requesting socket
         const apiIo = req.app.get('apiIo');
-        const socketId = req.socketId; // Get socket ID from request
-        console.log('Emitting emailVerified, apiIo defined:', !!apiIo);
-        console.log('Target socket ID:', socketId);
+        const socketId = req.socketId; // Get session ID from token
 
         if (apiIo && socketId) {
             const targetSocket = apiIo.sockets.get(socketId);
             if (targetSocket) {
-                console.log(`🎯 Emitting to requesting socket only (${socketId})`);
                 targetSocket.emit('emailVerified', {
                     success: true,
                     email,
@@ -146,7 +170,6 @@ const verifyEmail = async (req, res) => {
         }
 
         // Blacklist the verification token (24 hours TTL)
-        const { token } = req.query;
         if (token) {
             const emailTtl = require('ms')(process.env.EMAIL_VERIFICATION_TOKEN_EXPIRES_IN || '24h') / 1000;
             await blacklistToken(token, emailTtl);
@@ -169,14 +192,11 @@ const verifyEmail = async (req, res) => {
         });
         // Emit error via socket - ONLY to the requesting socket
         const apiIo = req.app.get('apiIo');
-        const socketId = req.socketId; // Get socket ID from request
-        console.log('Emitting verificationError for server error, apiIo defined:', !!apiIo);
-        console.log('Target socket ID:', socketId);
+        const socketId = req.socketId; // Get session ID from token
 
         if (apiIo && socketId) {
             const targetSocket = apiIo.sockets.get(socketId);
             if (targetSocket) {
-                console.log(`🎯 Emitting to requesting socket only (${socketId})`);
                 targetSocket.emit('verificationError', {
                     email: req.user?.email || 'unknown',
                     message: 'Verification failed'
