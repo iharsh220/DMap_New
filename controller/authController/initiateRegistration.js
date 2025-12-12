@@ -14,7 +14,7 @@ const designationJobRoleService = new CrudService(DesignationJobRole);
 const initiateRegistration = async (req, res) => {
     try {
         const { email, session_id } = req.body;
-        
+
         if (!email) {
             await logUserActivity({
                 event: 'initiate_registration_failed',
@@ -49,6 +49,7 @@ const initiateRegistration = async (req, res) => {
             return res.status(400).json({
                 success: false,
                 error: 'User already exists in sales records. Please contact administrator.',
+                status: existingSalesUser.account_status,
                 action: 'contact_admin'
             });
         }
@@ -67,6 +68,7 @@ const initiateRegistration = async (req, res) => {
                 return res.status(400).json({
                     success: false,
                     error: 'User already exists and is verified. Please login instead.',
+                    status: existingUser.account_status,
                     action: 'login'
                 });
             } else {
