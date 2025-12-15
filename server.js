@@ -18,6 +18,8 @@ const baseRoute = process.env.BASE_ROUTE || '/digilabs/dmap/api';
 const app = express();
 const server = http.createServer(app);
 
+app.set('trust proxy', 1);
+
 // --- SOCKET.IO SETUP ---
 const io = socketIo(server, {
     path: '/digilabs/dmap/api/socket.io', // This must match the client "path" option
@@ -40,7 +42,6 @@ apiIo.on('connection', (socket) => {
 });
 
 app.set('apiIo', apiIo);
-app.set('trust proxy', 1);
 
 // --- MIDDLEWARE ---
 app.use(helmet({
