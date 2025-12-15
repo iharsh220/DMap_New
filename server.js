@@ -66,8 +66,8 @@ app.use(fileUpload());
 app.use('/uploads', express.static('uploads'));
 
 // Rate limiting
-const limiter = require('./middleware/rateLimitMiddleware');
-app.use(limiter);
+// const limiter = require('./middleware/rateLimitMiddleware');
+// app.use(limiter);
 
 // Routes
 app.use(baseRoute, require('./routes/indexRoute'));
