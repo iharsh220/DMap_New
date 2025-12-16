@@ -1,5 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const path = require('path');
+const fs = require('fs');
 
 // Import route modules
 const authRoutes = require('./authRoute/authRoute');
@@ -22,9 +24,9 @@ router.use('/manager/assigned-work-requests', managerAssignedRoutes);
 
 router.use('/users', userRoutes);
 
-const { authenticateToken } = require('../middleware/jwtMiddleware');
+// const { authenticateToken } = require('../middleware/jwtMiddleware');
 
-router.get(`/uploads/*`, authenticateToken, (req, res) => {
+router.get(`/uploads/*`, (req, res) => {
     const filePath = req.params[0];
     const fullPath = path.resolve('uploads', filePath);
     if (!fullPath.startsWith(path.resolve('uploads') + path.sep)) {
