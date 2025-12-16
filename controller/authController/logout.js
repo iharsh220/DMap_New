@@ -1,4 +1,3 @@
-const { logUserActivity, extractRequestDetails } = require('../../services/elasticsearchService');
 const redisClient = require('../../config/redisConfig');
 
 // Logout
@@ -22,12 +21,6 @@ const logout = async (req, res) => {
             }
         }
 
-        await logUserActivity({
-            event: 'logout',
-            userId: req.user.id,
-            email: req.user.email,
-            ...extractRequestDetails(req)
-        });
 
         res.json({ success: true, message: 'Logged out successfully' });
     } catch (error) {

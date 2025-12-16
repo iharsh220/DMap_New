@@ -2,7 +2,6 @@ const bcrypt = require('bcryptjs');
 const CrudService = require('../../services/crudService');
 const { User, Sales, Department, Division, JobRole, Location, Designation, UserDivisions } = require('../../models');
 const { generateAccessToken, generateRefreshToken } = require('../../middleware/jwtMiddleware');
-const { logUserActivity, extractRequestDetails } = require('../../services/elasticsearchService');
 
 const userService = new CrudService(User);
 const salesService = new CrudService(Sales);
@@ -13,11 +12,6 @@ const login = async (req, res) => {
         const { identifier, password, loginType } = req.body;
 
         if (!password || !identifier || !loginType) {
-            await logUserActivity({
-                event: 'login_failed',
-                reason: 'missing_fields',
-                ...extractRequestDetails(req)
-            });
             return res.status(400).json({ success: false, error: 'Identifier, password, and loginType are required' });
         }
 
@@ -80,35 +74,15 @@ const login = async (req, res) => {
                 userType = 'sales';
             }
         } else {
-            await logUserActivity({
-                event: 'login_failed',
-                reason: 'invalid_login_type',
-                loginType,
-                ...extractRequestDetails(req)
-            });
             return res.status(400).json({ success: false, error: 'Invalid login type' });
         }
 
         if (!user) {
-            await logUserActivity({
-                event: 'login_failed',
-                reason: 'user_not_found',
-                identifier,
-                loginType,
-                ...extractRequestDetails(req)
-            });
             return res.status(401).json({ success: false, error: 'Email does not match our records' });
         }
 
         // Check email verified and account status
         if (user.email_verified_status !== 1) {
-            await logUserActivity({
-                event: 'login_failed',
-                reason: 'email_not_verified',
-                userId: user.id,
-                email: user.email || user.email_id,
-                ...extractRequestDetails(req)
-            });
             return res.status(401).json({ success: false, error: 'Email not verified' });
         }
 
@@ -120,13 +94,6 @@ const login = async (req, res) => {
                     const minutes = Math.floor(remainingTime / (1000 * 60));
                     const seconds = Math.floor((remainingTime % (1000 * 60)) / 1000);
                     const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}min`;
-                    await logUserActivity({
-                        event: 'login_failed',
-                        reason: 'account_locked',
-                        userId: user.id,
-                        email: user.email || user.email_id,
-                        ...extractRequestDetails(req)
-                    });
                     return res.status(401).json({
                         success: false,
                         error: `Too many login attempts. Please try again in ${timeString}`
@@ -136,13 +103,6 @@ const login = async (req, res) => {
                     await userService.updateById(user.id, { account_status: 'active', lock_until: null });
                 }
             } else {
-                await logUserActivity({
-                    event: 'login_failed',
-                    reason: 'account_inactive',
-                    userId: user.id,
-                    email: user.email || user.email_id,
-                    ...extractRequestDetails(req)
-                });
                 return res.status(401).json({ success: false, error: 'Account is not active' });
             }
         }
@@ -156,13 +116,6 @@ const login = async (req, res) => {
                 // Lock account for 30 minutes
                 const lockUntil = new Date(Date.now() + 30 * 60 * 1000);
                 await userService.updateById(user.id, { login_attempts: 0, account_status: 'locked', lock_until: lockUntil });
-                await logUserActivity({
-                    event: 'login_failed',
-                    reason: 'account_locked_due_to_attempts',
-                    userId: user.id,
-                    email: user.email || user.email_id,
-                    ...extractRequestDetails(req)
-                });
                 return res.status(401).json({
                     success: false,
                     error: 'Too many login attempts. Please try again in 30:00min'
@@ -170,14 +123,7 @@ const login = async (req, res) => {
             } else {
                 const remainingAttempts = 5 - newAttempts;
                 await userService.updateById(user.id, { login_attempts: newAttempts });
-                await logUserActivity({
-                    event: 'login_failed',
-                    reason: 'invalid_password',
-                    userId: user.id,
-                    email: user.email || user.email_id,
-                    attempts: newAttempts,
-                    ...extractRequestDetails(req)
-                });
+              
                 return res.status(401).json({
                     success: false,
                     error: `Password does not match our records. ${remainingAttempts} attempts remaining`
@@ -258,15 +204,6 @@ const login = async (req, res) => {
             }
         }
 
-        await logUserActivity({
-            event: 'login_success',
-            userId: user.id,
-            email: user.email || user.email_id,
-            userType,
-            userDetails: userData,
-            ...extractRequestDetails(req)
-        });
-
         const response = {
             success: true,
             message: 'Login successful',
@@ -282,12 +219,6 @@ const login = async (req, res) => {
         res.json(response);
     } catch (error) {
         console.error('Error during login:', error);
-        await logUserActivity({
-            event: 'login_failed',
-            reason: 'server_error',
-            error: error.message,
-            ...extractRequestDetails(req)
-        });
         res.status(500).json({ success: false, error: 'Login failed' });
     }
 };

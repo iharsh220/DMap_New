@@ -2,7 +2,6 @@ const bcrypt = require('bcryptjs');
 const CrudService = require('../../services/crudService');
 const { User, Sales } = require('../../models');
 const { verifyEmailVerificationToken, blacklistToken } = require('../../middleware/jwtMiddleware');
-const { logUserActivity, extractRequestDetails } = require('../../services/elasticsearchService');
 
 const userService = new CrudService(User);
 const salesService = new CrudService(Sales);
@@ -13,21 +12,13 @@ const resetPassword = async (req, res) => {
         const { token, newPassword } = req.body;
 
         if (!token || !newPassword) {
-            await logUserActivity({
-                event: 'reset_password_failed',
-                reason: 'missing_fields',
-                ...extractRequestDetails(req)
-            });
+            
             return res.status(400).json({ success: false, error: 'Token and new password are required' });
         }
 
         // Validate password strength
         if (newPassword.length < 8) {
-            await logUserActivity({
-                event: 'reset_password_failed',
-                reason: 'weak_password',
-                ...extractRequestDetails(req)
-            });
+           
             return res.status(400).json({ success: false, error: 'Password must be at least 8 characters long' });
         }
 
@@ -36,11 +27,7 @@ const resetPassword = async (req, res) => {
         try {
             tokenPayload = await verifyEmailVerificationToken(token);
         } catch (error) {
-            await logUserActivity({
-                event: 'reset_password_failed',
-                reason: 'invalid_token',
-                ...extractRequestDetails(req)
-            });
+          
             return res.status(400).json({ success: false, error: 'Invalid or expired reset token' });
         }
 
@@ -54,24 +41,14 @@ const resetPassword = async (req, res) => {
         } else if (userType === 'sales') {
             service = salesService;
         } else {
-            await logUserActivity({
-                event: 'reset_password_failed',
-                reason: 'invalid_user_type',
-                userType,
-                ...extractRequestDetails(req)
-            });
+           
             return res.status(400).json({ success: false, error: 'Invalid user type' });
         }
 
         // Get user
         const userResult = await service.getById(userId);
         if (!userResult.success) {
-            await logUserActivity({
-                event: 'reset_password_failed',
-                reason: 'user_not_found',
-                userId,
-                ...extractRequestDetails(req)
-            });
+            
             return res.status(404).json({ success: false, error: 'User not found' });
         }
 
@@ -96,26 +73,12 @@ const resetPassword = async (req, res) => {
         const resetTtl = 60 * 60; // 1 hour in seconds
         await blacklistToken(token, resetTtl);
 
-        await logUserActivity({
-            event: 'reset_password_success',
-            userId: user.id,
-            email: user.email || user.email_id,
-            userType,
-            ...extractRequestDetails(req)
-        });
-
         res.status(200).json({
             success: true,
             message: 'Password has been reset successfully'
         });
     } catch (error) {
         console.error('Error in reset password:', error);
-        await logUserActivity({
-            event: 'reset_password_failed',
-            reason: 'server_error',
-            error: error.message,
-            ...extractRequestDetails(req)
-        });
         res.status(500).json({ success: false, error: 'Failed to reset password' });
     }
 };

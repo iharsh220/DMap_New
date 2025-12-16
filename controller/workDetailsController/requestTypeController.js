@@ -1,7 +1,6 @@
 const { Op } = require('sequelize');
 const CrudService = require('../../services/crudService');
 const { RequestType, Division, User, UserDivisions } = require('../../models');
-const { logUserActivity, extractRequestDetails } = require('../../services/elasticsearchService');
 
 // Create service instance
 const RequestTypeService = new CrudService(RequestType);
@@ -124,23 +123,6 @@ const getAllRequestTypes = async (req, res) => {
             finalData[requestType] = groupedData[requestType].items;
         });
 
-        await logUserActivity({
-            event: 'get_request_types_success',
-            userId: req.user.id,
-            userDetails: {
-                id: req.user.id,
-                name: req.user.name,
-                email: req.user.email,
-                userType: req.user.userType,
-                department: req.user.department,
-                jobRole: req.user.jobRole,
-                location: req.user.location,
-                designation: req.user.designation,
-                divisions: req.user.divisions
-            },
-            requestTypes: finalData,
-            ...extractRequestDetails(req)
-        });
 
         res.status(200).json({
             success: true,

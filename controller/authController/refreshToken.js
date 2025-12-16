@@ -1,7 +1,6 @@
 const CrudService = require('../../services/crudService');
 const { User, Department, Division, JobRole, Location, Designation } = require('../../models');
 const { generateAccessToken, verifyRefreshToken, blacklistToken } = require('../../middleware/jwtMiddleware');
-const { logUserActivity, extractRequestDetails } = require('../../services/elasticsearchService');
 
 const userService = new CrudService(User);
 
@@ -11,11 +10,7 @@ const refreshToken = async (req, res) => {
         const { refreshToken: token } = req.body;
 
         if (!token) {
-            await logUserActivity({
-                event: 'refresh_token_failed',
-                reason: 'token_required',
-                ...extractRequestDetails(req)
-            });
+           
             return res.status(400).json({ success: false, error: 'Refresh token required' });
         }
 
@@ -33,12 +28,7 @@ const refreshToken = async (req, res) => {
         });
 
         if (!userResult.success || !userResult.data) {
-            await logUserActivity({
-                event: 'refresh_token_failed',
-                reason: 'user_not_found',
-                userId: decoded.id,
-                ...extractRequestDetails(req)
-            });
+            
             return res.status(401).json({ success: false, error: 'User not found' });
         }
 
@@ -96,21 +86,11 @@ const refreshToken = async (req, res) => {
         const refreshTtl = require('ms')(process.env.REFRESH_TOKEN_EXPIRES_IN || '7d') / 1000;
         await blacklistToken(token, refreshTtl);
 
-        await logUserActivity({
-            event: 'refresh_token_success',
-            userId: user.id,
-            email: user.email,
-            ...extractRequestDetails(req)
-        });
+       
         res.json({ success: true, accessToken: newAccessToken, user: userData });
     } catch (error) {
         console.error('Error refreshing token:', error);
-        await logUserActivity({
-            event: 'refresh_token_failed',
-            reason: 'invalid_token',
-            error: error.message,
-            ...extractRequestDetails(req)
-        });
+        
         res.status(401).json({ success: false, error: 'Invalid refresh token' });
     }
 };

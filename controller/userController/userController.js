@@ -13,7 +13,6 @@ const {
 } = require('../../models');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
-const { logUserActivity, extractRequestDetails } = require('../../services/elasticsearchService');
 const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
@@ -212,12 +211,6 @@ const getAssignedTasks = async (req, res) => {
             });
         });
 
-        await logUserActivity({
-            event: 'assigned_tasks_viewed',
-            userId: req.user.id,
-            taskCount: tasks.length,
-            ...extractRequestDetails(req)
-        });
 
         res.json({
             success: true,
@@ -434,15 +427,6 @@ const assignTaskToUser = async (req, res) => {
             { where: { id: taskId } }
         );
 
-        await logUserActivity({
-            event: 'task_assigned_to_user',
-            userId: req.user.id,
-            taskId: taskId,
-            assignedUserId: userId,
-            workRequestId: workRequest.id,
-            deadline: taskUpdateData.deadline || null,
-            ...extractRequestDetails(req)
-        });
 
         res.json({
             success: true,
@@ -539,12 +523,6 @@ const getTaskById = async (req, res) => {
             return res.status(404).json({ success: false, error: 'Task not found' });
         }
 
-        await logUserActivity({
-            event: 'task_details_viewed',
-            userId: req.user.id,
-            taskId: taskId,
-            ...extractRequestDetails(req)
-        });
 
         res.json({
             success: true,
@@ -657,13 +635,6 @@ const acceptTask = async (req, res) => {
             });
         }
 
-        await logUserActivity({
-            event: 'task_accepted',
-            userId: req.user.id,
-            taskId: taskId,
-            startDate: updateData.start_date || start_date || null,
-            ...extractRequestDetails(req)
-        });
 
         res.json({
             success: true,
@@ -924,14 +895,6 @@ const submitTask = async (req, res) => {
             }
         }
 
-        await logUserActivity({
-            event: 'task_submitted',
-            userId: req.user.id,
-            taskId: task.id,
-            taskAssignmentId: taskAssignment.id,
-            documentCount: documents.length,
-            ...extractRequestDetails(req)
-        });
 
         res.json({
             success: true,
@@ -1000,13 +963,6 @@ const getTaskDocuments = async (req, res) => {
             order: [['uploaded_at', 'DESC']]
         });
 
-        await logUserActivity({
-            event: 'task_documents_viewed',
-            userId: req.user.id,
-            taskId: taskId,
-            documentCount: documents.length,
-            ...extractRequestDetails(req)
-        });
 
         res.json({
             success: true,
@@ -1090,12 +1046,6 @@ const deleteTaskDocument = async (req, res) => {
             where: { id: documentId }
         });
 
-        await logUserActivity({
-            event: 'task_document_deleted',
-            userId: req.user.id,
-            documentId: documentId,
-            ...extractRequestDetails(req)
-        });
 
         res.json({
             success: true,
@@ -1267,12 +1217,6 @@ const getMyTeamTasks = async (req, res) => {
             });
         });
 
-        await logUserActivity({
-            event: 'my_team_tasks_viewed',
-            userId: req.user.id,
-            taskCount: tasks.length,
-            ...extractRequestDetails(req)
-        });
 
         res.json({
             success: true,

@@ -4,7 +4,6 @@ const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
 const { User, Sales, DesignationJobRole } = require('../../models');
 const { generateEmailVerificationToken } = require('../../middleware/jwtMiddleware');
-const { logUserActivity, extractRequestDetails } = require('../../services/elasticsearchService');
 
 const userService = new CrudService(User);
 const salesService = new CrudService(Sales);
@@ -16,23 +15,12 @@ const initiateRegistration = async (req, res) => {
         const { email, session_id } = req.body;
 
         if (!email) {
-            await logUserActivity({
-                event: 'initiate_registration_failed',
-                reason: 'email_required',
-                email: null,
-                ...extractRequestDetails(req)
-            });
             return res.status(400).json({ success: false, error: 'Email is required' });
         }
 
         // Validate email domain
         if (!email.endsWith('@alembic.co.in')) {
-            await logUserActivity({
-                event: 'initiate_registration_failed',
-                reason: 'invalid_domain',
-                email,
-                ...extractRequestDetails(req)
-            });
+          
             return res.status(400).json({ success: false, error: 'Only @alembic.co.in email addresses are allowed' });
         }
 
@@ -40,12 +28,6 @@ const initiateRegistration = async (req, res) => {
         const salesResult = await salesService.getAll({ where: { email_id: email }, limit: 1 });
         const existingSalesUser = salesResult.success && salesResult.data.length > 0 ? salesResult.data[0] : null;
         if (existingSalesUser) {
-            await logUserActivity({
-                event: 'initiate_registration_failed',
-                reason: 'user_exists_in_sales',
-                email,
-                ...extractRequestDetails(req)
-            });
             return res.status(400).json({
                 success: false,
                 error: 'User already exists in sales records. Please contact administrator.',
@@ -59,12 +41,7 @@ const initiateRegistration = async (req, res) => {
         let existingUser = userResult.success && userResult.data.length > 0 ? userResult.data[0] : null;
         if (existingUser) {
             if (existingUser.email_verified_status === 1) {
-                await logUserActivity({
-                    event: 'initiate_registration_failed',
-                    reason: 'user_already_verified',
-                    email,
-                    ...extractRequestDetails(req)
-                });
+               
                 return res.status(400).json({
                     success: false,
                     error: 'User already exists and is verified. Please login instead.',
@@ -96,11 +73,7 @@ const initiateRegistration = async (req, res) => {
                     html
                 });
 
-                await logUserActivity({
-                    event: 'verification_email_resent',
-                    email,
-                    ...extractRequestDetails(req)
-                });
+                
                 return res.json({
                     success: true,
                     message: 'Verification email sent again. Please check your email.',
@@ -145,21 +118,11 @@ const initiateRegistration = async (req, res) => {
             html
         });
 
-        await logUserActivity({
-            event: 'initiate_registration_success',
-            email,
-            ...extractRequestDetails(req)
-        });
+        
         res.json({ success: true, message: 'Verification email sent successfully' });
     } catch (error) {
         console.error('Error initiating registration:', error);
-        await logUserActivity({
-            event: 'initiate_registration_failed',
-            reason: 'server_error',
-            email: req.body?.email || null,
-            error: error.message,
-            ...extractRequestDetails(req)
-        });
+        
         res.status(500).json({ success: false, error: 'Failed to send verification email' });
     }
 };

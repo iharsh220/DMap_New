@@ -1,7 +1,6 @@
 const bcrypt = require('bcryptjs');
 const CrudService = require('../../services/crudService');
 const { User, DesignationJobRole, UserDivisions } = require('../../models');
-const { logUserActivity, extractRequestDetails } = require('../../services/elasticsearchService');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
 
@@ -30,12 +29,6 @@ const completeRegistration = async (req, res) => {
             user = userResult.data[0];
         }
         if (!user || user.email_verified_status !== 1) {
-            await logUserActivity({
-                event: 'complete_registration_failed',
-                reason: 'user_not_verified',
-                email,
-                ...extractRequestDetails(req)
-            });
             return res.status(400).json({ success: false, error: 'User not found or email not verified' });
         }
 
@@ -88,22 +81,9 @@ const completeRegistration = async (req, res) => {
             // Don't fail registration if email fails
         }
 
-        await logUserActivity({
-            event: 'complete_registration_success',
-            email,
-            userId: user.id,
-            ...extractRequestDetails(req)
-        });
         res.json({ success: true, message: 'Registration completed successfully' });
     } catch (error) {
         console.error('Error completing registration:', error);
-        await logUserActivity({
-            event: 'complete_registration_failed',
-            reason: 'server_error',
-            email: req.body?.email || null,
-            error: error.message,
-            ...extractRequestDetails(req)
-        });
         res.status(500).json({ success: false, error: 'Registration completion failed' });
     }
 };

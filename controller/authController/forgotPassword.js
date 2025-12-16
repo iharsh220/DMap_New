@@ -2,7 +2,6 @@ const CrudService = require('../../services/crudService');
 const { User, Sales } = require('../../models');
 const { sendMail } = require('../../services/mailService');
 const { generatePasswordResetToken } = require('../../middleware/jwtMiddleware');
-const { logUserActivity, extractRequestDetails } = require('../../services/elasticsearchService');
 const fs = require('fs');
 const path = require('path');
 
@@ -15,11 +14,6 @@ const forgotPassword = async (req, res) => {
         const { identifier, loginType } = req.body;
 
         if (!identifier || !loginType) {
-            await logUserActivity({
-                event: 'forgot_password_failed',
-                reason: 'missing_fields',
-                ...extractRequestDetails(req)
-            });
             return res.status(400).json({ success: false, error: 'Identifier and loginType are required' });
         }
 
@@ -65,24 +59,10 @@ const forgotPassword = async (req, res) => {
                 userType = 'sales';
             }
         } else {
-            await logUserActivity({
-                event: 'forgot_password_failed',
-                reason: 'invalid_login_type',
-                loginType,
-                ...extractRequestDetails(req)
-            });
             return res.status(400).json({ success: false, error: 'Invalid login type' });
         }
 
         if (!user) {
-            // Don't reveal if email exists or not for security
-            await logUserActivity({
-                event: 'forgot_password_attempt',
-                reason: 'user_not_found',
-                identifier,
-                loginType,
-                ...extractRequestDetails(req)
-            });
             return res.status(200).json({
                 success: true,
                 message: 'If an account with that email exists, a password reset link has been sent.'
@@ -106,26 +86,12 @@ const forgotPassword = async (req, res) => {
             html: htmlTemplate
         });
 
-        await logUserActivity({
-            event: 'forgot_password_success',
-            userId: user.id,
-            email: user.email || user.email_id,
-            userType,
-            ...extractRequestDetails(req)
-        });
-
         res.status(200).json({
             success: true,
             message: 'Password reset link has been sent to your email.'
         });
     } catch (error) {
         console.error('Error in forgot password:', error);
-        await logUserActivity({
-            event: 'forgot_password_failed',
-            reason: 'server_error',
-            error: error.message,
-            ...extractRequestDetails(req)
-        });
         res.status(500).json({ success: false, error: 'Failed to process password reset request' });
     }
 };

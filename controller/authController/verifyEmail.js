@@ -1,7 +1,6 @@
 const CrudService = require('../../services/crudService');
 const { User } = require('../../models');
 const { blacklistToken } = require('../../middleware/jwtMiddleware');
-const { logUserActivity, extractRequestDetails } = require('../../services/elasticsearchService');
 
 const userService = new CrudService(User);
 
@@ -15,12 +14,6 @@ const verifyEmail = async (req, res) => {
         const userResult = await userService.getAll({ where: { email }, limit: 1 });
         const existingUser = userResult.success && userResult.data.length > 0 ? userResult.data[0] : null;
         if (!existingUser) {
-            await logUserActivity({
-                event: 'verify_email_failed',
-                reason: 'user_not_found',
-                email,
-                ...extractRequestDetails(req)
-            });
             // Emit error via socket - ONLY to the requesting socket
             const apiIo = req.app.get('apiIo');
             const socketId = req.socketId; // Get session ID from token
@@ -48,12 +41,6 @@ const verifyEmail = async (req, res) => {
 
         // Check if already verified
         if (existingUser.email_verified_status === 1) {
-            await logUserActivity({
-                event: 'verify_email_failed',
-                reason: 'already_verified',
-                email,
-                ...extractRequestDetails(req)
-            });
             // Emit error via socket - ONLY to the requesting socket
             const apiIo = req.app.get('apiIo');
             const socketId = req.socketId; // Get session ID from token
@@ -81,12 +68,7 @@ const verifyEmail = async (req, res) => {
 
         // Check if the token matches the latest verification token
         if (existingUser.latest_verification_token && existingUser.latest_verification_token !== token) {
-            await logUserActivity({
-                event: 'verify_email_failed',
-                reason: 'invalid_token',
-                email,
-                ...extractRequestDetails(req)
-            });
+           
             // Emit error via socket - ONLY to the requesting socket
             const apiIo = req.app.get('apiIo');
             const socketId = req.socketId; // Get session ID from token
@@ -116,13 +98,7 @@ const verifyEmail = async (req, res) => {
         try {
             await userService.updateById(existingUser.id, { email_verified_status: 1 });
         } catch (updateError) {
-            await logUserActivity({
-                event: 'verify_email_failed',
-                reason: 'update_failed',
-                email,
-                error: updateError.message,
-                ...extractRequestDetails(req)
-            });
+           
             // Emit error via socket - ONLY to the requesting socket
             const apiIo = req.app.get('apiIo');
             const socketId = req.socketId; // Get session ID from token
@@ -175,21 +151,11 @@ const verifyEmail = async (req, res) => {
             await blacklistToken(token, emailTtl);
         }
 
-        await logUserActivity({
-            event: 'verify_email_success',
-            email,
-            ...extractRequestDetails(req)
-        });
+        
         res.json({ success: true, message: 'Email verified successfully', email });
     } catch (error) {
         console.error('Error verifying email:', error);
-        await logUserActivity({
-            event: 'verify_email_failed',
-            reason: 'server_error',
-            email: req.user?.email || 'unknown',
-            error: error.message,
-            ...extractRequestDetails(req)
-        });
+       
         // Emit error via socket - ONLY to the requesting socket
         const apiIo = req.app.get('apiIo');
         const socketId = req.socketId; // Get session ID from token

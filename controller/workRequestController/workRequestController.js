@@ -22,7 +22,7 @@ const {
 } = require('../../models');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
-const { queueFileUpload } = require('../../services/fileUploadService');
+// const { queueFileUpload } = require('../../services/fileUploadService');
 const path = require('path');
 const fs = require('fs');
 require('dotenv').config();

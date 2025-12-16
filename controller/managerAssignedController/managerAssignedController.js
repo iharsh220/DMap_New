@@ -25,7 +25,6 @@ const {
 
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
-const { logUserActivity, extractRequestDetails } = require('../../services/elasticsearchService');
 
 const workRequestService = new CrudService(WorkRequests);
 const userService = new CrudService(User);
@@ -210,14 +209,6 @@ const getAssignableUsers = async (req, res) => {
             }))
         }));
 
-        await logUserActivity({
-            event: 'assignable_users_viewed',
-            userId: req.user.id,
-            workRequestId: req.query.task_id ? null : parseInt(req.params.id),
-            taskId: req.query.task_id ? parseInt(req.query.task_id) : null,
-            count: formattedData.length,
-            ...extractRequestDetails(req)
-        });
 
         res.json({
             success: true,
@@ -309,12 +300,6 @@ const getAssignedWorkRequests = async (req, res) => {
                 }
             }
 
-            await logUserActivity({
-                event: 'assigned_work_requests_viewed',
-                userId: req.user.id,
-                count: result.data.length,
-                ...extractRequestDetails(req)
-            });
             res.json({ success: true, data: result.data, pagination: req.pagination });
         } else {
             res.status(500).json({ success: false, error: result.error });
@@ -619,14 +604,6 @@ const getAssignedWorkRequestById = async (req, res) => {
         // Add task users to the work request response
         workRequest.dataValues.taskUsers = taskUsers;
 
-        await logUserActivity({
-            event: 'assigned_work_request_viewed',
-            userId: req.user.id,
-            workRequestId: id,
-            taskUserCount: taskUsers.length,
-            userType: user_type,
-            ...extractRequestDetails(req)
-        });
         res.json({ success: true, data: workRequest });
     } catch (error) {
         console.error('Error fetching assigned work request:', error);
@@ -671,13 +648,6 @@ const acceptWorkRequest = async (req, res) => {
 
         const workRequest = existingResult.data[0];
         if (workRequest.status === 'accepted') {
-            await logUserActivity({
-                event: 'work_request_action_failed',
-                reason: 'already_accepted',
-                userId: req.user.id,
-                workRequestId: id,
-                ...extractRequestDetails(req)
-            });
             return res.status(400).json({ success: false, error: 'Work request is already accepted' });
         }
 
@@ -735,13 +705,6 @@ const acceptWorkRequest = async (req, res) => {
 
                 await sendMail(mailOptions);
             }
-
-            await logUserActivity({
-                event: 'work_request_accepted',
-                userId: req.user.id,
-                workRequestId: id,
-                ...extractRequestDetails(req)
-            });
 
             res.json({ success: true, message: 'Work request accepted successfully' });
         } else {
@@ -802,13 +765,6 @@ const deferWorkRequest = async (req, res) => {
         const workRequest = existingResult.data[0];
 
         if (workRequest.status === 'accepted') {
-            await logUserActivity({
-                event: 'work_request_action_failed',
-                reason: 'already_accepted_cannot_defer',
-                userId: req.user.id,
-                workRequestId: id,
-                ...extractRequestDetails(req)
-            });
             return res.status(400).json({ success: false, error: 'Work request is already accepted and cannot be deferred' });
         }
 
@@ -867,15 +823,6 @@ const deferWorkRequest = async (req, res) => {
 
             await sendMail(mailOptions);
 
-            await logUserActivity({
-                event: 'work_request_deferred',
-                reason: 'insufficient_details',
-                userId: req.user.id,
-                workRequestId: id,
-                deferReason: reason,
-                message: message,
-                ...extractRequestDetails(req)
-            });
         } else if (reason === 'incorrect_request_type') {
             // Reassign to new request type and project type - assign all managers and leads
             const newRequestTypeId = parseInt(req.body.new_request_type_id);
@@ -994,16 +941,6 @@ const deferWorkRequest = async (req, res) => {
                 });
             }
 
-            await logUserActivity({
-                event: 'work_request_deferred',
-                reason: 'incorrect_request_type',
-                userId: req.user.id,
-                workRequestId: id,
-                deferReason: reason,
-                newRequestTypeId: req.body.new_request_type_id,
-                newProjectTypeId: req.body.new_project_type_id,
-                ...extractRequestDetails(req)
-            });
         }
 
         res.json({ success: true, message: 'Work request deferred successfully' });
@@ -1073,14 +1010,6 @@ const getTaskTypesByWorkRequest = async (req, res) => {
             });
         }
 
-        await logUserActivity({
-            event: 'task_types_viewed',
-            userId: req.user.id,
-            workRequestId: workRequestId,
-            projectId: projectId,
-            taskTypeCount: projectType.TaskTypes.length,
-            ...extractRequestDetails(req)
-        });
 
         res.json({
             success: true,
@@ -1298,13 +1227,6 @@ const createTask = async (req, res) => {
             // Don't fail the task creation if folder creation fails
         }
 
-        await logUserActivity({
-            event: 'task_created',
-            userId: req.user.id,
-            workRequestId: work_request_id,
-            taskId: taskResult.id,
-            ...extractRequestDetails(req)
-        });
 
         res.status(201).json({
             success: true,
@@ -1436,13 +1358,7 @@ const getTasksByWorkRequestId = async (req, res) => {
             }))
         }));
 
-        await logUserActivity({
-            event: 'tasks_by_work_request_viewed',
-            userId: req.user.id,
-            workRequestId: workRequestId,
-            taskCount: tasksResult.length,
-            ...extractRequestDetails(req)
-        });
+        
 
         res.json({
             success: true,
@@ -1576,12 +1492,6 @@ const getTaskAnalytics = async (req, res) => {
             smeRequest
         };
 
-        await logUserActivity({
-            event: 'task_analytics_viewed',
-            userId: req.user.id,
-            workRequestId: workRequestId,
-            ...extractRequestDetails(req)
-        });
 
         res.json({
             success: true,
@@ -1694,15 +1604,6 @@ const getMyTeam = async (req, res) => {
             }
         }
 
-        await logUserActivity({
-            event: 'my_team_viewed',
-            userId: req.user.id,
-            divisionCount: teamData.length,
-            totalMembers: teamData.reduce((sum, div) => sum + div.teamMembers.length, 0),
-            search: req.search,
-            ...extractRequestDetails(req)
-        });
-
         res.json({
             success: true,
             data: teamData,
@@ -1797,13 +1698,6 @@ const getAssignedRequestsWithStatus = async (req, res) => {
                 }
             }
 
-            await logUserActivity({
-                event: 'assigned_requests_with_status_viewed',
-                userId: req.user.id,
-                status: status || 'all',
-                count: result.data.length,
-                ...extractRequestDetails(req)
-            });
             res.json({ success: true, data: result.data, pagination: req.pagination });
         } else {
             res.status(500).json({ success: false, error: result.error });
@@ -1940,25 +1834,6 @@ const assignTasksToUsers = async (req, res) => {
 
         // Update work request status to in_progress
         await workRequestService.updateById(workRequestId, { status: 'assigned' });
-
-        await logUserActivity({
-            event: 'work_request_status_updated',
-            userId: req.user.id,
-            workRequestId: workRequestId,
-            oldStatus: 'accepted',
-            newStatus: 'assigned',
-            reason: 'tasks_assigned_to_users',
-            ...extractRequestDetails(req)
-        });
-
-        await logUserActivity({
-            event: 'task_assignment_notifications_sent',
-            userId: req.user.id,
-            workRequestId: workRequestId,
-            notificationCount: assignedUsers.length,
-            totalTasks: tasksWithUsers.length,
-            ...extractRequestDetails(req)
-        });
 
         res.json({
             success: true,

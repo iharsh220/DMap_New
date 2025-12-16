@@ -1,6 +1,5 @@
 const CrudService = require('../../services/crudService');
 const { User, Sales, Department, Division, JobRole, Location, Designation, UserDivisions } = require('../../models');
-const { logUserActivity, extractRequestDetails } = require('../../services/elasticsearchService');
 
 const userService = new CrudService(User);
 const salesService = new CrudService(Sales);
@@ -19,13 +18,6 @@ const getProfile = async (req, res) => {
         } else if (userType === 'sales') {
             service = salesService;
         } else {
-            await logUserActivity({
-                event: 'get_profile_failed',
-                reason: 'invalid_user_type',
-                userId,
-                userType,
-                ...extractRequestDetails(req)
-            });
             return res.status(400).json({ success: false, error: 'Invalid user type' });
         }
 
@@ -43,12 +35,6 @@ const getProfile = async (req, res) => {
         });
 
         if (!userResult.success || !userResult.data) {
-            await logUserActivity({
-                event: 'get_profile_failed',
-                reason: 'user_not_found',
-                userId,
-                ...extractRequestDetails(req)
-            });
             return res.status(404).json({ success: false, error: 'User not found' });
         }
 
@@ -117,11 +103,6 @@ const getProfile = async (req, res) => {
             // If needed, can add UserDivisions logic here
         }
 
-        await logUserActivity({
-            event: 'get_profile_success',
-            userId,
-            ...extractRequestDetails(req)
-        });
 
         res.status(200).json({
             success: true,
@@ -129,12 +110,6 @@ const getProfile = async (req, res) => {
         });
     } catch (error) {
         console.error('Error getting profile:', error);
-        await logUserActivity({
-            event: 'get_profile_failed',
-            reason: 'server_error',
-            error: error.message,
-            ...extractRequestDetails(req)
-        });
         res.status(500).json({ success: false, error: 'Failed to get profile' });
     }
 };
