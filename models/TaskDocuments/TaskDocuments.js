@@ -20,7 +20,7 @@ const TaskDocuments = sequelize.define('TaskDocuments', {
     allowNull: false,
   },
   document_type: {
-    type: DataTypes.STRING(50),
+    type: DataTypes.STRING(255),
     allowNull: true,
   },
   document_size: {

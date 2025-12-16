@@ -947,7 +947,7 @@ const getUserDashboardStats = async (req, res) => {
                 model: WorkRequests,
                 where: {
                     request_type_id: request_type_id,
-                    status: { [Op.in]: ['accepted', 'in_progress'] }
+                    // status: { [Op.in]: ['accepted', 'in_progress'] }
                 },
                 attributes: []
             }, {
