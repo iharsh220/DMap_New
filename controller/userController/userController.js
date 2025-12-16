@@ -84,11 +84,33 @@ const getAssignedTasks = async (req, res) => {
             }
         }
 
-        // Override with status filter if provided
-        if (status === 'accepted') {
-            whereCondition.status = 'accepted';
-        } else if (status === 'in_progress') {
-            whereCondition.status = 'in_progress';
+        // Handle multiple comma-separated status values
+        if (status) {
+            const statusArray = status.split(',').map(s => s.trim());
+            
+            // Validate status values
+            const validStatuses = ['pending', 'accepted', 'in_progress', 'completed'];
+            const invalidStatuses = statusArray.filter(s => !validStatuses.includes(s));
+            
+            if (invalidStatuses.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Invalid status values: ${invalidStatuses.join(', ')}. Valid values are: ${validStatuses.join(', ')}`
+                });
+            }
+            
+            // If multiple statuses, use OR condition
+            if (statusArray.length > 1) {
+                whereCondition.status = { [Op.in]: statusArray };
+            } else {
+                // Single status
+                whereCondition.status = statusArray[0];
+                
+                // For pending status, also require intimate_team = 1
+                if (statusArray[0] === 'pending') {
+                    whereCondition.intimate_team = 1;
+                }
+            }
         } else {
             // Default: show pending tasks (not yet accepted)
             whereCondition.status = 'pending';
@@ -186,28 +208,55 @@ const getAssignedTasks = async (req, res) => {
                 raw: true
             });
 
+            // Get completed tasks count
+            const completedCounts = await TaskAssignments.findAll({
+                where: { user_id: { [Op.in]: allAssignedUserIds } },
+                include: [
+                    {
+                        model: Tasks,
+                        where: { status: 'completed' },
+                        attributes: []
+                    }
+                ],
+                attributes: [
+                    'user_id',
+                    [Tasks.sequelize.fn('COUNT', Tasks.sequelize.col('task_id')), 'completed_count']
+                ],
+                group: ['user_id'],
+                raw: true
+            });
+
             // Organize counts
             acceptedCounts.forEach(count => {
                 if (!userTaskCounts[count.user_id]) {
-                    userTaskCounts[count.user_id] = { accepted: 0, in_progress: 0 };
+                    userTaskCounts[count.user_id] = { accepted: 0, in_progress: 0, completed: 0 };
                 }
                 userTaskCounts[count.user_id].accepted = parseInt(count.accepted_count);
             });
 
             inProgressCounts.forEach(count => {
                 if (!userTaskCounts[count.user_id]) {
-                    userTaskCounts[count.user_id] = { accepted: 0, in_progress: 0 };
+                    userTaskCounts[count.user_id] = { accepted: 0, in_progress: 0, completed: 0 };
                 }
                 userTaskCounts[count.user_id].in_progress = parseInt(count.in_progress_count);
+            });
+
+            // Organize completed task counts
+            completedCounts.forEach(count => {
+                if (!userTaskCounts[count.user_id]) {
+                    userTaskCounts[count.user_id] = { accepted: 0, in_progress: 0, completed: 0 };
+                }
+                userTaskCounts[count.user_id].completed = parseInt(count.completed_count);
             });
         }
 
         // Add task counts to assigned users in tasks
         tasks.forEach(task => {
             task.assignedUsers.forEach(user => {
-                const counts = userTaskCounts[user.id] || { accepted: 0, in_progress: 0 };
+                const counts = userTaskCounts[user.id] || { accepted: 0, in_progress: 0, completed: 0 };
                 user.dataValues.acceptedTasksCount = counts.accepted;
                 user.dataValues.inProgressTasksCount = counts.in_progress;
+                user.dataValues.completedTasksCount = counts.completed;
             });
         });
 
