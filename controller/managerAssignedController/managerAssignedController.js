@@ -1489,6 +1489,9 @@ const getTaskAnalytics = async (req, res) => {
             });
         }
 
+        // Get the work request details to access updated_at date
+        const workRequest = workRequestResult.data[0];
+
         // 1. Total tasks
         const totalTasks = await Tasks.count({
             where: { work_request_id: workRequestId }
@@ -1502,26 +1505,36 @@ const getTaskAnalytics = async (req, res) => {
         });
         const publishDate = latestDeadlineTask && latestDeadlineTask.deadline ? latestDeadlineTask.deadline : null;
 
-        // 3. Estimated TAT (from earliest to latest task deadline)
-        const earliestDeadlineTask = await Tasks.findOne({
-            where: { work_request_id: workRequestId },
-            order: [['deadline', 'ASC']],
-            attributes: ['deadline']
-        });
-
-        const latestDeadlineTaskForTAT = await Tasks.findOne({
-            where: { work_request_id: workRequestId },
-            order: [['deadline', 'DESC']],
-            attributes: ['deadline']
-        });
-
+        // 3. Estimated TAT (from work request updated_at to latest task deadline, excluding weekends)
         let estimatedTAT = null;
-        if (earliestDeadlineTask && earliestDeadlineTask.deadline && latestDeadlineTaskForTAT && latestDeadlineTaskForTAT.deadline) {
-            const startDate = new Date(earliestDeadlineTask.deadline);
-            const endDate = new Date(latestDeadlineTaskForTAT.deadline);
-            const diffTime = Math.abs(endDate - startDate);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end days
-            estimatedTAT = diffDays;
+
+        // Only calculate if work request is not pending and has an updated_at date
+        if (workRequest.status !== 'pending' && workRequest.updated_at) {
+            const latestDeadlineTaskForTAT = await Tasks.findOne({
+                where: { work_request_id: workRequestId },
+                order: [['deadline', 'DESC']],
+                attributes: ['deadline']
+            });
+
+            if (latestDeadlineTaskForTAT && latestDeadlineTaskForTAT.deadline) {
+                const startDate = new Date(workRequest.updated_at);
+                const endDate = new Date(latestDeadlineTaskForTAT.deadline);
+
+                // Calculate business days (excluding weekends)
+                let businessDays = 0;
+                const currentDate = new Date(startDate);
+
+                while (currentDate <= endDate) {
+                    const dayOfWeek = currentDate.getDay();
+                    // 0 = Sunday, 6 = Saturday - skip these
+                    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+                        businessDays++;
+                    }
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+
+                estimatedTAT = businessDays;
+            }
         }
 
         // 4. Team Members Assigned
