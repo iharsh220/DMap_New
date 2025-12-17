@@ -49,6 +49,9 @@ const logIndexMappings = {
     geoRegion: { type: 'keyword' },
     geoCity: { type: 'keyword' },
     geoLocation: { type: 'geo_point' },
+    token: { type: 'keyword' },
+    tokenData: { type: 'object' },
+    paramTokenData: { type: 'object' },
     responseTime: { type: 'long' }
   }
 };

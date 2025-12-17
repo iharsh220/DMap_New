@@ -46,10 +46,14 @@ class ElasticsearchService {
       const indexExists = await client.indices.exists({ index: this.indexName });
       
       if (!indexExists) {
-        // Create the index with the mappings
+        // Create the index with the mappings and no replicas for development
         await client.indices.create({
           index: this.indexName,
           body: {
+            settings: {
+              number_of_shards: 1,
+              number_of_replicas: 0
+            },
             mappings: logIndexMappings
           }
         });

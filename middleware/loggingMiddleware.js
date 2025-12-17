@@ -2,13 +2,36 @@ const { v4: uuidv4 } = require('uuid');
 const useragent = require('useragent');
 const geoip = require('geoip-lite');
 
-const loggingMiddleware = (req, res, next) => {
+const loggingMiddleware = async (req, res, next) => {
     const startTime = Date.now();
     const requestId = uuidv4();
     
     // Capture request details
     const sensitiveFields = ['accessToken', 'refreshToken', 'password', 'token'];
-    
+
+    // Extract and log token data from the authorization header
+    let token = null;
+    let tokenData = null;
+    if (req.headers.authorization) {
+        const authHeader = req.headers.authorization;
+        if (authHeader.startsWith('Bearer ')) {
+            token = authHeader.split(' ')[1];
+            // Decrypt the token using the JWT middleware
+            try {
+                const { decryptToken } = require('./jwtMiddleware');
+                const decryptedData = await decryptToken(token, process.env.JWT_ENCRYPTION_KEY);
+                // Remove the 'exp' field from the decrypted data
+                if (decryptedData && decryptedData.exp !== undefined) {
+                    delete decryptedData.exp;
+                }
+                tokenData = decryptedData;
+            } catch (e) {
+                console.error('Error decrypting token:', e);
+                tokenData = null;
+            }
+        }
+    }
+
     // Sanitize request headers
     const sanitizedHeaders = { ...req.headers };
     const headerSensitiveFields = ['authorization', ...sensitiveFields];
@@ -41,15 +64,14 @@ const loggingMiddleware = (req, res, next) => {
         timestamp: new Date().toISOString(),
         route: req.path,
         method: req.method,
-        userId: req.user ? req.user.id : null,
-        userEmail: req.user ? req.user.email : null,
-        userRole: req.user ? req.user.role : null,
         requestHeaders: sanitizedHeaders,
         requestBody: sanitizedBody,
         requestQuery: sanitizedQuery,
         requestParams: req.params,
         ip: req.ip || req.connection.remoteAddress,
-        userAgent: req.headers['user-agent']
+        userAgent: req.headers['user-agent'],
+        token: token,
+        userDetails: tokenData
     };
 
     // Parse user agent to get device and browser details

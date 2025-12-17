@@ -32,7 +32,6 @@ const verifyToken = async (req, res, next) => {
         // Broadcast error since we don't have token to extract session_id
         const apiIo = req.app.get('apiIo');
         if (apiIo) {
-            console.log('⚠️ No token provided, broadcasting token required error');
             apiIo.emit('verificationError', { success: false, error: 'Token is required' });
         }
 
@@ -42,19 +41,16 @@ const verifyToken = async (req, res, next) => {
     try {
         const keyBytes = Uint8Array.from(Buffer.from(process.env.JWT_ENCRYPTION_KEY, 'base64'));
         const { payload } = await jwtDecrypt(token, keyBytes);
-        console.log('🔑 Token payload:', payload);
         req.user = payload;
 
         // Extract session_id from token payload only
         req.socketId = payload.session_id;
-        console.log(`🔗 Associated request with session ID from token: ${req.socketId}`);
 
         next();
     } catch (error) {
         // Broadcast error since we couldn't extract session_id from invalid token
         const apiIo = req.app.get('apiIo');
         if (apiIo) {
-            console.log('⚠️ Invalid token, broadcasting token error');
             apiIo.emit('verificationError', {
                 message: 'Invalid or expired token'
             });
@@ -123,6 +119,7 @@ const blacklistToken = async (token, ttlSeconds) => {
 module.exports = {
   authenticateToken,
   verifyToken,
+  decryptToken,
   generateAccessToken,
   generateRefreshToken,
   verifyRefreshToken,
