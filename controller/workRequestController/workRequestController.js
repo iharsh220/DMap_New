@@ -32,13 +32,21 @@ const workRequestService = new CrudService(WorkRequests);
 // Create work request
 const createWorkRequest = async (req, res) => {
     try {
-        let { project_name, brand, request_type_id, project_id, about_project, priority = 'medium', remarks, isdraft = 'false' } = req.body;
+        let { project_name, brand, request_type_id, project_id, description, about_project, priority = 'medium', remarks, isdraft = 'false' } = req.body;
         const user_id = req.user.id; // From JWT middleware
         // Validate required fields
         if (!project_name || !request_type_id) {
             return res.status(400).json({
                 success: false,
                 error: 'Project name and request type ID are required'
+            });
+        }
+
+        // Validate description field
+        if (!description) {
+            return res.status(400).json({
+                success: false,
+                error: 'Description is required'
             });
         }
 
@@ -137,6 +145,7 @@ const createWorkRequest = async (req, res) => {
             brand,
             request_type_id: request_type_id,
             project_id,
+            description: description || '', // Add description field with fallback to empty string
             about_project,
             priority,
             status: isdraft === 'true' ? 'draft' : 'pending',
