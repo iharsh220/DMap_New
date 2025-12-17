@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Dec 02, 2025 at 08:44 AM
+-- Generation Time: Dec 17, 2025 at 10:35 AM
 -- Server version: 11.4.9-MariaDB
--- PHP Version: 8.4.14
+-- PHP Version: 8.4.15
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -20,6 +20,36 @@ SET time_zone = "+00:00";
 --
 -- Database: `alembicdigilabs_Digi_dmap`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `about_project`
+--
+
+CREATE TABLE `about_project` (
+  `id` int(11) NOT NULL,
+  `type` enum('output_devices','target_audience') NOT NULL,
+  `category` varchar(100) NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Dumping data for table `about_project`
+--
+
+INSERT INTO `about_project` (`id`, `type`, `category`, `created_at`, `updated_at`) VALUES
+(1, 'output_devices', 'iPad 9', '2025-12-03 05:52:15', '2025-12-03 05:52:15'),
+(2, 'output_devices', 'iPad 10', '2025-12-03 05:52:15', '2025-12-03 05:52:15'),
+(3, 'output_devices', 'Mobile', '2025-12-03 05:52:15', '2025-12-03 05:52:15'),
+(4, 'output_devices', 'Desktop', '2025-12-03 05:52:15', '2025-12-03 05:52:15'),
+(5, 'output_devices', 'Print', '2025-12-03 05:52:15', '2025-12-03 05:52:15'),
+(6, 'target_audience', 'Doctors', '2025-12-03 05:52:15', '2025-12-03 05:52:15'),
+(7, 'target_audience', 'Field Representatives', '2025-12-03 05:52:15', '2025-12-03 05:52:15'),
+(8, 'target_audience', 'Alembic HO', '2025-12-03 05:52:15', '2025-12-03 05:52:15'),
+(9, 'target_audience', 'Chemists', '2025-12-03 05:52:15', '2025-12-03 05:52:15'),
+(10, 'target_audience', 'Others', '2025-12-03 05:52:15', '2025-12-03 05:52:15');
 
 -- --------------------------------------------------------
 
@@ -631,13 +661,6 @@ CREATE TABLE `sales` (
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
---
--- Dumping data for table `sales`
---
-
-INSERT INTO `sales` (`id`, `emp_code`, `emp_name`, `level`, `hq`, `region`, `zone`, `division_id`, `sap_code`, `mobile_number`, `email_id`, `user_type`, `email_verified_status`, `password`, `account_status`, `last_login`, `login_attempts`, `lock_until`, `password_changed_at`, `password_expires_at`, `created_at`, `updated_at`) VALUES
-(1, 12345, 'Demo Sales User', 'Junior', 'Mumbai', 'West', 'Zone A', 14, 67890, '9876543210', 'demo.sales@alembic.co.in', 'sales', 1, '$2b$10$demo.hash.for.sales.user.password123', 'active', NULL, 0, NULL, '2025-11-21 07:24:00', '2026-02-19 07:24:00', '2025-11-21 07:24:00', '2025-11-21 07:24:00');
-
 -- --------------------------------------------------------
 
 --
@@ -666,10 +689,22 @@ CREATE TABLE `tasks` (
 -- Dumping data for table `tasks`
 --
 
-INSERT INTO `tasks` (`id`, `task_name`, `description`, `request_type_id`, `task_type_id`, `work_request_id`, `deadline`, `status`, `intimate_team`, `created_at`, `updated_at`) VALUES
-(1, 'Design Landing Page', 'Create responsive landing page design', 2, 43, 56, '2025-12-15', 'pending', 0, '2025-12-02 08:29:36', '2025-12-02 08:29:36'),
-(2, 'Design Landing Page', 'Create responsive landing page design', 2, 1, 56, '2025-12-15', 'pending', 0, '2025-12-02 08:30:09', '2025-12-02 08:30:09'),
-(3, 'Design Landing Page', 'Create responsive landing page design', 2, 2, 56, '2025-12-15', 'pending', 0, '2025-12-02 08:31:59', '2025-12-02 08:31:59');
+INSERT INTO `tasks` (`id`, `task_name`, `description`, `request_type_id`, `task_type_id`, `work_request_id`, `deadline`, `status`, `intimate_team`, `task_count`, `link`, `start_date`, `end_date`, `created_at`, `updated_at`) VALUES
+(4, 'Gantt chart', 'Showcase visual project timeline', 5, 14, 57, '2026-01-06', 'pending', 1, 0, NULL, NULL, NULL, '2025-12-14 19:37:48', '2025-12-15 10:49:16'),
+(5, 'Frontend', 'Website', 5, 1, 58, '2025-12-17', 'accepted', 1, 0, NULL, '2025-12-26', NULL, '2025-12-15 07:30:19', '2025-12-15 10:52:33'),
+(6, 'Rosave gold', 'VA Animation', 2, 84, 61, '2025-12-26', 'pending', 1, 0, NULL, NULL, NULL, '2025-12-15 09:52:17', '2025-12-16 05:18:05'),
+(7, 'HTMLisation', 'Rosave gold', 2, 87, 61, '2025-12-30', 'pending', 1, 0, NULL, NULL, NULL, '2025-12-15 10:00:27', '2025-12-16 05:18:05'),
+(8, 'UI dev', 'based on bal ui', 5, 1, 57, '2026-01-14', 'completed', 1, 2, 'alembicdigilabs.com/alembic/ah', '2026-01-30', '2025-12-15', '2025-12-15 10:31:27', '2025-12-15 11:15:24'),
+(9, 'Gantt chart', 'based on bal ui', 1, 1, 57, NULL, 'pending', 1, 0, NULL, NULL, NULL, '2025-12-15 10:38:08', '2025-12-16 02:45:23'),
+(10, 'had', 'dfff', 5, 5, 65, '2025-12-17', 'accepted', 1, 0, NULL, NULL, NULL, '2025-12-15 11:51:04', '2025-12-16 06:19:12'),
+(11, 'Test_task_Self', 'test', 2, 84, 61, '2026-01-06', 'pending', 1, 0, NULL, NULL, NULL, '2025-12-16 04:45:32', '2025-12-16 05:54:08'),
+(12, 'TEST_TASK_TO_OTHER', 'test', 2, 18, 61, NULL, 'pending', 1, 0, NULL, NULL, NULL, '2025-12-16 05:06:52', '2025-12-16 05:18:05'),
+(13, 'Script', 'Storyboard and flow', 1, 14, 71, NULL, 'pending', 1, 0, NULL, NULL, NULL, '2025-12-16 05:57:29', '2025-12-16 06:42:17'),
+(14, 'Illustration', 'Al habibi aba ahabahja', 2, 20, 71, NULL, 'pending', 1, 0, NULL, NULL, NULL, '2025-12-16 05:58:25', '2025-12-16 06:42:17'),
+(15, 'Script', 'For brand gamification', 1, 14, 71, NULL, 'pending', 1, 0, NULL, NULL, NULL, '2025-12-16 06:07:32', '2025-12-16 06:42:17'),
+(16, 'Story board', 'Flof of the story', 1, 15, 71, NULL, 'pending', 1, 0, NULL, NULL, NULL, '2025-12-16 06:14:52', '2025-12-16 06:42:17'),
+(17, 'Exeraft Gaminfication', 'ArtWork', 1, 15, 72, '2025-12-17', 'pending', 1, 0, NULL, NULL, NULL, '2025-12-16 10:57:54', '2025-12-16 11:00:09'),
+(18, 'Content Writing', 'Demo ', 1, 58, 72, '2025-12-19', 'accepted', 1, 0, NULL, '2025-12-18', NULL, '2025-12-16 10:59:27', '2025-12-16 11:01:32');
 
 -- --------------------------------------------------------
 
@@ -686,28 +721,25 @@ CREATE TABLE `task_assignments` (
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
 --
--- Table structure for table `task_documents`
---
-
-CREATE TABLE `task_documents` (
-  `id` int(11) NOT NULL,
-  `task_assignment_id` int(11) NOT NULL,
-  `document_name` varchar(255) NOT NULL,
-  `document_path` varchar(500) NOT NULL,
-  `document_type` varchar(50) DEFAULT NULL,
-  `document_size` int(11) DEFAULT NULL,
-  `status` enum('uploading','uploaded','failed') DEFAULT 'uploading',
-  `uploaded_at` timestamp NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-
---
 -- Dumping data for table `task_assignments`
 --
 
 INSERT INTO `task_assignments` (`id`, `task_id`, `user_id`, `created_at`, `updated_at`) VALUES
-(1, 1, 9, '2025-12-02 08:29:36', '2025-12-02 08:29:36'),
-(2, 2, 10, '2025-12-02 08:30:09', '2025-12-02 08:30:09'),
-(3, 3, 10, '2025-12-02 08:32:07', '2025-12-02 08:32:07');
+(4, 4, 23, '2025-12-14 19:37:48', '2025-12-14 19:37:48'),
+(5, 5, 19, '2025-12-15 07:30:19', '2025-12-15 07:30:19'),
+(6, 6, 31, '2025-12-15 09:52:17', '2025-12-15 09:52:17'),
+(7, 7, 23, '2025-12-15 10:00:27', '2025-12-15 10:00:27'),
+(8, 8, 19, '2025-12-15 10:31:27', '2025-12-15 10:31:27'),
+(9, 9, 27, '2025-12-15 10:38:08', '2025-12-15 10:38:08'),
+(10, 10, 19, '2025-12-15 11:51:04', '2025-12-15 11:51:04'),
+(11, 11, 30, '2025-12-16 04:45:32', '2025-12-16 04:45:32'),
+(12, 12, 24, '2025-12-16 05:06:52', '2025-12-16 05:06:52'),
+(13, 13, 27, '2025-12-16 05:57:29', '2025-12-16 05:57:29'),
+(14, 14, 24, '2025-12-16 05:58:25', '2025-12-16 05:58:25'),
+(15, 15, 27, '2025-12-16 06:07:32', '2025-12-16 06:07:32'),
+(16, 16, 27, '2025-12-16 06:14:52', '2025-12-16 06:14:52'),
+(17, 17, 27, '2025-12-16 10:57:54', '2025-12-16 10:57:54'),
+(18, 18, 26, '2025-12-16 10:59:27', '2025-12-16 10:59:27');
 
 -- --------------------------------------------------------
 
@@ -728,7 +760,33 @@ CREATE TABLE `task_dependencies` (
 --
 
 INSERT INTO `task_dependencies` (`id`, `task_id`, `dependency_task_id`, `created_at`, `updated_at`) VALUES
-(1, 3, 1, '2025-12-02 08:32:11', '2025-12-02 08:32:11');
+(2, 7, 6, '2025-12-15 10:00:27', '2025-12-15 10:00:27'),
+(3, 8, 4, '2025-12-15 10:31:27', '2025-12-15 10:31:27'),
+(4, 18, 17, '2025-12-16 10:59:27', '2025-12-16 10:59:27');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `task_documents`
+--
+
+CREATE TABLE `task_documents` (
+  `id` int(11) NOT NULL,
+  `task_assignment_id` int(11) NOT NULL,
+  `document_name` varchar(255) NOT NULL,
+  `document_path` varchar(500) NOT NULL,
+  `document_type` varchar(255) DEFAULT NULL,
+  `document_size` int(11) DEFAULT NULL,
+  `status` enum('uploading','uploaded','failed') DEFAULT 'uploading',
+  `uploaded_at` timestamp NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Dumping data for table `task_documents`
+--
+
+INSERT INTO `task_documents` (`id`, `task_assignment_id`, `document_name`, `document_path`, `document_type`, `document_size`, `status`, `uploaded_at`) VALUES
+(1, 8, '17657973027674780619114046659277.jpg', '/digilabs/dmap/api/uploads/MySQL_Version_Bheja_Kya/UI dev/Harsh Gohil/17657973027674780619114046659277.jpg-1765797324810-548982554.jpg', 'image/jpeg', 4163797, 'uploaded', '2025-12-15 11:15:24');
 
 -- --------------------------------------------------------
 
@@ -1215,15 +1273,27 @@ CREATE TABLE `users` (
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `name`, `email`, `phone`, `password`, `department_id`, `job_role_id`, `location_id`, `designation_id`, `email_verified_status`, `account_status`, `last_login`, `login_attempts`, `lock_until`, `password_changed_at`, `password_expires_at`, `created_at`, `updated_at`) VALUES
-(1, 'System Admin', 'admin@alembic.co.in', '8080302041', '$2a$12$/.rT3avNPO1l0ZjqSRS/Ru09mKVNuIRSLaHjBDeMwLHscVLq1ETY6', 2, 1, 1, NULL, 1, 'active', '2025-11-12 06:04:52', 0, NULL, '2025-11-12 06:04:52', '2026-02-10 06:04:52', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(9, 'Bhagwan Parab', 'bhagwan.parab@alembic.co.in', '1234567890', '$2a$10$13zqXGBAuAF/pcF4XHxvi.lEo8flBZCOnw/qq.fBJfZ57eAJcfj42', 9, 2, 1, 16, 1, 'active', NULL, 0, NULL, '2025-11-25 06:14:31', '2026-02-23 06:14:31', '2025-11-25 06:10:40', '2025-11-25 06:14:31'),
-(10, 'Harsh Gohil', 'harsh.gohil@alembic.co.in', '1234567890', '$2a$10$Kc.lwpVnKYKTOyVEkEaR5eCEcMqK7SjbnjpwgIB.LiAN/pLagxVeO', 9, 4, 1, 20, 1, 'active', '2025-11-26 04:00:05', 0, NULL, '2025-11-25 06:15:53', '2026-02-23 06:15:53', '2025-11-25 06:14:56', '2025-11-26 04:00:05'),
-(11, 'Mohanish Padwal', 'mohanish.padwal@alembic.co.in', '1234567890', '$2a$10$lbDnrhd.6O4EvCFNTeDt1.SngPt.IqHZkvw3jtUwjKTrEWoIbcDO.', 9, 2, 1, 16, 1, 'active', '2025-12-02 08:29:34', 0, NULL, '2025-11-25 06:17:31', '2026-02-23 06:17:31', '2025-11-25 06:16:23', '2025-12-02 08:29:34'),
-(12, 'Nikhil Nadkar', 'nikhil.nadkar@alembic.co.in', '1234567890', '$2a$10$Txudkx41QciW8euyVoodNOIa4seUXViVsWc.UN3RCdxg0KrcFfssW', 1, 5, 1, 8, 1, 'active', '2025-12-02 08:26:57', 0, NULL, '2025-11-25 06:19:02', '2026-02-23 06:19:02', '2025-11-25 06:17:55', '2025-12-02 08:26:57'),
-(13, 'Gautam Barnawal', 'gautam.baranwal@alembic.co.in', '1234567890', '$2a$10$ELYSn.TNQYl4.ppKulgaFeenW5Stt3wzMzeymt1O0hyAfzxnKGxZq', 9, 4, 1, 19, 1, 'active', NULL, 0, NULL, '2025-11-26 02:42:48', '2026-02-24 02:42:48', '2025-11-25 10:46:13', '2025-11-26 02:42:48'),
-(14, 'Vinisha Chadala', 'vinisha.chadala@alembic.co.in', '1234567890', '$2a$10$Fehw59cHdrrS0KdlB.koo.3aqM85F0soHulTlyn7Ga9ICb7XBbFGe', 9, 4, 1, 19, 1, 'active', NULL, 0, NULL, '2025-11-26 04:20:56', '2026-02-24 04:20:56', '2025-11-26 04:19:06', '2025-11-26 04:20:56'),
-(15, 'Vikaram Rai', 'vikramr.rai@alembic.co.in', '1234567890', '$2a$10$eMdj3uvEko0L26oRtV0veeoxZzMsiHwaHdW66FQ63bBN3ssboQN6q', 9, 2, 1, 16, 1, 'active', NULL, 0, NULL, '2025-11-26 04:33:08', '2026-02-24 04:33:08', '2025-11-26 04:31:28', '2025-11-26 04:33:08');
+INSERT INTO `users` (`id`, `name`, `email`, `phone`, `password`, `department_id`, `job_role_id`, `location_id`, `designation_id`, `email_verified_status`, `latest_verification_token`, `account_status`, `last_login`, `login_attempts`, `lock_until`, `password_changed_at`, `password_expires_at`, `created_at`, `updated_at`) VALUES
+(1, 'System Admin', 'admin@alembic.co.in', '8080302041', '$2a$12$/.rT3avNPO1l0ZjqSRS/Ru09mKVNuIRSLaHjBDeMwLHscVLq1ETY6', 2, 1, 1, NULL, 1, NULL, 'active', '2025-11-12 06:04:52', 0, NULL, '2025-11-12 06:04:52', '2026-02-10 06:04:52', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(19, 'Harsh Gohil', 'harsh.gohil@alembic.co.in', '8080302041', '$2a$10$qHoA9vRvrbxwYz.kuWUUbuT38X9JneCbAWEV63DhT2HXweSyAjQU.', 9, 4, 1, 20, 1, NULL, 'active', '2025-12-15 11:49:38', 0, NULL, '2025-12-12 05:32:58', '2026-03-12 05:32:58', '2025-12-12 05:31:42', '2025-12-15 11:49:38'),
+(20, 'Nikhil Nadkar', 'nikhil.nadkar@alembic.co.in', '8625977399', '$2a$10$N7p0mMj0XiyhBgFrY8KvTeoOZXy5yhSc2GZZlMdtviShczaQcTLvG', 1, 6, 1, 11, 1, NULL, 'active', '2025-12-17 04:25:41', 0, NULL, '2025-12-12 06:04:27', '2026-03-12 06:04:27', '2025-12-12 06:02:43', '2025-12-17 04:25:41'),
+(21, 'Kiran Thekootu', 'kiran.thekootu@alembic.co.in', '9028268048', '$2a$10$y/pO8.4sMEfFXMpZL3na/OQH1YdBc/X/C1TFF./uQx.kGXlUKBcsS', 9, 3, 1, 17, 1, NULL, 'active', '2025-12-16 12:34:21', 0, NULL, '2025-12-12 11:31:52', '2026-03-12 11:31:52', '2025-12-12 10:18:11', '2025-12-16 12:34:21'),
+(23, 'Mohanish Mohan Padwal', 'mohanish.padwal@alembic.co.in', '09773359332', '$2a$10$AOZOUF.2nL6xqEuzanyhmeWdvx9WAAL1xynW3pCotHhFH.w3nWVfW', 9, 2, 1, 16, 1, NULL, 'active', '2025-12-16 10:28:24', 0, NULL, '2025-12-12 11:53:26', '2026-03-12 11:53:26', '2025-12-12 11:52:18', '2025-12-16 10:28:24'),
+(24, 'Bhagwan Parab', 'bhagwan.parab@alembic.co.in', '1234567890', '$2a$10$2XIulHDrk2Im5mZeQjLLuOYHADiB/2EINYZSX5vHiEAJYDDXZC69i', 9, 2, 1, 16, 1, NULL, 'active', '2025-12-16 10:47:19', 0, NULL, '2025-12-14 04:38:04', '2026-03-14 04:38:04', '2025-12-14 04:31:39', '2025-12-16 10:47:19'),
+(25, 'Navneet Pathak', 'navneet.dpathak@alembic.co.in', '1234567890', '$2a$10$wGYowJV5gVFzoNClx15eHugTJMyDhW2gxrX6t2V/7VbunKgtd5Elm', 9, 4, 1, 20, 1, NULL, 'active', NULL, 0, NULL, '2025-12-14 04:39:21', '2026-03-14 04:39:21', '2025-12-14 04:31:56', '2025-12-14 04:39:21'),
+(26, 'Reshma Bastav', 'reshma.bastav@alembic.co.in', '1234567890', '$2a$10$ivzYIQLQfac/CCPjnrPJYul6b29va/Ux2b6I.FfvYutcUXXR6H9zy', 9, 4, 1, 20, 1, NULL, 'active', '2025-12-16 10:59:00', 0, NULL, '2025-12-14 04:40:18', '2026-03-14 04:40:18', '2025-12-14 04:32:07', '2025-12-16 10:59:00'),
+(27, 'Vikram Rai', 'vikramr.rai@alembic.co.in', '1234567890', '$2a$10$b3PR0RPWM0GmJPUR.4kB9O0saawBEBL9kxivbnzwY8IKi3sbYqHQO', 9, 2, 1, 16, 1, NULL, 'active', NULL, 0, NULL, '2025-12-14 04:41:23', '2026-03-14 04:41:23', '2025-12-14 04:32:17', '2025-12-14 04:41:23'),
+(28, 'Divya Raval', 'divya.iraval@alembic.co.in', '1234567890', '$2a$10$nml3wGBIR/PieYeTFVCSgut3wrI510QFdoU5u8xfa46FCf6p0ser6', 9, 4, 1, 20, 1, NULL, 'active', NULL, 0, NULL, '2025-12-14 04:42:20', '2026-03-14 04:42:20', '2025-12-14 04:32:26', '2025-12-14 04:42:20'),
+(29, 'Vinisha Chadala', 'vinisha.chadala@alembic.co.in', '1234567890', '$2a$10$g1TEpra8L50gQpQd6j.v3eg9x1YWFfnybw3gyg0tytG3EYDLDGkHu', 9, 4, 1, 20, 1, NULL, 'active', NULL, 0, NULL, '2025-12-14 04:42:43', '2026-03-14 04:42:43', '2025-12-14 04:32:33', '2025-12-14 04:42:43'),
+(30, 'Mahesh Morye', 'mahesh.morye@alembic.co.in', '1234567890', '$2a$10$a1JVnJq1Sf3QpE78DNwBNugdz.WPZcsi7EYNVjQkvtY03yq.EM622', 9, 4, 1, 20, 1, NULL, 'active', NULL, 0, NULL, '2025-12-14 04:43:19', '2026-03-14 04:43:19', '2025-12-14 04:32:42', '2025-12-14 04:43:19'),
+(31, 'Prashant Khade', 'prashant.khade@alembic.co.in', '1234567890', '$2a$10$mRmXTEho4.qtSInLK5c/FOQa.mc7.sk15bagCwCA1OWm/3Id/9gva', 9, 4, 1, 20, 1, NULL, 'active', NULL, 0, NULL, '2025-12-14 04:43:46', '2026-03-14 04:43:46', '2025-12-14 04:32:49', '2025-12-14 04:43:46'),
+(32, 'Arvind Jha', 'arvind.jha@alembic.co.in', '1234567890', '$2a$10$vExiN38pEpNMrBlADsZ5ceIVtGi5F1Jolhsj9tJQ/fMkSz/0tDTMK', 1, 5, 1, 8, 1, NULL, 'active', NULL, 0, NULL, '2025-12-14 04:44:59', '2026-03-14 04:44:59', '2025-12-14 04:32:55', '2025-12-14 04:44:59'),
+(33, 'Paresh Sable', 'paresh.sable@alembic.co.in', '1234567890', '$2a$10$hdtG4e3EwW9gKWTiUloEn.1VDplMYBQtAJduPshVoRGpSP0C0/v/K', 1, 5, 1, 8, 1, NULL, 'active', NULL, 0, NULL, '2025-12-14 04:46:15', '2026-03-14 04:46:15', '2025-12-14 04:33:02', '2025-12-14 04:46:15'),
+(34, 'Prasad Jagadale', 'prasad.jagadale@alembic.co.in', '1234567890', '$2a$10$lI6mGlM3VG714/K75D56kO5jMAub1tt85M1HuXQhWVjATVK2ozKWq', 1, 5, 1, 8, 1, NULL, 'active', NULL, 0, NULL, '2025-12-14 04:49:23', '2026-03-14 04:49:23', '2025-12-14 04:33:12', '2025-12-14 04:49:23'),
+(35, 'Riddhesh G', 'riddhesh.g@alembic.co.in', '1234567890', '$2a$10$.JhrPva9O9Oubt/sJK2DM.DhLFKCdNr/vlZtGdos3WXqWo5XTKA3q', 1, 5, 1, 8, 1, NULL, 'active', NULL, 0, NULL, '2025-12-14 04:49:54', '2026-03-14 04:49:54', '2025-12-14 04:33:19', '2025-12-14 04:49:54'),
+(36, 'Amol Nikam', 'amol.nikam@alembic.co.in', '1234567890', '$2a$10$aCXQeExmVnk8RWTkreJE1OK2.YhL8alPqpx6bNjFT/YGTjll9CCDy', 1, 5, 1, 8, 1, NULL, 'active', NULL, 0, NULL, '2025-12-14 04:51:20', '2026-03-14 04:51:20', '2025-12-14 04:33:27', '2025-12-14 04:51:20'),
+(37, 'Naresh Choudhary', 'naresh.choudhary@alembic.co.in', '1234567890', '$2a$10$/dYeO9mRQgXjzexB1o8vvOg8X8m6tvyHJtlrV7FHfQKAVk42ZUtqa', 1, 5, 1, 8, 1, NULL, 'active', NULL, 0, NULL, '2025-12-14 04:51:40', '2026-03-14 04:51:40', '2025-12-14 04:33:36', '2025-12-14 04:51:40'),
+(38, 'Balgovind Shanbhag', 'balgovind.s@alembic.co.in', '9131193467', '$2a$10$cfvJQvsgnLPR2oLORVC5seOk1QvsXFPCeD2FJn9NxyvhmE2k7VA6i', 9, 4, 1, 20, 1, NULL, 'active', '2025-12-16 06:24:59', 0, NULL, '2025-12-16 06:24:19', '2026-03-16 06:24:19', '2025-12-16 06:22:37', '2025-12-16 06:24:59');
 
 -- --------------------------------------------------------
 
@@ -1244,16 +1314,27 @@ CREATE TABLE `user_divisions` (
 --
 
 INSERT INTO `user_divisions` (`id`, `user_id`, `division_id`, `created_at`, `updated_at`) VALUES
-(12, 9, 1, '2025-11-25 06:14:31', '2025-11-25 06:14:31'),
-(13, 10, 5, '2025-11-25 06:15:53', '2025-11-25 06:15:53'),
-(14, 11, 2, '2025-11-25 06:17:31', '2025-11-25 06:17:31'),
-(15, 11, 4, '2025-11-25 06:17:31', '2025-11-25 06:17:31'),
-(16, 11, 5, '2025-11-25 06:17:31', '2025-11-25 06:17:31'),
-(17, 12, 22, '2025-11-25 06:19:02', '2025-11-25 06:19:02'),
-(18, 13, 5, '2025-11-26 02:42:48', '2025-11-26 02:42:48'),
-(19, 14, 4, '2025-11-26 04:20:56', '2025-11-26 04:20:56'),
-(20, 15, 3, '2025-11-26 04:33:07', '2025-11-26 04:33:07'),
-(21, 15, 4, '2025-11-26 04:33:08', '2025-11-26 04:33:08');
+(23, 19, 5, '2025-12-12 05:32:58', '2025-12-12 05:32:58'),
+(24, 20, 14, '2025-12-12 06:04:27', '2025-12-12 06:04:27'),
+(25, 21, 5, '2025-12-12 11:31:52', '2025-12-12 11:31:52'),
+(26, 23, 5, '2025-12-12 11:53:26', '2025-12-12 11:53:26'),
+(27, 24, 1, '2025-12-14 04:38:04', '2025-12-14 04:38:04'),
+(28, 25, 1, '2025-12-14 04:39:21', '2025-12-14 04:39:21'),
+(29, 26, 1, '2025-12-14 04:40:18', '2025-12-14 04:40:18'),
+(30, 27, 3, '2025-12-14 04:41:23', '2025-12-14 04:41:23'),
+(31, 27, 4, '2025-12-14 04:41:23', '2025-12-14 04:41:23'),
+(32, 28, 4, '2025-12-14 04:42:20', '2025-12-14 04:42:20'),
+(33, 29, 4, '2025-12-14 04:42:43', '2025-12-14 04:42:43'),
+(34, 30, 2, '2025-12-14 04:43:19', '2025-12-14 04:43:19'),
+(35, 31, 2, '2025-12-14 04:43:46', '2025-12-14 04:43:46'),
+(36, 32, 22, '2025-12-14 04:44:59', '2025-12-14 04:44:59'),
+(37, 33, 28, '2025-12-14 04:46:15', '2025-12-14 04:46:15'),
+(38, 34, 22, '2025-12-14 04:49:23', '2025-12-14 04:49:23'),
+(39, 35, 22, '2025-12-14 04:49:54', '2025-12-14 04:49:54'),
+(40, 36, 20, '2025-12-14 04:51:20', '2025-12-14 04:51:20'),
+(41, 37, 20, '2025-12-14 04:51:40', '2025-12-14 04:51:40'),
+(42, 23, 2, '2025-12-15 06:30:20', '2025-12-15 06:30:20'),
+(43, 38, 5, '2025-12-16 06:24:19', '2025-12-16 06:24:19');
 
 -- --------------------------------------------------------
 
@@ -1268,6 +1349,7 @@ CREATE TABLE `work_requests` (
   `brand` varchar(100) DEFAULT NULL,
   `request_type_id` int(11) NOT NULL,
   `project_id` int(11) DEFAULT NULL,
+  `description` text NOT NULL,
   `about_project` text DEFAULT NULL,
   `priority` enum('low','medium','high','critical') DEFAULT 'medium',
   `status` enum('draft','pending','accepted','assigned','in_progress','completed','rejected') DEFAULT 'pending',
@@ -1282,37 +1364,20 @@ CREATE TABLE `work_requests` (
 --
 
 INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `request_type_id`, `project_id`, `about_project`, `priority`, `status`, `requested_at`, `remarks`, `created_at`, `updated_at`) VALUES
-(56, 12, 'New Product Launch Campaign', 'Alembic Pharma', 5, 5, '{\"output_devices\":[\"iPad 9\",\"Mobile\"],\"target_audience\":[\"Doctors\",\"Chemists\"]}', 'high', 'accepted', '2025-12-02 08:27:36', 'Any additional remarks', '2025-12-02 08:27:36', '2025-12-02 08:28:08');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `about_project`
---
-
-CREATE TABLE `about_project` (
-  `id` int(11) NOT NULL,
-  `type` enum('output_devices','target_audience') NOT NULL,
-  `category` varchar(100) NOT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-
---
--- Dumping data for table `about_project`
---
-
-INSERT INTO `about_project` (`id`, `type`, `category`, `created_at`, `updated_at`) VALUES
-(1, 'output_devices', 'iPad 9', '2025-12-03 05:52:15', '2025-12-03 05:52:15'),
-(2, 'output_devices', 'iPad 10', '2025-12-03 05:52:15', '2025-12-03 05:52:15'),
-(3, 'output_devices', 'Mobile', '2025-12-03 05:52:15', '2025-12-03 05:52:15'),
-(4, 'output_devices', 'Desktop', '2025-12-03 05:52:15', '2025-12-03 05:52:15'),
-(5, 'output_devices', 'Print', '2025-12-03 05:52:15', '2025-12-03 05:52:15'),
-(6, 'target_audience', 'Doctors', '2025-12-03 05:52:15', '2025-12-03 05:52:15'),
-(7, 'target_audience', 'Field Representatives', '2025-12-03 05:52:15', '2025-12-03 05:52:15'),
-(8, 'target_audience', 'Alembic HO', '2025-12-03 05:52:15', '2025-12-03 05:52:15'),
-(9, 'target_audience', 'Chemists', '2025-12-03 05:52:15', '2025-12-03 05:52:15'),
-(10, 'target_audience', 'Others', '2025-12-03 05:52:15', '2025-12-03 05:52:15');
+(57, 20, 'MySQL Version Bheja Kya', 'Coda laba', 5, 6, '{\"output_devices\":[\"Desktop\",\"iPad 10\",\"iPad 9\",\"Mobile\"],\"target_audience\":[\"Alembic HO\",\"Doctors\",\"Chemists\"]}', 'medium', 'assigned', '2025-12-12 11:50:45', '', '2025-12-12 11:50:45', '2025-12-15 10:49:16'),
+(58, 20, 'Q4 Digilabs VA CLM', 'Coda laba', 5, 1, '{\"output_devices\":[\"iPad 10\",\"iPad 9\"],\"target_audience\":[\"Doctors\"]}', 'critical', 'assigned', '2025-12-12 11:57:38', '', '2025-12-12 11:57:38', '2025-12-15 07:31:05'),
+(59, 20, 'Test', 'Test Brand', 3, 26, '{\"output_devices\":[\"Mobile\",\"iPad 10\"],\"target_audience\":[\"Field Representatives\"]}', 'medium', 'accepted', '2025-12-15 06:12:15', '', '2025-12-15 06:12:15', '2025-12-15 07:18:40'),
+(60, 23, 'test self', 'test', 5, 4, '{\"output_devices\":[\"iPad 9\",\"iPad 10\"],\"target_audience\":[\"Field Representatives\"]}', 'medium', 'accepted', '2025-12-15 08:53:31', '', '2025-12-15 08:53:31', '2025-12-15 11:20:24'),
+(61, 23, 'test self 2', 'test', 3, 28, '{\"output_devices\":[\"Mobile\"],\"target_audience\":[\"Doctors\"]}', 'medium', 'assigned', '2025-12-15 09:22:51', '', '2025-12-15 09:22:51', '2025-12-16 05:18:05'),
+(64, 24, 'EntFlow Planning GPS Reporting', 'Diabestes', 2, 17, '{\"output_devices\":[\"Desktop\",\"iPad 10\"],\"target_audience\":[\"Alembic HO\",\"Doctors\"]}', 'high', 'pending', '2025-12-15 10:14:52', '', '2025-12-15 10:14:52', '2025-12-15 10:14:52'),
+(65, 23, 'Test yes ', 'defsd', 5, 4, '{\"output_devices\":[\"Print\"],\"target_audience\":[\"Alembic HO\"]}', 'medium', 'assigned', '2025-12-15 11:29:53', '', '2025-12-15 11:29:53', '2025-12-15 11:51:06'),
+(66, 23, 'test yesyes', 'Test Brand', 3, 27, '{\"output_devices\":[\"iPad 10\",\"iPad 9\"],\"target_audience\":[\"Field Representatives\"]}', 'low', 'accepted', '2025-12-15 11:32:17', '', '2025-12-15 11:32:17', '2025-12-15 11:32:30'),
+(67, 21, 'Halla bol', 'Bacca bucci', 1, 15, '{\"output_devices\":[\"iPad 10\",\"iPad 9\",\"Mobile\"],\"target_audience\":[\"Chemists\",\"Doctors\"]}', 'medium', 'pending', '2025-12-15 11:37:00', '', '2025-12-15 11:37:00', '2025-12-15 11:37:00'),
+(68, 21, 'Halla bol', 'Bacca bucci', 1, 15, '{\"output_devices\":[\"iPad 10\",\"iPad 9\",\"Mobile\"],\"target_audience\":[\"Chemists\",\"Doctors\"]}', 'medium', 'pending', '2025-12-15 11:37:02', '', '2025-12-15 11:37:02', '2025-12-15 11:37:02'),
+(69, 21, 'Halla bol', 'Bacca bucci', 1, 15, '{\"output_devices\":[\"iPad 10\",\"iPad 9\",\"Mobile\"],\"target_audience\":[\"Chemists\",\"Doctors\"]}', 'medium', 'pending', '2025-12-15 11:37:22', '', '2025-12-15 11:37:22', '2025-12-15 11:37:22'),
+(70, 21, 'Halla bol', 'Bacca bucci', 1, 15, '{\"output_devices\":[\"iPad 10\",\"iPad 9\",\"Mobile\"],\"target_audience\":[\"Chemists\",\"Doctors\"]}', 'medium', 'pending', '2025-12-15 11:37:31', '', '2025-12-15 11:37:31', '2025-12-15 11:37:31'),
+(71, 23, 'AR Emoji Challenge', 'Laveta M', 5, 6, '{\"output_devices\":[\"iPad 9\",\"iPad 10\"],\"target_audience\":[\"Doctors\"]}', 'high', 'assigned', '2025-12-16 05:52:12', '', '2025-12-16 05:52:12', '2025-12-16 06:42:17'),
+(72, 20, 'Exeraft Gamification', 'Exceraft', 2, 21, '{\"output_devices\":[\"iPad 9\",\"Print\"],\"target_audience\":[\"Doctors\",\"Field Representatives\"]}', 'critical', 'assigned', '2025-12-16 10:32:24', '', '2025-12-16 10:32:24', '2025-12-16 11:00:09');
 
 -- --------------------------------------------------------
 
@@ -1325,11 +1390,25 @@ CREATE TABLE `work_request_documents` (
   `work_request_id` int(11) NOT NULL,
   `document_name` varchar(255) NOT NULL,
   `document_path` varchar(500) NOT NULL,
-  `document_type` varchar(50) DEFAULT NULL,
+  `document_type` varchar(255) DEFAULT NULL,
   `document_size` int(11) DEFAULT NULL,
   `status` enum('uploading','uploaded','failed') DEFAULT 'uploading',
   `uploaded_at` timestamp NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Dumping data for table `work_request_documents`
+--
+
+INSERT INTO `work_request_documents` (`id`, `work_request_id`, `document_name`, `document_path`, `document_type`, `document_size`, `status`, `uploaded_at`) VALUES
+(143, 57, '17655401260704730880082277025850.jpg', '/digilabs/dmap/api/uploads/MySQL_Version_Bheja_Kya/17655401260704730880082277025850.jpg-1765540245432-604992930.jpg', 'image/jpeg', 672843, 'uploaded', '2025-12-12 11:50:45'),
+(144, 64, 'New Year Video Concept.docx', '/digilabs/dmap/api/uploads/EntFlow_Planning_GPS_Reporting/New_Year_Video_Concept.docx-1765793692414-56131262.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 14885, 'uploaded', '2025-12-15 10:14:52'),
+(145, 67, '17657985886599035324364763131339.jpg', '/digilabs/dmap/api/uploads/Halla_bol/17657985886599035324364763131339.jpg-1765798620170-830577525.jpg', 'image/jpeg', 473401, 'uploaded', '2025-12-15 11:37:00'),
+(146, 68, '17657985886599035324364763131339.jpg', '/digilabs/dmap/api/uploads/Halla_bol/17657985886599035324364763131339.jpg-1765798622132-20189274.jpg', 'image/jpeg', 473401, 'uploaded', '2025-12-15 11:37:02'),
+(147, 69, '17657985886599035324364763131339.jpg', '/digilabs/dmap/api/uploads/Halla_bol/17657985886599035324364763131339.jpg-1765798642692-518932734.jpg', 'image/jpeg', 473401, 'uploaded', '2025-12-15 11:37:22'),
+(148, 70, '17657985886599035324364763131339.jpg', '/digilabs/dmap/api/uploads/Halla_bol/17657985886599035324364763131339.jpg-1765798651906-545597658.jpg', 'image/jpeg', 473401, 'uploaded', '2025-12-15 11:37:31'),
+(149, 71, 'Calendar Design Content Review.pptx', '/digilabs/dmap/api/uploads/AR_Emoji_Challenge/Calendar_Design_Content_Review.pptx-1765864332836-789847996.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 74041, 'uploaded', '2025-12-16 05:52:12'),
+(150, 72, 'animals-field-sunset.jpg', '/digilabs/dmap/api/uploads/Exeraft_Gamification/animals_field_sunset.jpg-1765881144915-396038721.jpg', 'image/jpeg', 8781541, 'uploaded', '2025-12-16 10:32:24');
 
 -- --------------------------------------------------------
 
@@ -1350,11 +1429,35 @@ CREATE TABLE `work_request_managers` (
 --
 
 INSERT INTO `work_request_managers` (`id`, `work_request_id`, `manager_id`, `created_at`, `updated_at`) VALUES
-(5, 56, 11, '2025-12-02 08:27:36', '2025-12-02 08:27:36');
+(6, 57, 21, '2025-12-12 11:50:45', '2025-12-12 11:50:45'),
+(7, 58, 21, '2025-12-12 11:57:38', '2025-12-12 11:57:38'),
+(8, 58, 23, '2025-12-12 11:57:38', '2025-12-12 11:57:38'),
+(11, 59, 23, '2025-12-15 07:18:12', '2025-12-15 07:18:12'),
+(12, 60, 21, '2025-12-15 08:53:31', '2025-12-15 08:53:31'),
+(13, 60, 23, '2025-12-15 08:53:31', '2025-12-15 08:53:31'),
+(16, 61, 23, '2025-12-15 09:36:15', '2025-12-15 09:36:15'),
+(19, 64, 24, '2025-12-15 10:14:52', '2025-12-15 10:14:52'),
+(20, 65, 21, '2025-12-15 11:29:53', '2025-12-15 11:29:53'),
+(21, 65, 23, '2025-12-15 11:29:53', '2025-12-15 11:29:53'),
+(22, 66, 23, '2025-12-15 11:32:17', '2025-12-15 11:32:17'),
+(23, 67, 27, '2025-12-15 11:37:00', '2025-12-15 11:37:00'),
+(24, 68, 27, '2025-12-15 11:37:02', '2025-12-15 11:37:02'),
+(25, 69, 27, '2025-12-15 11:37:22', '2025-12-15 11:37:22'),
+(26, 70, 27, '2025-12-15 11:37:31', '2025-12-15 11:37:31'),
+(27, 71, 21, '2025-12-16 05:52:12', '2025-12-16 05:52:12'),
+(28, 71, 23, '2025-12-16 05:52:12', '2025-12-16 05:52:12'),
+(29, 72, 24, '2025-12-16 10:32:24', '2025-12-16 10:32:24');
 
 --
 -- Indexes for dumped tables
 --
+
+--
+-- Indexes for table `about_project`
+--
+ALTER TABLE `about_project`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `type` (`type`);
 
 --
 -- Indexes for table `department`
@@ -1468,19 +1571,19 @@ ALTER TABLE `task_assignments`
   ADD KEY `user_id` (`user_id`);
 
 --
--- Indexes for table `task_documents`
---
-ALTER TABLE `task_documents`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `task_assignment_id` (`task_assignment_id`);
-
---
 -- Indexes for table `task_dependencies`
 --
 ALTER TABLE `task_dependencies`
   ADD PRIMARY KEY (`id`),
   ADD KEY `task_id` (`task_id`),
   ADD KEY `dependency_task_id` (`dependency_task_id`);
+
+--
+-- Indexes for table `task_documents`
+--
+ALTER TABLE `task_documents`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `task_assignment_id` (`task_assignment_id`);
 
 --
 -- Indexes for table `task_project_reference`
@@ -1534,13 +1637,6 @@ ALTER TABLE `work_requests`
 ALTER TABLE `work_requests` ADD FULLTEXT KEY `ft_work_requests_content` (`project_name`,`brand`,`about_project`);
 
 --
--- Indexes for table `about_project`
---
-ALTER TABLE `about_project`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `type` (`type`);
-
---
 -- Indexes for table `work_request_documents`
 --
 ALTER TABLE `work_request_documents`
@@ -1558,6 +1654,12 @@ ALTER TABLE `work_request_managers`
 --
 -- AUTO_INCREMENT for dumped tables
 --
+
+--
+-- AUTO_INCREMENT for table `about_project`
+--
+ALTER TABLE `about_project`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `department`
@@ -1641,24 +1743,24 @@ ALTER TABLE `sales`
 -- AUTO_INCREMENT for table `tasks`
 --
 ALTER TABLE `tasks`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT for table `task_assignments`
 --
 ALTER TABLE `task_assignments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
-
---
--- AUTO_INCREMENT for table `task_documents`
---
-ALTER TABLE `task_documents`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT for table `task_dependencies`
 --
 ALTER TABLE `task_dependencies`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT for table `task_documents`
+--
+ALTER TABLE `task_documents`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
@@ -1677,37 +1779,31 @@ ALTER TABLE `task_type`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=39;
 
 --
 -- AUTO_INCREMENT for table `user_divisions`
 --
 ALTER TABLE `user_divisions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=44;
 
 --
 -- AUTO_INCREMENT for table `work_requests`
 --
 ALTER TABLE `work_requests`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=57;
-
---
--- AUTO_INCREMENT for table `about_project`
---
-ALTER TABLE `about_project`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=73;
 
 --
 -- AUTO_INCREMENT for table `work_request_documents`
 --
 ALTER TABLE `work_request_documents`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=143;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=151;
 
 --
 -- AUTO_INCREMENT for table `work_request_managers`
 --
 ALTER TABLE `work_request_managers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
 
 --
 -- Constraints for dumped tables
@@ -1775,17 +1871,17 @@ ALTER TABLE `task_assignments`
   ADD CONSTRAINT `task_assignments_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
--- Constraints for table `task_documents`
---
-ALTER TABLE `task_documents`
-  ADD CONSTRAINT `task_documents_ibfk_1` FOREIGN KEY (`task_assignment_id`) REFERENCES `task_assignments` (`id`) ON DELETE CASCADE;
-
---
 -- Constraints for table `task_dependencies`
 --
 ALTER TABLE `task_dependencies`
   ADD CONSTRAINT `task_dependencies_ibfk_1` FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `task_dependencies_ibfk_2` FOREIGN KEY (`dependency_task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `task_documents`
+--
+ALTER TABLE `task_documents`
+  ADD CONSTRAINT `task_documents_ibfk_1` FOREIGN KEY (`task_assignment_id`) REFERENCES `task_assignments` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `task_project_reference`
