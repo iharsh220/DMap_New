@@ -1,10 +1,10 @@
-const client = require('../config/elasticsearchConfig');
+const { client, getCurrentMonthIndex, logIndexMappings } = require('../config/elasticsearchConfig');
 const UAParser = require('ua-parser-js');
 const geoip = require('geoip-lite');
 
 class ElasticsearchService {
   constructor() {
-    this.indexName = `dmap-${new Date().toISOString().split('T')[0]}`; // dmap-current_date
+    this.indexName = getCurrentMonthIndex(); // dmap-current_month_name
   }
 
   async logUserActivity(logData) {
@@ -24,17 +24,69 @@ class ElasticsearchService {
     }
   }
 
-  sanitizeLogData(data) {
-    const sensitiveFields = ['password', 'token']; // Add more as needed
-    const sanitized = { ...data };
+  async logData(logData) {
+    try {
+      // Ensure the index exists with the correct mappings
+      await this.ensureIndexExists();
 
-    sensitiveFields.forEach(field => {
-      if (sanitized[field]) {
-        sanitized[field] = '[REDACTED]';
+      // Remove sensitive data
+      const sanitizedData = this.sanitizeLogData(logData);
+
+      await client.index({
+        index: this.indexName,
+        body: sanitizedData
+      });
+    } catch (error) {
+      console.error('Error logging to Elasticsearch:', error);
+    }
+  }
+
+  async ensureIndexExists() {
+    try {
+      const indexExists = await client.indices.exists({ index: this.indexName });
+      
+      if (!indexExists) {
+        // Create the index with the mappings
+        await client.indices.create({
+          index: this.indexName,
+          body: {
+            mappings: logIndexMappings
+          }
+        });
       }
-    });
+    } catch (error) {
+      console.error('Error ensuring index exists:', error);
+    }
+  }
 
-    return sanitized;
+  sanitizeLogData(data) {
+    const sensitiveFields = ['password', 'token', 'accessToken', 'refreshToken']; // Add more as needed
+    const sanitized = JSON.parse(JSON.stringify(data)); // Deep copy
+
+    const sanitizeNested = (obj) => {
+      if (typeof obj !== 'object' || obj === null) {
+        return obj;
+      }
+
+      if (Array.isArray(obj)) {
+        return obj.map(item => sanitizeNested(item));
+      }
+
+      const sanitizedObj = { ...obj };
+      sensitiveFields.forEach(field => {
+        if (sanitizedObj[field]) {
+          sanitizedObj[field] = '[REDACTED]';
+        }
+      });
+
+      Object.keys(sanitizedObj).forEach(key => {
+        sanitizedObj[key] = sanitizeNested(sanitizedObj[key]);
+      });
+
+      return sanitizedObj;
+    };
+
+    return sanitizeNested(sanitized);
   }
 
   extractRequestDetails(req) {
@@ -88,6 +140,7 @@ const elasticsearchService = new ElasticsearchService();
 module.exports = {
   ...elasticsearchService,
   logUserActivity: elasticsearchService.logUserActivity.bind(elasticsearchService),
+  logData: elasticsearchService.logData.bind(elasticsearchService),
   extractRequestDetails: elasticsearchService.extractRequestDetails.bind(elasticsearchService),
   sanitizeLogData: elasticsearchService.sanitizeLogData.bind(elasticsearchService)
 };

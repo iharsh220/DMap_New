@@ -65,6 +65,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use(fileUpload());
 app.use('/uploads', express.static('uploads'));
 
+// Logging middleware
+const loggingMiddleware = require('./middleware/loggingMiddleware');
+app.use(loggingMiddleware);
+
 // Rate limiting
 // const limiter = require('./middleware/rateLimitMiddleware');
 // app.use(limiter);

@@ -30,7 +30,8 @@
     "redis": "^5.10.0",
     "sequelize": "^6.37.7",
     "socket.io": "^4.8.1",
-    "ua-parser-js": "^2.0.6"
+    "ua-parser-js": "^2.0.6",
+    "useragent": "^2.3.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
