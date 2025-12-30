@@ -507,17 +507,51 @@ const getTaskById = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Invalid task ID' });
         }
 
+        // Check if user is manager (job_role_id = 2)
+        const isManager = req.user.jobRole && req.user.jobRole.id === 2;
+
         // Get single task with full details - only if assigned to current user and intimate_team = 1
+        let userIds = [req.user.id]; // Start with current user
+
+        if (isManager) {
+            // Get divisions the manager belongs to
+            const managerDivisions = await UserDivisions.findAll({
+                where: { user_id: req.user.id },
+                attributes: ['division_id']
+            });
+
+            if (managerDivisions.length > 0) {
+                const divisionIds = managerDivisions.map(md => md.division_id);
+
+                // Get creative users and leads in these divisions
+                const teamUsers = await UserDivisions.findAll({
+                    where: { division_id: { [Op.in]: divisionIds } },
+                    include: [{
+                        model: User,
+                        where: {
+                            id: { [Op.ne]: req.user.id }, // Exclude manager themselves
+                            account_status: 'active'
+                        },
+                        attributes: ['id']
+                    }],
+                    attributes: []
+                });
+
+                const teamUserIds = teamUsers.map(tu => tu.User.id);
+                userIds = userIds.concat(teamUserIds);
+            }
+        }
+
         const taskResult = await Tasks.findOne({
             where: { id: taskId, intimate_team: 1 },
             include: [
                 {
                     model: User,
                     as: 'assignedUsers',
-                    where: { id: req.user.id }, // Only show if current user is assigned
+                    where: { id: { [Op.in]: userIds } }, // Allow current user or team members for managers
                     attributes: ['id', 'name', 'email'],
                     through: { attributes: ['created_at'] },
-                    required: true // This ensures the task must be assigned to the user
+                    required: true // This ensures the task must be assigned to the user or their team
                 },
                 {
                     model: RequestType,
