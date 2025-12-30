@@ -135,7 +135,7 @@ const getAssignedTasks = async (req, res) => {
                 },
                 {
                     model: WorkRequests,
-                    attributes: ['id', 'project_name', 'brand', 'priority', 'status'],
+                    attributes: ['id', 'project_name', 'brand', 'priority', 'status', 'created_at', 'updated_at'],
                     include: [
                         {
                             model: User,
@@ -158,9 +158,20 @@ const getAssignedTasks = async (req, res) => {
                             ]
                         }
                     ]
+                },
+                {
+                    model: TaskDependencies,
+                    as: 'dependencies',
+                    include: [
+                        {
+                            model: Tasks,
+                            as: 'dependencyTask',
+                            attributes: ['id', 'task_name', 'deadline', 'status']
+                        }
+                    ]
                 }
             ],
-            attributes: { exclude: ['created_at', 'updated_at'] },
+            attributes: { exclude: [] },
             limit: req.pagination.limit,
             offset: req.pagination.offset,
             order: [['deadline', 'ASC']] // Sort by deadline ascending by default
@@ -563,7 +574,7 @@ const getTaskById = async (req, res) => {
                 },
                 {
                     model: WorkRequests,
-                    attributes: ['id', 'project_name', 'brand', 'priority', 'status', 'created_at'],
+                    attributes: ['id', 'project_name', 'brand', 'priority', 'status', 'created_at', 'updated_at'],
                     include: [
                         {
                             model: User,
@@ -599,7 +610,7 @@ const getTaskById = async (req, res) => {
                     ]
                 }
             ],
-            attributes: { exclude: ['created_at', 'updated_at'] }
+            attributes: { exclude: [] } // Include all attributes including timestamps
         });
 
         if (!taskResult) {
