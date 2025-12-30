@@ -342,9 +342,9 @@ const assignTaskToUser = async (req, res) => {
         if (!workRequest) {
             return res.status(404).json({ success: false, error: 'Work request not found' });
         }
-
+        
         // Check if work request is accepted
-        if (workRequest.status !== 'accepted') {
+        if (workRequest.status !== 'accepted' && workRequest.status !== 'in-progress' && workRequest.status !== 'assigned') {
             return res.status(400).json({
                 success: false,
                 error: 'Work request must be accepted before assigning tasks'
