@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Dec 17, 2025 at 10:35 AM
+-- Generation Time: Dec 30, 2025 at 11:42 AM
 -- Server version: 11.4.9-MariaDB
--- PHP Version: 8.4.15
+-- PHP Version: 8.4.16
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -691,20 +691,34 @@ CREATE TABLE `tasks` (
 
 INSERT INTO `tasks` (`id`, `task_name`, `description`, `request_type_id`, `task_type_id`, `work_request_id`, `deadline`, `status`, `intimate_team`, `task_count`, `link`, `start_date`, `end_date`, `created_at`, `updated_at`) VALUES
 (4, 'Gantt chart', 'Showcase visual project timeline', 5, 14, 57, '2026-01-06', 'pending', 1, 0, NULL, NULL, NULL, '2025-12-14 19:37:48', '2025-12-15 10:49:16'),
-(5, 'Frontend', 'Website', 5, 1, 58, '2025-12-17', 'accepted', 1, 0, NULL, '2025-12-26', NULL, '2025-12-15 07:30:19', '2025-12-15 10:52:33'),
+(5, 'Frontend', 'Website', 5, 1, 58, '2025-12-17', 'in_progress', 1, 0, NULL, '2025-12-26', NULL, '2025-12-15 07:30:19', '2025-12-25 18:31:00'),
 (6, 'Rosave gold', 'VA Animation', 2, 84, 61, '2025-12-26', 'pending', 1, 0, NULL, NULL, NULL, '2025-12-15 09:52:17', '2025-12-16 05:18:05'),
 (7, 'HTMLisation', 'Rosave gold', 2, 87, 61, '2025-12-30', 'pending', 1, 0, NULL, NULL, NULL, '2025-12-15 10:00:27', '2025-12-16 05:18:05'),
 (8, 'UI dev', 'based on bal ui', 5, 1, 57, '2026-01-14', 'completed', 1, 2, 'alembicdigilabs.com/alembic/ah', '2026-01-30', '2025-12-15', '2025-12-15 10:31:27', '2025-12-15 11:15:24'),
 (9, 'Gantt chart', 'based on bal ui', 1, 1, 57, NULL, 'pending', 1, 0, NULL, NULL, NULL, '2025-12-15 10:38:08', '2025-12-16 02:45:23'),
-(10, 'had', 'dfff', 5, 5, 65, '2025-12-17', 'accepted', 1, 0, NULL, NULL, NULL, '2025-12-15 11:51:04', '2025-12-16 06:19:12'),
+(10, 'had', 'dfff', 5, 5, 65, '2025-12-17', 'accepted', 1, 0, NULL, NULL, NULL, '2025-12-15 11:51:04', '2025-12-26 09:37:48'),
 (11, 'Test_task_Self', 'test', 2, 84, 61, '2026-01-06', 'pending', 1, 0, NULL, NULL, NULL, '2025-12-16 04:45:32', '2025-12-16 05:54:08'),
-(12, 'TEST_TASK_TO_OTHER', 'test', 2, 18, 61, NULL, 'pending', 1, 0, NULL, NULL, NULL, '2025-12-16 05:06:52', '2025-12-16 05:18:05'),
+(12, 'TEST_TASK_TO_OTHER', 'test', 2, 18, 61, '2026-01-04', 'accepted', 1, 0, NULL, NULL, NULL, '2025-12-16 05:06:52', '2025-12-23 07:46:16'),
 (13, 'Script', 'Storyboard and flow', 1, 14, 71, NULL, 'pending', 1, 0, NULL, NULL, NULL, '2025-12-16 05:57:29', '2025-12-16 06:42:17'),
-(14, 'Illustration', 'Al habibi aba ahabahja', 2, 20, 71, NULL, 'pending', 1, 0, NULL, NULL, NULL, '2025-12-16 05:58:25', '2025-12-16 06:42:17'),
+(14, 'Illustration', 'Al habibi aba ahabahja', 2, 20, 71, '2025-12-24', 'accepted', 1, 0, NULL, NULL, NULL, '2025-12-16 05:58:25', '2025-12-23 08:41:04'),
 (15, 'Script', 'For brand gamification', 1, 14, 71, NULL, 'pending', 1, 0, NULL, NULL, NULL, '2025-12-16 06:07:32', '2025-12-16 06:42:17'),
 (16, 'Story board', 'Flof of the story', 1, 15, 71, NULL, 'pending', 1, 0, NULL, NULL, NULL, '2025-12-16 06:14:52', '2025-12-16 06:42:17'),
 (17, 'Exeraft Gaminfication', 'ArtWork', 1, 15, 72, '2025-12-17', 'pending', 1, 0, NULL, NULL, NULL, '2025-12-16 10:57:54', '2025-12-16 11:00:09'),
-(18, 'Content Writing', 'Demo ', 1, 58, 72, '2025-12-19', 'accepted', 1, 0, NULL, '2025-12-18', NULL, '2025-12-16 10:59:27', '2025-12-16 11:01:32');
+(18, 'Content Writing', 'Demo ', 1, 58, 72, '2025-12-19', 'in_progress', 1, 0, NULL, '2025-12-18', NULL, '2025-12-16 10:59:27', '2025-12-17 18:31:00'),
+(19, 'Nk', 'disjijd', 5, 7, 116, '2025-12-25', 'in_progress', 1, 0, NULL, '2025-12-23', NULL, '2025-12-18 11:43:22', '2025-12-22 18:31:00'),
+(20, 'TEst _2', 'eecf', 5, 5, 116, '2025-12-25', 'in_progress', 1, 0, NULL, '2025-12-24', NULL, '2025-12-19 04:37:52', '2025-12-23 18:31:00'),
+(21, 'test 3', 'ee', 5, 5, 116, '2025-12-12', 'pending', 1, 0, NULL, NULL, NULL, '2025-12-19 04:40:16', '2025-12-22 05:30:41'),
+(22, 'test', 'test', 5, 5, 116, '2025-12-15', 'pending', 1, 0, NULL, NULL, NULL, '2025-12-19 06:23:30', '2025-12-22 05:30:41'),
+(23, 'we', 'ewe', 5, 4, 116, '2025-12-16', 'pending', 1, 0, NULL, NULL, NULL, '2025-12-19 06:24:56', '2025-12-22 05:30:41'),
+(24, 'TEST-0444', 'test', 5, 2, 116, '2025-12-17', 'pending', 1, 0, NULL, NULL, NULL, '2025-12-19 06:29:13', '2025-12-22 05:30:41'),
+(25, 'test', 'test', 3, 27, 116, '2025-12-25', 'accepted', 1, 0, NULL, NULL, NULL, '2025-12-19 06:39:53', '2025-12-24 05:59:14'),
+(26, 'TEst', 'test', 1, 45, 64, '2025-12-24', 'pending', 1, 0, NULL, NULL, NULL, '2025-12-23 04:54:15', '2025-12-24 06:06:55'),
+(27, '1234', 'test', 1, 43, 64, '2025-12-24', 'completed', 1, 0, NULL, NULL, NULL, '2025-12-23 05:49:22', '2025-12-26 06:39:40'),
+(28, 'test', 'testg', 1, 46, 64, '2025-12-24', 'pending', 1, 0, NULL, NULL, NULL, '2025-12-23 06:33:34', '2025-12-24 06:06:55'),
+(29, 'test', 'test', 1, 46, 64, '2025-12-25', 'pending', 1, 0, NULL, NULL, NULL, '2025-12-23 07:24:31', '2025-12-24 06:06:55'),
+(30, 'Ui ', 'test', 5, 1, 137, '2025-12-25', 'pending', 0, 0, NULL, NULL, NULL, '2025-12-23 08:55:57', '2025-12-23 08:55:57'),
+(31, 'test video', 'test', 5, 4, 64, '2025-12-31', 'accepted', 1, 0, NULL, NULL, NULL, '2025-12-24 06:03:28', '2025-12-24 06:13:49'),
+(32, 'card design', 'single page', 2, 20, 138, NULL, 'pending', 1, 0, NULL, NULL, NULL, '2025-12-26 06:17:38', '2025-12-26 06:17:42');
 
 -- --------------------------------------------------------
 
@@ -733,13 +747,27 @@ INSERT INTO `task_assignments` (`id`, `task_id`, `user_id`, `created_at`, `updat
 (9, 9, 27, '2025-12-15 10:38:08', '2025-12-15 10:38:08'),
 (10, 10, 19, '2025-12-15 11:51:04', '2025-12-15 11:51:04'),
 (11, 11, 30, '2025-12-16 04:45:32', '2025-12-16 04:45:32'),
-(12, 12, 24, '2025-12-16 05:06:52', '2025-12-16 05:06:52'),
 (13, 13, 27, '2025-12-16 05:57:29', '2025-12-16 05:57:29'),
-(14, 14, 24, '2025-12-16 05:58:25', '2025-12-16 05:58:25'),
 (15, 15, 27, '2025-12-16 06:07:32', '2025-12-16 06:07:32'),
 (16, 16, 27, '2025-12-16 06:14:52', '2025-12-16 06:14:52'),
 (17, 17, 27, '2025-12-16 10:57:54', '2025-12-16 10:57:54'),
-(18, 18, 26, '2025-12-16 10:59:27', '2025-12-16 10:59:27');
+(18, 18, 26, '2025-12-16 10:59:27', '2025-12-16 10:59:27'),
+(19, 19, 19, '2025-12-18 11:43:22', '2025-12-18 11:43:22'),
+(20, 20, 19, '2025-12-19 04:37:52', '2025-12-19 04:37:52'),
+(21, 21, 19, '2025-12-19 04:40:16', '2025-12-19 04:40:16'),
+(22, 22, 19, '2025-12-19 06:23:30', '2025-12-19 06:23:30'),
+(23, 23, 21, '2025-12-19 06:24:56', '2025-12-19 06:24:56'),
+(24, 24, 21, '2025-12-19 06:29:13', '2025-12-19 06:29:13'),
+(26, 26, 26, '2025-12-23 04:54:15', '2025-12-23 04:54:15'),
+(27, 27, 26, '2025-12-23 05:49:22', '2025-12-23 05:49:22'),
+(28, 28, 25, '2025-12-23 06:33:34', '2025-12-23 06:33:34'),
+(29, 29, 26, '2025-12-23 07:24:31', '2025-12-23 07:24:31'),
+(30, 12, 25, '2025-12-23 07:46:16', '2025-12-23 07:46:16'),
+(32, 14, 26, '2025-12-23 08:41:04', '2025-12-23 08:41:04'),
+(33, 30, 38, '2025-12-23 08:55:57', '2025-12-23 08:55:57'),
+(35, 25, 23, '2025-12-24 05:59:14', '2025-12-24 05:59:14'),
+(37, 31, 21, '2025-12-24 06:13:49', '2025-12-24 06:13:49'),
+(38, 32, 24, '2025-12-26 06:17:38', '2025-12-26 06:17:38');
 
 -- --------------------------------------------------------
 
@@ -762,7 +790,16 @@ CREATE TABLE `task_dependencies` (
 INSERT INTO `task_dependencies` (`id`, `task_id`, `dependency_task_id`, `created_at`, `updated_at`) VALUES
 (2, 7, 6, '2025-12-15 10:00:27', '2025-12-15 10:00:27'),
 (3, 8, 4, '2025-12-15 10:31:27', '2025-12-15 10:31:27'),
-(4, 18, 17, '2025-12-16 10:59:27', '2025-12-16 10:59:27');
+(4, 18, 17, '2025-12-16 10:59:27', '2025-12-16 10:59:27'),
+(5, 20, 19, '2025-12-19 04:37:52', '2025-12-19 04:37:52'),
+(6, 21, 20, '2025-12-19 04:40:16', '2025-12-19 04:40:16'),
+(7, 21, 19, '2025-12-19 04:40:16', '2025-12-19 04:40:16'),
+(8, 22, 21, '2025-12-19 06:23:30', '2025-12-19 06:23:30'),
+(9, 22, 20, '2025-12-19 06:23:30', '2025-12-19 06:23:30'),
+(10, 23, 21, '2025-12-19 06:24:56', '2025-12-19 06:24:56'),
+(11, 23, 20, '2025-12-19 06:24:56', '2025-12-19 06:24:56'),
+(12, 29, 27, '2025-12-23 07:24:31', '2025-12-23 07:24:31'),
+(13, 29, 28, '2025-12-23 07:24:31', '2025-12-23 07:24:31');
 
 -- --------------------------------------------------------
 
@@ -1275,11 +1312,11 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `name`, `email`, `phone`, `password`, `department_id`, `job_role_id`, `location_id`, `designation_id`, `email_verified_status`, `latest_verification_token`, `account_status`, `last_login`, `login_attempts`, `lock_until`, `password_changed_at`, `password_expires_at`, `created_at`, `updated_at`) VALUES
 (1, 'System Admin', 'admin@alembic.co.in', '8080302041', '$2a$12$/.rT3avNPO1l0ZjqSRS/Ru09mKVNuIRSLaHjBDeMwLHscVLq1ETY6', 2, 1, 1, NULL, 1, NULL, 'active', '2025-11-12 06:04:52', 0, NULL, '2025-11-12 06:04:52', '2026-02-10 06:04:52', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(19, 'Harsh Gohil', 'harsh.gohil@alembic.co.in', '8080302041', '$2a$10$qHoA9vRvrbxwYz.kuWUUbuT38X9JneCbAWEV63DhT2HXweSyAjQU.', 9, 4, 1, 20, 1, NULL, 'active', '2025-12-15 11:49:38', 0, NULL, '2025-12-12 05:32:58', '2026-03-12 05:32:58', '2025-12-12 05:31:42', '2025-12-15 11:49:38'),
-(20, 'Nikhil Nadkar', 'nikhil.nadkar@alembic.co.in', '8625977399', '$2a$10$N7p0mMj0XiyhBgFrY8KvTeoOZXy5yhSc2GZZlMdtviShczaQcTLvG', 1, 6, 1, 11, 1, NULL, 'active', '2025-12-17 04:25:41', 0, NULL, '2025-12-12 06:04:27', '2026-03-12 06:04:27', '2025-12-12 06:02:43', '2025-12-17 04:25:41'),
-(21, 'Kiran Thekootu', 'kiran.thekootu@alembic.co.in', '9028268048', '$2a$10$y/pO8.4sMEfFXMpZL3na/OQH1YdBc/X/C1TFF./uQx.kGXlUKBcsS', 9, 3, 1, 17, 1, NULL, 'active', '2025-12-16 12:34:21', 0, NULL, '2025-12-12 11:31:52', '2026-03-12 11:31:52', '2025-12-12 10:18:11', '2025-12-16 12:34:21'),
-(23, 'Mohanish Mohan Padwal', 'mohanish.padwal@alembic.co.in', '09773359332', '$2a$10$AOZOUF.2nL6xqEuzanyhmeWdvx9WAAL1xynW3pCotHhFH.w3nWVfW', 9, 2, 1, 16, 1, NULL, 'active', '2025-12-16 10:28:24', 0, NULL, '2025-12-12 11:53:26', '2026-03-12 11:53:26', '2025-12-12 11:52:18', '2025-12-16 10:28:24'),
-(24, 'Bhagwan Parab', 'bhagwan.parab@alembic.co.in', '1234567890', '$2a$10$2XIulHDrk2Im5mZeQjLLuOYHADiB/2EINYZSX5vHiEAJYDDXZC69i', 9, 2, 1, 16, 1, NULL, 'active', '2025-12-16 10:47:19', 0, NULL, '2025-12-14 04:38:04', '2026-03-14 04:38:04', '2025-12-14 04:31:39', '2025-12-16 10:47:19'),
+(19, 'Harsh Gohil', 'harsh.gohil@alembic.co.in', '8080302041', '$2a$10$qHoA9vRvrbxwYz.kuWUUbuT38X9JneCbAWEV63DhT2HXweSyAjQU.', 9, 4, 1, 20, 1, NULL, 'active', '2025-12-26 09:22:56', 0, NULL, '2025-12-12 05:32:58', '2026-03-12 05:32:58', '2025-12-12 05:31:42', '2025-12-26 09:22:56'),
+(20, 'Nikhil Nadkar', 'nikhil.nadkar@alembic.co.in', '8625977399', '$2a$10$N7p0mMj0XiyhBgFrY8KvTeoOZXy5yhSc2GZZlMdtviShczaQcTLvG', 1, 6, 1, 11, 1, NULL, 'active', '2025-12-23 09:44:17', 0, NULL, '2025-12-12 06:04:27', '2026-03-12 06:04:27', '2025-12-12 06:02:43', '2025-12-23 09:44:17'),
+(21, 'Kiran Thekootu', 'kiran.thekootu@alembic.co.in', '9028268048', '$2a$10$y/pO8.4sMEfFXMpZL3na/OQH1YdBc/X/C1TFF./uQx.kGXlUKBcsS', 9, 3, 1, 17, 1, NULL, 'active', '2025-12-18 09:34:39', 0, NULL, '2025-12-12 11:31:52', '2026-03-12 11:31:52', '2025-12-12 10:18:11', '2025-12-18 09:34:39'),
+(23, 'Mohanish Mohan Padwal', 'mohanish.padwal@alembic.co.in', '09773359332', '$2a$10$AOZOUF.2nL6xqEuzanyhmeWdvx9WAAL1xynW3pCotHhFH.w3nWVfW', 9, 2, 1, 16, 1, NULL, 'active', '2025-12-30 04:59:03', 0, NULL, '2025-12-12 11:53:26', '2026-03-12 11:53:26', '2025-12-12 11:52:18', '2025-12-30 04:59:03'),
+(24, 'Bhagwan Parab', 'bhagwan.parab@alembic.co.in', '1234567890', '$2a$10$2XIulHDrk2Im5mZeQjLLuOYHADiB/2EINYZSX5vHiEAJYDDXZC69i', 9, 2, 1, 16, 1, NULL, 'active', '2025-12-23 07:46:13', 0, NULL, '2025-12-14 04:38:04', '2026-03-14 04:38:04', '2025-12-14 04:31:39', '2025-12-23 07:46:13'),
 (25, 'Navneet Pathak', 'navneet.dpathak@alembic.co.in', '1234567890', '$2a$10$wGYowJV5gVFzoNClx15eHugTJMyDhW2gxrX6t2V/7VbunKgtd5Elm', 9, 4, 1, 20, 1, NULL, 'active', NULL, 0, NULL, '2025-12-14 04:39:21', '2026-03-14 04:39:21', '2025-12-14 04:31:56', '2025-12-14 04:39:21'),
 (26, 'Reshma Bastav', 'reshma.bastav@alembic.co.in', '1234567890', '$2a$10$ivzYIQLQfac/CCPjnrPJYul6b29va/Ux2b6I.FfvYutcUXXR6H9zy', 9, 4, 1, 20, 1, NULL, 'active', '2025-12-16 10:59:00', 0, NULL, '2025-12-14 04:40:18', '2026-03-14 04:40:18', '2025-12-14 04:32:07', '2025-12-16 10:59:00'),
 (27, 'Vikram Rai', 'vikramr.rai@alembic.co.in', '1234567890', '$2a$10$b3PR0RPWM0GmJPUR.4kB9O0saawBEBL9kxivbnzwY8IKi3sbYqHQO', 9, 2, 1, 16, 1, NULL, 'active', NULL, 0, NULL, '2025-12-14 04:41:23', '2026-03-14 04:41:23', '2025-12-14 04:32:17', '2025-12-14 04:41:23'),
@@ -1363,21 +1400,30 @@ CREATE TABLE `work_requests` (
 -- Dumping data for table `work_requests`
 --
 
-INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `request_type_id`, `project_id`, `about_project`, `priority`, `status`, `requested_at`, `remarks`, `created_at`, `updated_at`) VALUES
-(57, 20, 'MySQL Version Bheja Kya', 'Coda laba', 5, 6, '{\"output_devices\":[\"Desktop\",\"iPad 10\",\"iPad 9\",\"Mobile\"],\"target_audience\":[\"Alembic HO\",\"Doctors\",\"Chemists\"]}', 'medium', 'assigned', '2025-12-12 11:50:45', '', '2025-12-12 11:50:45', '2025-12-15 10:49:16'),
-(58, 20, 'Q4 Digilabs VA CLM', 'Coda laba', 5, 1, '{\"output_devices\":[\"iPad 10\",\"iPad 9\"],\"target_audience\":[\"Doctors\"]}', 'critical', 'assigned', '2025-12-12 11:57:38', '', '2025-12-12 11:57:38', '2025-12-15 07:31:05'),
-(59, 20, 'Test', 'Test Brand', 3, 26, '{\"output_devices\":[\"Mobile\",\"iPad 10\"],\"target_audience\":[\"Field Representatives\"]}', 'medium', 'accepted', '2025-12-15 06:12:15', '', '2025-12-15 06:12:15', '2025-12-15 07:18:40'),
-(60, 23, 'test self', 'test', 5, 4, '{\"output_devices\":[\"iPad 9\",\"iPad 10\"],\"target_audience\":[\"Field Representatives\"]}', 'medium', 'accepted', '2025-12-15 08:53:31', '', '2025-12-15 08:53:31', '2025-12-15 11:20:24'),
-(61, 23, 'test self 2', 'test', 3, 28, '{\"output_devices\":[\"Mobile\"],\"target_audience\":[\"Doctors\"]}', 'medium', 'assigned', '2025-12-15 09:22:51', '', '2025-12-15 09:22:51', '2025-12-16 05:18:05'),
-(64, 24, 'EntFlow Planning GPS Reporting', 'Diabestes', 2, 17, '{\"output_devices\":[\"Desktop\",\"iPad 10\"],\"target_audience\":[\"Alembic HO\",\"Doctors\"]}', 'high', 'pending', '2025-12-15 10:14:52', '', '2025-12-15 10:14:52', '2025-12-15 10:14:52'),
-(65, 23, 'Test yes ', 'defsd', 5, 4, '{\"output_devices\":[\"Print\"],\"target_audience\":[\"Alembic HO\"]}', 'medium', 'assigned', '2025-12-15 11:29:53', '', '2025-12-15 11:29:53', '2025-12-15 11:51:06'),
-(66, 23, 'test yesyes', 'Test Brand', 3, 27, '{\"output_devices\":[\"iPad 10\",\"iPad 9\"],\"target_audience\":[\"Field Representatives\"]}', 'low', 'accepted', '2025-12-15 11:32:17', '', '2025-12-15 11:32:17', '2025-12-15 11:32:30'),
-(67, 21, 'Halla bol', 'Bacca bucci', 1, 15, '{\"output_devices\":[\"iPad 10\",\"iPad 9\",\"Mobile\"],\"target_audience\":[\"Chemists\",\"Doctors\"]}', 'medium', 'pending', '2025-12-15 11:37:00', '', '2025-12-15 11:37:00', '2025-12-15 11:37:00'),
-(68, 21, 'Halla bol', 'Bacca bucci', 1, 15, '{\"output_devices\":[\"iPad 10\",\"iPad 9\",\"Mobile\"],\"target_audience\":[\"Chemists\",\"Doctors\"]}', 'medium', 'pending', '2025-12-15 11:37:02', '', '2025-12-15 11:37:02', '2025-12-15 11:37:02'),
-(69, 21, 'Halla bol', 'Bacca bucci', 1, 15, '{\"output_devices\":[\"iPad 10\",\"iPad 9\",\"Mobile\"],\"target_audience\":[\"Chemists\",\"Doctors\"]}', 'medium', 'pending', '2025-12-15 11:37:22', '', '2025-12-15 11:37:22', '2025-12-15 11:37:22'),
-(70, 21, 'Halla bol', 'Bacca bucci', 1, 15, '{\"output_devices\":[\"iPad 10\",\"iPad 9\",\"Mobile\"],\"target_audience\":[\"Chemists\",\"Doctors\"]}', 'medium', 'pending', '2025-12-15 11:37:31', '', '2025-12-15 11:37:31', '2025-12-15 11:37:31'),
-(71, 23, 'AR Emoji Challenge', 'Laveta M', 5, 6, '{\"output_devices\":[\"iPad 9\",\"iPad 10\"],\"target_audience\":[\"Doctors\"]}', 'high', 'assigned', '2025-12-16 05:52:12', '', '2025-12-16 05:52:12', '2025-12-16 06:42:17'),
-(72, 20, 'Exeraft Gamification', 'Exceraft', 2, 21, '{\"output_devices\":[\"iPad 9\",\"Print\"],\"target_audience\":[\"Doctors\",\"Field Representatives\"]}', 'critical', 'assigned', '2025-12-16 10:32:24', '', '2025-12-16 10:32:24', '2025-12-16 11:00:09');
+INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `request_type_id`, `project_id`, `description`, `about_project`, `priority`, `status`, `requested_at`, `remarks`, `created_at`, `updated_at`) VALUES
+(57, 20, 'MySQL Version Bheja Kya', 'Coda laba', 5, 6, 'Just testing i just want this data only..!!', '{\"output_devices\":[\"Desktop\",\"iPad 10\",\"iPad 9\",\"Mobile\"],\"target_audience\":[\"Alembic HO\",\"Doctors\",\"Chemists\"]}', 'medium', 'assigned', '2025-12-12 11:50:45', '', '2025-12-12 11:50:45', '2025-12-17 06:23:13'),
+(58, 20, 'Q4 Digilabs VA CLM', 'Coda laba', 5, 1, 'Just testing i just want this data only..!!', '{\"output_devices\":[\"iPad 10\",\"iPad 9\"],\"target_audience\":[\"Doctors\"]}', 'critical', 'in_progress', '2025-12-12 11:57:38', '', '2025-12-12 11:57:38', '2025-12-25 18:31:00'),
+(59, 20, 'Test', 'Test Brand', 3, 26, 'Just testing i just want this data only..!!', '{\"output_devices\":[\"Mobile\",\"iPad 10\"],\"target_audience\":[\"Field Representatives\"]}', 'medium', 'accepted', '2025-12-15 06:12:15', '', '2025-12-15 06:12:15', '2025-12-17 06:23:13'),
+(60, 23, 'test self', 'test', 5, 4, 'Just testing i just want this data only..!!', '{\"output_devices\":[\"iPad 9\",\"iPad 10\"],\"target_audience\":[\"Field Representatives\"]}', 'medium', 'accepted', '2025-12-15 08:53:31', '', '2025-12-15 08:53:31', '2025-12-17 06:23:13'),
+(61, 23, 'test self 2', 'test', 3, 28, 'Just testing i just want this data only..!!', '{\"output_devices\":[\"Mobile\"],\"target_audience\":[\"Doctors\"]}', 'medium', 'assigned', '2025-12-15 09:22:51', '', '2025-12-15 09:22:51', '2025-12-17 06:23:13'),
+(64, 24, 'EntFlow Planning GPS Reporting', 'Diabestes', 2, 17, 'Just testing i just want this data only..!!', '{\"output_devices\":[\"Desktop\",\"iPad 10\"],\"target_audience\":[\"Alembic HO\",\"Doctors\"]}', 'high', 'assigned', '2025-12-15 10:14:52', '', '2025-12-15 10:14:52', '2025-12-24 06:06:55'),
+(65, 23, 'Test yes ', 'defsd', 5, 4, 'Just testing i just want this data only..!!', '{\"output_devices\":[\"Print\"],\"target_audience\":[\"Alembic HO\"]}', 'medium', 'assigned', '2025-12-15 11:29:53', '', '2025-12-15 11:29:53', '2025-12-17 06:23:13'),
+(66, 23, 'test yesyes', 'Test Brand', 3, 27, 'Just testing i just want this data only..!!', '{\"output_devices\":[\"iPad 10\",\"iPad 9\"],\"target_audience\":[\"Field Representatives\"]}', 'low', 'pending', '2025-12-15 11:32:17', '', '2025-12-15 11:32:17', '2025-12-23 08:45:50'),
+(67, 21, 'Halla bol', 'Bacca bucci', 1, 15, 'Just testing i just want this data only..!!', '{\"output_devices\":[\"iPad 10\",\"iPad 9\",\"Mobile\"],\"target_audience\":[\"Chemists\",\"Doctors\"]}', 'medium', 'pending', '2025-12-15 11:37:00', '', '2025-12-15 11:37:00', '2025-12-17 06:23:13'),
+(68, 21, 'Halla bol', 'Bacca bucci', 1, 15, 'Just testing i just want this data only..!!', '{\"output_devices\":[\"iPad 10\",\"iPad 9\",\"Mobile\"],\"target_audience\":[\"Chemists\",\"Doctors\"]}', 'medium', 'pending', '2025-12-15 11:37:02', '', '2025-12-15 11:37:02', '2025-12-17 06:23:13'),
+(69, 21, 'Halla bol', 'Bacca bucci', 1, 15, 'Just testing i just want this data only..!!', '{\"output_devices\":[\"iPad 10\",\"iPad 9\",\"Mobile\"],\"target_audience\":[\"Chemists\",\"Doctors\"]}', 'medium', 'pending', '2025-12-15 11:37:22', '', '2025-12-15 11:37:22', '2025-12-17 06:23:13'),
+(70, 21, 'Halla bol', 'Bacca bucci', 1, 15, 'Just testing i just want this data only..!!', '{\"output_devices\":[\"iPad 10\",\"iPad 9\",\"Mobile\"],\"target_audience\":[\"Chemists\",\"Doctors\"]}', 'medium', 'pending', '2025-12-15 11:37:31', '', '2025-12-15 11:37:31', '2025-12-17 06:23:13'),
+(71, 23, 'AR Emoji Challenge', 'Laveta M', 5, 6, 'Just testing i just want this data only..!!', '{\"output_devices\":[\"iPad 9\",\"iPad 10\"],\"target_audience\":[\"Doctors\"]}', 'high', 'assigned', '2025-12-16 05:52:12', '', '2025-12-16 05:52:12', '2025-12-17 06:23:13'),
+(72, 20, 'Exeraft Gamification', 'Exceraft', 2, 21, 'Just testing i just want this data only..!!', '{\"output_devices\":[\"iPad 9\",\"Print\"],\"target_audience\":[\"Doctors\",\"Field Representatives\"]}', 'critical', 'in_progress', '2025-12-16 10:32:24', '', '2025-12-16 10:32:24', '2025-12-17 18:31:00'),
+(73, 23, 'big file test', 'Test Brand', 5, 4, 'gtytredcvbghg', '{\"output_devices\":[\"iPad 10\",\"iPad 9\"],\"target_audience\":[\"Doctors\"]}', 'medium', 'pending', '2025-12-17 07:04:20', '', '2025-12-17 07:04:20', '2025-12-17 07:04:20'),
+(104, 23, 'jkidfsdf', 'Test Brand', 5, 5, 'import { createContext, useContext } from \'react\'\r\n\r\nexport const TaskModalContext = createContext(null)\r\n\r\nexport const useTaskModal = () => {\r\n  const ctx = useContext(TaskModalContext)\r\n  if (!ctx) throw new Error(\'useTaskModal must be used inside TaskModalProvider\')\r\n  return ctx\r\n}import { createContext, useContext } from \'react\'\r\n\r\nexport const TaskModalContext = createContext(null)\r\n\r\nexport const useTaskModal = () => {\r\n  const ctx = useContext(TaskModalContext)\r\n  if (!ctx) throw new Error(\'useTaskModal must be used inside TaskModalProvider\')\r\n  return ctx\r\n\r\nimport { createContext, useContext } from \'react\'\r\n\r\nexport const TaskModalContext = createContext(null)\r\n\r\nexport const useTaskModal = () => {\r\n  const ctx = useContext(TaskModalContext)\r\n  if (!ctx) throw new Error(\'useTaskModal', '{\"output_devices\":[\"Mobile\",\"iPad 9\"],\"target_audience\":[\"Doctors\"]}', 'medium', 'pending', '2025-12-18 06:45:10', '', '2025-12-18 06:45:10', '2025-12-18 06:45:10'),
+(106, 23, 'test', 'uhgugs', 5, 7, 'import { createContext, useContext } from \'react\'\r\n\r\nexport const TaskModalContext = createContext(null)\r\n\r\nexport const useTaskModal = () => {\r\n  const ctx = useContext(TaskModalContext)\r\n  if (!ctx) throw new Error(\'useTaskModal must be used inside TaskModalProvider\')\r\n  return ctx\r\n}\r\nimport { createContext, useContext } from \'react\'\r\n\r\nexport const TaskModalContext = createContext(null)\r\n\r\nexport const useTaskModal = () => {\r\n  const ctx = useContext(TaskModalContext)\r\n  if (!ctx) throw new Error(\'useTaskModal must be used inside TaskModalProvider\')\r\n  return ctx\r\n}', '{\"output_devices\":[\"iPad 9\",\"iPad 10\"],\"target_audience\":[\"Chemists\"]}', 'medium', 'pending', '2025-12-18 06:47:02', '', '2025-12-18 06:47:02', '2025-12-18 06:47:02'),
+(116, 23, 'test mb', 'Test Brand', 5, 5, 'import { createContext, useContext } from \'react\'\r\n\r\nexport const TaskModalContext = createContext(null)\r\n\r\nexport const useTaskModal = () => {\r\n  const ctx = useContext(TaskModalContext)\r\n  if (!ctx) throw new Error(\'useTaskModal must be used inside TaskModalProvider\')\r\n  return ctx\r\n}import { createContext, useContext } from \'react\'\r\n\r\nexport const TaskModalContext = createContext(null)\r\n\r\nexport const useTaskModal = () => {\r\n  const ctx = useContext(TaskModalContext)\r\n  if (!ctx) throw new Error(\'useTaskModal must be used inside TaskModalProvider\')\r\n  return ctx\r\n}', '{\"output_devices\":[\"Mobile\",\"iPad 10\"],\"target_audience\":[\"Doctors\"]}', 'medium', 'assigned', '2025-12-18 07:31:24', '', '2025-12-18 07:31:24', '2025-12-24 05:58:44'),
+(135, 20, 'New Product Launch Campaign', 'Alembic Pharma', 5, 5, '50 characters chahiye abhi mujhe isme ', '{\"output_devices\":[\"iPad 9\",\"Mobile\"],\"target_audience\":[\"Doctors\",\"Chemists\"]}', 'high', 'pending', '2025-12-19 03:30:20', 'Any additional remarks', '2025-12-19 03:30:20', '2025-12-19 03:30:20'),
+(136, 20, 'New Product Launch Campaign', 'Alembic Pharma', 5, 5, '50 characters chahiye abhi mujhe isme ', '{\"output_devices\":[\"iPad 9\",\"Mobile\"],\"target_audience\":[\"Doctors\",\"Chemists\"]}', 'high', 'pending', '2025-12-19 03:32:06', 'Any additional remarks', '2025-12-19 03:32:06', '2025-12-19 03:32:06'),
+(137, 20, 'New Product Launch Campaign', 'Alembic Pharma', 5, 5, '50 characters chahiye abhi mujhe isme ', '{\"output_devices\":[\"iPad 9\",\"Mobile\"],\"target_audience\":[\"Doctors\",\"Chemists\"]}', 'high', 'accepted', '2025-12-19 03:45:11', 'Any additional remarks', '2025-12-19 03:45:11', '2025-12-23 08:52:41'),
+(138, 20, 'New Product Launch Campaign', 'Alembic Pharma', 5, 5, '50 characters chahiye abhi mujhe isme ', '{\"output_devices\":[\"iPad 9\",\"Mobile\"],\"target_audience\":[\"Doctors\",\"Chemists\"]}', 'high', 'assigned', '2025-12-19 03:45:46', 'Any additional remarks', '2025-12-19 03:45:46', '2025-12-26 06:17:42'),
+(139, 20, 'Cardio Metabolic Renal Book Digitising_E Flipbook_Specia', 'Test Brand', 5, 5, 'The useToaster() hook provides a headless toast management system for building custom notification UIs. It manages toast state and lifecycle without rendering any components.\r\n\r\nIt handles pausing on hover, auto-removal, and provides a 1-second removal delay with visible flag for smooth animations.The useToaster() hook provides a headless toast management system for building custom notification UIs. It manages toast state and lifecycle without rendering any components.\r\n\r\nIt handles pausing on hover, auto-removal, and provides a 1-second removal delay with visible flag for smooth animations.', '{\"output_devices\":[\"iPad 9\",\"iPad 10\"],\"target_audience\":[\"Doctors\"]}', 'medium', 'pending', '2025-12-24 09:13:20', '', '2025-12-24 09:13:20', '2025-12-24 09:13:20');
 
 -- --------------------------------------------------------
 
@@ -1408,7 +1454,21 @@ INSERT INTO `work_request_documents` (`id`, `work_request_id`, `document_name`, 
 (147, 69, '17657985886599035324364763131339.jpg', '/digilabs/dmap/api/uploads/Halla_bol/17657985886599035324364763131339.jpg-1765798642692-518932734.jpg', 'image/jpeg', 473401, 'uploaded', '2025-12-15 11:37:22'),
 (148, 70, '17657985886599035324364763131339.jpg', '/digilabs/dmap/api/uploads/Halla_bol/17657985886599035324364763131339.jpg-1765798651906-545597658.jpg', 'image/jpeg', 473401, 'uploaded', '2025-12-15 11:37:31'),
 (149, 71, 'Calendar Design Content Review.pptx', '/digilabs/dmap/api/uploads/AR_Emoji_Challenge/Calendar_Design_Content_Review.pptx-1765864332836-789847996.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 74041, 'uploaded', '2025-12-16 05:52:12'),
-(150, 72, 'animals-field-sunset.jpg', '/digilabs/dmap/api/uploads/Exeraft_Gamification/animals_field_sunset.jpg-1765881144915-396038721.jpg', 'image/jpeg', 8781541, 'uploaded', '2025-12-16 10:32:24');
+(150, 72, 'animals-field-sunset.jpg', '/digilabs/dmap/api/uploads/Exeraft_Gamification/animals_field_sunset.jpg-1765881144915-396038721.jpg', 'image/jpeg', 8781541, 'uploaded', '2025-12-16 10:32:24'),
+(151, 73, 'Monster Video Oct 2025.mp4.mp4', '/digilabs/dmap/api/uploads/big_file_test/Monster_Video_Oct_2025.mp4.mp4-1765955060990-983926053.mp4', 'video/mp4', 83964272, 'uploaded', '2025-12-17 07:04:21'),
+(152, 73, 'output-1761644531866.mp4', '/digilabs/dmap/api/uploads/big_file_test/output_1761644531866.mp4-1765955061097-785784862.mp4', 'video/mp4', 13966127, 'uploaded', '2025-12-17 07:04:21'),
+(153, 73, 'output-1761643960699.mp4', '/digilabs/dmap/api/uploads/big_file_test/output_1761643960699.mp4-1765955061252-496102126.mp4', 'video/mp4', 13965655, 'uploaded', '2025-12-17 07:04:21'),
+(202, 104, 'Monster Video.mp4', '/digilabs/dmap/api/uploads/jkidfsdf/Monster_Video.mp4-1766040310832-670791597.mp4', 'video/mp4', 84029314, 'uploaded', '2025-12-18 06:45:11'),
+(204, 106, 'Monster Video Oct 2025.mp4.mp4', '/digilabs/dmap/api/uploads/test/Monster_Video_Oct_2025.mp4.mp4-1766040422336-495247093.mp4', 'video/mp4', 83964272, 'uploaded', '2025-12-18 06:47:02'),
+(220, 116, 'Monster Video Oct 2025.mp4.mp4', '/digilabs/dmap/api/uploads/test_mb/Monster_Video_Oct_2025.mp4.mp4-1766043084955-306465263.mp4', 'video/mp4', 83964272, 'uploaded', '2025-12-18 07:31:25'),
+(221, 116, 'output-1761798919067.mp4', '/digilabs/dmap/api/uploads/test_mb/output_1761798919067.mp4-1766043085744-943618094.mp4', 'video/mp4', 14031048, 'uploaded', '2025-12-18 07:31:25'),
+(222, 116, 'output-1761644531866.mp4', '/digilabs/dmap/api/uploads/test_mb/output_1761644531866.mp4-1766043085891-92765579.mp4', 'video/mp4', 13966127, 'uploaded', '2025-12-18 07:31:25'),
+(223, 116, 'output-1761644999151.mp4', '/digilabs/dmap/api/uploads/test_mb/output_1761644999151.mp4-1766043085912-852994828.mp4', 'video/mp4', 10421950, 'uploaded', '2025-12-18 07:31:25'),
+(245, 135, 'file', '/digilabs/dmap/api/Unknown/file-1766115020059-985103861', NULL, 260061395, 'uploaded', '2025-12-19 03:30:21'),
+(246, 135, 'file', '/digilabs/dmap/api/Unknown/file-1766115020409-469012481', NULL, 66317366, 'uploaded', '2025-12-19 03:30:21'),
+(247, 136, 'VIDEO-2025-12-17-19-53-43.MP4', '/digilabs/dmap/api/uploads/New_Product_Launch_Campaign/VIDEO_2025_12_17_19_53_43.MP4-1766115126850-82422226.MP4', 'video/mp4', 66317366, 'uploaded', '2025-12-19 03:32:07'),
+(248, 137, 'VIDEO-2025-12-17-19-53-43.MP4', '/digilabs/dmap/api/uploads/New_Product_Launch_Campaign/VIDEO_2025_12_17_19_53_43.MP4-1766115911969-195615325.MP4', 'video/mp4', 66317366, 'uploaded', '2025-12-19 03:45:12'),
+(249, 139, 'emptyState.svg', '/digilabs/dmap/api/uploads/Cardio_Metabolic_Renal_Book_Digitising_E_Flipbook_Specia/emptyState.svg-1766567600653-605289921.svg', 'image/svg+xml', 3157, 'uploaded', '2025-12-24 09:13:20');
 
 -- --------------------------------------------------------
 
@@ -1446,7 +1506,25 @@ INSERT INTO `work_request_managers` (`id`, `work_request_id`, `manager_id`, `cre
 (26, 70, 27, '2025-12-15 11:37:31', '2025-12-15 11:37:31'),
 (27, 71, 21, '2025-12-16 05:52:12', '2025-12-16 05:52:12'),
 (28, 71, 23, '2025-12-16 05:52:12', '2025-12-16 05:52:12'),
-(29, 72, 24, '2025-12-16 10:32:24', '2025-12-16 10:32:24');
+(29, 72, 24, '2025-12-16 10:32:24', '2025-12-16 10:32:24'),
+(30, 73, 21, '2025-12-17 07:04:20', '2025-12-17 07:04:20'),
+(31, 73, 23, '2025-12-17 07:04:20', '2025-12-17 07:04:20'),
+(92, 104, 21, '2025-12-18 06:45:10', '2025-12-18 06:45:10'),
+(93, 104, 23, '2025-12-18 06:45:10', '2025-12-18 06:45:10'),
+(96, 106, 21, '2025-12-18 06:47:02', '2025-12-18 06:47:02'),
+(97, 106, 23, '2025-12-18 06:47:02', '2025-12-18 06:47:02'),
+(116, 116, 21, '2025-12-18 07:31:24', '2025-12-18 07:31:24'),
+(117, 116, 23, '2025-12-18 07:31:24', '2025-12-18 07:31:24'),
+(154, 135, 21, '2025-12-19 03:30:21', '2025-12-19 03:30:21'),
+(155, 135, 23, '2025-12-19 03:30:21', '2025-12-19 03:30:21'),
+(156, 136, 21, '2025-12-19 03:32:06', '2025-12-19 03:32:06'),
+(157, 136, 23, '2025-12-19 03:32:06', '2025-12-19 03:32:06'),
+(158, 137, 21, '2025-12-19 03:45:11', '2025-12-19 03:45:11'),
+(159, 137, 23, '2025-12-19 03:45:11', '2025-12-19 03:45:11'),
+(160, 138, 21, '2025-12-19 03:45:46', '2025-12-19 03:45:46'),
+(161, 138, 23, '2025-12-19 03:45:46', '2025-12-19 03:45:46'),
+(162, 139, 21, '2025-12-24 09:13:20', '2025-12-24 09:13:20'),
+(163, 139, 23, '2025-12-24 09:13:20', '2025-12-24 09:13:20');
 
 --
 -- Indexes for dumped tables
@@ -1743,19 +1821,19 @@ ALTER TABLE `sales`
 -- AUTO_INCREMENT for table `tasks`
 --
 ALTER TABLE `tasks`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
 
 --
 -- AUTO_INCREMENT for table `task_assignments`
 --
 ALTER TABLE `task_assignments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=39;
 
 --
 -- AUTO_INCREMENT for table `task_dependencies`
 --
 ALTER TABLE `task_dependencies`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `task_documents`
@@ -1791,19 +1869,19 @@ ALTER TABLE `user_divisions`
 -- AUTO_INCREMENT for table `work_requests`
 --
 ALTER TABLE `work_requests`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=73;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=140;
 
 --
 -- AUTO_INCREMENT for table `work_request_documents`
 --
 ALTER TABLE `work_request_documents`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=151;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=250;
 
 --
 -- AUTO_INCREMENT for table `work_request_managers`
 --
 ALTER TABLE `work_request_managers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=164;
 
 --
 -- Constraints for dumped tables
