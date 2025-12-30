@@ -1914,9 +1914,6 @@ const getUserTask = async (req, res) => {
         if (!hasCommonDivision) {
             return res.status(403).json({ success: false, error: 'User is not assigned to you' });
         }
-
-        // Get all tasks assigned to the user
-        console.log(`Fetching tasks for user_id: ${user_id}`);
         
         const tasks = await TaskAssignments.findAll({
             where: { user_id: user_id },
@@ -1944,35 +1941,28 @@ const getUserTask = async (req, res) => {
             order: [['created_at', 'DESC']]
         });
         
-        console.log(`Found ${tasks.length} task assignments for user ${user_id}`);
         
         // If no tasks found, try a simpler query to check if assignments exist
         if (tasks.length === 0) {
-            console.log('No tasks found, checking with simpler query...');
             const simpleAssignments = await TaskAssignments.findAll({
                 where: { user_id: user_id },
                 attributes: ['id', 'task_id']
             });
             
-            console.log(`Simple query found ${simpleAssignments.length} assignments`);
             
             if (simpleAssignments.length > 0) {
-                console.log('Assignments exist but tasks not loading. Checking task details...');
                 const taskIds = simpleAssignments.map(sa => sa.task_id);
                 const directTasks = await Tasks.findAll({
                     where: { id: taskIds },
                     attributes: ['id', 'task_name', 'status']
                 });
-                console.log(`Found ${directTasks.length} tasks directly`);
             }
         }
 
         // Format the response
-        console.log('Tasks found:', tasks);
         
         const formattedTasks = tasks.map(task => {
             // Check the actual structure of the task object
-            console.log('Single task structure:', JSON.stringify(task, null, 2));
             
             // Based on the error, the task object might be the TaskAssignments directly
             // Let's try to access it differently
