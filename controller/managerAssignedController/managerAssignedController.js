@@ -1882,9 +1882,9 @@ const getUserTask = async (req, res) => {
             return res.status(404).json({ success: false, error: 'User not found' });
         }
 
-        // Check if the user is a creative user (job_role_id = 4)
-        if (user.job_role_id !== 4) {
-            return res.status(403).json({ success: false, error: 'User is not a creative user' });
+        // Check if the user is a creative user (job_role_id = 4) or creative lead (job_role_id = 3)
+        if (user.job_role_id !== 4 && user.job_role_id !== 3) {
+            return res.status(403).json({ success: false, error: 'User is not a creative user or creative lead' });
         }
 
         // Get manager's division IDs
