@@ -1855,6 +1855,192 @@ const assignTasksToUsers = async (req, res) => {
 };
 
 
+const getUserTask = async (req, res) => {
+    try {
+        const manager_id = req.user.id;
+        const user_id = parseInt(req.params.user_id, 10);
+
+        if (isNaN(user_id)) {
+            return res.status(400).json({ success: false, error: 'Invalid user ID' });
+        }
+
+        // Check if the user is a creative user and the manager is assigned to them
+        // First, get the user with their divisions
+        const user = await User.findByPk(user_id, {
+            include: [
+                {
+                    model: Division,
+                    as: 'Divisions',
+                    through: { attributes: [] },
+                    attributes: ['id']
+                }
+            ],
+            attributes: ['id', 'name', 'email', 'job_role_id']
+        });
+
+        if (!user) {
+            return res.status(404).json({ success: false, error: 'User not found' });
+        }
+
+        // Check if the user is a creative user (job_role_id = 4)
+        if (user.job_role_id !== 4) {
+            return res.status(403).json({ success: false, error: 'User is not a creative user' });
+        }
+
+        // Get manager's division IDs
+        const managerDivisions = await UserDivisions.findAll({
+            where: { user_id: manager_id },
+            attributes: ['division_id']
+        });
+
+        const managerDivisionIds = managerDivisions.map(md => md.division_id);
+
+        // If manager has no divisions, they can't have any team members
+        if (managerDivisionIds.length === 0) {
+            return res.status(403).json({ success: false, error: 'Manager is not assigned to any divisions' });
+        }
+
+        // Get user's division IDs
+        const userDivisionIds = user.Divisions && user.Divisions.length > 0
+            ? user.Divisions.map(d => d.id)
+            : [];
+
+        // Check if manager and user share at least one common division
+        const hasCommonDivision = userDivisionIds.length > 0 && managerDivisionIds.length > 0 &&
+            userDivisionIds.some(divisionId =>
+                managerDivisionIds.includes(divisionId)
+            );
+
+        if (!hasCommonDivision) {
+            return res.status(403).json({ success: false, error: 'User is not assigned to you' });
+        }
+
+        // Get all tasks assigned to the user
+        console.log(`Fetching tasks for user_id: ${user_id}`);
+        
+        const tasks = await TaskAssignments.findAll({
+            where: { user_id: user_id },
+            include: [
+                {
+                    model: Tasks,
+                    include: [
+                        {
+                            model: RequestType,
+                            attributes: ['id', 'request_type', 'description']
+                        },
+                        {
+                            model: TaskType,
+                            attributes: ['id', 'task_type', 'description']
+                        },
+                        {
+                            model: WorkRequests,
+                            attributes: ['id', 'project_name', 'brand', 'status']
+                        }
+                    ],
+                    attributes: ['id', 'task_name', 'description', 'deadline', 'status']
+                }
+            ],
+            attributes: ['id'],
+            order: [['created_at', 'DESC']]
+        });
+        
+        console.log(`Found ${tasks.length} task assignments for user ${user_id}`);
+        
+        // If no tasks found, try a simpler query to check if assignments exist
+        if (tasks.length === 0) {
+            console.log('No tasks found, checking with simpler query...');
+            const simpleAssignments = await TaskAssignments.findAll({
+                where: { user_id: user_id },
+                attributes: ['id', 'task_id']
+            });
+            
+            console.log(`Simple query found ${simpleAssignments.length} assignments`);
+            
+            if (simpleAssignments.length > 0) {
+                console.log('Assignments exist but tasks not loading. Checking task details...');
+                const taskIds = simpleAssignments.map(sa => sa.task_id);
+                const directTasks = await Tasks.findAll({
+                    where: { id: taskIds },
+                    attributes: ['id', 'task_name', 'status']
+                });
+                console.log(`Found ${directTasks.length} tasks directly`);
+            }
+        }
+
+        // Format the response
+        console.log('Tasks found:', tasks);
+        
+        const formattedTasks = tasks.map(task => {
+            // Check the actual structure of the task object
+            console.log('Single task structure:', JSON.stringify(task, null, 2));
+            
+            // Based on the error, the task object might be the TaskAssignments directly
+            // Let's try to access it differently
+            let taskData = null;
+            
+            // Try different ways to access the task data
+            if (task.Tasks) {
+                // Original way
+                taskData = task.Tasks;
+            } else if (task.task) {
+                // Alternative way
+                taskData = task.task;
+            } else if (task.Task) {
+                // Another alternative way
+                taskData = task.Task;
+            } else {
+                // If no task data found, this might be just the assignment
+                console.error('No task data found in assignment:', task);
+                return null;
+            }
+
+            return {
+                id: taskData.id,
+                task_name: taskData.task_name,
+                description: taskData.description,
+                deadline: taskData.deadline,
+                status: taskData.status,
+                requestType: taskData.RequestType ? {
+                    id: taskData.RequestType.id,
+                    request_type: taskData.RequestType.request_type,
+                    description: taskData.RequestType.description
+                } : null,
+                taskType: taskData.TaskType ? {
+                    id: taskData.TaskType.id,
+                    task_type: taskData.TaskType.task_type,
+                    description: taskData.TaskType.description
+                } : null,
+                workRequest: taskData.WorkRequests ? {
+                    id: taskData.WorkRequests.id,
+                    project_name: taskData.WorkRequests.project_name,
+                    brand: taskData.WorkRequests.brand,
+                    status: taskData.WorkRequests.status
+                } : null
+            };
+        }).filter(task => task !== null);
+
+        res.json({
+            success: true,
+            data: {
+                user: {
+                    id: user.id,
+                    name: user.name,
+                    email: user.email
+                },
+                tasks: formattedTasks
+            },
+            message: 'User tasks retrieved successfully'
+        });
+    } catch (error) {
+        console.error('Error fetching user tasks:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            message: 'Failed to fetch user tasks'
+        });
+    }
+};
+
 module.exports = {
     getAssignedWorkRequests,
     getAssignedWorkRequestById,
@@ -1867,5 +2053,6 @@ module.exports = {
     getTaskAnalytics,
     getMyTeam,
     assignTasksToUsers,
-    getAssignedRequestsWithStatus
+    getAssignedRequestsWithStatus,
+    getUserTask
 };

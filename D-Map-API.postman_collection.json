@@ -1251,6 +1251,43 @@
 						"description": "Get manager's team members with task counts, grouped by division. Shows creative users and creative leads from all divisions the manager belongs to (requires authentication and manager role)"
 					},
 					"response": []
+				},
+				{
+					"name": "Get User Tasks",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/user/:user_id/tasks",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"digilabs",
+								"dmap",
+								"api",
+								"manager",
+								"assigned-work-requests",
+								"user",
+								":user_id",
+								"tasks"
+							],
+							"variable": [
+								{
+									"key": "user_id",
+									"value": "10",
+									"description": "User ID to get tasks for"
+								}
+							]
+						},
+						"description": "Get all tasks assigned to a specific creative user. Only accessible to the manager assigned to that user (requires authentication and manager role)"
+					},
+					"response": []
 				}
 			]
 		},
