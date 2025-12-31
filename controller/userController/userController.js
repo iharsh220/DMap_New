@@ -9,7 +9,8 @@ const {
     WorkRequestManagers,
     User,
     TaskDocuments,
-    UserDivisions
+    UserDivisions,
+    JobRole
 } = require('../../models');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
@@ -153,7 +154,11 @@ const getAssignedTasks = async (req, res) => {
                                 {
                                     model: User,
                                     as: 'manager',
-                                    attributes: ['id', 'name', 'email']
+                                    attributes: ['id', 'name', 'email'],
+                                    include: [{
+                                        model: JobRole,
+                                        attributes: ['id', 'role_title', 'level', 'description']
+                                    }]
                                 }
                             ]
                         }
@@ -343,7 +348,11 @@ const assignTaskToUser = async (req, res) => {
                         {
                             model: User,
                             as: 'manager',
-                            attributes: ['id', 'name', 'email']
+                            attributes: ['id', 'name', 'email'],
+                            include: [{
+                                model: JobRole,
+                                attributes: ['id', 'role_title', 'level', 'description']
+                            }]
                         }
                     ]
                 }
@@ -592,7 +601,11 @@ const getTaskById = async (req, res) => {
                                 {
                                     model: User,
                                     as: 'manager',
-                                    attributes: ['id', 'name', 'email']
+                                    attributes: ['id', 'name', 'email'],
+                                    include: [{
+                                        model: JobRole,
+                                        attributes: ['id', 'role_title', 'level', 'description']
+                                    }]
                                 }
                             ]
                         }
@@ -792,7 +805,11 @@ const submitTask = async (req, res) => {
                                         {
                                             model: User,
                                             as: 'manager',
-                                            attributes: ['id', 'name', 'email']
+                                            attributes: ['id', 'name', 'email'],
+                                            include: [{
+                                                model: JobRole,
+                                                attributes: ['id', 'role_title', 'level', 'description']
+                                            }]
                                         }
                                     ]
                                 }
@@ -1233,7 +1250,11 @@ const getMyTeamTasks = async (req, res) => {
                                 {
                                     model: User,
                                     as: 'manager',
-                                    attributes: ['id', 'name', 'email']
+                                    attributes: ['id', 'name', 'email'],
+                                    include: [{
+                                        model: JobRole,
+                                        attributes: ['id', 'role_title', 'level', 'description']
+                                    }]
                                 }
                             ]
                         }
