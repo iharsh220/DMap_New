@@ -720,7 +720,7 @@ const acceptTask = async (req, res) => {
 
         // Prepare update data
         const updateData = {
-            status: isDeadlineToday ? 'in_progress' : 'accepted'
+            status: 'accepted' // Default status
         };
 
         // Set start_date automatically if deadline is today or in the future and no start_date provided
@@ -728,6 +728,16 @@ const acceptTask = async (req, res) => {
             updateData.start_date = new Date();
         } else if (start_date) {
             updateData.start_date = start_date;
+            
+            // Check if the selected start date is today
+            const providedStartDate = new Date(start_date);
+            providedStartDate.setHours(0, 0, 0, 0);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            if (providedStartDate.getTime() === today.getTime()) {
+                updateData.status = 'in_progress'; // Set status to in_progress if start date is today
+            }
         }
 
         // Update the task
