@@ -88,25 +88,25 @@ const getAssignedTasks = async (req, res) => {
         // Handle multiple comma-separated status values
         if (status) {
             const statusArray = status.split(',').map(s => s.trim());
-            
+
             // Validate status values
             const validStatuses = ['pending', 'accepted', 'in_progress', 'completed'];
             const invalidStatuses = statusArray.filter(s => !validStatuses.includes(s));
-            
+
             if (invalidStatuses.length > 0) {
                 return res.status(400).json({
                     success: false,
                     error: `Invalid status values: ${invalidStatuses.join(', ')}. Valid values are: ${validStatuses.join(', ')}`
                 });
             }
-            
+
             // If multiple statuses, use OR condition
             if (statusArray.length > 1) {
                 whereCondition.status = { [Op.in]: statusArray };
             } else {
                 // Single status
                 whereCondition.status = statusArray[0];
-                
+
                 // For pending status, also require intimate_team = 1
                 if (statusArray[0] === 'pending') {
                     whereCondition.intimate_team = 1;
@@ -362,7 +362,7 @@ const assignTaskToUser = async (req, res) => {
         if (!workRequest) {
             return res.status(404).json({ success: false, error: 'Work request not found' });
         }
-        
+
         // Check if work request is accepted
         if (workRequest.status !== 'accepted' && workRequest.status !== 'in-progress' && workRequest.status !== 'assigned') {
             return res.status(400).json({
@@ -728,13 +728,13 @@ const acceptTask = async (req, res) => {
             updateData.start_date = new Date();
         } else if (start_date) {
             updateData.start_date = start_date;
-            
+
             // Check if the selected start date is today
             const providedStartDate = new Date(start_date);
             providedStartDate.setHours(0, 0, 0, 0);
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            
+
             if (providedStartDate.getTime() === today.getTime()) {
                 updateData.status = 'in_progress'; // Set status to in_progress if start date is today
             }
@@ -844,7 +844,7 @@ const submitTask = async (req, res) => {
         const task = taskAssignment.Task;
 
         // Check if task status is accepted
-        if (task.status !== 'accepted') {
+        if (task.status !== 'accepted' && task.status !== 'in_progress') {
             return res.status(400).json({
                 success: false,
                 error: 'Task must be in accepted status to submit'
