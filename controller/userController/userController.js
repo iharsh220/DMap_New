@@ -872,15 +872,16 @@ const submitTask = async (req, res) => {
         if (req.files && req.files.documents) {
             const files = Array.isArray(req.files.documents) ? req.files.documents : [req.files.documents];
 
-            // Create user folder if it doesn't exist
+            // Create user folder with V1 structure if it doesn't exist
             const uploadDir = path.join(__dirname, '../../uploads');
             const sanitizedProjectName = workRequest.project_name.replace(/[^a-zA-Z0-9]/g, '_');
             const projectFolder = path.join(uploadDir, sanitizedProjectName);
             const taskFolder = path.join(projectFolder, task.task_name);
             const userFolder = path.join(taskFolder, user.name);
+            const versionFolder = path.join(userFolder, 'V1');
 
-            if (!fs.existsSync(userFolder)) {
-                fs.mkdirSync(userFolder, { recursive: true });
+            if (!fs.existsSync(versionFolder)) {
+                fs.mkdirSync(versionFolder, { recursive: true });
             }
 
             for (const file of files) {
@@ -902,7 +903,7 @@ const submitTask = async (req, res) => {
                 const documentData = {
                     task_assignment_id: taskAssignment.id,
                     document_name: file.name,
-                    document_path: `${process.env.BASE_ROUTE}/uploads/${sanitizedProjectName}/${task.task_name}/${user.name}/${filename}`,
+                    document_path: `${process.env.BASE_ROUTE}/uploads/${sanitizedProjectName}/${task.task_name}/${user.name}/V1/${filename}`,
                     document_type: file.mimetype,
                     document_size: file.size,
                     status: 'uploading',
@@ -915,12 +916,12 @@ const submitTask = async (req, res) => {
                 // Move file synchronously instead of using queue
                 try {
 
-                    // Ensure upload directory exists
-                    if (!fs.existsSync(userFolder)) {
-                        fs.mkdirSync(userFolder, { recursive: true });
+                    // Ensure V1 directory exists
+                    if (!fs.existsSync(versionFolder)) {
+                        fs.mkdirSync(versionFolder, { recursive: true });
                     }
 
-                    const finalFilepath = path.join(userFolder, filename);
+                    const finalFilepath = path.join(versionFolder, filename);
                     fs.renameSync(tempFilepath, finalFilepath);
 
                     // Update document status to uploaded

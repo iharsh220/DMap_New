@@ -2270,6 +2270,7 @@ CREATE TABLE `task_documents` (
   `document_path` varchar(500) NOT NULL,
   `document_type` varchar(255) DEFAULT NULL,
   `document_size` int(11) DEFAULT NULL,
+  `version` varchar(10) DEFAULT 'V1',
   `status` enum('uploading','uploaded','failed') DEFAULT 'uploading',
   `uploaded_at` timestamp NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
@@ -3072,13 +3073,14 @@ ALTER TABLE `task_dependencies`
   ADD PRIMARY KEY (`id`),
   ADD KEY `task_id` (`task_id`),
   ADD KEY `dependency_task_id` (`dependency_task_id`);
-
 --
 -- Indexes for table `task_documents`
 --
+
 ALTER TABLE `task_documents`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `task_assignment_id` (`task_assignment_id`);
+  ADD KEY `task_assignment_id` (`task_assignment_id`),
+  ADD KEY `version` (`version`);
 
 --
 -- Indexes for table `task_project_reference`

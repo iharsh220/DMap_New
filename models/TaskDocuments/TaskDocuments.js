@@ -27,6 +27,10 @@ const TaskDocuments = sequelize.define('TaskDocuments', {
     type: DataTypes.INTEGER,
     allowNull: true,
   },
+  version: {
+    type: DataTypes.STRING(10),
+    defaultValue: 'V1',
+  },
   status: {
     type: DataTypes.ENUM('uploading', 'uploaded', 'failed'),
     defaultValue: 'uploading',
