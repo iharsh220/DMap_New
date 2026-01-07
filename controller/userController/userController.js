@@ -773,10 +773,13 @@ const acceptTask = async (req, res) => {
 };
 
 const submitTask = async (req, res) => {
+    const transaction = await Tasks.sequelize.transaction();
+    
     try {
         const user_id = req.user.id;
-        const { task_id, task_count, link } = req.body;
+        const { task_id, task_count, link, work_request_id } = req.body;
 
+        // Validate required parameters
         if (!task_id || !task_count) {
             return res.status(400).json({
                 success: false,
@@ -786,11 +789,19 @@ const submitTask = async (req, res) => {
 
         const taskId = parseInt(task_id, 10);
         const taskCount = parseInt(task_count, 10);
+        const workRequestId = work_request_id ? parseInt(work_request_id, 10) : null;
 
         if (isNaN(taskId) || isNaN(taskCount)) {
             return res.status(400).json({
                 success: false,
                 error: 'Invalid task_id or task_count'
+            });
+        }
+
+        if (workRequestId && isNaN(workRequestId)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid work_request_id'
             });
         }
 
@@ -803,7 +814,7 @@ const submitTask = async (req, res) => {
                     include: [
                         {
                             model: WorkRequests,
-                            attributes: ['id', 'project_name', 'brand', 'priority'],
+                            attributes: ['id', 'project_name', 'brand', 'priority', 'user_id'],
                             include: [
                                 {
                                     model: RequestType,
@@ -832,9 +843,10 @@ const submitTask = async (req, res) => {
                     attributes: ['id', 'name', 'email']
                 }
             ]
-        });
+        }, { transaction });
 
         if (!taskAssignment) {
+            await transaction.rollback();
             return res.status(404).json({
                 success: false,
                 error: 'Task assignment not found or not assigned to you'
@@ -842,21 +854,41 @@ const submitTask = async (req, res) => {
         }
 
         const task = taskAssignment.Task;
-
-        // Check if task status is accepted
-        if (task.status !== 'accepted' && task.status !== 'in_progress') {
-            return res.status(400).json({
-                success: false,
-                error: 'Task must be in accepted status to submit'
-            });
-        }
-
         const workRequest = task.WorkRequest;
         const user = taskAssignment.User;
 
+        // Validate work_request_id if provided
+        if (workRequestId && workRequest.id !== workRequestId) {
+            await transaction.rollback();
+            return res.status(400).json({
+                success: false,
+                error: 'Provided work_request_id does not match the task\'s work request'
+            });
+        }
+
+        // Validate that the work request belongs to the authenticated user
+        // if (workRequest.user_id !== user_id) {
+        //     await transaction.rollback();
+        //     return res.status(403).json({
+        //         success: false,
+        //         error: 'Unauthorized: This work request does not belong to you'
+        //     });
+        // }
+
+        // Check if task status is accepted or in_progress
+        if (task.status !== 'accepted' && task.status !== 'in_progress') {
+            await transaction.rollback();
+            return res.status(400).json({
+                success: false,
+                error: 'Task must be in accepted or in_progress status to submit'
+            });
+        }
+
         // Update task with task_count and link
         const taskUpdateData = {
-            task_count: taskCount
+            task_count: taskCount,
+            status: 'completed',
+            end_date: new Date()
         };
 
         if (link) {
@@ -864,7 +896,8 @@ const submitTask = async (req, res) => {
         }
 
         await Tasks.update(taskUpdateData, {
-            where: { id: taskId }
+            where: { id: taskId },
+            transaction
         });
 
         // Handle file uploads
@@ -910,12 +943,11 @@ const submitTask = async (req, res) => {
                     uploaded_at: new Date()
                 };
 
-                const docResult = await TaskDocuments.create(documentData);
+                const docResult = await TaskDocuments.create(documentData, { transaction });
                 documents.push(docResult);
 
                 // Move file synchronously instead of using queue
                 try {
-
                     // Ensure V1 directory exists
                     if (!fs.existsSync(versionFolder)) {
                         fs.mkdirSync(versionFolder, { recursive: true });
@@ -927,7 +959,7 @@ const submitTask = async (req, res) => {
                     // Update document status to uploaded
                     await TaskDocuments.update(
                         { status: 'uploaded' },
-                        { where: { id: docResult.id } }
+                        { where: { id: docResult.id }, transaction }
                     );
 
                     // Clean up temp directory
@@ -943,7 +975,7 @@ const submitTask = async (req, res) => {
                     // Update document status to failed
                     await TaskDocuments.update(
                         { status: 'failed' },
-                        { where: { id: docResult.id } }
+                        { where: { id: docResult.id }, transaction }
                     );
 
                     // Clean up temp directory
@@ -960,63 +992,76 @@ const submitTask = async (req, res) => {
             }
         }
 
-        // Update task status to completed if files were uploaded or link provided
-        let taskCompleted = false;
-        if ((documents.length > 0 || link) && task.status !== 'completed') {
-            await Tasks.update(
-                { status: 'completed', end_date: new Date() },
-                { where: { id: task.id } }
+        // Check if all tasks for this work request are completed
+        const allTasksForWorkRequest = await Tasks.findAll({
+            where: { work_request_id: workRequest.id },
+            attributes: ['id', 'status']
+        }, { transaction });
+
+        const allTasksCompleted = allTasksForWorkRequest.every(task => task.status === 'completed');
+
+        // Update work request status to completed if all tasks are done
+        if (allTasksCompleted) {
+            await WorkRequests.update(
+                {
+                    status: 'completed',
+                    updated_at: new Date()
+                },
+                {
+                    where: { id: workRequest.id },
+                    transaction
+                }
             );
-            taskCompleted = true;
+
+            // Log work request completion
+            console.log(`Work request ${workRequest.id} completed by user ${user_id} at ${new Date().toISOString()}`);
         }
 
-        // Send email notification if task was completed
-        if (taskCompleted) {
-            const workRequest = task.WorkRequest;
-            const completedBy = taskAssignment.User;
+        // Commit the transaction
+        await transaction.commit();
 
-            // Find the creative lead manager (assuming the first manager is the creative lead)
-            const creativeLead = workRequest.WorkRequestManagers && workRequest.WorkRequestManagers.length > 0
-                ? workRequest.WorkRequestManagers[0].manager
-                : null;
+        // Send email notification for task completion
+        const completedAt = new Date().toLocaleDateString('en-IN', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
 
-            if (creativeLead) {
-                const completedAt = new Date().toLocaleDateString('en-IN', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
+        const emailData = {
+            project_name: workRequest.project_name,
+            brand: workRequest.brand,
+            request_type: workRequest.RequestType?.request_type || 'N/A',
+            priority: workRequest.priority,
+            request_id: workRequest.id,
+            completed_at: completedAt,
+            task_name: task.task_name,
+            description: task.description,
+            completed_by: user.name,
+            task_count: taskCount,
+            link: link || null,
+            frontend_url: process.env.FRONTEND_URL,
+            work_request_completed: allTasksCompleted
+        };
 
-                const emailData = {
-                    project_name: workRequest.project_name,
-                    brand: workRequest.brand,
-                    request_type: workRequest.RequestType?.request_type || 'N/A',
-                    priority: workRequest.priority,
-                    request_id: workRequest.id,
-                    completed_at: completedAt,
-                    task_name: task.task_name,
-                    description: task.description,
-                    completed_by: completedBy.name,
-                    task_count: taskCount,
-                    link: link || null,
-                    frontend_url: process.env.FRONTEND_URL
-                };
+        const html = renderTemplate('taskCompletionNotification', emailData);
 
-                const html = renderTemplate('taskCompletionNotification', emailData);
+        // Find the creative lead manager (assuming the first manager is the creative lead)
+        const creativeLead = workRequest.WorkRequestManagers && workRequest.WorkRequestManagers.length > 0
+            ? workRequest.WorkRequestManagers[0].manager
+            : null;
 
-                const mailOptions = {
-                    to: creativeLead.email,
-                    cc: completedBy.email,
-                    subject: 'Task Completed - D-Map',
-                    html
-                };
+        if (creativeLead) {
+            const mailOptions = {
+                to: creativeLead.email,
+                cc: user.email,
+                subject: `Task Completed - ${allTasksCompleted ? 'Work Request Also Completed' : 'Task Completed'}`,
+                html
+            };
 
-                await sendMail(mailOptions);
-            }
+            await sendMail(mailOptions);
         }
-
 
         res.json({
             success: true,
@@ -1024,12 +1069,38 @@ const submitTask = async (req, res) => {
                 task_id: taskId,
                 task_count: taskCount,
                 link: link || null,
-                documents: documents
+                documents: documents,
+                work_request_id: workRequest.id,
+                work_request_completed: allTasksCompleted,
+                work_request_status: allTasksCompleted ? 'completed' : workRequest.status
             },
-            message: 'Task submitted successfully'
+            message: allTasksCompleted
+                ? 'Task submitted successfully and work request completed'
+                : 'Task submitted successfully'
         });
+
     } catch (error) {
+        // Rollback transaction on any error
+        await transaction.rollback();
+        
         console.error('Error submitting task:', error);
+        
+        // Return appropriate error response based on error type
+        if (error.name === 'SequelizeValidationError') {
+            return res.status(400).json({
+                success: false,
+                error: 'Validation error',
+                details: error.errors.map(e => e.message)
+            });
+        }
+        
+        if (error.name === 'SequelizeForeignKeyConstraintError') {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid foreign key reference'
+            });
+        }
+
         res.status(500).json({
             success: false,
             error: error.message,
