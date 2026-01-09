@@ -1753,36 +1753,45 @@ const assignTasksToUsers = async (req, res) => {
             });
         }
 
-        // Get all tasks for this work request with assigned users
-        const tasksWithUsers = await Tasks.findAll({
-            where: { work_request_id: workRequestId },
+        // Get the latest task assignment for this work request with task details
+        const latestTaskAssignment = await TaskAssignments.findOne({
+            where: {},
             include: [
                 {
+                    model: Tasks,
+                    where: { work_request_id: workRequestId },
+                    attributes: ['id', 'task_name', 'description', 'deadline']
+                },
+                {
                     model: User,
-                    as: 'assignedUsers',
-                    attributes: ['id', 'name', 'email'],
-                    through: { attributes: [] }
+                    attributes: ['id', 'name', 'email']
                 }
             ],
-            attributes: ['id', 'task_name', 'description', 'deadline']
+            attributes: [],
+            order: [['created_at', 'DESC']]
         });
 
-        // Group tasks by user
-        const userTasksMap = new Map();
-
-        for (const task of tasksWithUsers) {
-            for (const user of task.assignedUsers) {
-                if (!userTasksMap.has(user.id)) {
-                    userTasksMap.set(user.id, { user, tasks: [] });
-                }
-                userTasksMap.get(user.id).tasks.push({
-                    id: task.id,
-                    task_name: task.task_name,
-                    description: task.description,
-                    deadline: task.deadline
-                });
-            }
+        if (!latestTaskAssignment) {
+            return res.status(404).json({
+                success: false,
+                error: 'No tasks found for this work request'
+            });
         }
+
+        // Only send notification for the latest task
+        const user = latestTaskAssignment.User;
+        const task = latestTaskAssignment.Task;
+        
+        const userTasksMap = new Map();
+        userTasksMap.set(user.id, {
+            user,
+            tasks: [{
+                id: task.id,
+                task_name: task.task_name,
+                description: task.description,
+                deadline: task.deadline
+            }]
+        });
 
         // Send emails to all assigned users
         const emailPromises = [];
@@ -1839,10 +1848,10 @@ const assignTasksToUsers = async (req, res) => {
             success: true,
             data: {
                 assignedUsers,
-                totalTasks: tasksWithUsers.length,
+                totalTasks: 1, // Only sending latest task
                 notificationsSent: assignedUsers.length
             },
-            message: 'Task assignment notifications sent successfully and work request status updated to in_progress'
+            message: 'Task assignment notification sent successfully for the latest task and work request status updated to assigned'
         });
     } catch (error) {
         console.error('Error sending task assignment notifications:', error);
