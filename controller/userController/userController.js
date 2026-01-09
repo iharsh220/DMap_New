@@ -773,8 +773,6 @@ const acceptTask = async (req, res) => {
 };
 
 const submitTask = async (req, res) => {
-    const transaction = await Tasks.sequelize.transaction();
-    
     try {
         const user_id = req.user.id;
         const { task_id, task_count, link, work_request_id } = req.body;
@@ -814,7 +812,7 @@ const submitTask = async (req, res) => {
                     include: [
                         {
                             model: WorkRequests,
-                            attributes: ['id', 'project_name', 'brand', 'priority', 'user_id'],
+                            attributes: ['id', 'project_name', 'brand', 'priority', 'user_id', 'status'],
                             include: [
                                 {
                                     model: RequestType,
@@ -843,10 +841,9 @@ const submitTask = async (req, res) => {
                     attributes: ['id', 'name', 'email']
                 }
             ]
-        }, { transaction });
+        });
 
         if (!taskAssignment) {
-            await transaction.rollback();
             return res.status(404).json({
                 success: false,
                 error: 'Task assignment not found or not assigned to you'
@@ -859,16 +856,14 @@ const submitTask = async (req, res) => {
 
         // Validate work_request_id if provided
         if (workRequestId && workRequest.id !== workRequestId) {
-            await transaction.rollback();
             return res.status(400).json({
                 success: false,
-                error: 'Provided work_request_id does not match the task\'s work request'
+                error: `Provided work_request_id (${workRequestId}) does not match the task's work request (${workRequest.id})`
             });
         }
 
         // Validate that the work request belongs to the authenticated user
         // if (workRequest.user_id !== user_id) {
-        //     await transaction.rollback();
         //     return res.status(403).json({
         //         success: false,
         //         error: 'Unauthorized: This work request does not belong to you'
@@ -877,212 +872,264 @@ const submitTask = async (req, res) => {
 
         // Check if task status is accepted or in_progress
         if (task.status !== 'accepted' && task.status !== 'in_progress') {
-            await transaction.rollback();
             return res.status(400).json({
                 success: false,
-                error: 'Task must be in accepted or in_progress status to submit'
+                error: `Task must be in accepted or in_progress status to submit. Current status: ${task.status}`
             });
         }
 
-        // Update task with task_count and link
-        const taskUpdateData = {
-            task_count: taskCount,
-            status: 'completed',
-            end_date: new Date()
-        };
-
-        if (link) {
-            taskUpdateData.link = link;
-        }
-
-        await Tasks.update(taskUpdateData, {
-            where: { id: taskId },
-            transaction
-        });
-
-        // Handle file uploads
-        const documents = [];
-        if (req.files && req.files.documents) {
-            const files = Array.isArray(req.files.documents) ? req.files.documents : [req.files.documents];
-
-            // Create user folder with V1 structure if it doesn't exist
-            const uploadDir = path.join(__dirname, '../../uploads');
-            const sanitizedProjectName = workRequest.project_name.replace(/[^a-zA-Z0-9]/g, '_');
-            const projectFolder = path.join(uploadDir, sanitizedProjectName);
-            const taskFolder = path.join(projectFolder, task.task_name);
-            const userFolder = path.join(taskFolder, user.name);
-            const versionFolder = path.join(userFolder, 'V1');
-
-            if (!fs.existsSync(versionFolder)) {
-                fs.mkdirSync(versionFolder, { recursive: true });
-            }
-
-            for (const file of files) {
-                // Generate unique filename for each file
-                const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-                const filename = file.name.replace(/[^a-zA-Z0-9.]/g, '_') + '-' + uniqueSuffix + path.extname(file.name);
-
-                // Create unique temp directory for this file to avoid conflicts
-                const tempDir = path.join('temp', 'uploads', uniqueSuffix);
-                if (!fs.existsSync(tempDir)) {
-                    fs.mkdirSync(tempDir, { recursive: true });
-                }
-
-                // Save file to temp location
-                const tempFilename = `${filename}`;
-                const tempFilepath = path.join(tempDir, tempFilename);
-                await file.mv(tempFilepath);
-
-                const documentData = {
-                    task_assignment_id: taskAssignment.id,
-                    document_name: file.name,
-                    document_path: `${process.env.BASE_ROUTE}/uploads/${sanitizedProjectName}/${task.task_name}/${user.name}/V1/${filename}`,
-                    document_type: file.mimetype,
-                    document_size: file.size,
-                    status: 'uploading',
-                    uploaded_at: new Date()
-                };
-
-                const docResult = await TaskDocuments.create(documentData, { transaction });
-                documents.push(docResult);
-
-                // Move file synchronously instead of using queue
-                try {
-                    // Ensure V1 directory exists
-                    if (!fs.existsSync(versionFolder)) {
-                        fs.mkdirSync(versionFolder, { recursive: true });
-                    }
-
-                    const finalFilepath = path.join(versionFolder, filename);
-                    fs.renameSync(tempFilepath, finalFilepath);
-
-                    // Update document status to uploaded
-                    await TaskDocuments.update(
-                        { status: 'uploaded' },
-                        { where: { id: docResult.id }, transaction }
-                    );
-
-                    // Clean up temp directory
-                    try {
-                        fs.rmdirSync(tempDir);
-                    } catch (cleanupError) {
-                        console.error('Failed to cleanup temp directory:', cleanupError);
-                    }
-
-                } catch (uploadError) {
-                    console.error(`Failed to upload task file ${filename}:`, uploadError);
-
-                    // Update document status to failed
-                    await TaskDocuments.update(
-                        { status: 'failed' },
-                        { where: { id: docResult.id }, transaction }
-                    );
-
-                    // Clean up temp directory
-                    try {
-                        if (fs.existsSync(tempDir)) {
-                            fs.rmSync(tempDir, { recursive: true, force: true });
-                        }
-                    } catch (cleanupError) {
-                        console.error('Failed to cleanup temp directory on error:', cleanupError);
-                    }
-
-                    throw uploadError;
-                }
-            }
-        }
-
-        // Check if all tasks for this work request are completed
-        const allTasksForWorkRequest = await Tasks.findAll({
-            where: { work_request_id: workRequest.id },
-            attributes: ['id', 'status']
-        }, { transaction });
-
-        const allTasksCompleted = allTasksForWorkRequest.every(task => task.status === 'completed');
-
-        // Update work request status to completed if all tasks are done
-        if (allTasksCompleted) {
-            await WorkRequests.update(
-                {
-                    status: 'completed',
-                    updated_at: new Date()
-                },
-                {
-                    where: { id: workRequest.id },
-                    transaction
-                }
-            );
-
-            // Log work request completion
-            console.log(`Work request ${workRequest.id} completed by user ${user_id} at ${new Date().toISOString()}`);
-        }
-
-        // Commit the transaction
-        await transaction.commit();
-
-        // Send email notification for task completion
-        const completedAt = new Date().toLocaleDateString('en-IN', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-
-        const emailData = {
-            project_name: workRequest.project_name,
-            brand: workRequest.brand,
-            request_type: workRequest.RequestType?.request_type || 'N/A',
-            priority: workRequest.priority,
-            request_id: workRequest.id,
-            completed_at: completedAt,
-            task_name: task.task_name,
-            description: task.description,
-            completed_by: user.name,
-            task_count: taskCount,
-            link: link || null,
-            frontend_url: process.env.FRONTEND_URL,
-            work_request_completed: allTasksCompleted
-        };
-
-        const html = renderTemplate('taskCompletionNotification', emailData);
-
-        // Find the creative lead manager (assuming the first manager is the creative lead)
-        const creativeLead = workRequest.WorkRequestManagers && workRequest.WorkRequestManagers.length > 0
-            ? workRequest.WorkRequestManagers[0].manager
-            : null;
-
-        if (creativeLead) {
-            const mailOptions = {
-                to: creativeLead.email,
-                cc: user.email,
-                subject: `Task Completed - ${allTasksCompleted ? 'Work Request Also Completed' : 'Task Completed'}`,
-                html
+        // Use a transaction for the task update and file uploads
+        const taskTransaction = await Tasks.sequelize.transaction();
+        
+        try {
+            // Update task with task_count and link FIRST
+            const taskUpdateData = {
+                task_count: taskCount,
+                status: 'completed',
+                end_date: new Date()
             };
 
-            await sendMail(mailOptions);
-        }
+            if (link) {
+                taskUpdateData.link = link;
+            }
 
-        res.json({
-            success: true,
-            data: {
-                task_id: taskId,
+            console.log(`Updating task ${taskId} to completed...`);
+            const [affectedRows] = await Tasks.update(taskUpdateData, {
+                where: { id: taskId },
+                transaction: taskTransaction
+            });
+            console.log(`Task update result: ${affectedRows} rows affected`);
+
+            // Verify the task was actually updated
+            const updatedTask = await Tasks.findByPk(taskId, { transaction: taskTransaction });
+            console.log(`Task ${taskId} status after update: ${updatedTask?.status}`);
+
+            // Handle file uploads
+            const documents = [];
+            if (req.files && req.files.documents) {
+                const files = Array.isArray(req.files.documents) ? req.files.documents : [req.files.documents];
+
+                // Create user folder with V1 structure if it doesn't exist
+                const uploadDir = path.join(__dirname, '../../uploads');
+                const sanitizedProjectName = workRequest.project_name.replace(/[^a-zA-Z0-9]/g, '_');
+                const projectFolder = path.join(uploadDir, sanitizedProjectName);
+                const taskFolder = path.join(projectFolder, task.task_name);
+                const userFolder = path.join(taskFolder, user.name);
+                const versionFolder = path.join(userFolder, 'V1');
+
+                if (!fs.existsSync(versionFolder)) {
+                    fs.mkdirSync(versionFolder, { recursive: true });
+                }
+
+                for (const file of files) {
+                    // Generate unique filename for each file
+                    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+                    const filename = file.name.replace(/[^a-zA-Z0-9.]/g, '_') + '-' + uniqueSuffix + path.extname(file.name);
+
+                    // Create unique temp directory for this file to avoid conflicts
+                    const tempDir = path.join('temp', 'uploads', uniqueSuffix);
+                    if (!fs.existsSync(tempDir)) {
+                        fs.mkdirSync(tempDir, { recursive: true });
+                    }
+
+                    // Save file to temp location
+                    const tempFilename = `${filename}`;
+                    const tempFilepath = path.join(tempDir, tempFilename);
+                    await file.mv(tempFilepath);
+
+                    const documentData = {
+                        task_assignment_id: taskAssignment.id,
+                        document_name: file.name,
+                        document_path: `${process.env.BASE_ROUTE}/uploads/${sanitizedProjectName}/${task.task_name}/${user.name}/V1/${filename}`,
+                        document_type: file.mimetype,
+                        document_size: file.size,
+                        status: 'uploading',
+                        uploaded_at: new Date()
+                    };
+
+                    const docResult = await TaskDocuments.create(documentData, { transaction: taskTransaction });
+                    documents.push(docResult);
+
+                    // Move file synchronously instead of using queue
+                    try {
+                        // Ensure V1 directory exists
+                        if (!fs.existsSync(versionFolder)) {
+                            fs.mkdirSync(versionFolder, { recursive: true });
+                        }
+
+                        const finalFilepath = path.join(versionFolder, filename);
+                        fs.renameSync(tempFilepath, finalFilepath);
+
+                        // Update document status to uploaded
+                        await TaskDocuments.update(
+                            { status: 'uploaded' },
+                            { where: { id: docResult.id }, transaction: taskTransaction }
+                        );
+
+                        // Clean up temp directory
+                        try {
+                            fs.rmdirSync(tempDir);
+                        } catch (cleanupError) {
+                            console.error('Failed to cleanup temp directory:', cleanupError);
+                        }
+
+                    } catch (uploadError) {
+                        console.error(`Failed to upload task file ${filename}:`, uploadError);
+
+                        // Update document status to failed
+                        await TaskDocuments.update(
+                            { status: 'failed' },
+                            { where: { id: docResult.id }, transaction: taskTransaction }
+                        );
+
+                        // Clean up temp directory
+                        try {
+                            if (fs.existsSync(tempDir)) {
+                                fs.rmSync(tempDir, { recursive: true, force: true });
+                            }
+                        } catch (cleanupError) {
+                            console.error('Failed to cleanup temp directory on error:', cleanupError);
+                        }
+
+                        throw uploadError;
+                    }
+                }
+            }
+
+            // Commit the task transaction
+            await taskTransaction.commit();
+
+            // Now check if all tasks for this work request are completed
+            const allTasksForWorkRequest = await Tasks.findAll({
+                where: { work_request_id: workRequest.id },
+                attributes: ['id', 'status']
+            });
+
+            console.log(`Tasks in work request ${workRequest.id}:`, allTasksForWorkRequest.map(t => ({ id: t.id, status: t.status })));
+
+            const totalTasks = allTasksForWorkRequest.length;
+            const completedTasks = allTasksForWorkRequest.filter(task => task.status === 'completed').length;
+            const allTasksCompleted = totalTasks > 0 && completedTasks === totalTasks;
+
+            console.log(`Total tasks: ${totalTasks}, Completed: ${completedTasks}, All completed: ${allTasksCompleted}`);
+
+            // Update work request status to completed if all tasks are done
+            if (allTasksCompleted) {
+                console.log(`Updating work request ${workRequest.id} status to 'completed'...`);
+                
+                // First, verify the work request exists and get its current state
+                const currentWorkRequest = await WorkRequests.findByPk(workRequest.id);
+                if (!currentWorkRequest) {
+                    console.log(`❌ Work request ${workRequest.id} not found in database`);
+                    return res.status(500).json({
+                        success: false,
+                        error: 'Work request not found',
+                        message: 'Failed to update work request status'
+                    });
+                }
+                
+                console.log(`Current work request status: ${currentWorkRequest.status}`);
+                
+                const [affectedRows] = await WorkRequests.update(
+                    {
+                        status: 'completed',
+                        updated_at: new Date()
+                    },
+                    {
+                        where: { id: workRequest.id }
+                    }
+                );
+
+                console.log(`Work request update result: ${affectedRows} rows affected`);
+                
+                if (affectedRows > 0) {
+                    console.log(`✅ Work request ${workRequest.id} successfully updated to 'completed' by user ${user_id} at ${new Date().toISOString()}`);
+                } else {
+                    console.log(`❌ No rows were updated for work request ${workRequest.id}`);
+                }
+            } else if (totalTasks > 0) {
+                // Log partial completion status
+                console.log(`Work request ${workRequest.id} is ${completedTasks}/${totalTasks} tasks completed`);
+            }
+
+            // Send email notification for task completion
+            const completedAt = new Date().toLocaleDateString('en-IN', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            const emailData = {
+                project_name: workRequest.project_name,
+                brand: workRequest.brand,
+                request_type: workRequest.RequestType?.request_type || 'N/A',
+                priority: workRequest.priority,
+                request_id: workRequest.id,
+                completed_at: completedAt,
+                task_name: task.task_name,
+                description: task.description,
+                completed_by: user.name,
                 task_count: taskCount,
                 link: link || null,
-                documents: documents,
-                work_request_id: workRequest.id,
-                work_request_completed: allTasksCompleted,
-                work_request_status: allTasksCompleted ? 'completed' : workRequest.status
-            },
-            message: allTasksCompleted
-                ? 'Task submitted successfully and work request completed'
-                : 'Task submitted successfully'
-        });
+                frontend_url: process.env.FRONTEND_URL,
+                work_request_completed: allTasksCompleted
+            };
+
+            const html = renderTemplate('taskCompletionNotification', emailData);
+
+            // Find the creative lead manager (assuming the first manager is the creative lead)
+            const creativeLead = workRequest.WorkRequestManagers && workRequest.WorkRequestManagers.length > 0
+                ? workRequest.WorkRequestManagers[0].manager
+                : null;
+
+            if (creativeLead) {
+                const mailOptions = {
+                    to: creativeLead.email,
+                    cc: user.email,
+                    subject: `Task Completed - ${allTasksCompleted ? 'Work Request Also Completed' : 'Task Completed'}`,
+                    html
+                };
+
+                await sendMail(mailOptions);
+            }
+
+            // Get final work request status for response
+            let finalWorkRequestStatus = workRequest.status;
+            if (allTasksCompleted) {
+                const finalWorkRequest = await WorkRequests.findByPk(workRequest.id);
+                finalWorkRequestStatus = finalWorkRequest?.status || workRequest.status;
+            }
+
+            res.json({
+                success: true,
+                data: {
+                    task_id: taskId,
+                    task_count: taskCount,
+                    link: link || null,
+                    documents: documents,
+                    work_request_id: workRequest.id,
+                    work_request_completed: allTasksCompleted,
+                    work_request_status: finalWorkRequestStatus,
+                    task_completion_status: {
+                        total_tasks: totalTasks,
+                        completed_tasks: completedTasks,
+                        completion_percentage: totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
+                    }
+                },
+                message: allTasksCompleted
+                    ? `Task submitted successfully and work request ${workRequest.id} completed`
+                    : `Task submitted successfully. Work request ${workRequest.id} is ${completedTasks}/${totalTasks} tasks completed`
+            });
+
+        } catch (taskError) {
+            // Rollback task transaction on any error
+            await taskTransaction.rollback();
+            throw taskError;
+        }
 
     } catch (error) {
-        // Rollback transaction on any error
-        await transaction.rollback();
-        
         console.error('Error submitting task:', error);
         
         // Return appropriate error response based on error type
