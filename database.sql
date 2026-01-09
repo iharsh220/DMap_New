@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Jan 06, 2026 at 10:54 AM
+-- Generation Time: Jan 09, 2026 at 12:15 PM
 -- Server version: 11.4.9-MariaDB
 -- PHP Version: 8.4.16
 
@@ -1737,6 +1737,7 @@ CREATE TABLE `designation_jobroles` (
   `id` int(11) NOT NULL,
   `designation_id` int(11) NOT NULL,
   `jobrole_id` int(11) NOT NULL,
+  `department_id` int(11) NOT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
@@ -1745,29 +1746,77 @@ CREATE TABLE `designation_jobroles` (
 -- Dumping data for table `designation_jobroles`
 --
 
-INSERT INTO `designation_jobroles` (`id`, `designation_id`, `jobrole_id`, `created_at`, `updated_at`) VALUES
-(1, 1, 7, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(2, 2, 7, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(3, 3, 7, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(4, 4, 7, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(5, 5, 7, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(6, 6, 7, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(7, 7, 7, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(8, 8, 5, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(9, 9, 6, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(10, 10, 6, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(11, 11, 6, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(12, 12, 6, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(13, 13, 6, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(14, 14, 6, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(15, 15, 2, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(16, 16, 2, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(17, 17, 3, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(18, 18, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(19, 19, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(20, 20, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(21, 21, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(22, 22, 4, '2025-11-12 06:04:52', '2025-11-12 06:04:52');
+INSERT INTO `designation_jobroles` (`id`, `designation_id`, `jobrole_id`, `department_id`, `created_at`, `updated_at`) VALUES
+(1, 1, 7, 7, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(2, 2, 7, 7, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(3, 3, 7, 7, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(4, 4, 7, 7, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(5, 5, 7, 7, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(6, 6, 7, 7, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(7, 7, 7, 7, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(8, 8, 5, 1, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(9, 9, 6, 1, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(10, 10, 6, 1, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(11, 11, 6, 1, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(12, 12, 6, 1, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(13, 13, 6, 1, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(14, 14, 6, 1, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(15, 15, 2, 9, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(16, 16, 2, 9, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(17, 17, 3, 9, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(18, 18, 4, 9, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(19, 19, 4, 9, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(20, 20, 4, 9, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(21, 21, 4, 9, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(22, 22, 4, 9, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(23, 15, 20, 5, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(24, 16, 20, 5, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(25, 17, 20, 5, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(26, 18, 8, 5, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(27, 19, 8, 5, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(28, 20, 8, 5, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(29, 21, 8, 5, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(30, 22, 8, 5, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(31, 15, 9, 2, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(32, 16, 9, 2, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(33, 17, 10, 2, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(34, 18, 11, 2, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(35, 19, 11, 2, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(36, 20, 11, 2, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(37, 21, 11, 2, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(38, 22, 11, 2, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(39, 15, 12, 3, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(40, 16, 12, 3, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(41, 17, 13, 3, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(42, 18, 14, 3, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(43, 19, 14, 3, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(44, 20, 14, 3, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(45, 21, 14, 3, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(46, 22, 14, 3, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(47, 15, 15, 4, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(48, 16, 15, 4, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(49, 17, 16, 4, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(50, 18, 17, 4, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(51, 19, 17, 4, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(52, 20, 17, 4, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(53, 21, 17, 4, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(54, 22, 17, 4, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(55, 15, 18, 8, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(56, 16, 18, 8, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(57, 17, 19, 8, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(58, 18, 19, 8, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(59, 19, 19, 8, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(60, 20, 19, 8, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(61, 21, 19, 8, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(62, 22, 19, 8, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(63, 15, 21, 6, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(64, 16, 21, 6, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(65, 17, 22, 6, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(66, 18, 22, 6, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(67, 19, 22, 6, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(68, 20, 22, 6, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(69, 21, 22, 6, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
+(70, 22, 22, 6, '2026-01-09 06:45:01', '2026-01-09 06:45:01');
 
 -- --------------------------------------------------------
 
@@ -1909,7 +1958,7 @@ INSERT INTO `job_role` (`id`, `role_title`, `level`, `description`, `department_
 (5, 'Marketing Manager', 'Mid', 'Marketing manager', 1, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
 (6, 'Marketing User', 'Low', 'All product manager levels', 1, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
 (7, 'Senior Leadership', 'Mid', 'Any user under Leadership department', 7, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(8, 'Other User', 'Low', 'Any user under Business Enabler department', 5, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(8, ' \n 	\nBusiness Enabler User', 'Low', 'Any user under Business Enabler department', 5, 'active', '2025-11-12 06:04:52', '2026-01-07 10:24:29'),
 (9, 'Medical Manager', 'Mid', 'Level 3 user of medical team', 2, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
 (10, 'Medical Senior', 'Low', 'Level 2 user of medical team', 2, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
 (11, 'Medical User', 'Low', 'Level 1 user of medical team', 2, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
@@ -1920,7 +1969,10 @@ INSERT INTO `job_role` (`id`, `role_title`, `level`, `description`, `department_
 (16, 'CQA Senior', 'Low', 'Level 2 user of CQA team', 4, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
 (17, 'CQA User', 'Low', 'Level 1 user of CQA team', 4, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
 (18, 'CComm Manager', 'Mid', 'Managers and up of corp comm division', 8, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(19, 'CComm User', 'Low', 'All users of corporate communication division', 8, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52');
+(19, 'CComm User', 'Low', 'All users of corporate communication division', 8, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
+(20, 'Business Enabler Manager', 'Mid', 'Any managers under Business Enabler department', 5, 'active', '2025-11-12 00:34:52', '2025-11-12 00:34:52'),
+(21, 'IBU Manager', 'Mid', 'Managers and up of IBU division', 6, 'active', '2025-11-12 00:34:52', '2025-11-12 00:34:52'),
+(22, 'IBU User', 'Low', 'All users of IBU division', 6, 'active', '2025-11-12 00:34:52', '2025-11-12 00:34:52');
 
 -- --------------------------------------------------------
 
@@ -2200,13 +2252,22 @@ CREATE TABLE `tasks` (
 --
 
 INSERT INTO `tasks` (`id`, `task_name`, `description`, `request_type_id`, `task_type_id`, `work_request_id`, `deadline`, `status`, `intimate_team`, `task_count`, `link`, `start_date`, `end_date`, `created_at`, `updated_at`) VALUES
-(33, 'Ui design', 'test', 5, 89, 141, '2025-12-31', 'pending', 1, 0, NULL, NULL, NULL, '2025-12-30 09:10:19', '2025-12-31 09:15:36'),
-(34, 'POster', 'Test', 1, 8, 141, NULL, 'accepted', 1, 0, NULL, NULL, NULL, '2025-12-30 10:51:16', '2025-12-31 09:15:36'),
-(35, 'Packaging design', 'test', 1, 3, 141, NULL, 'accepted', 1, 0, NULL, NULL, NULL, '2025-12-30 11:06:50', '2025-12-31 09:15:36'),
-(36, 'Data Schema', 'test', 5, 78, 141, '2026-01-01', 'in_progress', 1, 0, NULL, '2026-01-01', NULL, '2025-12-31 09:15:34', '2026-01-01 05:43:17'),
+(33, 'Ui design', 'test', 5, 89, 141, '2025-12-31', 'pending', 1, 0, NULL, NULL, NULL, '2025-12-30 09:10:19', '2026-01-09 06:14:22'),
+(34, 'POster', 'Test', 1, 8, 141, NULL, 'accepted', 1, 0, NULL, NULL, NULL, '2025-12-30 10:51:16', '2026-01-09 06:14:22'),
+(35, 'Packaging design', 'test', 1, 3, 141, NULL, 'accepted', 1, 0, NULL, NULL, NULL, '2025-12-30 11:06:50', '2026-01-09 06:14:22'),
+(36, 'Data Schema', 'test', 5, 78, 141, '2026-01-01', 'in_progress', 1, 0, NULL, '2026-01-01', NULL, '2025-12-31 09:15:34', '2026-01-09 06:14:22'),
 (37, 'Gantt chart', 'Showcase visual project timeline', 5, 86, 140, '2026-01-05', 'pending', 1, 0, NULL, NULL, NULL, '2026-01-02 07:06:01', '2026-01-05 10:56:26'),
 (38, 'UI dev', 'based on bal ui', 5, 82, 140, '2026-01-08', 'pending', 1, 0, NULL, NULL, NULL, '2026-01-02 07:07:16', '2026-01-05 10:56:26'),
-(39, 'Front-end development', 'UI', 5, 74, 140, '2026-01-15', 'completed', 1, 3, NULL, '2026-01-07', '2026-01-05', '2026-01-05 10:53:51', '2026-01-05 10:59:23');
+(39, 'Front-end development', 'UI', 5, 74, 140, '2026-01-15', 'completed', 1, 3, NULL, '2026-01-07', '2026-01-05', '2026-01-05 10:53:51', '2026-01-05 10:59:23'),
+(40, 'test harsh', 'test', 5, 77, 141, '2026-01-08', 'pending', 1, 0, NULL, NULL, NULL, '2026-01-07 10:44:32', '2026-01-09 06:14:22'),
+(41, 'api', 'test', 5, 75, 141, '2026-01-13', 'pending', 1, 0, NULL, NULL, NULL, '2026-01-09 05:32:16', '2026-01-09 06:14:22'),
+(42, 'database', 'test_v02', 5, 77, 141, '2026-01-15', 'pending', 1, 0, NULL, NULL, NULL, '2026-01-09 05:37:43', '2026-01-09 06:14:22'),
+(43, 'backend', 'test', 5, 75, 141, '2026-01-16', 'pending', 1, 0, NULL, NULL, NULL, '2026-01-09 05:51:15', '2026-01-09 06:14:22'),
+(44, 'video framer', 'test', 5, 80, 141, '2026-01-20', 'pending', 1, 0, NULL, NULL, NULL, '2026-01-09 05:54:50', '2026-01-09 06:14:22'),
+(45, 'system design', 'test', 5, 80, 141, '2026-01-21', 'pending', 1, 0, NULL, NULL, NULL, '2026-01-09 05:58:02', '2026-01-09 06:14:22'),
+(46, 'photo framer', 'test', 5, 76, 141, '2026-01-26', 'pending', 1, 0, NULL, NULL, NULL, '2026-01-09 06:02:34', '2026-01-09 06:14:22'),
+(47, 'custom website', 'test', 5, 80, 141, '2026-01-27', 'pending', 1, 0, NULL, NULL, NULL, '2026-01-09 06:05:07', '2026-01-09 06:14:22'),
+(48, 'harsh ', 'test', 5, 78, 141, '2026-01-29', 'pending', 1, 0, NULL, NULL, NULL, '2026-01-09 06:14:19', '2026-01-09 06:14:22');
 
 -- --------------------------------------------------------
 
@@ -2233,7 +2294,16 @@ INSERT INTO `task_assignments` (`id`, `task_id`, `user_id`, `created_at`, `updat
 (42, 36, 19, '2025-12-31 09:15:34', '2025-12-31 09:15:34'),
 (43, 37, 38, '2026-01-02 07:06:01', '2026-01-02 07:06:01'),
 (44, 38, 21, '2026-01-02 07:07:16', '2026-01-02 07:07:16'),
-(45, 39, 45, '2026-01-05 10:53:51', '2026-01-05 10:53:51');
+(45, 39, 45, '2026-01-05 10:53:51', '2026-01-05 10:53:51'),
+(46, 40, 19, '2026-01-07 10:44:32', '2026-01-07 10:44:32'),
+(47, 41, 19, '2026-01-09 05:32:16', '2026-01-09 05:32:16'),
+(48, 42, 19, '2026-01-09 05:37:43', '2026-01-09 05:37:43'),
+(49, 43, 19, '2026-01-09 05:51:15', '2026-01-09 05:51:15'),
+(50, 44, 19, '2026-01-09 05:54:50', '2026-01-09 05:54:50'),
+(51, 45, 19, '2026-01-09 05:58:02', '2026-01-09 05:58:02'),
+(52, 46, 19, '2026-01-09 06:02:34', '2026-01-09 06:02:34'),
+(53, 47, 19, '2026-01-09 06:05:07', '2026-01-09 06:05:07'),
+(54, 48, 19, '2026-01-09 06:14:19', '2026-01-09 06:14:19');
 
 -- --------------------------------------------------------
 
@@ -2255,7 +2325,8 @@ CREATE TABLE `task_dependencies` (
 
 INSERT INTO `task_dependencies` (`id`, `task_id`, `dependency_task_id`, `created_at`, `updated_at`) VALUES
 (14, 35, 34, '2025-12-30 11:06:50', '2025-12-30 11:06:50'),
-(15, 39, 38, '2026-01-05 10:53:51', '2026-01-05 10:53:51');
+(15, 39, 38, '2026-01-05 10:53:51', '2026-01-05 10:53:51'),
+(16, 42, 41, '2026-01-09 05:37:43', '2026-01-09 05:37:43');
 
 -- --------------------------------------------------------
 
@@ -2279,8 +2350,8 @@ CREATE TABLE `task_documents` (
 -- Dumping data for table `task_documents`
 --
 
-INSERT INTO `task_documents` (`id`, `task_assignment_id`, `document_name`, `document_path`, `document_type`, `document_size`, `status`, `uploaded_at`) VALUES
-(2, 45, 'udder.jpg', '/digilabs/dmap/api/uploads/Petal_POB_tracker/Front-end development/Gautam Baranwal/udder.jpg-1767610763150-962022545.jpg', 'image/jpeg', 82670, 'uploaded', '2026-01-05 10:59:23');
+INSERT INTO `task_documents` (`id`, `task_assignment_id`, `document_name`, `document_path`, `document_type`, `document_size`, `version`, `status`, `uploaded_at`) VALUES
+(2, 45, 'udder.jpg', '/digilabs/dmap/api/uploads/Petal_POB_tracker/Front-end development/Gautam Baranwal/udder.jpg-1767610763150-962022545.jpg', 'image/jpeg', 82670, 'V1', 'uploaded', '2026-01-05 10:59:23');
 
 -- --------------------------------------------------------
 
@@ -2769,17 +2840,17 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `name`, `email`, `phone`, `password`, `department_id`, `job_role_id`, `location_id`, `designation_id`, `email_verified_status`, `latest_verification_token`, `account_status`, `last_login`, `login_attempts`, `lock_until`, `password_changed_at`, `password_expires_at`, `created_at`, `updated_at`) VALUES
 (1, 'System Admin', 'admin@alembic.co.in', '8080302041', '$2a$12$/.rT3avNPO1l0ZjqSRS/Ru09mKVNuIRSLaHjBDeMwLHscVLq1ETY6', 2, 1, 1, NULL, 1, NULL, 'active', '2025-11-12 06:04:52', 0, NULL, '2025-11-12 06:04:52', '2026-02-10 06:04:52', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(19, 'Harsh Gohil', 'harsh.gohil@alembic.co.in', '8080302041', '$2a$10$qHoA9vRvrbxwYz.kuWUUbuT38X9JneCbAWEV63DhT2HXweSyAjQU.', 9, 4, 1, 20, 1, NULL, 'active', '2026-01-06 04:32:22', 0, NULL, '2025-12-12 05:32:58', '2026-03-12 05:32:58', '2025-12-12 05:31:42', '2026-01-06 04:32:22'),
-(20, 'Nikhil Nadkar', 'nikhil.nadkar@alembic.co.in', '8625977399', '$2a$10$N7p0mMj0XiyhBgFrY8KvTeoOZXy5yhSc2GZZlMdtviShczaQcTLvG', 1, 6, 1, 11, 1, NULL, 'active', '2026-01-01 10:10:22', 0, NULL, '2025-12-12 06:04:27', '2026-03-12 06:04:27', '2025-12-12 06:02:43', '2026-01-01 10:10:22'),
+(19, 'Harsh Gohil', 'harsh.gohil@alembic.co.in', '8080302041', '$2a$12$EUpyWKG8MR6IkRag7k8QU.5hMFIlQMyPCQcEt15GSvAQW8UwPIjwG', 9, 4, 1, 20, 1, NULL, 'active', '2026-01-09 05:30:02', 0, NULL, '2026-01-09 05:26:17', '2026-03-12 05:32:58', '2025-12-12 05:31:42', '2026-01-09 05:30:02'),
+(20, 'Nikhil Nadkar', 'nikhil.nadkar@alembic.co.in', '8625977399', '$2a$10$N7p0mMj0XiyhBgFrY8KvTeoOZXy5yhSc2GZZlMdtviShczaQcTLvG', 1, 6, 1, 11, 1, NULL, 'active', '2026-01-09 05:10:50', 0, NULL, '2025-12-12 06:04:27', '2026-03-12 06:04:27', '2025-12-12 06:02:43', '2026-01-09 05:10:50'),
 (21, 'Kiran Thekootu', 'kiran.thekootu@alembic.co.in', '9028268048', '$2a$10$y/pO8.4sMEfFXMpZL3na/OQH1YdBc/X/C1TFF./uQx.kGXlUKBcsS', 9, 3, 1, 17, 1, NULL, 'active', '2025-12-18 09:34:39', 0, NULL, '2025-12-12 11:31:52', '2026-03-12 11:31:52', '2025-12-12 10:18:11', '2025-12-18 09:34:39'),
-(23, 'Mohanish Mohan Padwal', 'mohanish.padwal@alembic.co.in', '09773359332', '$2a$10$AOZOUF.2nL6xqEuzanyhmeWdvx9WAAL1xynW3pCotHhFH.w3nWVfW', 9, 2, 1, 16, 1, NULL, 'active', '2026-01-05 10:51:03', 0, NULL, '2025-12-12 11:53:26', '2026-03-12 11:53:26', '2025-12-12 11:52:18', '2026-01-05 10:51:03'),
-(24, 'Bhagwan Parab', 'bhagwan.parab@alembic.co.in', '1234567890', '$2a$10$2XIulHDrk2Im5mZeQjLLuOYHADiB/2EINYZSX5vHiEAJYDDXZC69i', 9, 2, 1, 16, 1, NULL, 'active', '2025-12-30 10:52:01', 2, NULL, '2025-12-14 04:38:04', '2026-03-14 04:38:04', '2025-12-14 04:31:39', '2026-01-06 04:27:25'),
+(23, 'Mohanish Mohan Padwal', 'mohanish.padwal@alembic.co.in', '09773359332', '$2a$10$AOZOUF.2nL6xqEuzanyhmeWdvx9WAAL1xynW3pCotHhFH.w3nWVfW', 9, 2, 1, 16, 1, NULL, 'active', '2026-01-09 05:31:33', 0, NULL, '2025-12-12 11:53:26', '2026-03-12 11:53:26', '2025-12-12 11:52:18', '2026-01-09 05:31:33'),
+(24, 'Bhagwan Parab', 'bhagwan.parab@alembic.co.in', '1234567890', '$2a$10$2XIulHDrk2Im5mZeQjLLuOYHADiB/2EINYZSX5vHiEAJYDDXZC69i', 9, 2, 1, 16, 1, NULL, 'active', '2026-01-08 10:16:34', 0, NULL, '2025-12-14 04:38:04', '2026-03-14 04:38:04', '2025-12-14 04:31:39', '2026-01-08 10:16:34'),
 (25, 'Navneet Pathak', 'navneet.dpathak@alembic.co.in', '1234567890', '$2a$10$wGYowJV5gVFzoNClx15eHugTJMyDhW2gxrX6t2V/7VbunKgtd5Elm', 9, 4, 1, 20, 1, NULL, 'active', NULL, 0, NULL, '2025-12-14 04:39:21', '2026-03-14 04:39:21', '2025-12-14 04:31:56', '2025-12-14 04:39:21'),
-(26, 'Reshma Bastav', 'reshma.bastav@alembic.co.in', '1234567890', '$2a$10$ivzYIQLQfac/CCPjnrPJYul6b29va/Ux2b6I.FfvYutcUXXR6H9zy', 9, 4, 1, 20, 1, NULL, 'active', '2025-12-16 10:59:00', 0, NULL, '2025-12-14 04:40:18', '2026-03-14 04:40:18', '2025-12-14 04:32:07', '2025-12-16 10:59:00'),
+(26, 'Reshma Bastav', 'reshma.bastav@alembic.co.in', '1234567890', '$2a$10$ivzYIQLQfac/CCPjnrPJYul6b29va/Ux2b6I.FfvYutcUXXR6H9zy', 9, 4, 1, 20, 1, NULL, 'active', '2026-01-08 09:34:40', 0, NULL, '2025-12-14 04:40:18', '2026-03-14 04:40:18', '2025-12-14 04:32:07', '2026-01-08 09:34:40'),
 (27, 'Vikram Rai', 'vikramr.rai@alembic.co.in', '1234567890', '$2a$10$b3PR0RPWM0GmJPUR.4kB9O0saawBEBL9kxivbnzwY8IKi3sbYqHQO', 9, 2, 1, 16, 1, NULL, 'active', NULL, 0, NULL, '2025-12-14 04:41:23', '2026-03-14 04:41:23', '2025-12-14 04:32:17', '2025-12-14 04:41:23'),
 (28, 'Divya Raval', 'divya.iraval@alembic.co.in', '1234567890', '$2a$10$nml3wGBIR/PieYeTFVCSgut3wrI510QFdoU5u8xfa46FCf6p0ser6', 9, 4, 1, 20, 1, NULL, 'active', NULL, 1, NULL, '2025-12-14 04:42:20', '2026-03-14 04:42:20', '2025-12-14 04:32:26', '2026-01-06 04:09:13'),
 (29, 'Vinisha Chadala', 'vinisha.chadala@alembic.co.in', '1234567890', '$2a$10$g1TEpra8L50gQpQd6j.v3eg9x1YWFfnybw3gyg0tytG3EYDLDGkHu', 9, 4, 1, 20, 1, NULL, 'active', NULL, 0, NULL, '2025-12-14 04:42:43', '2026-03-14 04:42:43', '2025-12-14 04:32:33', '2025-12-14 04:42:43'),
-(30, 'Mahesh Morye', 'mahesh.morye@alembic.co.in', '1234567890', '$2a$10$a1JVnJq1Sf3QpE78DNwBNugdz.WPZcsi7EYNVjQkvtY03yq.EM622', 9, 4, 1, 20, 1, NULL, 'active', NULL, 0, NULL, '2025-12-14 04:43:19', '2026-03-14 04:43:19', '2025-12-14 04:32:42', '2025-12-14 04:43:19'),
+(30, 'Mahesh Morye', 'mahesh.morye@alembic.co.in', '1234567890', '$2a$10$a1JVnJq1Sf3QpE78DNwBNugdz.WPZcsi7EYNVjQkvtY03yq.EM622', 9, 4, 1, 20, 1, NULL, 'active', '2026-01-09 02:53:16', 0, NULL, '2025-12-14 04:43:19', '2026-03-14 04:43:19', '2025-12-14 04:32:42', '2026-01-09 02:53:16'),
 (31, 'Prashant Khade', 'prashant.khade@alembic.co.in', '1234567890', '$2a$10$mRmXTEho4.qtSInLK5c/FOQa.mc7.sk15bagCwCA1OWm/3Id/9gva', 9, 4, 1, 20, 1, NULL, 'active', NULL, 0, NULL, '2025-12-14 04:43:46', '2026-03-14 04:43:46', '2025-12-14 04:32:49', '2025-12-14 04:43:46'),
 (32, 'Arvind Jha', 'arvind.jha@alembic.co.in', '1234567890', '$2a$10$vExiN38pEpNMrBlADsZ5ceIVtGi5F1Jolhsj9tJQ/fMkSz/0tDTMK', 1, 5, 1, 8, 1, NULL, 'active', NULL, 0, NULL, '2025-12-14 04:44:59', '2026-03-14 04:44:59', '2025-12-14 04:32:55', '2025-12-14 04:44:59'),
 (33, 'Paresh Sable', 'paresh.sable@alembic.co.in', '1234567890', '$2a$10$hdtG4e3EwW9gKWTiUloEn.1VDplMYBQtAJduPshVoRGpSP0C0/v/K', 1, 5, 1, 8, 1, NULL, 'active', NULL, 0, NULL, '2025-12-14 04:46:15', '2026-03-14 04:46:15', '2025-12-14 04:33:02', '2025-12-14 04:46:15'),
@@ -2790,17 +2861,26 @@ INSERT INTO `users` (`id`, `name`, `email`, `phone`, `password`, `department_id`
 (38, 'Balgovind Shanbhag', 'balgovind.s@alembic.co.in', '9131193467', '$2a$10$cfvJQvsgnLPR2oLORVC5seOk1QvsXFPCeD2FJn9NxyvhmE2k7VA6i', 9, 4, 1, 20, 1, NULL, 'active', '2025-12-16 06:24:59', 0, NULL, '2025-12-16 06:24:19', '2026-03-16 06:24:19', '2025-12-16 06:22:37', '2025-12-16 06:24:59'),
 (39, 'Satish Darji', 'satish.darji@alembic.co.in', '9979626884', '$2a$10$GvjARWO02Oo0yYHKUUIHZOmOmjpMPuyKEnoMDysiRYMh9fQH0SYvK', 1, 6, 3, 12, 1, NULL, 'active', '2026-01-05 06:16:00', 0, NULL, '2026-01-05 06:14:29', '2026-04-05 06:14:29', '2026-01-05 06:12:02', '2026-01-05 06:16:00'),
 (40, 'vinod bhat', 'vinod.bhat@alembic.co.in', '8591586497', '$2a$10$MF3ut/I1JIG8nkWYo6ducOgJ/2HbnM6P64nzlSDX8vMtIsWM3Wuw6', 7, 7, 1, 7, 1, NULL, 'active', NULL, 0, NULL, '2026-01-05 07:42:35', '2026-04-05 07:42:35', '2026-01-05 07:37:10', '2026-01-05 07:42:35'),
-(41, 'Haardi Patel', 'haardi.patel@alembic.co.in', '7666531470', '$2a$10$TA9y06ZKFgbSrdZ/Wgo2He89JtosZ09aWJQB8A0oxcha.JnqSd0ki', 1, 6, 1, 13, 1, NULL, 'active', '2026-01-05 08:27:27', 0, NULL, '2026-01-05 08:27:06', '2026-04-05 08:27:06', '2026-01-05 08:25:46', '2026-01-05 08:27:27'),
+(41, 'Haardi Patel', 'haardi.patel@alembic.co.in', '7666531470', '$2a$10$TA9y06ZKFgbSrdZ/Wgo2He89JtosZ09aWJQB8A0oxcha.JnqSd0ki', 1, 6, 1, 13, 1, NULL, 'active', '2026-01-08 08:51:10', 0, NULL, '2026-01-05 08:27:06', '2026-04-05 08:27:06', '2026-01-05 08:25:46', '2026-01-08 08:51:10'),
 (42, 'Manal Jain', 'manal.jain@alembic.co.in', '7230085858', '$2a$10$U8Tk1.G41xpp3CePfpZzu.SaA8WKHwxCTZET7Yq5n7QG/WxTSbe56', 1, 6, 1, 12, 1, NULL, 'active', '2026-01-05 09:11:29', 0, NULL, '2026-01-05 09:11:13', '2026-04-05 09:11:13', '2026-01-05 09:09:25', '2026-01-05 09:11:29'),
 (43, 'Nidhi Baheti', 'nidhi.baheti@alembic.co.in', '7303506900', '$2a$10$svPyvEC3qEPDvPj9/Vzl3.aGl6iYOfWLKTumkI19A4etBbyJjlKM2', 1, 6, 1, 11, 1, NULL, 'active', '2026-01-05 09:49:09', 0, NULL, '2026-01-05 09:48:46', '2026-04-05 09:48:46', '2026-01-05 09:46:40', '2026-01-05 09:49:09'),
 (44, 'Mitesh Patil', 'mitesh.patil@alembic.co.in', '9049199015', '$2a$10$IwJn9SQf/bs9RNnNW.yNmOdkmQE8ZKjxgxt50UaHiQVbqLRa3r2Xu', 1, 6, 1, 11, 1, NULL, 'active', '2026-01-05 10:17:24', 0, NULL, '2026-01-05 10:16:54', '2026-04-05 10:16:54', '2026-01-05 10:15:04', '2026-01-05 10:17:24'),
-(45, 'Gautam Baranwal', 'gautam.baranwal@alembic.co.in', '9028268048', '$2a$10$sCQcRU6g2NJb9Xo2JaSw/uXGsSxMe/uAWQ.hNEgaelIe76sSi3dPG', 9, 4, 1, 19, 1, NULL, 'active', '2026-01-05 10:49:04', 0, NULL, '2026-01-05 10:48:39', '2026-04-05 10:48:39', '2026-01-05 10:46:10', '2026-01-05 10:49:04'),
+(45, 'Gautam Baranwal', 'gautam.baranwal@alembic.co.in', '9028268048', '$2a$12$jowUAQR6ne1PbTUQ6IFfvOOSCD9yhoqVYn.iNLExkmJNHklt7XSWe', 9, 4, 1, 19, 1, NULL, 'active', '2026-01-09 05:23:55', 0, NULL, '2026-01-09 05:23:46', '2026-04-05 10:48:39', '2026-01-05 10:46:10', '2026-01-09 05:23:55'),
 (46, NULL, 'kunal.mukhopadhaya@alembic.co.in', NULL, NULL, NULL, NULL, NULL, NULL, 0, 'eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..TGcgyXB49znh0PP_.Ow7xu1lTb-YfU9Wyj1soMqK10iiXYeOkLRK70gfgsuFX0M-AGUg6IPDoZ81WLDDb9uescgnMbrz_e2Emau9kJkg4XjaO3FBo1VGGoXaoRRdWbc6C-sU_YhaKO3vkzJpECw.FtAISU7_uNdI7L25KNDHag', 'pending', NULL, 0, NULL, NULL, NULL, '2026-01-05 10:51:50', '2026-01-05 10:54:09'),
 (47, NULL, 'omkar.shinde@alembic.co.in', NULL, NULL, NULL, NULL, NULL, NULL, 1, NULL, 'pending', NULL, 0, NULL, NULL, NULL, '2026-01-05 13:13:50', '2026-01-05 13:30:51'),
 (48, 'Nilesh Khedekar', 'nilesh.khedekar@alembic.co.in', '9664844205', '$2a$10$rH7JqrFNVGPnFYb181lJeub5iywzDwYCS/xWBu3Iv6Dog2XcvGI7O', 9, 4, 1, 19, 1, NULL, 'active', '2026-01-06 04:18:16', 0, NULL, '2026-01-06 04:18:01', '2026-04-06 04:18:01', '2026-01-06 04:15:52', '2026-01-06 04:18:16'),
-(49, 'Gaurav Karnik', 'gaurav.karnik@alembic.co.in', '8898008069', '$2a$10$.Jys.Ca1TRNVxTSbuynqdOOM9NR22cVsjAgAHXI0tKmZgWKUrmOqi', 9, 4, 1, 19, 1, NULL, 'active', '2026-01-06 04:17:48', 0, NULL, '2026-01-06 04:17:38', '2026-04-06 04:17:38', '2026-01-06 04:15:56', '2026-01-06 04:17:48'),
+(49, 'Gaurav Karnik', 'gaurav.karnik@alembic.co.in', '8898008069', '$2a$10$.Jys.Ca1TRNVxTSbuynqdOOM9NR22cVsjAgAHXI0tKmZgWKUrmOqi', 9, 4, 1, 19, 1, NULL, 'active', '2026-01-09 03:15:37', 0, NULL, '2026-01-06 04:17:38', '2026-04-06 04:17:38', '2026-01-06 04:15:56', '2026-01-09 03:15:37'),
 (50, 'Sanket Chandrakanat  Patade', 'sanket.patade@alembic.co.in', '7208509096', '$2a$10$o6yuw0Ctc.SCjV9SPHtou.CXFhi2P05eahGcmkGiEGHp0c4Q0K3PW', 9, 4, 1, 20, 1, NULL, 'active', '2026-01-06 04:23:04', 0, NULL, '2026-01-06 04:22:46', '2026-04-06 04:22:46', '2026-01-06 04:20:24', '2026-01-06 04:23:04'),
-(51, 'Milind Balkrushna Shelar', 'milind.shelar@alembic.co.in', '9029832351', '$2a$10$GEUpj7eGOpn6hF3Se.qzsONUTR/TTYW0WUDCPdZ8guQfjzpjw3OpS', 9, 4, 1, 19, 1, NULL, 'active', '2026-01-06 04:25:25', 0, NULL, '2026-01-06 04:25:07', '2026-04-06 04:25:07', '2026-01-06 04:21:35', '2026-01-06 04:25:25');
+(51, 'Milind Balkrushna Shelar', 'milind.shelar@alembic.co.in', '9029832351', '$2a$10$GEUpj7eGOpn6hF3Se.qzsONUTR/TTYW0WUDCPdZ8guQfjzpjw3OpS', 9, 4, 1, 19, 1, NULL, 'active', '2026-01-08 05:05:19', 0, NULL, '2026-01-06 04:25:07', '2026-04-06 04:25:07', '2026-01-06 04:21:35', '2026-01-08 05:05:19'),
+(53, 'Tanmay Santosh Chorghe', 'tanmay.chorghe@alembic.co.in', '9822114429', '$2a$10$mN2akUcvbt7JH.YAq0EvYuKlVOqzKZpWrW2s8d5EHMTTA1BBcy2Je', 9, 8, 1, 19, 1, NULL, 'active', '2026-01-07 10:45:15', 0, NULL, '2026-01-07 10:42:39', '2026-04-07 10:42:39', '2026-01-07 10:36:34', '2026-01-07 10:45:15'),
+(58, 'Divya Kotian', 'divya.kotian@alembic.co.in', '8976259044', '$2a$10$BsiX7P3NAuzbvTggdOpH6O3pXeuKj0pbEvfwIR60SaIq7gC5UHArO', 1, 6, 1, 9, 1, NULL, 'active', '2026-01-08 08:49:03', 0, NULL, '2026-01-08 08:48:54', '2026-04-08 08:48:54', '2026-01-08 08:46:18', '2026-01-08 08:49:03'),
+(59, 'Shivam Singh', 'shivam.gsingh@alembic.co.in', '8956999916', '$2a$10$fH37CVILCUE/p/QqcGFe3OGUabv.rixwBbTscvRx2OwqjUsZ/hCyi', 1, 6, 1, 14, 1, NULL, 'active', '2026-01-08 08:53:19', 0, NULL, '2026-01-08 08:53:06', '2026-04-08 08:53:06', '2026-01-08 08:48:49', '2026-01-08 08:53:19'),
+(60, 'Sumeet Paradkar', 'sumeet.paradkar@alembic.co.in', '9867422974', '$2a$10$dcB6Vco5ISuB4KA0jp6Vr.Y07d6Xl956DmuvQqfRYNkfDgHMpVzAu', 1, 6, 1, 12, 1, NULL, 'active', '2026-01-08 09:08:01', 0, NULL, '2026-01-08 09:07:33', '2026-04-08 09:07:33', '2026-01-08 09:04:47', '2026-01-08 09:08:01'),
+(61, 'Vivek Vishwakarma', 'vivek.v@alembic.co.in', '9821778497', '$2a$10$HAx5TgErf2LT4ThVvxvEcOck8xq2iDHNZn/Fm1cfM4TugPdt3TkHO', 9, 4, 1, 18, 1, NULL, 'active', '2026-01-08 09:59:24', 0, NULL, '2026-01-08 09:59:13', '2026-04-08 09:59:13', '2026-01-08 09:12:50', '2026-01-08 09:59:24'),
+(62, 'Angana Prakash Patil', 'angana.patil@alembic.co.in', '8591157125', '$2a$10$MS.FGF3ijl4REvUPejFbOedAEPNfvRRAtNC73w9BC3Vyy0E9gYCO6', 9, 4, 1, 20, 1, NULL, 'active', '2026-01-08 10:02:19', 0, NULL, '2026-01-08 10:02:09', '2026-04-08 10:02:09', '2026-01-08 10:01:03', '2026-01-08 10:02:19'),
+(63, 'Pooja Kirpekar', 'pooja.kirpekar@alembic.co.in', '9930115920', '$2a$10$6hoaAb.EicmP3Y31gfNTS.ALyxmOXMmPwyjedtcI3AgPtfbkVaUIK', 8, 2, 1, 16, 1, NULL, 'active', '2026-01-08 10:46:05', 0, NULL, '2026-01-08 10:45:37', '2026-04-08 10:45:37', '2026-01-08 10:43:56', '2026-01-08 10:46:05'),
+(64, 'Lopamudra Chakraborty', 'Lopamudra.c@alembic.co.in', '9693294111', '$2a$10$9k.O6cgdMcHtLISqTc4TqePToBrqtSyTxhgZeDqP4fphVLW6BoSsS', 1, 6, 1, 11, 1, NULL, 'active', '2026-01-09 03:57:40', 0, NULL, '2026-01-09 03:57:15', '2026-04-09 03:57:15', '2026-01-09 03:54:07', '2026-01-09 03:57:40'),
+(65, NULL, 'jayesh.mishra@alembic.co.in', NULL, NULL, NULL, NULL, NULL, NULL, 1, NULL, 'pending', NULL, 0, NULL, NULL, NULL, '2026-01-09 05:27:46', '2026-01-09 05:28:38');
 
 -- --------------------------------------------------------
 
@@ -2852,7 +2932,15 @@ INSERT INTO `user_divisions` (`id`, `user_id`, `division_id`, `created_at`, `upd
 (51, 49, 1, '2026-01-06 04:17:38', '2026-01-06 04:17:38'),
 (52, 48, 1, '2026-01-06 04:18:01', '2026-01-06 04:18:01'),
 (53, 50, 1, '2026-01-06 04:22:46', '2026-01-06 04:22:46'),
-(54, 51, 1, '2026-01-06 04:25:07', '2026-01-06 04:25:07');
+(54, 51, 1, '2026-01-06 04:25:07', '2026-01-06 04:25:07'),
+(56, 53, 1, '2026-01-07 10:42:39', '2026-01-07 10:42:39'),
+(64, 58, 29, '2026-01-08 08:48:54', '2026-01-08 08:48:54'),
+(65, 59, 29, '2026-01-08 08:53:06', '2026-01-08 08:53:06'),
+(66, 60, 33, '2026-01-08 09:07:33', '2026-01-08 09:07:33'),
+(67, 61, 1, '2026-01-08 09:59:13', '2026-01-08 09:59:13'),
+(68, 62, 1, '2026-01-08 10:02:09', '2026-01-08 10:02:09'),
+(69, 63, 6, '2026-01-08 10:45:37', '2026-01-08 10:45:37'),
+(70, 64, 24, '2026-01-09 03:57:15', '2026-01-09 03:57:15');
 
 -- --------------------------------------------------------
 
@@ -2883,7 +2971,14 @@ CREATE TABLE `work_requests` (
 
 INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `request_type_id`, `project_id`, `description`, `about_project`, `priority`, `status`, `requested_at`, `remarks`, `created_at`, `updated_at`) VALUES
 (140, 23, 'Petal_POB_tracker', 'Test Brand', 4, 19, 'The useToaster() hook provides a headless toast management system for building custom notification UIs. It manages toast state and lifecycle without rendering any components.\r\n\r\nIt handles pausing on hover, auto-removal, and provides a 1-second removal delay with visible flag for smooth animations.The useToaster() hook provides a headless toast management system for building custom notification UIs. It manages toast state and lifecycle without rendering any components.\r\n\r\nIt handles pausing on hover, auto-removal, and provides a 1-second removal delay with visible flag for smooth animations.', '{\"output_devices\":[\"Mobile\",\"iPad 10\"],\"target_audience\":[\"Doctors\",\"Others\"]}', 'high', 'assigned', '2025-12-30 08:54:14', '', '2025-12-30 08:54:14', '2026-01-05 10:56:26'),
-(141, 20, 'Esolembic-D Gamification Activity Maxis_Frontend', 'Test Brand', 4, 20, 'The useToaster() hook provides a headless toast management system for building custom notification UIs. It manages toast state and lifecycle without rendering any components.The useToaster() hook provides a headless toast management system for building custom notification UIs. It manages toast state and lifecycle without rendering any components.The useToaster() hook provides a headless toast management system for building custom notification UIs. It manages toast state and lifecycle without rende', '{\"output_devices\":[\"iPad 9\",\"iPad 10\"],\"target_audience\":[\"Chemists\",\"Others\"]}', 'high', 'assigned', '2025-12-30 09:07:23', '', '2025-12-30 09:07:23', '2025-12-31 09:15:36');
+(141, 20, 'Esolembic-D Gamification Activity Maxis_Frontend', 'Test Brand', 4, 20, 'The useToaster() hook provides a headless toast management system for building custom notification UIs. It manages toast state and lifecycle without rendering any components.The useToaster() hook provides a headless toast management system for building custom notification UIs. It manages toast state and lifecycle without rendering any components.The useToaster() hook provides a headless toast management system for building custom notification UIs. It manages toast state and lifecycle without rende', '{\"output_devices\":[\"iPad 9\",\"iPad 10\"],\"target_audience\":[\"Chemists\",\"Others\"]}', 'high', 'assigned', '2025-12-30 09:07:23', '', '2025-12-30 09:07:23', '2026-01-09 06:14:22'),
+(142, 58, 'VALENTINE', 'gestofit', 1, 1, 'Valentine’s Day Customized Photoframe for Doctors\r\n\r\nA thoughtfully designed customized photoframe as a Valentine’s Day token, celebrating the doctor’s dedication, compassion, and the trusted bond they share with patients and partners.\r\n\r\nConcept & Purpose\r\nThe photoframe symbolizes care, commitment, and partnership—aligning Valentine’s Day with the values of healthcare. It serves as a long-lasting desk or clinic décor that gently reinforces emotional connection rather than a commercial gesture.\r\n\r\nCustomization Elements\r\n\r\nDoctor’s Name & Specialization elegantly printed or engraved\r\n\r\nClinic / Hospital Name (optional)\r\n\r\nValentine’s Day theme message, such as:\r\n“With care, trust & commitment — Happy Valentine’s Day”', '{\"output_devices\":[\"Mobile\"],\"target_audience\":[\"Doctors\"]}', 'low', 'pending', '2026-01-08 08:53:52', '', '2026-01-08 08:53:52', '2026-01-08 08:53:52'),
+(143, 59, 'DermaVidya Standee', 'Oryza ', 1, 1, 'DermaVidya connects dermatologists to a comprehensive world of trusted knowledge, education, and clinical resources. It offers access to IMCAS Academy Premium, Magzter publications, expert-led procedural videos, dermatology journals, e-books, and personalized patient education. The platform is thoughtfully designed to support continuous medical learning, enhance clinical expertise, and deliver valuable global insights in dermatology practice.', '{\"output_devices\":[\"Print\"],\"target_audience\":[\"Doctors\"]}', 'critical', 'accepted', '2026-01-08 09:01:56', '', '2026-01-08 09:01:56', '2026-01-08 09:06:46'),
+(144, 41, 'Valentine\'s Day frame', 'Azithral, Gestofit, tellzy', 1, 2, 'A specially designed Valentine’s Day photo frame for doctors, allowing each doctor to upload their own photo, receive a personalized version with their name, and easily download it. A thoughtful, professional keepsake celebrating doctors with a warm Valentine’s Day theme. with the branding of Azithral os and azithral ol. Gestofit  and tellzy', '{\"output_devices\":[\"Print\"],\"target_audience\":[\"Doctors\"]}', 'medium', 'pending', '2026-01-08 09:03:02', '', '2026-01-08 09:03:02', '2026-01-08 09:03:02'),
+(145, 60, 'PEDICON FLYERS', 'PEDICON', 1, 7, 'Requirement for the creation of Flyers for PEDICON. The conference is from 16 Jan to 20 Jan (days), so there would be a requirement for the creation of 5 Flyers. The format for the same is sent on mail to Bhagwan sir. Request to take this up on urgent basis since the date of conference is approaching,\r\n', '{\"output_devices\":[\"Mobile\"],\"target_audience\":[\"Doctors\"]}', 'high', 'accepted', '2026-01-08 09:21:07', '', '2026-01-08 09:21:07', '2026-01-08 09:46:52'),
+(146, 60, 'Reminder Flyers for PEDICON', 'PEDICON', 1, 7, 'Request you provide with Reminder Flyers for PEDICON( Just like you provided for AOICON)\r\nFormat- 3 days to go, 2 days to go, 1 day to go. Requesting this to provide before Monday since we need to flash it before 16th Jan. Fir the AICON task, this was done by Vivek, accordingly request to do this for PEDICON, \r\nPharma Division: Cloff OL, Vitaresp Fx Suspension\r\nMaxis: Brozeet-Ls, Wikoryl Liq\r\nMegacare: Azithral Xl Liquid, Laveta M syrup\r\n', '{\"output_devices\":[\"Mobile\"],\"target_audience\":[\"Doctors\"]}', 'high', 'accepted', '2026-01-08 09:30:04', '', '2026-01-08 09:30:04', '2026-01-08 09:56:55'),
+(147, 63, 'Alembic Health First_New Design', 'Internal Communications', 1, 6, 'As per our Employee engagement calendar the next activity shall be \'Alembic Health First\' .\r\n\r\nThe virtual program is planned for the employees and their families scheduled on 18th Jan 2026 on Zoom. \r\n\r\nBelow are tentative topics / theme to be covered in the sessions. \r\n1. Home remedies for common ailments\r\n2. Food combinations and the right time to eat them - for immunity and strength\r\n3. Food & remedies for a healthy structure - prevent soreness, aches & strengthen joints\r\n4. Lifestyle hacks for recovery and hydration\r\n', '{\"output_devices\":[\"Desktop\",\"Mobile\",\"iPad 9\",\"iPad 10\"],\"target_audience\":[\"Alembic HO\",\"Field Representatives\"]}', 'medium', 'pending', '2026-01-08 10:53:19', '', '2026-01-08 10:53:19', '2026-01-08 10:53:19'),
+(148, 20, 'Reach Her Website', 'Richar CR', 4, 28, 'Your organisation has partnered with Great Place To Work, the global authority on workplace culture, to collect feedback on your experience at work to help us understand how to create a high-trust and consistently positive employee experience. \r\n\r\nRest assured that your participation in the survey is entirely optional. There are no mandatory questions - you are free to choose to reply to all, some or none of the questions. \r\n\r\nThe survey takes approximately 15 minutes to complete. If you would like your feedback to be included in the survey results, please submit your response no later than the date below.', '{\"output_devices\":[\"Print\",\"Desktop\",\"iPad 10\"],\"target_audience\":[\"Others\",\"Doctors\"]}', 'high', 'pending', '2026-01-09 06:33:55', '', '2026-01-09 06:33:55', '2026-01-09 06:33:55');
 
 -- --------------------------------------------------------
 
@@ -2910,7 +3005,11 @@ INSERT INTO `work_request_documents` (`id`, `work_request_id`, `document_name`, 
 (250, 140, 'projectIcon_sm_grey.svg', '/digilabs/dmap/api/uploads/Petal_POB_tracker/projectIcon_sm_grey.svg-1767084854477-970455015.svg', 'image/svg+xml', 879, 'uploaded', '2025-12-30 08:54:14'),
 (251, 140, 'issueIcon.svg', '/digilabs/dmap/api/uploads/Petal_POB_tracker/issueIcon.svg-1767084854498-995410166.svg', 'image/svg+xml', 633, 'uploaded', '2025-12-30 08:54:14'),
 (252, 141, 'projectIcon_sm_grey.svg', '/digilabs/dmap/api/uploads/Esolembic_D_Gamification_Activity_Maxis_Frontend/projectIcon_sm_grey.svg-1767085643590-704459342.svg', 'image/svg+xml', 879, 'uploaded', '2025-12-30 09:07:23'),
-(253, 141, 'issueIcon.svg', '/digilabs/dmap/api/uploads/Esolembic_D_Gamification_Activity_Maxis_Frontend/issueIcon.svg-1767085643596-551194679.svg', 'image/svg+xml', 633, 'uploaded', '2025-12-30 09:07:23');
+(253, 141, 'issueIcon.svg', '/digilabs/dmap/api/uploads/Esolembic_D_Gamification_Activity_Maxis_Frontend/issueIcon.svg-1767085643596-551194679.svg', 'image/svg+xml', 633, 'uploaded', '2025-12-30 09:07:23'),
+(254, 143, 'Dermatimes --.pptx', '/digilabs/dmap/api/uploads/DermaVidya_Standee/Dermatimes___.pptx-1767862916919-611841720.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 272038, 'uploaded', '2026-01-08 09:01:56'),
+(255, 144, 'valentine\'s day framer.pptx', '/digilabs/dmap/api/uploads/Valentine_s_Day_frame/valentine_s_day_framer.pptx-1767862982135-416756147.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 174254, 'uploaded', '2026-01-08 09:03:02'),
+(256, 145, 'PEDICON Flyers draft.pptx', '/digilabs/dmap/api/uploads/PEDICON_FLYERS/PEDICON_Flyers_draft.pptx-1767864067348-88573837.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 44835, 'uploaded', '2026-01-08 09:21:07'),
+(257, 148, 'Asset 1.svg', '/digilabs/dmap/api/uploads/Reach_Her_Website/Asset_1.svg-1767940435701-492800421.svg', 'image/svg+xml', 2791, 'uploaded', '2026-01-09 06:33:55');
 
 -- --------------------------------------------------------
 
@@ -2934,7 +3033,15 @@ INSERT INTO `work_request_managers` (`id`, `work_request_id`, `manager_id`, `cre
 (164, 140, 21, '2025-12-30 08:54:14', '2025-12-30 08:54:14'),
 (165, 140, 23, '2025-12-30 08:54:14', '2025-12-30 08:54:14'),
 (166, 141, 21, '2025-12-30 09:07:23', '2025-12-30 09:07:23'),
-(167, 141, 23, '2025-12-30 09:07:23', '2025-12-30 09:07:23');
+(167, 141, 23, '2025-12-30 09:07:23', '2025-12-30 09:07:23'),
+(168, 142, 24, '2026-01-08 08:53:52', '2026-01-08 08:53:52'),
+(169, 143, 24, '2026-01-08 09:01:56', '2026-01-08 09:01:56'),
+(170, 144, 24, '2026-01-08 09:03:02', '2026-01-08 09:03:02'),
+(171, 145, 24, '2026-01-08 09:21:07', '2026-01-08 09:21:07'),
+(172, 146, 24, '2026-01-08 09:30:04', '2026-01-08 09:30:04'),
+(173, 147, 24, '2026-01-08 10:53:19', '2026-01-08 10:53:19'),
+(174, 148, 21, '2026-01-09 06:33:55', '2026-01-09 06:33:55'),
+(175, 148, 23, '2026-01-09 06:33:55', '2026-01-09 06:33:55');
 
 --
 -- Indexes for dumped tables
@@ -2983,7 +3090,8 @@ ALTER TABLE `designation_jobroles`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `unique_designation_jobrole` (`designation_id`,`jobrole_id`),
   ADD KEY `designation_id` (`designation_id`),
-  ADD KEY `jobrole_id` (`jobrole_id`);
+  ADD KEY `jobrole_id` (`jobrole_id`),
+  ADD KEY `department_id` (`department_id`);
 
 --
 -- Indexes for table `division`
@@ -3073,10 +3181,10 @@ ALTER TABLE `task_dependencies`
   ADD PRIMARY KEY (`id`),
   ADD KEY `task_id` (`task_id`),
   ADD KEY `dependency_task_id` (`dependency_task_id`);
+
 --
 -- Indexes for table `task_documents`
 --
-
 ALTER TABLE `task_documents`
   ADD PRIMARY KEY (`id`),
   ADD KEY `task_assignment_id` (`task_assignment_id`),
@@ -3186,7 +3294,7 @@ ALTER TABLE `designation_departments`
 -- AUTO_INCREMENT for table `designation_jobroles`
 --
 ALTER TABLE `designation_jobroles`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=71;
 
 --
 -- AUTO_INCREMENT for table `division`
@@ -3204,7 +3312,7 @@ ALTER TABLE `issue_register`
 -- AUTO_INCREMENT for table `job_role`
 --
 ALTER TABLE `job_role`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
 
 --
 -- AUTO_INCREMENT for table `location`
@@ -3246,19 +3354,19 @@ ALTER TABLE `sales`
 -- AUTO_INCREMENT for table `tasks`
 --
 ALTER TABLE `tasks`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=40;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=49;
 
 --
 -- AUTO_INCREMENT for table `task_assignments`
 --
 ALTER TABLE `task_assignments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=46;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=55;
 
 --
 -- AUTO_INCREMENT for table `task_dependencies`
 --
 ALTER TABLE `task_dependencies`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- AUTO_INCREMENT for table `task_documents`
@@ -3282,31 +3390,31 @@ ALTER TABLE `task_type`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=52;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=66;
 
 --
 -- AUTO_INCREMENT for table `user_divisions`
 --
 ALTER TABLE `user_divisions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=55;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=71;
 
 --
 -- AUTO_INCREMENT for table `work_requests`
 --
 ALTER TABLE `work_requests`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=142;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=149;
 
 --
 -- AUTO_INCREMENT for table `work_request_documents`
 --
 ALTER TABLE `work_request_documents`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=254;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=258;
 
 --
 -- AUTO_INCREMENT for table `work_request_managers`
 --
 ALTER TABLE `work_request_managers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=168;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=176;
 
 --
 -- Constraints for dumped tables
@@ -3331,7 +3439,8 @@ ALTER TABLE `designation_departments`
 --
 ALTER TABLE `designation_jobroles`
   ADD CONSTRAINT `designation_jobroles_ibfk_1` FOREIGN KEY (`designation_id`) REFERENCES `designation` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `designation_jobroles_ibfk_2` FOREIGN KEY (`jobrole_id`) REFERENCES `job_role` (`id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `designation_jobroles_ibfk_2` FOREIGN KEY (`jobrole_id`) REFERENCES `job_role` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_jobroles_department` FOREIGN KEY (`department_id`) REFERENCES `department` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `division`

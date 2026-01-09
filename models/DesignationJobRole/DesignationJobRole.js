@@ -23,6 +23,14 @@ const DesignationJobRole = sequelize.define('DesignationJobRole', {
             key: 'id',
         },
     },
+    department_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: 'department',
+            key: 'id',
+        },
+    },
     created_at: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW,

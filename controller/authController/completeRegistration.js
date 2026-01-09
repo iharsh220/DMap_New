@@ -18,8 +18,14 @@ const completeRegistration = async (req, res) => {
             return res.status(400).json({ success: false, error: 'At least one division is required' });
         }
 
-        // Get job role based on designation
-        const designationJobRoleResult = await designationJobRoleService.getAll({ where: { designation_id }, limit: 1 });
+        // Get job role based on designation and department
+        const designationJobRoleResult = await designationJobRoleService.getAll({
+            where: {
+                designation_id,
+                department_id
+            },
+            limit: 1
+        });
         const designationJobRole = designationJobRoleResult.success && designationJobRoleResult.data.length > 0 ? designationJobRoleResult.data[0] : null;
 
         // Find user
