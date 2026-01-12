@@ -1384,7 +1384,7 @@ const getTaskAnalytics = async (req, res) => {
 
         const manager_id = req.user.id;
 
-        // Check if work request is assigned to this manager
+        // Check if work request is assigned to this manager and get complete work request details
         const workRequestResult = await workRequestService.getAll({
             where: { id: workRequestId },
             include: [
@@ -1393,6 +1393,24 @@ const getTaskAnalytics = async (req, res) => {
                     where: { manager_id: manager_id },
                     required: true,
                     attributes: []
+                },
+                {
+                    model: User,
+                    as: 'users',
+                    foreignKey: 'user_id',
+                    attributes: ['id', 'name', 'email', 'job_role_id', 'department_id', 'location_id', 'designation_id']
+                },
+                {
+                    model: RequestType,
+                    attributes: ['id', 'request_type', 'description']
+                },
+                {
+                    model: ProjectType,
+                    attributes: ['id', 'project_type', 'description']
+                },
+                {
+                    model: WorkRequestDocuments,
+                    attributes: ['id', 'document_name', 'document_path', 'uploaded_at', 'status']
                 }
             ],
             limit: 1
@@ -1484,14 +1502,49 @@ const getTaskAnalytics = async (req, res) => {
         });
         const smeRequest = requestTypeCount.length - 1;
 
+        // Format work request details
+        const workRequestDetails = {
+            id: workRequest.id,
+            project_name: workRequest.project_name,
+            brand: workRequest.brand,
+            description: workRequest.description,
+            about_project: workRequest.about_project,
+            priority: workRequest.priority,
+            status: workRequest.status,
+            requested_at: workRequest.requested_at,
+            remarks: workRequest.remarks,
+            created_at: workRequest.created_at,
+            updated_at: workRequest.updated_at,
+            user: workRequest.users ? {
+                id: workRequest.users.id,
+                name: workRequest.users.name,
+                email: workRequest.users.email,
+                job_role_id: workRequest.users.job_role_id,
+                department_id: workRequest.users.department_id,
+                location_id: workRequest.users.location_id,
+                designation_id: workRequest.users.designation_id
+            } : null,
+            request_type: workRequest.RequestType ? {
+                id: workRequest.RequestType.id,
+                request_type: workRequest.RequestType.request_type,
+                description: workRequest.RequestType.description
+            } : null,
+            project_type: workRequest.ProjectType ? {
+                id: workRequest.ProjectType.id,
+                project_type: workRequest.ProjectType.project_type,
+                description: workRequest.ProjectType.description
+            } : null,
+            documents: workRequest.WorkRequestDocuments || []
+        };
+
         const analytics = {
+            workRequest: workRequestDetails,
             totalTasks,
             publishDate,
             estimatedTAT,
             teamMembers,
             smeRequest
         };
-
 
         res.json({
             success: true,
