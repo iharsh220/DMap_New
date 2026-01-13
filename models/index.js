@@ -103,6 +103,7 @@ Tasks.hasMany(TaskDependencies, { foreignKey: 'dependency_task_id', as: 'depende
 
 Tasks.belongsToMany(User, { through: TaskAssignments, foreignKey: 'task_id', as: 'assignedUsers' });
 User.belongsToMany(Tasks, { through: TaskAssignments, foreignKey: 'user_id', as: 'assignedTasks' });
+Tasks.hasMany(TaskAssignments, { foreignKey: 'task_id' });
 TaskAssignments.belongsTo(Tasks, { foreignKey: 'task_id' });
 TaskAssignments.belongsTo(User, { foreignKey: 'user_id' });
 

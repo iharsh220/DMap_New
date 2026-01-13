@@ -288,7 +288,30 @@ const getAssignedWorkRequests = async (req, res) => {
         });
 
         if (result.success) {
-            // Add deadline field as the latest task deadline for each work request
+            // Collect unique user IDs
+            const userIds = [...new Set(result.data.map(wr => wr.user_id))];
+
+            // Fetch complete user details
+            const users = await User.findAll({
+                where: { id: { [Op.in]: userIds } },
+                include: [
+                    { model: Department, attributes: ['id', 'department_name'] },
+                    { model: JobRole, attributes: ['id', 'role_title'] },
+                    { model: Location, attributes: ['id', 'location_name'] },
+                    { model: Designation, attributes: ['id', 'designation_name'] },
+                    {
+                        model: Division,
+                        as: 'Divisions',
+                        attributes: ['id', 'title'],
+                        through: { attributes: [] }
+                    }
+                ],
+                attributes: { exclude: ['password', 'created_at', 'updated_at', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] }
+            });
+
+            const userMap = new Map(users.map(u => [u.id, u.toJSON()]));
+
+            // Add deadline field and complete user details for each work request
             for (const workRequest of result.data) {
                 if (workRequest.Tasks && workRequest.Tasks.length > 0) {
                     const latestDeadline = workRequest.Tasks.reduce((latest, task) => {
@@ -298,6 +321,9 @@ const getAssignedWorkRequests = async (req, res) => {
                 } else {
                     workRequest.dataValues.deadline = null;
                 }
+
+                // Replace users with complete details
+                workRequest.dataValues.users = userMap.get(workRequest.user_id);
             }
 
             res.json({ success: true, data: result.data, pagination: req.pagination });
@@ -338,7 +364,20 @@ const getAssignedWorkRequestById = async (req, res) => {
                         required: true,
                         attributes: []
                     },
-                    { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
+                    { model: User, as: 'users', attributes: { exclude: ['password', 'created_at', 'updated_at', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] },
+                      include: [
+                        { model: Department, attributes: ['id', 'department_name'] },
+                        { model: JobRole, attributes: ['id', 'role_title'] },
+                        { model: Location, attributes: ['id', 'location_name'] },
+                        { model: Designation, attributes: ['id', 'designation_name'] },
+                        {
+                          model: Division,
+                          as: 'Divisions',
+                          attributes: ['id', 'title'],
+                          through: { attributes: [] }
+                        }
+                      ]
+                    },
                     { model: RequestType, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, through: { attributes: [] }, attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
                     { model: WorkRequestDocuments, attributes: { exclude: ['created_at', 'updated_at'] } },
                     {
@@ -411,7 +450,20 @@ const getAssignedWorkRequestById = async (req, res) => {
                     where: { id },
                     attributes: { exclude: ['request_type_id', 'requested_manager_link_id', 'updated_at'] },
                     include: [
-                        { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
+                        { model: User, as: 'users', attributes: { exclude: ['password', 'created_at', 'updated_at', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] },
+                          include: [
+                            { model: Department, attributes: ['id', 'department_name'] },
+                            { model: JobRole, attributes: ['id', 'role_title'] },
+                            { model: Location, attributes: ['id', 'location_name'] },
+                            { model: Designation, attributes: ['id', 'designation_name'] },
+                            {
+                              model: Division,
+                              as: 'Divisions',
+                              attributes: ['id', 'title'],
+                              through: { attributes: [] }
+                            }
+                          ]
+                        },
                         { model: RequestType, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, through: { attributes: [] }, attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
                         { model: WorkRequestDocuments, attributes: { exclude: ['created_at', 'updated_at'] } },
                         {
@@ -465,6 +517,26 @@ const getAssignedWorkRequestById = async (req, res) => {
 
         if (!hasAccess || !workRequest) {
             return res.status(404).json({ success: false, error: 'Assigned work request not found' });
+        }
+
+        // Fetch complete user details with associations
+        if (workRequest.users) {
+            const userDetails = await User.findByPk(workRequest.users.id, {
+                include: [
+                    { model: Department, attributes: ['id', 'department_name'] },
+                    { model: JobRole, attributes: ['id', 'role_title'] },
+                    { model: Location, attributes: ['id', 'location_name'] },
+                    { model: Designation, attributes: ['id', 'designation_name'] },
+                    {
+                        model: Division,
+                        as: 'Divisions',
+                        attributes: ['id', 'title'],
+                        through: { attributes: [] }
+                    }
+                ],
+                attributes: { exclude: ['password', 'created_at', 'updated_at', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] }
+            });
+            workRequest.dataValues.users = userDetails.toJSON();
         }
 
         // Get user task counts (accepted + in_progress) for all assigned users
@@ -1707,7 +1779,20 @@ const getAssignedRequestsWithStatus = async (req, res) => {
                 required: true,
                 attributes: []
             },
-            { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
+            { model: User, as: 'users', attributes: { exclude: ['password', 'created_at', 'updated_at', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] },
+              include: [
+                { model: Department, attributes: ['id', 'department_name'] },
+                { model: JobRole, attributes: ['id', 'role_title'] },
+                { model: Location, attributes: ['id', 'location_name'] },
+                { model: Designation, attributes: ['id', 'designation_name'] },
+                {
+                  model: Division,
+                  as: 'Divisions',
+                  attributes: ['id', 'title'],
+                  through: { attributes: [] }
+                }
+              ]
+            },
             { model: RequestType, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, through: { attributes: [] }, attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
         ];
 

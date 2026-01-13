@@ -621,6 +621,15 @@ const getTaskById = async (req, res) => {
                             attributes: ['id', 'task_name', 'deadline', 'status']
                         }
                     ]
+                },
+                {
+                    model: TaskAssignments,
+                    include: [
+                        {
+                            model: TaskDocuments,
+                            attributes: ['id', 'document_name', 'document_path', 'document_type', 'document_size', 'status', 'uploaded_at']
+                        }
+                    ]
                 }
             ],
             attributes: { exclude: [] } // Include all attributes including timestamps
@@ -630,6 +639,9 @@ const getTaskById = async (req, res) => {
             return res.status(404).json({ success: false, error: 'Task not found' });
         }
 
+        // Flatten documents from all task assignments
+        taskResult.dataValues.documents = taskResult.taskAssignments.flatMap(ta => ta.taskDocuments || []);
+        delete taskResult.dataValues.taskAssignments;
 
         res.json({
             success: true,
