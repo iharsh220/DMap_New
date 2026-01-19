@@ -1699,7 +1699,7 @@ const getMyTeam = async (req, res) => {
                     include: [
                         {
                             model: Tasks,
-                            where: { status: { [Op.in]: ['accepted', 'in_progress'] } },
+                            where: { status: { [Op.in]: ['pending','accepted', 'in_progress'] } },
                             attributes: []
                         }
                     ]
