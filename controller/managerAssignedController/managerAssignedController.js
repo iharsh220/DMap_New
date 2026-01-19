@@ -176,7 +176,7 @@ const getAssignableUsers = async (req, res) => {
             include: [
                 {
                     model: Tasks,
-                    where: { status: { [Op.in]: ['accepted', 'in_progress'] } },
+                    where: { status: { [Op.in]: ['pending', 'accepted', 'in_progress'] } },
                     attributes: []
                 }
             ],
@@ -364,19 +364,20 @@ const getAssignedWorkRequestById = async (req, res) => {
                         required: true,
                         attributes: []
                     },
-                    { model: User, as: 'users', attributes: { exclude: ['password', 'created_at', 'updated_at', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] },
-                      include: [
-                        { model: Department, attributes: ['id', 'department_name'] },
-                        { model: JobRole, attributes: ['id', 'role_title'] },
-                        { model: Location, attributes: ['id', 'location_name'] },
-                        { model: Designation, attributes: ['id', 'designation_name'] },
-                        {
-                          model: Division,
-                          as: 'Divisions',
-                          attributes: ['id', 'title'],
-                          through: { attributes: [] }
-                        }
-                      ]
+                    {
+                        model: User, as: 'users', attributes: { exclude: ['password', 'created_at', 'updated_at', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] },
+                        include: [
+                            { model: Department, attributes: ['id', 'department_name'] },
+                            { model: JobRole, attributes: ['id', 'role_title'] },
+                            { model: Location, attributes: ['id', 'location_name'] },
+                            { model: Designation, attributes: ['id', 'designation_name'] },
+                            {
+                                model: Division,
+                                as: 'Divisions',
+                                attributes: ['id', 'title'],
+                                through: { attributes: [] }
+                            }
+                        ]
                     },
                     { model: RequestType, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, through: { attributes: [] }, attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
                     { model: WorkRequestDocuments, attributes: { exclude: ['created_at', 'updated_at'] } },
@@ -450,19 +451,20 @@ const getAssignedWorkRequestById = async (req, res) => {
                     where: { id },
                     attributes: { exclude: ['request_type_id', 'requested_manager_link_id', 'updated_at'] },
                     include: [
-                        { model: User, as: 'users', attributes: { exclude: ['password', 'created_at', 'updated_at', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] },
-                          include: [
-                            { model: Department, attributes: ['id', 'department_name'] },
-                            { model: JobRole, attributes: ['id', 'role_title'] },
-                            { model: Location, attributes: ['id', 'location_name'] },
-                            { model: Designation, attributes: ['id', 'designation_name'] },
-                            {
-                              model: Division,
-                              as: 'Divisions',
-                              attributes: ['id', 'title'],
-                              through: { attributes: [] }
-                            }
-                          ]
+                        {
+                            model: User, as: 'users', attributes: { exclude: ['password', 'created_at', 'updated_at', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] },
+                            include: [
+                                { model: Department, attributes: ['id', 'department_name'] },
+                                { model: JobRole, attributes: ['id', 'role_title'] },
+                                { model: Location, attributes: ['id', 'location_name'] },
+                                { model: Designation, attributes: ['id', 'designation_name'] },
+                                {
+                                    model: Division,
+                                    as: 'Divisions',
+                                    attributes: ['id', 'title'],
+                                    through: { attributes: [] }
+                                }
+                            ]
                         },
                         { model: RequestType, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, through: { attributes: [] }, attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
                         { model: WorkRequestDocuments, attributes: { exclude: ['created_at', 'updated_at'] } },
@@ -1430,7 +1432,7 @@ const getTasksByWorkRequestId = async (req, res) => {
             }))
         }));
 
-        
+
 
         res.json({
             success: true,
@@ -1699,7 +1701,7 @@ const getMyTeam = async (req, res) => {
                     include: [
                         {
                             model: Tasks,
-                            where: { status: { [Op.in]: ['pending','accepted', 'in_progress'] } },
+                            where: { status: { [Op.in]: ['pending', 'accepted', 'in_progress'] } },
                             attributes: []
                         }
                     ]
@@ -1779,19 +1781,20 @@ const getAssignedRequestsWithStatus = async (req, res) => {
                 required: true,
                 attributes: []
             },
-            { model: User, as: 'users', attributes: { exclude: ['password', 'created_at', 'updated_at', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] },
-              include: [
-                { model: Department, attributes: ['id', 'department_name'] },
-                { model: JobRole, attributes: ['id', 'role_title'] },
-                { model: Location, attributes: ['id', 'location_name'] },
-                { model: Designation, attributes: ['id', 'designation_name'] },
-                {
-                  model: Division,
-                  as: 'Divisions',
-                  attributes: ['id', 'title'],
-                  through: { attributes: [] }
-                }
-              ]
+            {
+                model: User, as: 'users', attributes: { exclude: ['password', 'created_at', 'updated_at', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] },
+                include: [
+                    { model: Department, attributes: ['id', 'department_name'] },
+                    { model: JobRole, attributes: ['id', 'role_title'] },
+                    { model: Location, attributes: ['id', 'location_name'] },
+                    { model: Designation, attributes: ['id', 'designation_name'] },
+                    {
+                        model: Division,
+                        as: 'Divisions',
+                        attributes: ['id', 'title'],
+                        through: { attributes: [] }
+                    }
+                ]
             },
             { model: RequestType, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, through: { attributes: [] }, attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
         ];
@@ -1919,7 +1922,7 @@ const assignTasksToUsers = async (req, res) => {
         // Only send notification for the latest task
         const user = latestTaskAssignment.User;
         const task = latestTaskAssignment.Task;
-        
+
         const userTasksMap = new Map();
         userTasksMap.set(user.id, {
             user,
@@ -2061,7 +2064,7 @@ const getUserTask = async (req, res) => {
         if (!hasCommonDivision) {
             return res.status(403).json({ success: false, error: 'User is not assigned to you' });
         }
-        
+
         const tasks = await TaskAssignments.findAll({
             where: { user_id: user_id },
             include: [
@@ -2087,16 +2090,16 @@ const getUserTask = async (req, res) => {
             attributes: ['id'],
             order: [['created_at', 'DESC']]
         });
-        
-        
+
+
         // If no tasks found, try a simpler query to check if assignments exist
         if (tasks.length === 0) {
             const simpleAssignments = await TaskAssignments.findAll({
                 where: { user_id: user_id },
                 attributes: ['id', 'task_id']
             });
-            
-            
+
+
             if (simpleAssignments.length > 0) {
                 const taskIds = simpleAssignments.map(sa => sa.task_id);
                 const directTasks = await Tasks.findAll({
@@ -2107,14 +2110,14 @@ const getUserTask = async (req, res) => {
         }
 
         // Format the response
-        
+
         const formattedTasks = tasks.map(task => {
             // Check the actual structure of the task object
-            
+
             // Based on the error, the task object might be the TaskAssignments directly
             // Let's try to access it differently
             let taskData = null;
-            
+
             // Try different ways to access the task data
             if (task.Tasks) {
                 // Original way
