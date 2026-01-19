@@ -640,7 +640,7 @@ const getTaskById = async (req, res) => {
         }
 
         // Flatten documents from all task assignments
-        taskResult.dataValues.documents = taskResult.taskAssignments.flatMap(ta => ta.taskDocuments || []);
+        taskResult.dataValues.documents = (taskResult.taskAssignments || []).flatMap(ta => ta.taskDocuments || []);
         delete taskResult.dataValues.taskAssignments;
 
         res.json({
