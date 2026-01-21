@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "513236bd-f3cb-444b-8b17-dc4e7017b8ad",
+		"_postman_id": "c2e9f9d4-7020-433e-a0cb-e9b51b68e27e",
 		"name": "D-Map API",
 		"description": "API collection for D-Map application",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
@@ -22,7 +22,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"email\": \"harsh.gohil@alembic.co.in\"\n}"
+							"raw": "{\n  \"email\": \"angana.patil@alembic.co.in\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/digilabs/dmap/api/auth/initiate-registration",
@@ -148,7 +148,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "// {\n//   \"identifier\": \"nikhil.nadkar@alembic.co.in\",\n//   \"password\": \"Harsh@1234\",\n//   \"loginType\": \"email\"\n// }\n\n// {\n//   \"identifier\": \"mohanish.padwal@alembic.co.in\",\n//   \"password\": \"Harsh@1234\",\n//   \"loginType\": \"email\"\n// }\n\n{\n  \"identifier\": \"harsh.gohil@alembic.co.in\",\n  \"password\": \"Harsh@1234\",\n  \"loginType\": \"email\"\n}\n\n// {\n//   \"identifier\": \"bhagwan.parab@alembic.co.in\",\n//   \"password\": \"Harsh@1234\",\n//   \"loginType\": \"email\"\n// }\n\n\n// {\n//   \"identifier\": \"vikramr.rai@alembic.co.in\",\n//   \"password\": \"Harsh@1234\",\n//   \"loginType\": \"email\"\n// }"
+							"raw": "// {\n//   \"identifier\": \"nikhil.nadkar@alembic.co.in\",\n//   \"password\": \"Harsh@1234\",\n//   \"loginType\": \"email\"\n// }\n\n// {\n//   \"identifier\": \"mohanish.padwal@alembic.co.in\",\n//   \"password\": \"Alembic@2026\",\n//   \"loginType\": \"email\"\n// }\n\n{\n  \"identifier\": \"harsh.gohil@alembic.co.in\",\n  \"password\": \"SmartWolf@1234\",\n  \"loginType\": \"email\"\n}\n\n// {\n//   \"identifier\": \"bhagwan.parab@alembic.co.in\",\n//   \"password\": \"Bhagwan@1234\",\n//   \"loginType\": \"email\"\n// }\n\n\n// {\n//   \"identifier\": \"vikramr.rai@alembic.co.in\",\n//   \"password\": \"Harsh@1234\",\n//   \"loginType\": \"email\"\n// }"
 						},
 						"url": {
 							"raw": "{{base_url}}/digilabs/dmap/api/auth/login",
@@ -178,7 +178,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"email\": \"harsh.gohil@alembic.co.in\",\n  \"name\": \"John Doe\",\n  \"password\": \"Harsh@1234\",\n  \"phone\": \"1234567890\",\n  \"department_id\": 1,\n  \"division_ids\": [1,2],\n  \"designation_id\": 1,\n  \"location_id\": 1\n}"
+							"raw": "{\n  \"email\": \"angana.patil@alembic.co.in\",\n  \"name\": \"Angana Patil\",\n  \"password\": \"Angana@1234\",\n  \"phone\": \"8080302041\",\n  \"department_id\": 9,\n  \"division_ids\": [1],\n  \"designation_id\": 20,\n  \"location_id\": 1\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/digilabs/dmap/api/auth/complete-registration",
@@ -781,22 +781,26 @@
 								{
 									"key": "search",
 									"value": "",
-									"description": "Search term for work request titles, brands, request types, project types, divisions, or user names"
+									"description": "Search term for work request titles, brands, request types, project types, divisions, or user names",
+									"disabled": true
 								},
 								{
 									"key": "searchFields",
 									"value": "project_name,brand",
-									"description": "Fields to search in"
+									"description": "Fields to search in",
+									"disabled": true
 								},
 								{
 									"key": "priority",
 									"value": "",
-									"description": "Filter by priority"
+									"description": "Filter by priority",
+									"disabled": true
 								},
 								{
 									"key": "status",
 									"value": "",
-									"description": "Filter by status"
+									"description": "Filter by status",
+									"disabled": true
 								}
 							]
 						},
@@ -1280,7 +1284,7 @@
 							"variable": [
 								{
 									"key": "user_id",
-									"value": "10",
+									"value": "21",
 									"description": "User ID to get tasks for"
 								}
 							]
@@ -1305,7 +1309,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/users/tasks?page=1&limit=10&search=&searchFields=task_name,description&status=&deadline[gte]=&deadline[lte]=",
+							"raw": "{{base_url}}/digilabs/dmap/api/users/tasks?page=1&limit=10",
 							"host": [
 								"{{base_url}}"
 							],
@@ -1330,27 +1334,32 @@
 								{
 									"key": "search",
 									"value": "",
-									"description": "Search term for text fields"
+									"description": "Search term for text fields",
+									"disabled": true
 								},
 								{
 									"key": "searchFields",
 									"value": "task_name,description",
-									"description": "Fields to search in (text fields only)"
+									"description": "Fields to search in (text fields only)",
+									"disabled": true
 								},
 								{
 									"key": "status",
 									"value": "",
-									"description": "Filter by status (pending, accepted, in_progress). If not provided, shows pending tasks"
+									"description": "Filter by status (pending, accepted, in_progress). If not provided, shows pending tasks",
+									"disabled": true
 								},
 								{
 									"key": "deadline[gte]",
 									"value": "",
-									"description": "Filter deadline greater than or equal to date (YYYY-MM-DD)"
+									"description": "Filter deadline greater than or equal to date (YYYY-MM-DD)",
+									"disabled": true
 								},
 								{
 									"key": "deadline[lte]",
 									"value": "",
-									"description": "Filter deadline less than or equal to date (YYYY-MM-DD)"
+									"description": "Filter deadline less than or equal to date (YYYY-MM-DD)",
+									"disabled": true
 								}
 							]
 						},
