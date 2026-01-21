@@ -1031,7 +1031,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:work_request_id/task-types",
+							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:work_request_id/task-types?project_id=",
 							"host": [
 								"{{base_url}}"
 							],
@@ -1044,15 +1044,22 @@
 								":work_request_id",
 								"task-types"
 							],
+							"query": [
+								{
+									"key": "project_id",
+									"value": "",
+									"description": "Optional project ID to get task types directly (alternative to using work_request_id)"
+								}
+							],
 							"variable": [
 								{
 									"key": "work_request_id",
 									"value": "45",
-									"description": "Work request ID"
+									"description": "Work request ID (ignored if project_id is provided)"
 								}
 							]
 						},
-						"description": "Get list of task types associated with the work request's project type (requires authentication and manager role)"
+						"description": "Get list of task types associated with the work request's project type or directly by project_id query parameter (requires authentication and manager role)"
 					},
 					"response": []
 				},

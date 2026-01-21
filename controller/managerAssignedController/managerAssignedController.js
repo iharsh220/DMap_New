@@ -1026,44 +1026,53 @@ const deferWorkRequest = async (req, res) => {
 
 const getTaskTypesByWorkRequest = async (req, res) => {
     try {
-        const workRequestId = parseInt(req.params.id, 10);
-        if (isNaN(workRequestId)) {
-            return res.status(400).json({ success: false, error: 'Invalid work request ID' });
-        }
-
         const manager_id = req.user.id;
+        let projectId;
+        // Check if project_id is provided as query parameter
+        if (req.query.project_id) {
+            projectId = parseInt(req.query.project_id, 10);
+            if (isNaN(projectId)) {
+                return res.status(400).json({ success: false, error: 'Invalid project ID' });
+            }
+        } else {
+            // Use work_request_id from params
+            const workRequestId = parseInt(req.query.work_request_id, 10);
+            if (isNaN(workRequestId)) {
+                return res.status(400).json({ success: false, error: 'Invalid work request ID' });
+            }
 
-        // Get work request with project_id, ensuring it's assigned to this manager
-        const workRequestResult = await workRequestService.getAll({
-            where: { id: workRequestId },
-            include: [
-                {
-                    model: WorkRequestManagers,
-                    where: { manager_id: manager_id },
-                    required: true,
-                    attributes: []
-                }
-            ],
-            attributes: ['id', 'project_id'],
-            limit: 1,
-            order: []
-        });
-
-        if (!workRequestResult.success || workRequestResult.data.length === 0) {
-            return res.status(404).json({
-                success: false,
-                error: 'Work request not found or not assigned to you'
+            // Get work request with project_id, ensuring it's assigned to this manager
+            const workRequestResult = await workRequestService.getAll({
+                where: { id: workRequestId },
+                include: [
+                    {
+                        model: WorkRequestManagers,
+                        where: { manager_id: manager_id },
+                        required: true,
+                        attributes: []
+                    }
+                ],
+                attributes: ['id', 'project_id'],
+                limit: 1,
+                order: []
             });
-        }
 
-        const workRequest = workRequestResult.data[0];
-        const projectId = workRequest.project_id;
+            if (!workRequestResult.success || workRequestResult.data.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Work request not found or not assigned to you'
+                });
+            }
+
+            const workRequest = workRequestResult.data[0];
+            projectId = workRequest.project_id;
+        }
 
         if (!projectId) {
             return res.json({
                 success: true,
                 data: [],
-                message: 'No project type associated with this work request'
+                message: 'No project type associated'
             });
         }
 
