@@ -1,0 +1,147 @@
+SELECT 
+    -- Work Request Details
+    wr.id AS work_request_id,
+    wr.project_name,
+    wr.brand,
+    wr.description,
+    wr.about_project,
+    wr.priority,
+    wr.status AS work_request_status,
+    wr.requested_at,
+    wr.remarks,
+    wr.created_at AS wr_created_at,
+    wr.updated_at AS wr_updated_at,
+    wr.request_type_id,
+    rt.request_type,
+    wr.project_id,
+    pt.project_type,
+    
+    -- Requester User Details
+    wr.user_id AS requester_user_id,
+    ru.name AS requester_name,
+    ru.email AS requester_email,
+    ru.phone AS requester_phone,
+    ru.department_id AS requester_department_id,
+    rd.department_name AS requester_department_name,
+    ru.job_role_id AS requester_job_role_id,
+    rjr.role_title AS requester_job_role,
+    ru.location_id AS requester_location_id,
+    rl.location_name AS requester_location_name,
+    ru.designation_id AS requester_designation_id,
+    rdes.designation_name AS requester_designation_name,
+    rud.division_id AS requester_division_id,
+    rdiv.title AS requester_division_title,
+    
+    -- Work Request Documents
+    wrd.id AS doc_id,
+    wrd.document_name,
+    wrd.document_path,
+    wrd.document_type,
+    wrd.document_size,
+    wrd.status AS doc_status,
+    wrd.uploaded_at AS doc_uploaded_at,
+    
+    -- Work Request Managers
+    wrm.id AS manager_assignment_id,
+    wrm.manager_id,
+    u.name AS manager_name,
+    u.email AS manager_email,
+    u.phone AS manager_phone,
+    u.department_id AS manager_department_id,
+    md.department_name AS manager_department_name,
+    u.job_role_id AS manager_job_role_id,
+    mjr.role_title AS manager_job_role,
+    u.location_id AS manager_location_id,
+    ml.location_name AS manager_location_name,
+    u.designation_id AS manager_designation_id,
+    mdes.designation_name AS manager_designation_name,
+    mud.division_id AS manager_division_id,
+    mdiv.title AS manager_division_title,
+    
+    -- Tasks
+    t.id AS task_id,
+    t.task_name,
+    t.description AS task_description,
+    t.deadline,
+    t.status AS task_status,
+    t.intimate_team,
+    t.task_count,
+    t.link,
+    t.start_date,
+    t.end_date,
+    t.created_at AS task_created_at,
+    t.updated_at AS task_updated_at,
+    t.request_type_id AS task_request_type_id,
+    trt.request_type AS task_request_type,
+    t.task_type_id,
+    tt.task_type,
+    
+    -- Task Assignments
+    ta.id AS assignment_id,
+    ta.user_id AS assigned_user_id,
+    au.name AS assigned_user_name,
+    au.email AS assigned_user_email,
+    au.phone AS assigned_user_phone,
+    au.department_id AS assigned_user_department_id,
+    ad.department_name AS assigned_user_department_name,
+    au.job_role_id AS assigned_user_job_role_id,
+    ajr.role_title AS assigned_user_job_role,
+    au.location_id AS assigned_user_location_id,
+    al.location_name AS assigned_user_location_name,
+    au.designation_id AS assigned_user_designation_id,
+    ades.designation_name AS assigned_user_designation_name,
+    aud.division_id AS assigned_user_division_id,
+    adiv.title AS assigned_user_division_title,
+    ta.created_at AS assignment_created_at,
+    ta.updated_at AS assignment_updated_at,
+    
+    -- Task Documents
+    td.id AS task_doc_id,
+    td.document_name AS task_doc_name,
+    td.document_path AS task_doc_path,
+    td.document_type AS task_doc_type,
+    td.document_size AS task_doc_size,
+    td.version AS task_doc_version,
+    td.status AS task_doc_status,
+    td.uploaded_at AS task_doc_uploaded_at,
+    
+    -- Task Dependencies
+    tdp.id AS dependency_id,
+    tdp.dependency_task_id,
+    
+    -- Task Project Reference
+    tpr.id AS project_ref_id,
+    tpr.project_id AS task_project_id
+FROM work_requests wr
+LEFT JOIN request_type rt ON wr.request_type_id = rt.id
+LEFT JOIN project_type pt ON wr.project_id = pt.id
+LEFT JOIN users ru ON wr.user_id = ru.id
+LEFT JOIN department rd ON ru.department_id = rd.id
+LEFT JOIN job_role rjr ON ru.job_role_id = rjr.id
+LEFT JOIN location rl ON ru.location_id = rl.id
+LEFT JOIN designation rdes ON ru.designation_id = rdes.id
+LEFT JOIN user_divisions rud ON ru.id = rud.user_id
+LEFT JOIN division rdiv ON rud.division_id = rdiv.id
+LEFT JOIN work_request_documents wrd ON wr.id = wrd.work_request_id
+LEFT JOIN work_request_managers wrm ON wr.id = wrm.work_request_id
+LEFT JOIN users u ON wrm.manager_id = u.id
+LEFT JOIN department md ON u.department_id = md.id
+LEFT JOIN job_role mjr ON u.job_role_id = mjr.id
+LEFT JOIN location ml ON u.location_id = ml.id
+LEFT JOIN designation mdes ON u.designation_id = mdes.id
+LEFT JOIN user_divisions mud ON u.id = mud.user_id
+LEFT JOIN division mdiv ON mud.division_id = mdiv.id
+LEFT JOIN tasks t ON wr.id = t.work_request_id
+LEFT JOIN request_type trt ON t.request_type_id = trt.id
+LEFT JOIN task_type tt ON t.task_type_id = tt.id
+LEFT JOIN task_assignments ta ON t.id = ta.task_id
+LEFT JOIN users au ON ta.user_id = au.id
+LEFT JOIN department ad ON au.department_id = ad.id
+LEFT JOIN job_role ajr ON au.job_role_id = ajr.id
+LEFT JOIN location al ON au.location_id = al.id
+LEFT JOIN designation ades ON au.designation_id = ades.id
+LEFT JOIN user_divisions aud ON au.id = aud.user_id
+LEFT JOIN division adiv ON aud.division_id = adiv.id
+LEFT JOIN task_documents td ON ta.id = td.task_assignment_id
+LEFT JOIN task_dependencies tdp ON t.id = tdp.task_id
+LEFT JOIN task_project_reference tpr ON t.id = tpr.task_id;

@@ -380,6 +380,7 @@ const getAssignedWorkRequestById = async (req, res) => {
                         ]
                     },
                     { model: RequestType, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, through: { attributes: [] }, attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
+                    { model: ProjectType, attributes: { exclude: ['created_at', 'updated_at'] } },
                     { model: WorkRequestDocuments, attributes: { exclude: ['created_at', 'updated_at'] } },
                     {
                         model: Tasks,
@@ -467,6 +468,7 @@ const getAssignedWorkRequestById = async (req, res) => {
                             ]
                         },
                         { model: RequestType, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, through: { attributes: [] }, attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
+                        { model: ProjectType, attributes: { exclude: ['created_at', 'updated_at'] } },
                         { model: WorkRequestDocuments, attributes: { exclude: ['created_at', 'updated_at'] } },
                         {
                             model: Tasks,
