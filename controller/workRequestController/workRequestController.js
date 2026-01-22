@@ -448,7 +448,9 @@ const getWorkRequestById = async (req, res) => {
             where: { id, user_id },
             attributes: { exclude: ['request_type_id', 'created_at', 'updated_at'] },
             include: [
-                { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
+                { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] }, include: [
+                    { model: Division, as: 'Divisions', attributes: { exclude: ['created_at', 'updated_at'] }, through: { attributes: [] } }
+                ] },
                 { model: RequestType, attributes: { exclude: ['created_at', 'updated_at'] } },
                 { model: ProjectType, attributes: { exclude: ['created_at', 'updated_at'] } },
                 {
