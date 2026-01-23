@@ -979,6 +979,85 @@
 					"response": []
 				},
 				{
+					"name": "Update Work Request Project",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"project_id\": 1,\n  \"project_name\": \"Updated Project Name\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id/project",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"digilabs",
+								"dmap",
+								"api",
+								"manager",
+								"assigned-work-requests",
+								":id",
+								"project"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1",
+									"description": "Work request ID"
+								}
+							]
+						},
+						"description": "Update project_id and project_name for a work request assigned to the authenticated manager (requires authentication and manager role)"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Work Request",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"digilabs",
+								"dmap",
+								"api",
+								"manager",
+								"assigned-work-requests",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1",
+									"description": "Work request ID"
+								}
+							]
+						},
+						"description": "Delete a work request and all related data assigned to the authenticated manager (requires authentication and manager role)"
+					},
+					"response": []
+				},
+				{
 					"name": "Get Assignable Users for Work Request",
 					"request": {
 						"method": "GET",

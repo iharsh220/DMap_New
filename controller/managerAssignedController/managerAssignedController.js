@@ -2016,6 +2016,129 @@ const assignTasksToUsers = async (req, res) => {
 };
 
 
+const updateWorkRequestProject = async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) {
+            return res.status(400).json({ success: false, error: 'Invalid work request ID' });
+        }
+        const manager_id = req.user.id;
+        const { project_id, project_name } = req.body;
+
+        // Validate required fields
+        if (!project_id || !project_name) {
+            return res.status(400).json({
+                success: false,
+                error: 'project_id and project_name are required'
+            });
+        }
+
+        // Check if work request exists and is assigned to this manager
+        const existingResult = await workRequestService.getAll({
+            where: { id },
+            include: [
+                {
+                    model: WorkRequestManagers,
+                    where: { manager_id: manager_id },
+                    required: true,
+                    attributes: []
+                }
+            ],
+            limit: 1
+        });
+
+        if (!existingResult.success || existingResult.data.length === 0) {
+            return res.status(404).json({ success: false, error: 'Work request not found or not assigned to you' });
+        }
+
+        // Update the work request
+        const updateResult = await workRequestService.updateById(id, { project_id, project_name });
+
+        if (updateResult.success) {
+            res.json({ success: true, message: 'Work request project updated successfully' });
+        } else {
+            res.status(500).json({ success: false, error: 'Failed to update work request project' });
+        }
+    } catch (error) {
+        console.error('Error updating work request project:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+const deleteWorkRequest = async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) {
+            return res.status(400).json({ success: false, error: 'Invalid work request ID' });
+        }
+        const manager_id = req.user.id;
+
+        // Check if work request exists and is assigned to this manager
+        const existingResult = await workRequestService.getAll({
+            where: { id },
+            include: [
+                {
+                    model: WorkRequestManagers,
+                    where: { manager_id: manager_id },
+                    required: true,
+                    attributes: []
+                }
+            ],
+            limit: 1
+        });
+
+        if (!existingResult.success || existingResult.data.length === 0) {
+            return res.status(404).json({ success: false, error: 'Work request not found or not assigned to you' });
+        }
+
+        // Get all task IDs for this work request
+        const tasks = await Tasks.findAll({ where: { work_request_id: id }, attributes: ['id'] });
+        const taskIds = tasks.map(t => t.id);
+
+        // Get all task assignment IDs for these tasks
+        const taskAssignments = await TaskAssignments.findAll({ where: { task_id: { [Op.in]: taskIds } }, attributes: ['id'] });
+        const taskAssignmentIds = taskAssignments.map(ta => ta.id);
+
+        // Delete related records first to avoid foreign key constraints
+        // Delete TaskDocuments for these task assignments
+        if (taskAssignmentIds.length > 0) {
+            await TaskDocuments.destroy({ where: { task_assignment_id: { [Op.in]: taskAssignmentIds } } });
+        }
+
+        // Delete TaskAssignments for these tasks
+        if (taskIds.length > 0) {
+            await TaskAssignments.destroy({ where: { task_id: { [Op.in]: taskIds } } });
+        }
+
+        // Delete TaskDependencies for these tasks
+        if (taskIds.length > 0) {
+            await TaskDependencies.destroy({ where: { task_id: { [Op.in]: taskIds } } });
+            await TaskDependencies.destroy({ where: { dependency_task_id: { [Op.in]: taskIds } } });
+        }
+
+        // Delete Tasks
+        await Tasks.destroy({ where: { work_request_id: id } });
+
+        // Delete WorkRequestDocuments
+        await WorkRequestDocuments.destroy({ where: { work_request_id: id } });
+
+        // Delete WorkRequestManagers
+        await WorkRequestManagers.destroy({ where: { work_request_id: id } });
+
+        // Finally, delete the WorkRequest
+        const deleteResult = await workRequestService.deleteById(id);
+
+        if (deleteResult.success) {
+            res.json({ success: true, message: 'Work request and all related data deleted successfully' });
+        } else {
+            res.status(500).json({ success: false, error: 'Failed to delete work request' });
+        }
+    } catch (error) {
+        console.error('Error deleting work request:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
 const getUserTask = async (req, res) => {
     try {
         const manager_id = req.user.id;
@@ -2197,6 +2320,8 @@ module.exports = {
     getAssignedWorkRequestById,
     acceptWorkRequest,
     deferWorkRequest,
+    updateWorkRequestProject,
+    deleteWorkRequest,
     getAssignableUsers,
     getTaskTypesByWorkRequest,
     createTask,
