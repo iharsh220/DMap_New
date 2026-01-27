@@ -1777,6 +1777,11 @@ const getAssignedRequestsWithStatus = async (req, res) => {
             where = { ...where, ...req.filters };
         }
 
+        // Handle array values for status (from comma-separated)
+        if (where.status && Array.isArray(where.status)) {
+            where.status = { [Op.in]: where.status };
+        }
+
         // Apply search
         if (req.search.term && req.search.fields.length > 0) {
             where[Op.or] = req.search.fields.map(field => ({
