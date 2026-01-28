@@ -3,6 +3,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 const fileUpload = require('express-fileupload');
+const path = require('path');
 const { connectDB } = require('./config/databaseConfig');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -64,6 +65,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(fileUpload());
 app.use('/uploads', express.static('uploads'));
+
+// Static files
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Logging middleware
 const loggingMiddleware = require('./middleware/loggingMiddleware');
