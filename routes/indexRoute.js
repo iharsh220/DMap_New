@@ -25,7 +25,7 @@ router.use('/manager/assigned-work-requests', managerAssignedRoutes);
 
 router.use('/users', userRoutes);
 
-router.use('/', adminRoutes);
+router.use('/datatable', adminRoutes);
 
 // const { authenticateToken } = require('../middleware/jwtMiddleware');
 

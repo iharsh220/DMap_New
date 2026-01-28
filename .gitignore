@@ -70,7 +70,7 @@ dist
 
 # Gatsby files
 .cache/
-public
+# public
 
 # Storybook build outputs
 .out
@@ -103,7 +103,7 @@ Desktop.ini
 
 # Upload directories
 uploads/
-public/uploads/
+# public/uploads/
 
 # Session files
 sessions/

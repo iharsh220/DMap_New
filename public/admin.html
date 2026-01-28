@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - D-Map</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .filters {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        input[type="date"] {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            padding: 8px 16px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>D-Map Admin Panel</h1>
+        
+        <div class="filters">
+            <label for="startDate">Start Date:</label>
+            <input type="date" id="startDate">
+            
+            <label for="endDate">End Date:</label>
+            <input type="date" id="endDate">
+            
+            <button onclick="loadData()">Load Data</button>
+        </div>
+        
+        <div id="dataContainer">
+            <div class="loading">Click "Load Data" to fetch admin data.</div>
+        </div>
+    </div>
+
+    <script>
+        async function loadData() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            let url = '/digilabs/dmap/api/datatable/admin/data';
+            const params = [];
+            if (startDate) params.push(`startDate=${startDate}`);
+            if (endDate) params.push(`endDate=${endDate}`);
+            if (params.length) url += '?' + params.join('&');
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.error) {
+                    document.getElementById('dataContainer').innerHTML = `<div style="color: red;">Error: ${data.error}</div>`;
+                    return;
+                }
+                
+                displayData(data.data);
+            } catch (error) {
+                document.getElementById('dataContainer').innerHTML = `<div style="color: red;">Error loading data: ${error.message}</div>`;
+            }
+        }
+        
+        function displayData(data) {
+            if (!data || data.length === 0) {
+                document.getElementById('dataContainer').innerHTML = '<div>No data found.</div>';
+                return;
+            }
+            
+            let html = '<table>';
+            html += '<tr><th>Work Request ID</th><th>Project Name</th><th>Requester Division</th><th>Requester Name</th><th>Manager Division</th><th>Manager Name</th><th>Task Count</th><th>Work Pages</th></tr>';
+            
+            data.forEach(item => {
+                html += `<tr>
+                    <td>${item.work_request_id}</td>
+                    <td>${item.project_name || ''}</td>
+                    <td>${item.requester_division || ''}</td>
+                    <td>${item.requester_name || ''}</td>
+                    <td>${item.manager_division || ''}</td>
+                    <td>${item.manager_name || ''}</td>
+                    <td>${item.task_count || 0}</td>
+                    <td>${item.no_of_work_pages || 0}</td>
+                </tr>`;
+            });
+            
+            html += '</table>';
+            document.getElementById('dataContainer').innerHTML = html;
+        }
+    </script>
+</body>
+</html>

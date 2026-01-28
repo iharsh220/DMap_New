@@ -53,7 +53,7 @@ app.use(helmet({
 }));
 
 app.use(cors({
-    origin: "*",
+    origin: ["https://dmap.alembicdigilabs.com", "https://alembicdigilabs.in"],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization", "x-socket-id", "X-Requested-With"],
@@ -67,7 +67,7 @@ app.use(fileUpload());
 app.use('/uploads', express.static('uploads'));
 
 // Static files
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(baseRoute, express.static(path.join(__dirname, 'public')));
 
 // Logging middleware
 // const loggingMiddleware = require('./middleware/loggingMiddleware');
