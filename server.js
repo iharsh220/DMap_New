@@ -53,9 +53,9 @@ app.use(helmet({
 }));
 
 app.use(cors({
-    origin: ["https://dmap.alembicdigilabs.com", "https://alembicdigilabs.in"],
+    origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    credentials: true,
+    credentials: false,
     allowedHeaders: ["Content-Type", "Authorization", "x-socket-id", "X-Requested-With"],
     exposedHeaders: ["x-socket-id", "Authorization"]
 }));
