@@ -50,6 +50,30 @@
         .dt-buttons {
             float: right;
         }
+
+        .child-table-container {
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .dt-control {
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .dt-control .bi {
+            transition: transform 0.2s ease;
+        }
     </style>
 </head>
 
@@ -142,11 +166,36 @@
                                 <th>Manager Name</th>
                                 <th>Task Count</th>
                                 <th>No of Work Pages</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Offcanvas for Tasks -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="tasksOffcanvas" aria-labelledby="tasksOffcanvasLabel">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tasksOffcanvasLabel">Tasks for Work Request <span id="workRequestIdSpan"></span></h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div class="table-responsive">
+                <table id="tasksTable" class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>Task ID</th>
+                            <th>Task Name</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                            <th>Deadline</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -188,7 +237,15 @@
                     { data: 'manager_division' },
                     { data: 'manager_name' },
                     { data: 'task_count' },
-                    { data: 'no_of_work_pages' }
+                    { data: 'no_of_work_pages' },
+                    {
+                        data: null,
+                        render: function (data, type, row) {
+                            return `<button class="btn btn-link btn-sm expand-btn" data-work-request-id="${row.work_request_id}"><i class="bi bi-chevron-right"></i></button>`;
+                        },
+                        orderable: false,
+                        className: 'dt-control'
+                    }
                 ],
 
                 pageLength: 10,
@@ -258,6 +315,68 @@
                 table.search('').columns().search('').draw();
                 table.ajax.url('/digilabs/dmap/api/datatable/admin/data').load();
             });
+
+            // Handle expand button click
+            $('#workRequestsTable tbody').on('click', 'td.dt-control', function () {
+                const tr = $(this).closest('tr');
+                const row = table.row(tr);
+                const workRequestId = $(this).find('.expand-btn').data('work-request-id');
+
+                if (row.child.isShown()) {
+                    // This row is already open - close it
+                    row.child.hide();
+                    tr.removeClass('shown');
+                    $(this).find('.bi').removeClass('bi-chevron-down').addClass('bi-chevron-right');
+                } else {
+                    // Open this row
+                    fetchTasks(workRequestId, row);
+                    tr.addClass('shown');
+                    $(this).find('.bi').removeClass('bi-chevron-right').addClass('bi-chevron-down');
+                }
+            });
+
+            function fetchTasks(workRequestId, row) {
+                $.ajax({
+                    url: `/digilabs/dmap/api/datatable/admin/tasks/${workRequestId}`,
+                    method: 'GET',
+                    success: function (data) {
+                        const tasksHtml = `
+                            <div class="child-table-container" style="padding: 15px; background: #f8f9fa; border-radius: 6px; margin: 10px 0;">
+                                <h6>Tasks for Work Request ${workRequestId}</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered">
+                                        <thead>
+                                            <tr>
+                                                <th>Task ID</th>
+                                                <th>Task Name</th>
+                                                <th>Description</th>
+                                                <th>Status</th>
+                                                <th>Deadline</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${data.tasks.map(task => `
+                                                <tr>
+                                                    <td>${task.id || ''}</td>
+                                                    <td>${task.task_name || ''}</td>
+                                                    <td>${task.description || ''}</td>
+                                                    <td>${task.status || ''}</td>
+                                                    <td>${task.deadline || ''}</td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        `;
+                        row.child(tasksHtml).show();
+                    },
+                    error: function (xhr, status, error) {
+                        console.error('Error fetching tasks:', error);
+                        row.child('<div class="alert alert-danger">Error loading tasks. Please try again.</div>').show();
+                    }
+                });
+            }
         });
     </script>
 </body>

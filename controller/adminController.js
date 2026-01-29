@@ -59,6 +59,35 @@ const getAdminData = async (req, res) => {
     }
 };
 
+const getTasksForWorkRequest = async (req, res) => {
+    try {
+        const { workRequestId } = req.params;
+
+        const query = `
+            SELECT
+                t.id,
+                t.task_name,
+                t.description,
+                t.status,
+                t.deadline
+            FROM tasks t
+            WHERE t.work_request_id = :workRequestId
+        `;
+
+        const results = await sequelize.query(query, {
+            replacements: { workRequestId },
+            type: sequelize.QueryTypes.SELECT
+        });
+
+        res.json({ tasks: results });
+
+    } catch (error) {
+        console.error('Error fetching tasks for work request:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
 module.exports = {
-    getAdminData
+    getAdminData,
+    getTasksForWorkRequest
 };
