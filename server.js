@@ -70,8 +70,8 @@ app.use('/uploads', express.static('uploads'));
 app.use(baseRoute, express.static(path.join(__dirname, 'public')));
 
 // Logging middleware
-// const loggingMiddleware = require('./middleware/loggingMiddleware');
-// app.use(loggingMiddleware);
+const loggingMiddleware = require('./middleware/loggingMiddleware');
+app.use(loggingMiddleware);
 
 // Rate limiting
 // const limiter = require('./middleware/rateLimitMiddleware');
