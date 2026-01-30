@@ -360,7 +360,16 @@ const getMyWorkRequests = async (req, res) => {
 
         // Apply filters
         if (req.filters) {
-            where = { ...where, ...req.filters };
+            // Handle status as comma-separated string
+            if (req.filters.status && typeof req.filters.status === 'string') {
+                const statuses = req.filters.status.split(',').map(s => s.trim());
+                where.status = { [Op.in]: statuses };
+                // Remove status from req.filters to avoid overriding
+                const { status, ...otherFilters } = req.filters;
+                where = { ...where, ...otherFilters };
+            } else {
+                where = { ...where, ...req.filters };
+            }
         }
 
         // Apply search
@@ -422,6 +431,20 @@ const getMyWorkRequests = async (req, res) => {
         });
 
         if (result.success) {
+            // Calculate project deadline for each work request
+            result.data.forEach(workRequest => {
+                let projectDeadline = null;
+                if (workRequest.Tasks && workRequest.Tasks.length > 0) {
+                    const deadlines = workRequest.Tasks
+                        .map(task => task.deadline)
+                        .filter(deadline => deadline !== null && deadline !== undefined)
+                        .map(deadline => new Date(deadline));
+                    if (deadlines.length > 0) {
+                        projectDeadline = new Date(Math.max(...deadlines));
+                    }
+                }
+                workRequest.dataValues.project_deadline = projectDeadline;
+            });
             res.json({ success: true, data: result.data, pagination: req.pagination });
         } else {
             res.status(500).json({ success: false, error: result.error });
