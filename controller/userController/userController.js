@@ -418,6 +418,20 @@ const assignTaskToUser = async (req, res) => {
             where: { task_id: taskId }
         });
 
+        // Reset task status to pending when reassigning to a new user
+        // This ensures the new user has to accept the task again
+        const statusUpdate = { status: 'pending' };
+        if (task.status !== 'pending') {
+            statusUpdate.start_date = null;
+            statusUpdate.end_date = null;
+        }
+        
+        // Combine status update with intimate_team update
+        await Tasks.update(
+            { ...statusUpdate, intimate_team: 1 },
+            { where: { id: taskId } }
+        );
+
         // Create new task assignment for the user
         await TaskAssignments.create({
             task_id: taskId,
@@ -432,7 +446,7 @@ const assignTaskToUser = async (req, res) => {
             hour: '2-digit',
             minute: '2-digit'
         });
-
+        
         const taskData = {
             id: task.id,
             task_name: task.task_name,
@@ -489,13 +503,6 @@ const assignTaskToUser = async (req, res) => {
         }
 
         await sendMail(mailOptions);
-
-        // Update intimate_team to 1
-        await Tasks.update(
-            { intimate_team: 1 },
-            { where: { id: taskId } }
-        );
-
 
         res.json({
             success: true,
