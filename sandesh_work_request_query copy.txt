@@ -1,0 +1,41 @@
+SELECT
+    wr.id AS work_request_id,
+    wr.project_name,
+    rt.request_type AS project_type,
+    rdiv.title AS requester_division,
+    ru.name AS requester_name,
+    mdiv.title AS manager_division,
+    mu.name AS manager_name,
+    1 AS project_count,
+    COUNT(t.id) AS task_count,
+    DATE_FORMAT(wr.requested_at, '%d/%m/%Y') AS project_request_date,
+    MIN(t.start_date) AS project_start_date,
+    CASE 
+        WHEN COUNT(t.id) = COUNT(t.end_date) THEN MAX(t.end_date) 
+        ELSE NULL 
+    END AS project_end_date,
+    CASE
+        WHEN MIN(t.start_date) IS NULL AND COUNT(t.end_date) = 0 THEN 'upcoming'
+        WHEN MIN(t.start_date) IS NOT NULL AND COUNT(t.id) = COUNT(t.end_date) THEN 'completed'
+        ELSE 'ongoing'
+    END AS project_status
+FROM work_requests wr
+LEFT JOIN request_type rt ON wr.request_type_id = rt.id
+LEFT JOIN users ru ON wr.user_id = ru.id
+LEFT JOIN user_divisions rud ON ru.id = rud.user_id
+LEFT JOIN division rdiv ON rud.division_id = rdiv.id
+LEFT JOIN work_request_managers wrm ON wr.id = wrm.work_request_id
+LEFT JOIN users mu ON wrm.manager_id = mu.id
+LEFT JOIN user_divisions mud ON mu.id = mud.user_id
+LEFT JOIN division mdiv ON mud.division_id = mdiv.id
+LEFT JOIN tasks t ON wr.id = t.work_request_id
+GROUP BY 
+    wr.id, 
+    wr.project_name, 
+    rt.request_type,
+    rdiv.title, 
+    ru.name, 
+    mdiv.title, 
+    mu.name,
+    wr.requested_at,
+    wr.status;
