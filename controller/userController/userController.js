@@ -22,7 +22,7 @@ require('dotenv').config();
 const getAssignedTasks = async (req, res) => {
     try {
         const user_id = req.user.id;
-        const { status } = req.query; // Get status filter from query params
+        const { status, deadline } = req.query; // Get status and deadline filters from query params
 
         // Check if user is manager (job_role_id = 2)
         const isManager = req.user.jobRole && req.user.jobRole.id === 2;
@@ -118,7 +118,31 @@ const getAssignedTasks = async (req, res) => {
             whereCondition.intimate_team = 1;
         }
 
-        // Get tasks assigned to the user(s) through TaskAssignments junction table
+        // Apply deadline filter
+        if (deadline === 'null') {
+            // Filter tasks with null deadline
+            whereCondition.deadline = null;
+        } else if (deadline && deadline !== 'null') {
+            // Parse deadline date
+            const deadlineDate = new Date(deadline);
+            if (isNaN(deadlineDate.getTime())) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Invalid deadline format. Use YYYY-MM-DD format.'
+                });
+            }
+
+            // Set deadline to start of day and end of day for full day matching
+            const deadlineStart = new Date(deadlineDate);
+            deadlineStart.setHours(0, 0, 0, 0);
+
+            const deadlineEnd = new Date(deadlineDate);
+            deadlineEnd.setHours(23, 59, 59, 999);
+
+            whereCondition.deadline = {
+                [Op.between]: [deadlineStart, deadlineEnd]
+            };
+        }
         const tasks = await Tasks.findAll({
             where: whereCondition,
             include: [
@@ -181,7 +205,7 @@ const getAssignedTasks = async (req, res) => {
             offset: req.pagination.offset,
             order: [['deadline', 'ASC']] // Sort by deadline ascending by default
         });
-
+        console.log(tasks);
         // Collect all unique user IDs from assigned users
         const allAssignedUserIds = [...new Set(tasks.flatMap(task => task.assignedUsers.map(user => user.id)))];
 
@@ -291,6 +315,7 @@ const getAssignedTasks = async (req, res) => {
         });
     }
 };
+
 
 const assignTaskToUser = async (req, res) => {
     try {
@@ -425,7 +450,7 @@ const assignTaskToUser = async (req, res) => {
             statusUpdate.start_date = null;
             statusUpdate.end_date = null;
         }
-        
+
         // Combine status update with intimate_team update
         await Tasks.update(
             { ...statusUpdate, intimate_team: 1 },
@@ -446,7 +471,7 @@ const assignTaskToUser = async (req, res) => {
             hour: '2-digit',
             minute: '2-digit'
         });
-        
+
         const taskData = {
             id: task.id,
             task_name: task.task_name,
@@ -899,7 +924,7 @@ const submitTask = async (req, res) => {
 
         // Use a transaction for the task update and file uploads
         const taskTransaction = await Tasks.sequelize.transaction();
-        
+
         try {
             // Update task with task_count and link FIRST
             const taskUpdateData = {
@@ -1035,7 +1060,7 @@ const submitTask = async (req, res) => {
             // Update work request status to completed if all tasks are done
             if (allTasksCompleted) {
                 console.log(`Updating work request ${workRequest.id} status to 'completed'...`);
-                
+
                 // First, verify the work request exists and get its current state
                 const currentWorkRequest = await WorkRequests.findByPk(workRequest.id);
                 if (!currentWorkRequest) {
@@ -1046,9 +1071,9 @@ const submitTask = async (req, res) => {
                         message: 'Failed to update work request status'
                     });
                 }
-                
+
                 console.log(`Current work request status: ${currentWorkRequest.status}`);
-                
+
                 const [affectedRows] = await WorkRequests.update(
                     {
                         status: 'completed',
@@ -1060,7 +1085,7 @@ const submitTask = async (req, res) => {
                 );
 
                 console.log(`Work request update result: ${affectedRows} rows affected`);
-                
+
                 if (affectedRows > 0) {
                     console.log(`✅ Work request ${workRequest.id} successfully updated to 'completed' by user ${user_id} at ${new Date().toISOString()}`);
                 } else {
@@ -1150,7 +1175,7 @@ const submitTask = async (req, res) => {
 
     } catch (error) {
         console.error('Error submitting task:', error);
-        
+
         // Return appropriate error response based on error type
         if (error.name === 'SequelizeValidationError') {
             return res.status(400).json({
@@ -1159,7 +1184,7 @@ const submitTask = async (req, res) => {
                 details: error.errors.map(e => e.message)
             });
         }
-        
+
         if (error.name === 'SequelizeForeignKeyConstraintError') {
             return res.status(400).json({
                 success: false,
