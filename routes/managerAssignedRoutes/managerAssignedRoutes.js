@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getAssignedWorkRequests, getAssignedWorkRequestById, acceptWorkRequest, deferWorkRequest, updateWorkRequestProject, deleteWorkRequest, getAssignableUsers, getTaskTypesByWorkRequest, createTask, getTasksByWorkRequestId, getTaskAnalytics, getMyTeam, assignTasksToUsers, getAssignedRequestsWithStatus, getUserTask } = require('../../controller/managerAssignedController/managerAssignedController');
+const { getAssignedWorkRequests, getAssignedWorkRequestById, acceptWorkRequest, deferWorkRequest, updateWorkRequestProject, deleteWorkRequest, deleteTask, getMyTasks, getAssignableUsers, getTaskTypesByWorkRequest, createTask, getTasksByWorkRequestId, getTaskAnalytics, getMyTeam, assignTasksToUsers, getAssignedRequestsWithStatus, getUserTask } = require('../../controller/managerAssignedController/managerAssignedController');
 const { authenticateToken } = require('../../middleware/jwtMiddleware');
 const { checkRole } = require('../../middleware/roleMiddleware');
 const filterMiddleware = require('../../middleware/filterMiddleware');
@@ -9,6 +9,7 @@ const searchMiddleware = require('../../middleware/searchMiddleware');
 
 // Task management routes (must come before parameterized routes)
 router.post('/tasks', authenticateToken, checkRole([1, 2, 3]), createTask); // Create a new task
+router.delete('/tasks/:taskId', authenticateToken, checkRole([1, 2, 3]), deleteTask); // Delete a task by ID
 router.get('/work-request/:work_request_id/tasks', authenticateToken, checkRole([1, 2, 3]), getTasksByWorkRequestId); // Get tasks for a specific work request
 router.get('/user/:user_id/tasks', authenticateToken, checkRole([1, 2, 3]), getUserTask); // Get tasks for a specific user
 
@@ -17,6 +18,7 @@ router.get('/', authenticateToken, checkRole([1, 2, 3]), filterMiddleware, pagin
 router.get('/requests', authenticateToken, checkRole([1, 2, 3]), filterMiddleware, paginationMiddleware, searchMiddleware, getAssignedRequestsWithStatus); // Get requests assigned to the manager with optional status filter
 
 router.get('/my-team', authenticateToken, checkRole([1, 2, 3]), searchMiddleware, paginationMiddleware, getMyTeam); // Get manager's team with task counts grouped by division
+router.get('/my-tasks', authenticateToken, checkRole([1, 2, 3]), getMyTasks); // Get tasks assigned to the manager themselves
 router.get('/:id', authenticateToken, checkRole([1, 2, 3, 4]), getAssignedWorkRequestById); // Get specific assigned work request by ID
 router.put('/:id/accept', authenticateToken, checkRole([1, 2, 3]), acceptWorkRequest); // Accept a work request
 router.put('/:id/defer', authenticateToken, checkRole([1, 2, 3]), deferWorkRequest); // Defer a work request

@@ -1,4 +1,7 @@
-SELECT
+-- Work Request Query
+-- This query retrieves work request details with all related information
+
+SELECT 
     wr.id AS work_request_id,
     COALESCE(wr.project_name, 'N/A') AS project_name,
     COALESCE(rt.request_type, 'N/A') AS project_type,
@@ -6,20 +9,25 @@ SELECT
     COALESCE(ru.name, 'N/A') AS requester_name,
     COALESCE(mdiv.title, 'N/A') AS manager_division,
     COALESCE(GROUP_CONCAT(DISTINCT mu.name ORDER BY mu.name SEPARATOR ', '), 'N/A') AS manager_name,
-    1 AS project_count,
+    (SELECT COUNT(*) FROM work_requests WHERE user_id = wr.user_id) AS project_count,
     COUNT(DISTINCT t.id) AS task_count,
-    DATE_FORMAT(wr.requested_at, '%d/%m/%Y') AS project_request_date,
-    COALESCE(MIN(t.start_date), 'N/A') AS project_start_date,
+    DATE_FORMAT(wr.created_at, '%d/%m/%Y') AS project_request_date,
     COALESCE(
         CASE 
-            WHEN COUNT(DISTINCT t.id) = COUNT(DISTINCT CASE WHEN t.end_date IS NOT NULL THEN t.id END) THEN MAX(t.end_date) 
-            ELSE NULL 
-        END, 'N/A'
-    ) AS project_end_date,
+            WHEN MAX(t.end_date) IS NOT NULL THEN DATE_FORMAT(MAX(t.end_date), '%d/%m/%Y')
+            ELSE 'N/A'
+        END
+    ) AS project_deadline,
     CASE
-        WHEN MIN(t.start_date) IS NULL AND COUNT(DISTINCT CASE WHEN t.end_date IS NOT NULL THEN t.id END) = 0 THEN 'upcoming'
-        WHEN MIN(t.start_date) IS NOT NULL AND COUNT(DISTINCT t.id) = COUNT(DISTINCT CASE WHEN t.end_date IS NOT NULL THEN t.id END) THEN 'completed'
-        ELSE 'ongoing'
+        WHEN wr.status = 'draft' THEN 'draft'
+        WHEN wr.status = 'pending' THEN 'pending'
+        WHEN wr.status = 'accepted' THEN 'accepted'
+        WHEN wr.status = 'assigned' THEN 'assigned'
+        WHEN wr.status = 'in_progress' THEN 'in_progress'
+        WHEN COUNT(DISTINCT t.id) = 0 THEN 'no_tasks'
+        WHEN COUNT(DISTINCT t.id) = COUNT(DISTINCT CASE WHEN t.status = 'completed' THEN t.id END) THEN 'completed'
+        WHEN COUNT(DISTINCT CASE WHEN t.status IN ('completed', 'rejected') THEN t.id END) > 0 THEN 'in_progress'
+        ELSE 'pending'
     END AS project_status
 FROM work_requests wr
 LEFT JOIN request_type rt ON wr.request_type_id = rt.id
@@ -28,8 +36,8 @@ LEFT JOIN user_divisions rud ON ru.id = rud.user_id
 LEFT JOIN division rdiv ON rud.division_id = rdiv.id
 LEFT JOIN work_request_managers wrm ON wr.id = wrm.work_request_id
 LEFT JOIN users mu ON wrm.manager_id = mu.id
-LEFT JOIN request_division_reference rdr ON rt.id = rdr.request_id
-LEFT JOIN division mdiv ON rdr.division_id = mdiv.id
+LEFT JOIN user_divisions mud ON mu.id = mud.user_id
+LEFT JOIN division mdiv ON mud.division_id = mdiv.id
 LEFT JOIN tasks t ON wr.id = t.work_request_id
 GROUP BY 
     wr.id, 
@@ -38,4 +46,6 @@ GROUP BY
     rdiv.title, 
     ru.name, 
     mdiv.title,
-    wr.requested_at;
+    wr.status,
+    wr.created_at
+ORDER BY wr.created_at DESC;
