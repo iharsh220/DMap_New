@@ -205,7 +205,18 @@ const getAssignedTasks = async (req, res) => {
             offset: req.pagination.offset,
             order: [['deadline', 'ASC']] // Sort by deadline ascending by default
         });
-        console.log(tasks);
+        
+        // Sort WorkRequestManagers by nested manager ID ascending (23 then 27)
+        tasks.forEach(task => {
+            if (task.WorkRequest && task.WorkRequest.WorkRequestManagers) {
+                task.WorkRequest.WorkRequestManagers.sort((a, b) => {
+                    const managerIdA = a.manager?.id || 0;
+                    const managerIdB = b.manager?.id || 0;
+                    return managerIdA - managerIdB;
+                });
+            }
+        });
+        
         // Collect all unique user IDs from assigned users
         const allAssignedUserIds = [...new Set(tasks.flatMap(task => task.assignedUsers.map(user => user.id)))];
 
