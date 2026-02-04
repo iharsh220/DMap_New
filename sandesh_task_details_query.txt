@@ -11,7 +11,7 @@ SELECT
     tt.task_type,
     COALESCE(au.name, 'N/A') AS creative_user,
     1 AS task_count,
-    (SELECT COALESCE(SUM(COALESCE(task_count, 0)), 0) FROM tasks WHERE work_request_id = wr.id) AS no_of_work_pages,
+    t.task_count AS no_of_work_pages,
     COALESCE(t.start_date, 'N/A') AS task_start_date,
     COALESCE(t.end_date, 'N/A') AS task_end_date,
     CASE
