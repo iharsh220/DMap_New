@@ -118,7 +118,7 @@ const getAssignableUsers = async (req, res) => {
             const workRequest = workRequestResult.data[0];
 
             // Check if work request is accepted
-            if (workRequest.status !== 'accepted' && workRequest.status !== 'assigned') {
+            if (workRequest.status !== 'accepted' && workRequest.status !== 'assigned' && workRequest.status !== 'in_progress') {
                 return res.status(400).json({
                     success: false,
                     error: 'Work request must be accepted before assigning users'
@@ -2574,6 +2574,186 @@ const getUserTask = async (req, res) => {
     }
 };
 
+const updateTask = async (req, res) => {
+    try {
+        const taskId = parseInt(req.params.taskId, 10);
+        if (isNaN(taskId)) {
+            return res.status(400).json({ success: false, error: 'Invalid task ID' });
+        }
+        
+        const manager_id = req.user.id;
+        const { task_name, deadline, user_id } = req.body;
+        
+        // Validate that at least one field is provided
+        if (!task_name && !deadline && user_id === undefined) {
+            return res.status(400).json({
+                success: false,
+                error: 'At least one of task_name, deadline, or user_id is required'
+            });
+        }
+        
+        // Find the task with its work request to verify manager access
+        const task = await Tasks.findByPk(taskId, {
+            include: [
+                {
+                    model: WorkRequests,
+                    include: [
+                        {
+                            model: WorkRequestManagers,
+                            where: { manager_id: manager_id },
+                            required: true,
+                            attributes: []
+                        }
+                    ]
+                },
+                {
+                    model: TaskAssignments,
+                    attributes: ['id', 'user_id']
+                }
+            ]
+        });
+        
+        if (!task) {
+            return res.status(404).json({
+                success: false,
+                error: 'Task not found or not assigned to you'
+            });
+        }
+        
+        // Build update data for task
+        const taskUpdateData = {};
+        
+        if (task_name) {
+            // Validate task_name
+            if (typeof task_name !== 'string' || task_name.trim().length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Task name must be a non-empty string'
+                });
+            }
+            taskUpdateData.task_name = task_name.trim();
+        }
+        
+        if (deadline) {
+            // Validate date format
+            const dateRegex = /^\d{4}-\d{1,2}-\d{1,2}$/;
+            if (!dateRegex.test(deadline)) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Deadline must be in YYYY-MM-DD format'
+                });
+            }
+            
+            // Parse and validate the date
+            const dateParts = deadline.split('-');
+            const year = parseInt(dateParts[0]);
+            const month = parseInt(dateParts[1]);
+            const day = parseInt(dateParts[2]);
+            
+            if (month < 1 || month > 12 || day < 1 || day > 31) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Invalid date components in deadline'
+                });
+            }
+            
+            const formattedDeadline = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+            const testDate = new Date(formattedDeadline);
+            
+            if (isNaN(testDate.getTime())) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Invalid date provided for deadline'
+                });
+            }
+            
+            taskUpdateData.deadline = formattedDeadline;
+        }
+        
+        // Update task if there are updates
+        if (Object.keys(taskUpdateData).length > 0) {
+            await Tasks.update(taskUpdateData, { where: { id: taskId } });
+        }
+        
+        // Update user assignment if user_id is provided
+        if (user_id !== undefined) {
+            if (user_id === null || user_id === '') {
+                // Remove all assignments for this task
+                await TaskAssignments.destroy({ where: { task_id: taskId } });
+            } else {
+                // Validate user_id
+                const userIdInt = parseInt(user_id, 10);
+                if (isNaN(userIdInt)) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'user_id must be a valid integer'
+                    });
+                }
+                
+                // Check if user exists
+                const user = await User.findByPk(userIdInt, {
+                    attributes: ['id', 'name', 'account_status']
+                });
+                
+                if (!user) {
+                    return res.status(404).json({
+                        success: false,
+                        error: 'User not found'
+                    });
+                }
+                
+                if (user.account_status !== 'active') {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'User is not active'
+                    });
+                }
+                
+                // Check if assignment already exists
+                const existingAssignment = await TaskAssignments.findOne({
+                    where: { task_id: taskId, user_id: userIdInt }
+                });
+                
+                if (existingAssignment) {
+                    // Assignment already exists, no need to create new one
+                } else {
+                    // Remove existing assignments and create new one
+                    await TaskAssignments.destroy({ where: { task_id: taskId } });
+                    await TaskAssignments.create({ task_id: taskId, user_id: userIdInt });
+                }
+            }
+        }
+        
+        // Fetch updated task with assignments
+        const updatedTask = await Tasks.findByPk(taskId, {
+            include: [
+                {
+                    model: TaskAssignments,
+                    include: [
+                        {
+                            model: User,
+                            attributes: ['id', 'name', 'email']
+                        }
+                    ]
+                }
+            ]
+        });
+        
+        res.json({
+            success: true,
+            data: updatedTask,
+            message: 'Task updated successfully'
+        });
+    } catch (error) {
+        console.error('Error updating task:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            message: 'Failed to update task'
+        });
+    }
+};
+
 module.exports = {
     getAssignedWorkRequests,
     getAssignedWorkRequestById,
@@ -2591,5 +2771,6 @@ module.exports = {
     getMyTeam,
     assignTasksToUsers,
     getAssignedRequestsWithStatus,
-    getUserTask
+    getUserTask,
+    updateTask
 };

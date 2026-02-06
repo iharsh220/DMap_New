@@ -34,6 +34,7 @@ const io = socketIo(server, {
 
 // 1. Target Namespace (Correct One)
 const apiIo = io.of(`/socket`);
+
 apiIo.on('connection', (socket) => {
     console.log(`✅ User connected to API namespace (/socket): ${socket.id}`);
 
