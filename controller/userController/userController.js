@@ -606,7 +606,8 @@ const getTaskById = async (req, res) => {
         }
 
         const taskResult = await Tasks.findOne({
-            where: { id: taskId, intimate_team: 1 },
+            // where: { id: taskId, intimate_team: 1 },
+            where: { id: taskId},
             include: [
                 {
                     model: User,
