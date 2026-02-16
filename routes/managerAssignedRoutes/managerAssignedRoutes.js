@@ -12,7 +12,7 @@ router.post('/tasks', authenticateToken, checkRole([1, 2, 3]), createTask); // C
 router.put('/tasks/:taskId', authenticateToken, checkRole([1, 2, 3]), updateTask); // Update a task by ID
 router.delete('/tasks/:taskId', authenticateToken, checkRole([1, 2, 3]), deleteTask); // Delete a task by ID
 router.get('/work-request/:work_request_id/tasks', authenticateToken, checkRole([1, 2, 3]), getTasksByWorkRequestId); // Get tasks for a specific work request
-router.get('/user/:user_id/tasks', authenticateToken, checkRole([1, 2, 3]), getUserTask); // Get tasks for a specific user
+router.get('/user/:user_id/tasks', authenticateToken, checkRole([1, 2, 3]), filterMiddleware, paginationMiddleware, searchMiddleware, getUserTask); // Get tasks for a specific user with status filter and pagination
 
 // Manager-specific routes for viewing assigned work requests
 router.get('/', authenticateToken, checkRole([1, 2, 3]), filterMiddleware, paginationMiddleware, searchMiddleware, getAssignedWorkRequests); // Get all requests assigned to the manager

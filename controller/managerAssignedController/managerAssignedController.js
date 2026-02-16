@@ -2402,6 +2402,7 @@ const getUserTask = async (req, res) => {
     try {
         const manager_id = req.user.id;
         const user_id = parseInt(req.params.user_id, 10);
+        const { status } = req.query; // Optional status query parameter
 
         if (isNaN(user_id)) {
             return res.status(400).json({ success: false, error: 'Invalid user ID' });
@@ -2458,11 +2459,41 @@ const getUserTask = async (req, res) => {
             return res.status(403).json({ success: false, error: 'User is not assigned to you' });
         }
 
+        // Build where condition for tasks
+        let taskWhereCondition = {};
+
+        // Apply status filter if provided
+        if (status) {
+            const statusArray = status.split(',').map(s => s.trim());
+            
+            const validStatuses = ['pending', 'accepted', 'in_progress', 'completed'];
+            const invalidStatuses = statusArray.filter(s => !validStatuses.includes(s));
+            
+            if (invalidStatuses.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Invalid status values: ${invalidStatuses.join(', ')}. Valid values are: ${validStatuses.join(', ')}`
+                });
+            }
+            
+            if (statusArray.length > 1) {
+                taskWhereCondition.status = { [Op.in]: statusArray };
+            } else {
+                taskWhereCondition.status = statusArray[0];
+            }
+        }
+
+        // Apply filters from middleware
+        if (req.filters) {
+            taskWhereCondition = { ...taskWhereCondition, ...req.filters };
+        }
+
         const tasks = await TaskAssignments.findAll({
             where: { user_id: user_id },
             include: [
                 {
                     model: Tasks,
+                    where: taskWhereCondition,
                     include: [
                         {
                             model: RequestType,
@@ -2481,6 +2512,8 @@ const getUserTask = async (req, res) => {
                 }
             ],
             attributes: ['id'],
+            limit: req.pagination.limit,
+            offset: req.pagination.offset,
             order: [['created_at', 'DESC']]
         });
 
@@ -2562,6 +2595,7 @@ const getUserTask = async (req, res) => {
                 },
                 tasks: formattedTasks
             },
+            pagination: req.pagination,
             message: 'User tasks retrieved successfully'
         });
     } catch (error) {
