@@ -14,7 +14,7 @@ require('dotenv').config();
 const { scheduleTaskProgression } = require('./services/taskSchedulerService');
 
 // Base route
-const baseRoute = process.env.BASE_ROUTE || '/digilabs/dmap/api';
+const baseRoute = process.env.BASE_ROUTE || '/digilabs/dmap/api/uat';
 
 const app = express();
 const server = http.createServer(app);
@@ -23,7 +23,7 @@ app.set('trust proxy', 1);
 
 // --- SOCKET.IO SETUP ---
 const io = socketIo(server, {
-    path: '/digilabs/dmap/api/socket.io', // This must match the client "path" option
+    path: '/digilabs/dmap/api/uat/socket.io', // This must match the client "path" option
     cors: {
         origin: "*", // Allow all origins
         methods: ["GET", "POST"],
