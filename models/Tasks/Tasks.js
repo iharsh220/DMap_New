@@ -35,6 +35,12 @@ const Tasks = sequelize.define('Tasks', {
     type: DataTypes.ENUM('draft', 'pending', 'accepted', 'assigned', 'in_progress', 'completed', 'rejected', 'deferred'),
     defaultValue: 'pending',
   },
+  assignment_type: {
+    type: DataTypes.ENUM('new', 'mod'),
+    allowNull: false,
+    defaultValue: 'new',
+    comment: 'new=first time assignment, mod=modification request',
+  },
   intimate_team: {
     type: DataTypes.TINYINT(1),
     defaultValue: 0,

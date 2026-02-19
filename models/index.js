@@ -26,6 +26,9 @@ const TaskDependencies = require('./TaskDependencies/TaskDependencies');
 const TaskAssignments = require('./TaskAssignments/TaskAssignments');
 const TaskDocuments = require('./TaskDocuments/TaskDocuments');
 const AboutProject = require('./AboutProject/AboutProject');
+const IssueAssignments = require('./IssueAssignments/IssueAssignments');
+const IssueUserAssignments = require('./IssueUserAssignments/IssueUserAssignments');
+const IssueDocuments = require('./IssueDocuments/IssueDocuments');
 
 // Associations
 Department.hasMany(Division, { foreignKey: 'department_id', as: 'divisions' });
@@ -110,6 +113,33 @@ TaskAssignments.belongsTo(User, { foreignKey: 'user_id' });
 TaskDocuments.belongsTo(TaskAssignments, { foreignKey: 'task_assignment_id' });
 TaskAssignments.hasMany(TaskDocuments, { foreignKey: 'task_assignment_id' });
 
+// IssueAssignments Associations (similar to Tasks pattern)
+IssueAssignments.belongsTo(Tasks, { foreignKey: 'task_id', as: 'task' });
+IssueAssignments.belongsTo(IssueRegister, { foreignKey: 'issue_register_id', as: 'issueType' });
+IssueAssignments.belongsTo(User, { foreignKey: 'requested_by_user_id', as: 'requester' });
+
+// IssueAssignments <-> User many-to-many through IssueUserAssignments
+IssueAssignments.belongsToMany(User, { through: IssueUserAssignments, foreignKey: 'issue_assignment_id', as: 'assignedUsers' });
+User.belongsToMany(IssueAssignments, { through: IssueUserAssignments, foreignKey: 'user_id', as: 'issueAssignments' });
+
+// IssueAssignments has many IssueUserAssignments
+IssueAssignments.hasMany(IssueUserAssignments, { foreignKey: 'issue_assignment_id', as: 'userAssignments' });
+IssueUserAssignments.belongsTo(IssueAssignments, { foreignKey: 'issue_assignment_id', as: 'issueAssignment' });
+
+// IssueUserAssignments belongs to User
+IssueUserAssignments.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+User.hasMany(IssueUserAssignments, { foreignKey: 'user_id', as: 'issueUserAssignments' });
+
+// IssueDocuments belongs to IssueUserAssignments
+IssueDocuments.belongsTo(IssueUserAssignments, { foreignKey: 'issue_user_assignment_id', as: 'issueUserAssignment' });
+IssueUserAssignments.hasMany(IssueDocuments, { foreignKey: 'issue_user_assignment_id', as: 'documents' });
+
+// Tasks has many IssueAssignments
+Tasks.hasMany(IssueAssignments, { foreignKey: 'task_id', as: 'issueAssignments' });
+
+// IssueRegister has many IssueAssignments
+IssueRegister.hasMany(IssueAssignments, { foreignKey: 'issue_register_id', as: 'assignments' });
+
 module.exports = {
   sequelize,
   Department,
@@ -136,5 +166,8 @@ module.exports = {
   TaskDependencies,
   TaskAssignments,
   TaskDocuments,
-  AboutProject
+  AboutProject,
+  IssueAssignments,
+  IssueUserAssignments,
+  IssueDocuments
 };
