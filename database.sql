@@ -3556,17 +3556,40 @@ ALTER TABLE `work_request_managers`
 -- Similar to 'tasks' table - stores main issue info
 -- assignment_type: 'new' for first time assignment, 'mod' for modification requests
 -- version: Dynamic versioning (V1, V2, V3, etc.) - increments with each modification request
+-- Fields from tasks table: deadline, intimate_team, task_count, start_date, end_date (behaves like sub-count of task)
 --
 
 CREATE TABLE `issue_assignments` (
   `id` int(11) NOT NULL,
   `task_id` int(11) NOT NULL COMMENT 'Linked to tasks table',
-  `issue_register_id` int(11) NOT NULL COMMENT 'Type of issue/change from issue_register table',
   `requested_by_user_id` int(11) NOT NULL COMMENT 'User who requested the change (requester)',
   `assignment_type` enum('new','mod') NOT NULL DEFAULT 'new' COMMENT 'new=first time, mod=modification',
   `version` varchar(10) NOT NULL DEFAULT 'V1' COMMENT 'Dynamic version - V1, V2, V3, etc.',
   `description` text DEFAULT NULL COMMENT 'Details about the issue/change requested',
+  `deadline` date DEFAULT NULL COMMENT 'Deadline for the issue assignment',
+  `intimate_team` tinyint(1) DEFAULT 0 COMMENT 'Flag to intimate team (0=no, 1=yes)',
+  `task_count` int(11) DEFAULT 0 COMMENT 'Count of tasks for this issue assignment',
+  `start_date` date DEFAULT NULL COMMENT 'Start date for the issue assignment',
+  `end_date` date DEFAULT NULL COMMENT 'End date for the issue assignment',
+  `link` varchar(500) DEFAULT NULL COMMENT 'Link URL for the issue assignment',
   `status` enum('pending','in_progress','completed','rejected') DEFAULT 'pending',
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `issue_assignment_types`
+--
+-- Junction table for multiple issue_register entries per issue_assignment
+-- Allows users to provide multiple change_issue_type when calling API
+--
+
+CREATE TABLE `issue_assignment_types` (
+  `id` int(11) NOT NULL,
+  `issue_assignment_id` int(11) NOT NULL COMMENT 'Reference to issue_assignments table',
+  `issue_register_id` int(11) NOT NULL COMMENT 'Reference to issue_register table (change_issue_type)',
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
@@ -3617,8 +3640,15 @@ CREATE TABLE `issue_documents` (
 ALTER TABLE `issue_assignments`
   ADD PRIMARY KEY (`id`),
   ADD KEY `task_id` (`task_id`),
-  ADD KEY `issue_register_id` (`issue_register_id`),
   ADD KEY `requested_by_user_id` (`requested_by_user_id`);
+
+--
+-- Constraints for table `issue_assignment_types`
+--
+ALTER TABLE `issue_assignment_types`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `issue_assignment_id` (`issue_assignment_id`),
+  ADD KEY `issue_register_id` (`issue_register_id`);
 
 --
 -- Constraints for table `issue_user_assignments`
@@ -3642,6 +3672,12 @@ ALTER TABLE `issue_assignments`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `issue_assignment_types`
+--
+ALTER TABLE `issue_assignment_types`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `issue_user_assignments`
 --
 ALTER TABLE `issue_user_assignments`
@@ -3658,8 +3694,14 @@ ALTER TABLE `issue_documents`
 --
 ALTER TABLE `issue_assignments`
   ADD CONSTRAINT `issue_assignments_ibfk_1` FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `issue_assignments_ibfk_2` FOREIGN KEY (`issue_register_id`) REFERENCES `issue_register` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `issue_assignments_ibfk_3` FOREIGN KEY (`requested_by_user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `issue_assignments_ibfk_2` FOREIGN KEY (`requested_by_user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Foreign key constraints for table `issue_assignment_types`
+--
+ALTER TABLE `issue_assignment_types`
+  ADD CONSTRAINT `issue_assignment_types_ibfk_1` FOREIGN KEY (`issue_assignment_id`) REFERENCES `issue_assignments` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `issue_assignment_types_ibfk_2` FOREIGN KEY (`issue_register_id`) REFERENCES `issue_register` (`id`) ON DELETE CASCADE;
 
 --
 -- Foreign key constraints for table `issue_user_assignments`
