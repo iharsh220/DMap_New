@@ -14,7 +14,7 @@ require('dotenv').config();
 const { scheduleTaskProgression } = require('./services/taskSchedulerService');
 
 // Base route
-const baseRoute = process.env.BASE_ROUTE || '/digilabs/uat/dmap/api/uat';
+const baseRoute = process.env.BASE_ROUTE || '/digilabs/uat/dmap/api/';
 
 const app = express();
 const server = http.createServer(app);
