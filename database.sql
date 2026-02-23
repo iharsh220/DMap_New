@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Jan 09, 2026 at 12:15 PM
--- Server version: 11.4.9-MariaDB
--- PHP Version: 8.4.16
+-- Generation Time: Feb 23, 2026 at 12:06 PM
+-- Server version: 11.4.10-MariaDB
+-- PHP Version: 8.4.17
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -18,7 +18,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `alembicdigilabs_Digi_dmap`
+-- Database: `alembicdigilabs_Digi_dmap_v2`
 --
 
 -- --------------------------------------------------------
@@ -1883,6 +1883,64 @@ INSERT INTO `division` (`id`, `title`, `department_id`, `description`, `state`, 
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `issue_assignments`
+--
+
+CREATE TABLE `issue_assignments` (
+  `id` int(11) NOT NULL,
+  `task_id` int(11) NOT NULL COMMENT 'Linked to tasks table',
+  `requested_by_user_id` int(11) NOT NULL COMMENT 'User who requested the change (requester)',
+  `assignment_type` enum('new','mod') NOT NULL DEFAULT 'new' COMMENT 'new=first time, mod=modification',
+  `version` varchar(10) NOT NULL DEFAULT 'V1' COMMENT 'Dynamic version - V1, V2, V3, etc.',
+  `description` text DEFAULT NULL COMMENT 'Details about the issue/change requested',
+  `deadline` date DEFAULT NULL COMMENT 'Deadline for the issue assignment',
+  `intimate_team` tinyint(1) DEFAULT 0 COMMENT 'Flag to intimate team (0=no, 1=yes)',
+  `task_count` int(11) DEFAULT 0 COMMENT 'Count of tasks for this issue assignment',
+  `start_date` date DEFAULT NULL COMMENT 'Start date for the issue assignment',
+  `end_date` date DEFAULT NULL COMMENT 'End date for the issue assignment',
+  `link` varchar(500) DEFAULT NULL COMMENT 'Link URL for the issue assignment',
+  `status` enum('pending','in_progress','completed','rejected') DEFAULT 'pending',
+  `review` enum('pending','approved','change_request') DEFAULT 'pending' COMMENT 'Review status - pending, approved, or change_request',
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `issue_assignment_types`
+--
+
+CREATE TABLE `issue_assignment_types` (
+  `id` int(11) NOT NULL,
+  `issue_assignment_id` int(11) NOT NULL COMMENT 'Reference to issue_assignments table',
+  `issue_register_id` int(11) NOT NULL COMMENT 'Reference to issue_register table (change_issue_type)',
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `issue_documents`
+--
+
+CREATE TABLE `issue_documents` (
+  `id` int(11) NOT NULL,
+  `issue_user_assignment_id` int(11) NOT NULL COMMENT 'Linked to issue_user_assignments table',
+  `document_name` varchar(255) NOT NULL,
+  `document_path` varchar(500) NOT NULL,
+  `document_type` varchar(255) DEFAULT NULL,
+  `document_size` int(11) DEFAULT NULL,
+  `version` varchar(10) NOT NULL DEFAULT 'V1' COMMENT 'Document version - V1, V2, V3, etc.',
+  `status` enum('uploading','uploaded','failed') DEFAULT 'uploading',
+  `review` enum('pending','approved','change_request') DEFAULT 'pending' COMMENT 'Document review status - pending, approved, or change_request',
+  `uploaded_at` timestamp NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `issue_register`
 --
 
@@ -1928,6 +1986,20 @@ INSERT INTO `issue_register` (`id`, `change_issue_type`, `description`, `quantif
 (26, 'Bug fixes', 'Web', 'No. of issues reported', '2025-12-30 08:43:52', '2025-12-30 08:43:52'),
 (27, 'Form Field Update', 'Web', 'No. of issues reported', '2025-12-30 08:43:52', '2025-12-30 08:43:52'),
 (28, 'Link/API Update', 'Web', 'No. of issues reported', '2025-12-30 08:43:52', '2025-12-30 08:43:52');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `issue_user_assignments`
+--
+
+CREATE TABLE `issue_user_assignments` (
+  `id` int(11) NOT NULL,
+  `issue_assignment_id` int(11) NOT NULL COMMENT 'Linked to issue_assignments table',
+  `user_id` int(11) NOT NULL COMMENT 'User assigned to work on this issue',
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
 -- --------------------------------------------------------
 
@@ -2245,6 +2317,7 @@ CREATE TABLE `tasks` (
   `start_date` date DEFAULT NULL,
   `end_date` date DEFAULT NULL,
   `review` enum('pending','approved','change_request') DEFAULT 'pending' COMMENT 'Review status - pending, approved, or change_request',
+  `review_stage` enum('not_started','manager_review','pm_review','change_requested','final_approved') DEFAULT 'not_started' COMMENT 'Current review stage - not_started, manager_review, pm_review, change_requested, final_approved',
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
@@ -2253,23 +2326,23 @@ CREATE TABLE `tasks` (
 -- Dumping data for table `tasks`
 --
 
-INSERT INTO `tasks` (`id`, `task_name`, `description`, `request_type_id`, `task_type_id`, `work_request_id`, `deadline`, `status`, `assignment_type`, `intimate_team`, `task_count`, `link`, `start_date`, `end_date`, `created_at`, `updated_at`) VALUES
-(33, 'Ui design', 'test', 5, 89, 141, '2025-12-31', 'pending', 'new', 1, 0, NULL, NULL, NULL, '2025-12-30 09:10:19', '2026-01-09 06:14:22'),
-(34, 'POster', 'Test', 1, 8, 141, NULL, 'accepted', 'new', 1, 0, NULL, NULL, NULL, '2025-12-30 10:51:16', '2026-01-09 06:14:22'),
-(35, 'Packaging design', 'test', 1, 3, 141, NULL, 'accepted', 'new', 1, 0, NULL, NULL, NULL, '2025-12-30 11:06:50', '2026-01-09 06:14:22'),
-(36, 'Data Schema', 'test', 5, 78, 141, '2026-01-01', 'in_progress', 'new', 1, 0, NULL, '2026-01-01', NULL, '2025-12-31 09:15:34', '2026-01-09 06:14:22'),
-(37, 'Gantt chart', 'Showcase visual project timeline', 5, 86, 140, '2026-01-05', 'pending', 'new', 1, 0, NULL, NULL, NULL, '2026-01-02 07:06:01', '2026-01-05 10:56:26'),
-(38, 'UI dev', 'based on bal ui', 5, 82, 140, '2026-01-08', 'pending', 'new', 1, 0, NULL, NULL, NULL, '2026-01-02 07:07:16', '2026-01-05 10:56:26'),
-(39, 'Front-end development', 'UI', 5, 74, 140, '2026-01-15', 'completed', 'new', 1, 3, NULL, '2026-01-07', '2026-01-05', '2026-01-05 10:53:51', '2026-01-05 10:59:23'),
-(40, 'test harsh', 'test', 5, 77, 141, '2026-01-08', 'pending', 'new', 1, 0, NULL, NULL, NULL, '2026-01-07 10:44:32', '2026-01-09 06:14:22'),
-(41, 'api', 'test', 5, 75, 141, '2026-01-13', 'pending', 'new', 1, 0, NULL, NULL, NULL, '2026-01-09 05:32:16', '2026-01-09 06:14:22'),
-(42, 'database', 'test_v02', 5, 77, 141, '2026-01-15', 'pending', 'new', 1, 0, NULL, NULL, NULL, '2026-01-09 05:37:43', '2026-01-09 06:14:22'),
-(43, 'backend', 'test', 5, 75, 141, '2026-01-16', 'pending', 'new', 1, 0, NULL, NULL, NULL, '2026-01-09 05:51:15', '2026-01-09 06:14:22'),
-(44, 'video framer', 'test', 5, 80, 141, '2026-01-20', 'pending', 'new', 1, 0, NULL, NULL, NULL, '2026-01-09 05:54:50', '2026-01-09 06:14:22'),
-(45, 'system design', 'test', 5, 80, 141, '2026-01-21', 'pending', 'new', 1, 0, NULL, NULL, NULL, '2026-01-09 05:58:02', '2026-01-09 06:14:22'),
-(46, 'photo framer', 'test', 5, 76, 141, '2026-01-26', 'pending', 'new', 1, 0, NULL, NULL, NULL, '2026-01-09 06:02:34', '2026-01-09 06:14:22'),
-(47, 'custom website', 'test', 5, 80, 141, '2026-01-27', 'pending', 'new', 1, 0, NULL, NULL, NULL, '2026-01-09 06:05:07', '2026-01-09 06:14:22'),
-(48, 'harsh ', 'test', 5, 78, 141, '2026-01-29', 'pending', 'new', 1, 0, NULL, NULL, NULL, '2026-01-09 06:14:19', '2026-01-09 06:14:22');
+INSERT INTO `tasks` (`id`, `task_name`, `description`, `request_type_id`, `task_type_id`, `work_request_id`, `deadline`, `status`, `assignment_type`, `intimate_team`, `task_count`, `link`, `start_date`, `end_date`, `review`, `review_stage`, `created_at`, `updated_at`) VALUES
+(33, 'Ui design', 'test', 5, 89, 141, '2025-12-31', 'pending', 'new', 1, 0, NULL, NULL, NULL, 'pending', 'not_started', '2025-12-30 09:10:19', '2026-01-09 06:14:22'),
+(34, 'POster', 'Test', 1, 8, 141, NULL, 'accepted', 'new', 1, 0, NULL, NULL, NULL, 'pending', 'not_started', '2025-12-30 10:51:16', '2026-01-09 06:14:22'),
+(35, 'Packaging design', 'test', 1, 3, 141, NULL, 'accepted', 'new', 1, 0, NULL, NULL, NULL, 'pending', 'not_started', '2025-12-30 11:06:50', '2026-01-09 06:14:22'),
+(36, 'Data Schema', 'test', 5, 78, 141, '2026-01-01', 'in_progress', 'new', 1, 0, NULL, '2026-01-01', NULL, 'pending', 'not_started', '2025-12-31 09:15:34', '2026-01-09 06:14:22'),
+(37, 'Gantt chart', 'Showcase visual project timeline', 5, 86, 140, '2026-01-05', 'pending', 'new', 1, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-02 07:06:01', '2026-01-05 10:56:26'),
+(38, 'UI dev', 'based on bal ui', 5, 82, 140, '2026-01-08', 'pending', 'new', 1, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-02 07:07:16', '2026-01-05 10:56:26'),
+(39, 'Front-end development', 'UI', 5, 74, 140, '2026-01-15', 'completed', 'new', 1, 3, NULL, '2026-01-07', '2026-01-05', 'pending', 'not_started', '2026-01-05 10:53:51', '2026-01-05 10:59:23'),
+(40, 'test harsh', 'test', 5, 77, 141, '2026-01-08', 'pending', 'new', 1, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-07 10:44:32', '2026-01-09 06:14:22'),
+(41, 'api', 'test', 5, 75, 141, '2026-01-13', 'pending', 'new', 1, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 05:32:16', '2026-01-09 06:14:22'),
+(42, 'database', 'test_v02', 5, 77, 141, '2026-01-15', 'pending', 'new', 1, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 05:37:43', '2026-01-09 06:14:22'),
+(43, 'backend', 'test', 5, 75, 141, '2026-01-16', 'pending', 'new', 1, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 05:51:15', '2026-01-09 06:14:22'),
+(44, 'video framer', 'test', 5, 80, 141, '2026-01-20', 'pending', 'new', 1, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 05:54:50', '2026-01-09 06:14:22'),
+(45, 'system design', 'test', 5, 80, 141, '2026-01-21', 'pending', 'new', 1, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 05:58:02', '2026-01-09 06:14:22'),
+(46, 'photo framer', 'test', 5, 76, 141, '2026-01-26', 'pending', 'new', 1, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 06:02:34', '2026-01-09 06:14:22'),
+(47, 'custom website', 'test', 5, 80, 141, '2026-01-27', 'pending', 'new', 1, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 06:05:07', '2026-01-09 06:14:22'),
+(48, 'harsh ', 'test', 5, 78, 141, '2026-01-29', 'pending', 'new', 1, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 06:14:19', '2026-01-09 06:14:22');
 
 -- --------------------------------------------------------
 
@@ -2353,8 +2426,8 @@ CREATE TABLE `task_documents` (
 -- Dumping data for table `task_documents`
 --
 
-INSERT INTO `task_documents` (`id`, `task_assignment_id`, `document_name`, `document_path`, `document_type`, `document_size`, `version`, `status`, `uploaded_at`) VALUES
-(2, 45, 'udder.jpg', '/digilabs/dmap/api/uploads/Petal_POB_tracker/Front-end development/Gautam Baranwal/udder.jpg-1767610763150-962022545.jpg', 'image/jpeg', 82670, 'V1', 'uploaded', '2026-01-05 10:59:23');
+INSERT INTO `task_documents` (`id`, `task_assignment_id`, `document_name`, `document_path`, `document_type`, `document_size`, `version`, `status`, `review`, `uploaded_at`) VALUES
+(2, 45, 'udder.jpg', '/digilabs/dmap/api/uploads/Petal_POB_tracker/Front-end development/Gautam Baranwal/udder.jpg-1767610763150-962022545.jpg', 'image/jpeg', 82670, 'V1', 'uploaded', 'pending', '2026-01-05 10:59:23');
 
 -- --------------------------------------------------------
 
@@ -2686,6 +2759,25 @@ INSERT INTO `task_project_reference` (`id`, `task_id`, `project_id`, `created_at
 (309, 99, 32, '2025-12-30 08:42:37', '2025-12-30 08:42:37'),
 (310, 100, 32, '2025-12-30 08:42:37', '2025-12-30 08:42:37'),
 (311, 101, 32, '2025-12-30 08:42:37', '2025-12-30 08:42:37');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `task_review_history`
+--
+
+CREATE TABLE `task_review_history` (
+  `id` int(11) NOT NULL,
+  `task_id` int(11) NOT NULL,
+  `reviewer_id` int(11) NOT NULL,
+  `reviewer_type` enum('manager','project_manager') NOT NULL COMMENT 'manager=creative manager, project_manager=requester',
+  `action` enum('approved','change_request') NOT NULL COMMENT 'Review action taken',
+  `comments` text DEFAULT NULL COMMENT 'Review comments or change request details',
+  `previous_stage` varchar(50) DEFAULT NULL COMMENT 'Previous review stage',
+  `new_stage` varchar(50) DEFAULT NULL COMMENT 'New review stage after action',
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci COMMENT='Tracks all task review actions for audit trail';
 
 -- --------------------------------------------------------
 
@@ -3104,10 +3196,41 @@ ALTER TABLE `division`
   ADD KEY `department_id` (`department_id`);
 
 --
+-- Indexes for table `issue_assignments`
+--
+ALTER TABLE `issue_assignments`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `task_id` (`task_id`),
+  ADD KEY `requested_by_user_id` (`requested_by_user_id`);
+
+--
+-- Indexes for table `issue_assignment_types`
+--
+ALTER TABLE `issue_assignment_types`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `issue_assignment_id` (`issue_assignment_id`),
+  ADD KEY `issue_register_id` (`issue_register_id`);
+
+--
+-- Indexes for table `issue_documents`
+--
+ALTER TABLE `issue_documents`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `issue_user_assignment_id` (`issue_user_assignment_id`);
+
+--
 -- Indexes for table `issue_register`
 --
 ALTER TABLE `issue_register`
   ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `issue_user_assignments`
+--
+ALTER TABLE `issue_user_assignments`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `issue_assignment_id` (`issue_assignment_id`),
+  ADD KEY `user_id` (`user_id`);
 
 --
 -- Indexes for table `job_role`
@@ -3200,6 +3323,14 @@ ALTER TABLE `task_project_reference`
   ADD PRIMARY KEY (`id`),
   ADD KEY `task_id` (`task_id`),
   ADD KEY `project_id` (`project_id`);
+
+--
+-- Indexes for table `task_review_history`
+--
+ALTER TABLE `task_review_history`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `task_id` (`task_id`),
+  ADD KEY `reviewer_id` (`reviewer_id`);
 
 --
 -- Indexes for table `task_type`
@@ -3306,10 +3437,34 @@ ALTER TABLE `division`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
 
 --
+-- AUTO_INCREMENT for table `issue_assignments`
+--
+ALTER TABLE `issue_assignments`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `issue_assignment_types`
+--
+ALTER TABLE `issue_assignment_types`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `issue_documents`
+--
+ALTER TABLE `issue_documents`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `issue_register`
 --
 ALTER TABLE `issue_register`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
+
+--
+-- AUTO_INCREMENT for table `issue_user_assignments`
+--
+ALTER TABLE `issue_user_assignments`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `job_role`
@@ -3384,6 +3539,12 @@ ALTER TABLE `task_project_reference`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=312;
 
 --
+-- AUTO_INCREMENT for table `task_review_history`
+--
+ALTER TABLE `task_review_history`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `task_type`
 --
 ALTER TABLE `task_type`
@@ -3452,6 +3613,33 @@ ALTER TABLE `division`
   ADD CONSTRAINT `division_ibfk_1` FOREIGN KEY (`department_id`) REFERENCES `department` (`id`);
 
 --
+-- Constraints for table `issue_assignments`
+--
+ALTER TABLE `issue_assignments`
+  ADD CONSTRAINT `issue_assignments_ibfk_1` FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `issue_assignments_ibfk_2` FOREIGN KEY (`requested_by_user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `issue_assignment_types`
+--
+ALTER TABLE `issue_assignment_types`
+  ADD CONSTRAINT `issue_assignment_types_ibfk_1` FOREIGN KEY (`issue_assignment_id`) REFERENCES `issue_assignments` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `issue_assignment_types_ibfk_2` FOREIGN KEY (`issue_register_id`) REFERENCES `issue_register` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `issue_documents`
+--
+ALTER TABLE `issue_documents`
+  ADD CONSTRAINT `issue_documents_ibfk_1` FOREIGN KEY (`issue_user_assignment_id`) REFERENCES `issue_user_assignments` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `issue_user_assignments`
+--
+ALTER TABLE `issue_user_assignments`
+  ADD CONSTRAINT `issue_user_assignments_ibfk_1` FOREIGN KEY (`issue_assignment_id`) REFERENCES `issue_assignments` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `issue_user_assignments_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
 -- Constraints for table `job_role`
 --
 ALTER TABLE `job_role`
@@ -3513,6 +3701,13 @@ ALTER TABLE `task_project_reference`
   ADD CONSTRAINT `task_project_reference_ibfk_2` FOREIGN KEY (`project_id`) REFERENCES `project_type` (`id`) ON DELETE CASCADE;
 
 --
+-- Constraints for table `task_review_history`
+--
+ALTER TABLE `task_review_history`
+  ADD CONSTRAINT `task_review_history_ibfk_1` FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `task_review_history_ibfk_2` FOREIGN KEY (`reviewer_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
 -- Constraints for table `users`
 --
 ALTER TABLE `users`
@@ -3548,178 +3743,6 @@ ALTER TABLE `work_request_documents`
 ALTER TABLE `work_request_managers`
   ADD CONSTRAINT `work_request_managers_ibfk_1` FOREIGN KEY (`work_request_id`) REFERENCES `work_requests` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `work_request_managers_ibfk_2` FOREIGN KEY (`manager_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `issue_assignments`
---
--- This table tracks when changes/issues are requested on completed tasks
--- Similar to 'tasks' table - stores main issue info
--- assignment_type: 'new' for first time assignment, 'mod' for modification requests
--- version: Dynamic versioning (V1, V2, V3, etc.) - increments with each modification request
--- Fields from tasks table: deadline, intimate_team, task_count, start_date, end_date (behaves like sub-count of task)
---
-
-CREATE TABLE `issue_assignments` (
-  `id` int(11) NOT NULL,
-  `task_id` int(11) NOT NULL COMMENT 'Linked to tasks table',
-  `requested_by_user_id` int(11) NOT NULL COMMENT 'User who requested the change (requester)',
-  `assignment_type` enum('new','mod') NOT NULL DEFAULT 'new' COMMENT 'new=first time, mod=modification',
-  `version` varchar(10) NOT NULL DEFAULT 'V1' COMMENT 'Dynamic version - V1, V2, V3, etc.',
-  `description` text DEFAULT NULL COMMENT 'Details about the issue/change requested',
-  `deadline` date DEFAULT NULL COMMENT 'Deadline for the issue assignment',
-  `intimate_team` tinyint(1) DEFAULT 0 COMMENT 'Flag to intimate team (0=no, 1=yes)',
-  `task_count` int(11) DEFAULT 0 COMMENT 'Count of tasks for this issue assignment',
-  `start_date` date DEFAULT NULL COMMENT 'Start date for the issue assignment',
-  `end_date` date DEFAULT NULL COMMENT 'End date for the issue assignment',
-  `link` varchar(500) DEFAULT NULL COMMENT 'Link URL for the issue assignment',
-  `status` enum('pending','in_progress','completed','rejected') DEFAULT 'pending',
-  `review` enum('pending','approved','change_request') DEFAULT 'pending' COMMENT 'Review status - pending, approved, or change_request',
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `issue_assignment_types`
---
--- Junction table for multiple issue_register entries per issue_assignment
--- Allows users to provide multiple change_issue_type when calling API
---
-
-CREATE TABLE `issue_assignment_types` (
-  `id` int(11) NOT NULL,
-  `issue_assignment_id` int(11) NOT NULL COMMENT 'Reference to issue_assignments table',
-  `issue_register_id` int(11) NOT NULL COMMENT 'Reference to issue_register table (change_issue_type)',
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `issue_user_assignments`
---
--- Similar to 'task_assignments' table - links issue_assignment to multiple users
--- Multiple users can work on a single issue
---
-
-CREATE TABLE `issue_user_assignments` (
-  `id` int(11) NOT NULL,
-  `issue_assignment_id` int(11) NOT NULL COMMENT 'Linked to issue_assignments table',
-  `user_id` int(11) NOT NULL COMMENT 'User assigned to work on this issue',
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `issue_documents`
---
--- Documents attached to issue user assignments (supports dynamic versioning V1, V2, V3, etc.)
--- Similar to 'task_documents' table - linked to issue_user_assignments
---
-
-CREATE TABLE `issue_documents` (
-  `id` int(11) NOT NULL,
-  `issue_user_assignment_id` int(11) NOT NULL COMMENT 'Linked to issue_user_assignments table',
-  `document_name` varchar(255) NOT NULL,
-  `document_path` varchar(500) NOT NULL,
-  `document_type` varchar(255) DEFAULT NULL,
-  `document_size` int(11) DEFAULT NULL,
-  `version` varchar(10) NOT NULL DEFAULT 'V1' COMMENT 'Document version - V1, V2, V3, etc.',
-  `status` enum('uploading','uploaded','failed') DEFAULT 'uploading',
-  `review` enum('pending','approved','change_request') DEFAULT 'pending' COMMENT 'Document review status - pending, approved, or change_request',
-  `uploaded_at` timestamp NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-
--- --------------------------------------------------------
-
---
--- Constraints for table `issue_assignments`
---
-ALTER TABLE `issue_assignments`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `task_id` (`task_id`),
-  ADD KEY `requested_by_user_id` (`requested_by_user_id`);
-
---
--- Constraints for table `issue_assignment_types`
---
-ALTER TABLE `issue_assignment_types`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `issue_assignment_id` (`issue_assignment_id`),
-  ADD KEY `issue_register_id` (`issue_register_id`);
-
---
--- Constraints for table `issue_user_assignments`
---
-ALTER TABLE `issue_user_assignments`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `issue_assignment_id` (`issue_assignment_id`),
-  ADD KEY `user_id` (`user_id`);
-
---
--- Constraints for table `issue_documents`
---
-ALTER TABLE `issue_documents`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `issue_user_assignment_id` (`issue_user_assignment_id`);
-
---
--- AUTO_INCREMENT for table `issue_assignments`
---
-ALTER TABLE `issue_assignments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `issue_assignment_types`
---
-ALTER TABLE `issue_assignment_types`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `issue_user_assignments`
---
-ALTER TABLE `issue_user_assignments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `issue_documents`
---
-ALTER TABLE `issue_documents`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- Foreign key constraints for table `issue_assignments`
---
-ALTER TABLE `issue_assignments`
-  ADD CONSTRAINT `issue_assignments_ibfk_1` FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `issue_assignments_ibfk_2` FOREIGN KEY (`requested_by_user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
-
---
--- Foreign key constraints for table `issue_assignment_types`
---
-ALTER TABLE `issue_assignment_types`
-  ADD CONSTRAINT `issue_assignment_types_ibfk_1` FOREIGN KEY (`issue_assignment_id`) REFERENCES `issue_assignments` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `issue_assignment_types_ibfk_2` FOREIGN KEY (`issue_register_id`) REFERENCES `issue_register` (`id`) ON DELETE CASCADE;
-
---
--- Foreign key constraints for table `issue_user_assignments`
---
-ALTER TABLE `issue_user_assignments`
-  ADD CONSTRAINT `issue_user_assignments_ibfk_1` FOREIGN KEY (`issue_assignment_id`) REFERENCES `issue_assignments` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `issue_user_assignments_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
-
---
--- Foreign key constraints for table `issue_documents`
---
-ALTER TABLE `issue_documents`
-  ADD CONSTRAINT `issue_documents_ibfk_1` FOREIGN KEY (`issue_user_assignment_id`) REFERENCES `issue_user_assignments` (`id`) ON DELETE CASCADE;
-
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
