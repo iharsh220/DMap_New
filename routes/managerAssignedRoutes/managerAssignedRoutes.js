@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getAssignedWorkRequests, getAssignedWorkRequestById, acceptWorkRequest, deferWorkRequest, updateWorkRequestProject, deleteWorkRequest, deleteTask, getMyTasks, getAssignableUsers, getTaskTypesByWorkRequest, createTask, getTasksByWorkRequestId, getTaskAnalytics, getMyTeam, assignTasksToUsers, getAssignedRequestsWithStatus, getUserTask, updateTask } = require('../../controller/managerAssignedController/managerAssignedController');
+const { getAssignedWorkRequests, getAssignedWorkRequestById, acceptWorkRequest, deferWorkRequest, updateWorkRequestProject, deleteWorkRequest, deleteTask, getMyTasks, getAssignableUsers, getTaskTypesByWorkRequest, createTask, getTasksByWorkRequestId, getTaskAnalytics, getMyTeam, assignTasksToUsers, getAssignedRequestsWithStatus, getUserTask, updateTask, reviewTaskDocument, reviewIssueDocument } = require('../../controller/managerAssignedController/managerAssignedController');
 const { authenticateToken } = require('../../middleware/jwtMiddleware');
 const { checkRole } = require('../../middleware/roleMiddleware');
 const filterMiddleware = require('../../middleware/filterMiddleware');
@@ -13,6 +13,10 @@ router.put('/tasks/:taskId', authenticateToken, checkRole([1, 2, 3]), updateTask
 router.delete('/tasks/:taskId', authenticateToken, checkRole([1, 2, 3]), deleteTask); // Delete a task by ID
 router.get('/work-request/:work_request_id/tasks', authenticateToken, checkRole([1, 2, 3]), getTasksByWorkRequestId); // Get tasks for a specific work request
 router.get('/user/:user_id/tasks', authenticateToken, checkRole([1, 2, 3]), filterMiddleware, paginationMiddleware, searchMiddleware, getUserTask); // Get tasks for a specific user with status filter and pagination
+
+// Document review routes
+router.put('/documents/:documentId/review', authenticateToken, checkRole([1, 2, 3]), reviewTaskDocument); // Review (approve/change_request) a task document
+router.put('/issue-documents/:documentId/review', authenticateToken, checkRole([1, 2, 3]), reviewIssueDocument); // Review (approve/change_request) an issue document
 
 // Manager-specific routes for viewing assigned work requests
 router.get('/', authenticateToken, checkRole([1, 2, 3]), filterMiddleware, paginationMiddleware, searchMiddleware, getAssignedWorkRequests); // Get all requests assigned to the manager

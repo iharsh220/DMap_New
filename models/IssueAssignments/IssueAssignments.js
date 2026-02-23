@@ -70,6 +70,11 @@ const IssueAssignments = sequelize.define('IssueAssignments', {
     type: DataTypes.ENUM('pending', 'in_progress', 'completed', 'rejected'),
     defaultValue: 'pending',
   },
+  review: {
+    type: DataTypes.ENUM('pending', 'approved', 'change_request'),
+    defaultValue: 'pending',
+    comment: 'Review status - pending, approved, or change_request',
+  },
   created_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,

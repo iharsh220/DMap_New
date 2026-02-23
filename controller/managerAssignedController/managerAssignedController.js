@@ -20,7 +20,10 @@ const {
     Tasks,
     TaskDependencies,
     TaskAssignments,
-    TaskDocuments
+    TaskDocuments,
+    IssueDocuments,
+    IssueUserAssignments,
+    IssueAssignments
 } = require('../../models');
 
 const { sendMail } = require('../../services/mailService');
@@ -2788,6 +2791,165 @@ const updateTask = async (req, res) => {
     }
 };
 
+const reviewTaskDocument = async (req, res) => {
+    try {
+        const documentId = parseInt(req.params.documentId, 10);
+        if (isNaN(documentId)) {
+            return res.status(400).json({ success: false, error: 'Invalid document ID' });
+        }
+
+        const manager_id = req.user.id;
+        const { review } = req.body;
+
+        // Validate review value
+        if (!review || !['approved', 'change_request'].includes(review)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid review value. Allowed values: approved, change_request'
+            });
+        }
+
+        // Find the document with its task assignment and verify manager access
+        const document = await TaskDocuments.findByPk(documentId, {
+            include: [
+                {
+                    model: TaskAssignments,
+                    include: [
+                        {
+                            model: Tasks,
+                            include: [
+                                {
+                                    model: WorkRequests,
+                                    include: [
+                                        {
+                                            model: WorkRequestManagers,
+                                            where: { manager_id: manager_id },
+                                            required: true,
+                                            attributes: []
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        });
+
+        if (!document) {
+            return res.status(404).json({
+                success: false,
+                error: 'Document not found or not assigned to you'
+            });
+        }
+
+        // Update the review status
+        await TaskDocuments.update({ review }, { where: { id: documentId } });
+
+        // Fetch updated document
+        const updatedDocument = await TaskDocuments.findByPk(documentId, {
+            attributes: ['id', 'document_name', 'document_path', 'uploaded_at', 'status', 'version', 'review']
+        });
+
+        res.json({
+            success: true,
+            data: updatedDocument,
+            message: `Document review status updated to ${review}`
+        });
+    } catch (error) {
+        console.error('Error reviewing task document:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            message: 'Failed to review task document'
+        });
+    }
+};
+
+const reviewIssueDocument = async (req, res) => {
+    try {
+        const documentId = parseInt(req.params.documentId, 10);
+        if (isNaN(documentId)) {
+            return res.status(400).json({ success: false, error: 'Invalid document ID' });
+        }
+
+        const manager_id = req.user.id;
+        const { review } = req.body;
+
+        // Validate review value
+        if (!review || !['approved', 'change_request'].includes(review)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid review value. Allowed values: approved, change_request'
+            });
+        }
+
+        // Find the document with its issue user assignment and verify manager access
+        // IssueDocuments -> IssueUserAssignments -> IssueAssignments -> Tasks -> WorkRequests -> WorkRequestManagers
+        const document = await IssueDocuments.findByPk(documentId, {
+            include: [
+                {
+                    model: IssueUserAssignments,
+                    as: 'issueUserAssignment',
+                    include: [
+                        {
+                            model: IssueAssignments,
+                            as: 'issueAssignment',
+                            include: [
+                                {
+                                    model: Tasks,
+                                    as: 'task',
+                                    include: [
+                                        {
+                                            model: WorkRequests,
+                                            include: [
+                                                {
+                                                    model: WorkRequestManagers,
+                                                    where: { manager_id: manager_id },
+                                                    required: true,
+                                                    attributes: []
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        });
+
+        if (!document) {
+            return res.status(404).json({
+                success: false,
+                error: 'Issue document not found or not assigned to you'
+            });
+        }
+
+        // Update the review status
+        await IssueDocuments.update({ review }, { where: { id: documentId } });
+
+        // Fetch updated document
+        const updatedDocument = await IssueDocuments.findByPk(documentId, {
+            attributes: ['id', 'document_name', 'document_path', 'document_type', 'document_size', 'uploaded_at', 'status', 'version', 'review']
+        });
+
+        res.json({
+            success: true,
+            data: updatedDocument,
+            message: `Issue document review status updated to ${review}`
+        });
+    } catch (error) {
+        console.error('Error reviewing issue document:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            message: 'Failed to review issue document'
+        });
+    }
+};
+
 module.exports = {
     getAssignedWorkRequests,
     getAssignedWorkRequestById,
@@ -2806,5 +2968,7 @@ module.exports = {
     assignTasksToUsers,
     getAssignedRequestsWithStatus,
     getUserTask,
-    updateTask
+    updateTask,
+    reviewTaskDocument,
+    reviewIssueDocument
 };
