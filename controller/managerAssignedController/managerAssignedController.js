@@ -274,7 +274,7 @@ const getAssignedWorkRequests = async (req, res) => {
                             include: [
                                 {
                                     model: TaskDocuments,
-                                    attributes: ['id', 'document_name', 'document_path', 'uploaded_at', 'status']
+                                    attributes: ['id', 'document_name', 'document_path', 'uploaded_at', 'status', 'version']
                                 }
                             ]
                         }
@@ -395,7 +395,7 @@ const getAssignedWorkRequestById = async (req, res) => {
                                     },
                                     {
                                         model: TaskDocuments,
-                                        attributes: ['id', 'document_name', 'document_path', 'uploaded_at', 'status']
+                                        attributes: ['id', 'document_name', 'document_path', 'uploaded_at', 'status', 'version']
                                     }
                                 ]
                             },
@@ -483,7 +483,7 @@ const getAssignedWorkRequestById = async (req, res) => {
                                         },
                                         {
                                             model: TaskDocuments,
-                                            attributes: ['id', 'document_name', 'document_path', 'uploaded_at', 'status']
+                                            attributes: ['id', 'document_name', 'document_path', 'uploaded_at', 'status', 'version']
                                         }
                                     ]
                                 },
@@ -1395,7 +1395,7 @@ const getTasksByWorkRequestId = async (req, res) => {
                         },
                         {
                             model: TaskDocuments,
-                            attributes: ['id', 'document_name', 'document_path', 'uploaded_at', 'status']
+                            attributes: ['id', 'document_name', 'document_path', 'uploaded_at', 'status', 'version']
                         }
                     ]
                 },
@@ -2193,9 +2193,9 @@ const deleteTask = async (req, res) => {
         // Delete the Task
         await Tasks.destroy({ where: { id: taskId } });
 
-        res.json({ 
-            success: true, 
-            message: `Task ${taskId} and all related data deleted successfully` 
+        res.json({
+            success: true,
+            message: `Task ${taskId} and all related data deleted successfully`
         });
     } catch (error) {
         console.error('Error deleting task:', error);
@@ -2214,17 +2214,17 @@ const getMyTasks = async (req, res) => {
         // Apply status filter if provided
         if (status) {
             const statusArray = status.split(',').map(s => s.trim());
-            
+
             const validStatuses = ['pending', 'accepted', 'in_progress', 'completed'];
             const invalidStatuses = statusArray.filter(s => !validStatuses.includes(s));
-            
+
             if (invalidStatuses.length > 0) {
                 return res.status(400).json({
                     success: false,
                     error: `Invalid status values: ${invalidStatuses.join(', ')}. Valid values are: ${validStatuses.join(', ')}`
                 });
             }
-            
+
             if (statusArray.length > 1) {
                 whereCondition.status = { [Op.in]: statusArray };
             } else {
@@ -2298,7 +2298,7 @@ const getMyTasks = async (req, res) => {
 
         // Get task counts for the user
         let userTaskCounts = {};
-        
+
         // Get accepted tasks count
         const acceptedCounts = await TaskAssignments.findAll({
             where: { user_id: user_id },
@@ -2465,17 +2465,17 @@ const getUserTask = async (req, res) => {
         // Apply status filter if provided
         if (status) {
             const statusArray = status.split(',').map(s => s.trim());
-            
+
             const validStatuses = ['pending', 'accepted', 'in_progress', 'completed'];
             const invalidStatuses = statusArray.filter(s => !validStatuses.includes(s));
-            
+
             if (invalidStatuses.length > 0) {
                 return res.status(400).json({
                     success: false,
                     error: `Invalid status values: ${invalidStatuses.join(', ')}. Valid values are: ${validStatuses.join(', ')}`
                 });
             }
-            
+
             if (statusArray.length > 1) {
                 taskWhereCondition.status = { [Op.in]: statusArray };
             } else {
@@ -2614,10 +2614,10 @@ const updateTask = async (req, res) => {
         if (isNaN(taskId)) {
             return res.status(400).json({ success: false, error: 'Invalid task ID' });
         }
-        
+
         const manager_id = req.user.id;
         const { task_name, deadline, user_id } = req.body;
-        
+
         // Validate that at least one field is provided
         if (!task_name && !deadline && user_id === undefined) {
             return res.status(400).json({
@@ -2625,7 +2625,7 @@ const updateTask = async (req, res) => {
                 error: 'At least one of task_name, deadline, or user_id is required'
             });
         }
-        
+
         // Find the task with its work request to verify manager access
         const task = await Tasks.findByPk(taskId, {
             include: [
@@ -2646,17 +2646,17 @@ const updateTask = async (req, res) => {
                 }
             ]
         });
-        
+
         if (!task) {
             return res.status(404).json({
                 success: false,
                 error: 'Task not found or not assigned to you'
             });
         }
-        
+
         // Build update data for task
         const taskUpdateData = {};
-        
+
         if (task_name) {
             // Validate task_name
             if (typeof task_name !== 'string' || task_name.trim().length === 0) {
@@ -2667,7 +2667,7 @@ const updateTask = async (req, res) => {
             }
             taskUpdateData.task_name = task_name.trim();
         }
-        
+
         if (deadline) {
             // Validate date format
             const dateRegex = /^\d{4}-\d{1,2}-\d{1,2}$/;
@@ -2677,38 +2677,38 @@ const updateTask = async (req, res) => {
                     error: 'Deadline must be in YYYY-MM-DD format'
                 });
             }
-            
+
             // Parse and validate the date
             const dateParts = deadline.split('-');
             const year = parseInt(dateParts[0]);
             const month = parseInt(dateParts[1]);
             const day = parseInt(dateParts[2]);
-            
+
             if (month < 1 || month > 12 || day < 1 || day > 31) {
                 return res.status(400).json({
                     success: false,
                     error: 'Invalid date components in deadline'
                 });
             }
-            
+
             const formattedDeadline = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
             const testDate = new Date(formattedDeadline);
-            
+
             if (isNaN(testDate.getTime())) {
                 return res.status(400).json({
                     success: false,
                     error: 'Invalid date provided for deadline'
                 });
             }
-            
+
             taskUpdateData.deadline = formattedDeadline;
         }
-        
+
         // Update task if there are updates
         if (Object.keys(taskUpdateData).length > 0) {
             await Tasks.update(taskUpdateData, { where: { id: taskId } });
         }
-        
+
         // Update user assignment if user_id is provided
         if (user_id !== undefined) {
             if (user_id === null || user_id === '') {
@@ -2723,31 +2723,31 @@ const updateTask = async (req, res) => {
                         error: 'user_id must be a valid integer'
                     });
                 }
-                
+
                 // Check if user exists
                 const user = await User.findByPk(userIdInt, {
                     attributes: ['id', 'name', 'account_status']
                 });
-                
+
                 if (!user) {
                     return res.status(404).json({
                         success: false,
                         error: 'User not found'
                     });
                 }
-                
+
                 if (user.account_status !== 'active') {
                     return res.status(400).json({
                         success: false,
                         error: 'User is not active'
                     });
                 }
-                
+
                 // Check if assignment already exists
                 const existingAssignment = await TaskAssignments.findOne({
                     where: { task_id: taskId, user_id: userIdInt }
                 });
-                
+
                 if (existingAssignment) {
                     // Assignment already exists, no need to create new one
                 } else {
@@ -2757,7 +2757,7 @@ const updateTask = async (req, res) => {
                 }
             }
         }
-        
+
         // Fetch updated task with assignments
         const updatedTask = await Tasks.findByPk(taskId, {
             include: [
@@ -2772,7 +2772,7 @@ const updateTask = async (req, res) => {
                 }
             ]
         });
-        
+
         res.json({
             success: true,
             data: updatedTask,
