@@ -1055,59 +1055,6 @@ const submitTask = async (req, res) => {
             // Commit the task transaction
             await taskTransaction.commit();
 
-            // Now check if all tasks for this work request are completed
-            const allTasksForWorkRequest = await Tasks.findAll({
-                where: { work_request_id: workRequest.id },
-                attributes: ['id', 'status']
-            });
-
-            console.log(`Tasks in work request ${workRequest.id}:`, allTasksForWorkRequest.map(t => ({ id: t.id, status: t.status })));
-
-            const totalTasks = allTasksForWorkRequest.length;
-            const completedTasks = allTasksForWorkRequest.filter(task => task.status === 'completed').length;
-            const allTasksCompleted = totalTasks > 0 && completedTasks === totalTasks;
-
-            console.log(`Total tasks: ${totalTasks}, Completed: ${completedTasks}, All completed: ${allTasksCompleted}`);
-
-            // Update work request status to completed if all tasks are done
-            if (allTasksCompleted) {
-                console.log(`Updating work request ${workRequest.id} status to 'completed'...`);
-
-                // First, verify the work request exists and get its current state
-                const currentWorkRequest = await WorkRequests.findByPk(workRequest.id);
-                if (!currentWorkRequest) {
-                    console.log(`❌ Work request ${workRequest.id} not found in database`);
-                    return res.status(500).json({
-                        success: false,
-                        error: 'Work request not found',
-                        message: 'Failed to update work request status'
-                    });
-                }
-
-                console.log(`Current work request status: ${currentWorkRequest.status}`);
-
-                const [affectedRows] = await WorkRequests.update(
-                    {
-                        status: 'completed',
-                        updated_at: new Date()
-                    },
-                    {
-                        where: { id: workRequest.id }
-                    }
-                );
-
-                console.log(`Work request update result: ${affectedRows} rows affected`);
-
-                if (affectedRows > 0) {
-                    console.log(`✅ Work request ${workRequest.id} successfully updated to 'completed' by user ${user_id} at ${new Date().toISOString()}`);
-                } else {
-                    console.log(`❌ No rows were updated for work request ${workRequest.id}`);
-                }
-            } else if (totalTasks > 0) {
-                // Log partial completion status
-                console.log(`Work request ${workRequest.id} is ${completedTasks}/${totalTasks} tasks completed`);
-            }
-
             // Send email notification for task completion
             const completedAt = new Date().toLocaleDateString('en-IN', {
                 year: 'numeric',
@@ -1129,8 +1076,7 @@ const submitTask = async (req, res) => {
                 completed_by: user.name,
                 task_count: taskCount,
                 link: link || null,
-                frontend_url: process.env.FRONTEND_URL,
-                work_request_completed: allTasksCompleted
+                frontend_url: process.env.FRONTEND_URL
             };
 
             const html = renderTemplate('taskCompletionNotification', emailData);
@@ -1144,18 +1090,11 @@ const submitTask = async (req, res) => {
                 const mailOptions = {
                     to: creativeLead.email,
                     cc: user.email,
-                    subject: `Task Completed - ${allTasksCompleted ? 'Work Request Also Completed' : 'Task Completed'}`,
+                    subject: 'Task Completed - D-Map',
                     html
                 };
 
                 await sendMail(mailOptions);
-            }
-
-            // Get final work request status for response
-            let finalWorkRequestStatus = workRequest.status;
-            if (allTasksCompleted) {
-                const finalWorkRequest = await WorkRequests.findByPk(workRequest.id);
-                finalWorkRequestStatus = finalWorkRequest?.status || workRequest.status;
             }
 
             res.json({
@@ -1165,18 +1104,9 @@ const submitTask = async (req, res) => {
                     task_count: taskCount,
                     link: link || null,
                     documents: documents,
-                    work_request_id: workRequest.id,
-                    work_request_completed: allTasksCompleted,
-                    work_request_status: finalWorkRequestStatus,
-                    task_completion_status: {
-                        total_tasks: totalTasks,
-                        completed_tasks: completedTasks,
-                        completion_percentage: totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
-                    }
+                    work_request_id: workRequest.id
                 },
-                message: allTasksCompleted
-                    ? `Task submitted successfully and work request ${workRequest.id} completed`
-                    : `Task submitted successfully. Work request ${workRequest.id} is ${completedTasks}/${totalTasks} tasks completed`
+                message: 'Task submitted successfully'
             });
 
         } catch (taskError) {
