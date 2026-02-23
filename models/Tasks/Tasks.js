@@ -40,6 +40,11 @@ const Tasks = sequelize.define('Tasks', {
     defaultValue: 'pending',
     comment: 'Review status - pending, approved, or change_request',
   },
+  review_stage: {
+    type: DataTypes.ENUM('not_started', 'manager_review', 'pm_review', 'change_requested', 'final_approved'),
+    defaultValue: 'not_started',
+    comment: 'Current review stage - not_started, manager_review, pm_review, change_requested, final_approved',
+  },
   assignment_type: {
     type: DataTypes.ENUM('new', 'mod'),
     allowNull: false,

@@ -15,6 +15,10 @@ const Designation = sequelize.define('Designation', {
     type: DataTypes.STRING(50),
     allowNull: false,
   },
+  state: {
+    type: DataTypes.ENUM('active', 'inactive'),
+    defaultValue: 'active',
+  },
   created_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,

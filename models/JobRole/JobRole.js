@@ -27,6 +27,10 @@ const JobRole = sequelize.define('JobRole', {
       key: 'id',
     },
   },
+  state: {
+    type: DataTypes.ENUM('active', 'inactive'),
+    defaultValue: 'active',
+  },
   created_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,

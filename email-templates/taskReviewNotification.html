@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Review Update</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #2c3e50;
+            margin: 0;
+            font-size: 24px;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .approved {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .change-request {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .content {
+            margin-bottom: 25px;
+        }
+        .info-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .task-details {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .task-details h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        .detail-row {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        .detail-label {
+            font-weight: bold;
+            width: 120px;
+            color: #666;
+        }
+        .detail-value {
+            flex: 1;
+        }
+        .comments-box {
+            background-color: #fff3cd;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            border-left: 4px solid #ffc107;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #666;
+            font-size: 14px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #007bff;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Task Review Update</h1>
+        </div>
+
+        <div class="content">
+            <p>Dear <strong>{{user_name}}</strong>,</p>
+            
+            <p>Your task has been reviewed by <strong>{{manager_name}}</strong> ({{manager_email}}).</p>
+
+            <div class="status-badge {{#if (eq action 'Approved')}}approved{{else}}change-request{{/if}}">
+                {{action}}
+            </div>
+
+            <div class="task-details">
+                <h3>Task Details</h3>
+                <div class="detail-row">
+                    <span class="detail-label">Task Name:</span>
+                    <span class="detail-value">{{task_name}}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Project:</span>
+                    <span class="detail-value">{{project_name}}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Brand:</span>
+                    <span class="detail-value">{{brand}}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Review Date:</span>
+                    <span class="detail-value">{{review_date}}</span>
+                </div>
+            </div>
+
+            {{#if comments}}
+            <div class="comments-box">
+                <h4 style="margin-top: 0;">Manager Comments:</h4>
+                <p style="margin-bottom: 0;">{{comments}}</p>
+            </div>
+            {{/if}}
+
+            {{#if (eq action 'Change Requested')}}
+            <div class="info-box">
+                <p style="margin: 0;"><strong>Action Required:</strong> Please review the manager's feedback and make the necessary changes to your task. The task status has been updated to <strong>In Progress</strong>.</p>
+            </div>
+            {{/if}}
+
+            {{#if (eq action 'Approved')}}
+            <div class="info-box">
+                <p style="margin: 0;">Your task has been approved and will proceed to the next stage of review.</p>
+            </div>
+            {{/if}}
+        </div>
+
+        <div style="text-align: center;">
+            <a href="{{frontend_url}}" class="btn">View Task</a>
+        </div>
+
+        <div class="footer">
+            <p>This is an automated message from D-Map. Please do not reply directly to this email.</p>
+        </div>
+    </div>
+</body>
+</html>

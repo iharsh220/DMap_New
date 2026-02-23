@@ -23,7 +23,8 @@ const {
     TaskDocuments,
     IssueDocuments,
     IssueUserAssignments,
-    IssueAssignments
+    IssueAssignments,
+    TaskReviewHistory
 } = require('../../models');
 
 const { sendMail } = require('../../services/mailService');
@@ -2950,6 +2951,168 @@ const reviewIssueDocument = async (req, res) => {
     }
 };
 
+const reviewTask = async (req, res) => {
+    try {
+        const taskId = parseInt(req.params.taskId, 10);
+        if (isNaN(taskId)) {
+            return res.status(400).json({ success: false, error: 'Invalid task ID' });
+        }
+
+        const manager_id = req.user.id;
+        const { action, comments } = req.body;
+
+        // Validate action value
+        if (!action || !['approved', 'change_request'].includes(action)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid action value. Allowed values: approved, change_request'
+            });
+        }
+
+        // Find the task with its work request and verify manager access
+        const task = await Tasks.findByPk(taskId, {
+            include: [
+                {
+                    model: WorkRequests,
+                    include: [
+                        {
+                            model: WorkRequestManagers,
+                            where: { manager_id: manager_id },
+                            required: true,
+                            attributes: []
+                        },
+                        {
+                            model: User,
+                            as: 'users',
+                            attributes: ['id', 'name', 'email']
+                        }
+                    ]
+                },
+                {
+                    model: User,
+                    as: 'assignedUsers',
+                    attributes: ['id', 'name', 'email'],
+                    through: { attributes: [] }
+                }
+            ]
+        });
+
+        if (!task) {
+            return res.status(404).json({
+                success: false,
+                error: 'Task not found or not assigned to you'
+            });
+        }
+
+        // Store previous stage for history
+        const previousStage = task.review_stage || 'not_started';
+        let newStage = 'manager_review';
+        let newStatus = task.status;
+
+        // Determine new stage and status based on action
+        if (action === 'approved') {
+            newStage = 'manager_review';
+        } else if (action === 'change_request') {
+            newStage = 'change_requested';
+            // If task is completed, change status back to in_progress
+            if (task.status === 'completed') {
+                newStatus = 'in_progress';
+            }
+        }
+
+        // Update the task
+        const updateData = {
+            review_stage: newStage
+        };
+        
+        if (newStatus !== task.status) {
+            updateData.status = newStatus;
+        }
+
+        await Tasks.update(updateData, { where: { id: taskId } });
+
+        // Create review history entry
+        await TaskReviewHistory.create({
+            task_id: taskId,
+            reviewer_id: manager_id,
+            reviewer_type: 'manager',
+            action: action,
+            comments: comments || null,
+            previous_stage: previousStage,
+            new_stage: newStage
+        });
+
+        // Send email to assigned creative users
+        if (task.assignedUsers && task.assignedUsers.length > 0) {
+            const manager = req.user;
+            const workRequest = task.WorkRequest;
+
+            for (const user of task.assignedUsers) {
+                const html = renderTemplate('taskReviewNotification', {
+                    user_name: user.name,
+                    manager_name: manager.name,
+                    manager_email: manager.email,
+                    task_name: task.task_name,
+                    project_name: workRequest?.project_name || 'N/A',
+                    brand: workRequest?.brand || 'N/A',
+                    action: action === 'approved' ? 'Approved' : 'Change Requested',
+                    comments: comments || 'No comments provided',
+                    review_date: new Date().toLocaleDateString('en-IN', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }),
+                    frontend_url: process.env.FRONTEND_URL
+                });
+
+                await sendMail({
+                    to: user.email,
+                    subject: `Task Review Update - ${action === 'approved' ? 'Approved' : 'Change Requested'}`,
+                    html
+                });
+            }
+        }
+
+        // Fetch updated task
+        const updatedTask = await Tasks.findByPk(taskId, {
+            attributes: ['id', 'task_name', 'status', 'review_stage', 'deadline'],
+            include: [
+                {
+                    model: User,
+                    as: 'assignedUsers',
+                    attributes: ['id', 'name', 'email'],
+                    through: { attributes: [] }
+                }
+            ]
+        });
+
+        res.json({
+            success: true,
+            data: {
+                task: updatedTask,
+                reviewAction: {
+                    action,
+                    previousStage,
+                    newStage,
+                    statusChanged: newStatus !== task.status,
+                    previousStatus: task.status,
+                    newStatus
+                }
+            },
+            message: `Task review ${action === 'approved' ? 'approved' : 'change requested'} successfully`
+        });
+    } catch (error) {
+        console.error('Error reviewing task:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            message: 'Failed to review task'
+        });
+    }
+};
+
 module.exports = {
     getAssignedWorkRequests,
     getAssignedWorkRequestById,
@@ -2970,5 +3133,6 @@ module.exports = {
     getUserTask,
     updateTask,
     reviewTaskDocument,
-    reviewIssueDocument
+    reviewIssueDocument,
+    reviewTask
 };
