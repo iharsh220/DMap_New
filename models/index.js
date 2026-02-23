@@ -30,6 +30,8 @@ const IssueAssignments = require('./IssueAssignments/IssueAssignments');
 const IssueUserAssignments = require('./IssueUserAssignments/IssueUserAssignments');
 const IssueDocuments = require('./IssueDocuments/IssueDocuments');
 const IssueAssignmentTypes = require('./IssueAssignmentTypes/IssueAssignmentTypes');
+const ChangeIssueTasktype = require('./ChangeIssueTasktype/ChangeIssueTasktype');
+const TaskReviewHistory = require('./TaskReviewHistory/TaskReviewHistory');
 
 // Associations
 Department.hasMany(Division, { foreignKey: 'department_id', as: 'divisions' });
@@ -147,6 +149,18 @@ IssueUserAssignments.hasMany(IssueDocuments, { foreignKey: 'issue_user_assignmen
 // Tasks has many IssueAssignments
 Tasks.hasMany(IssueAssignments, { foreignKey: 'task_id', as: 'issueAssignments' });
 
+// ChangeIssueTasktype Associations (junction table between Tasks and IssueRegister)
+ChangeIssueTasktype.belongsTo(Tasks, { foreignKey: 'task_id', as: 'task' });
+ChangeIssueTasktype.belongsTo(IssueRegister, { foreignKey: 'change_issue_id', as: 'changeIssue' });
+Tasks.hasMany(ChangeIssueTasktype, { foreignKey: 'task_id', as: 'changeIssueTypes' });
+IssueRegister.hasMany(ChangeIssueTasktype, { foreignKey: 'change_issue_id', as: 'taskChangeIssues' });
+
+// TaskReviewHistory Associations
+TaskReviewHistory.belongsTo(Tasks, { foreignKey: 'task_id', as: 'task' });
+TaskReviewHistory.belongsTo(User, { foreignKey: 'reviewer_id', as: 'reviewer' });
+Tasks.hasMany(TaskReviewHistory, { foreignKey: 'task_id', as: 'reviewHistory' });
+User.hasMany(TaskReviewHistory, { foreignKey: 'reviewer_id', as: 'taskReviews' });
+
 module.exports = {
   sequelize,
   Department,
@@ -177,5 +191,7 @@ module.exports = {
   IssueAssignments,
   IssueUserAssignments,
   IssueDocuments,
-  IssueAssignmentTypes
+  IssueAssignmentTypes,
+  ChangeIssueTasktype,
+  TaskReviewHistory
 };
