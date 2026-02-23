@@ -2344,6 +2344,7 @@ CREATE TABLE `task_documents` (
   `document_size` int(11) DEFAULT NULL,
   `version` varchar(10) DEFAULT 'V1',
   `status` enum('uploading','uploaded','failed') DEFAULT 'uploading',
+  `review` enum('pending','approved','change_request') DEFAULT 'pending' COMMENT 'Document review status - pending, approved, or change_request',
   `uploaded_at` timestamp NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
@@ -3629,6 +3630,7 @@ CREATE TABLE `issue_documents` (
   `document_size` int(11) DEFAULT NULL,
   `version` varchar(10) NOT NULL DEFAULT 'V1' COMMENT 'Document version - V1, V2, V3, etc.',
   `status` enum('uploading','uploaded','failed') DEFAULT 'uploading',
+  `review` enum('pending','approved','change_request') DEFAULT 'pending' COMMENT 'Document review status - pending, approved, or change_request',
   `uploaded_at` timestamp NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 

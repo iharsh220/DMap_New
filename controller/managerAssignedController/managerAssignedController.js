@@ -274,7 +274,7 @@ const getAssignedWorkRequests = async (req, res) => {
                             include: [
                                 {
                                     model: TaskDocuments,
-                                    attributes: ['id', 'document_name', 'document_path', 'uploaded_at', 'status', 'version']
+                                    attributes: ['id', 'document_name', 'document_path', 'uploaded_at', 'status', 'version', 'review']
                                 }
                             ]
                         }
@@ -395,7 +395,7 @@ const getAssignedWorkRequestById = async (req, res) => {
                                     },
                                     {
                                         model: TaskDocuments,
-                                        attributes: ['id', 'document_name', 'document_path', 'uploaded_at', 'status', 'version']
+                                        attributes: ['id', 'document_name', 'document_path', 'uploaded_at', 'status', 'version', 'review']
                                     }
                                 ]
                             },
@@ -483,7 +483,7 @@ const getAssignedWorkRequestById = async (req, res) => {
                                         },
                                         {
                                             model: TaskDocuments,
-                                            attributes: ['id', 'document_name', 'document_path', 'uploaded_at', 'status', 'version']
+                                            attributes: ['id', 'document_name', 'document_path', 'uploaded_at', 'status', 'version', 'review']
                                         }
                                     ]
                                 },
@@ -1395,7 +1395,7 @@ const getTasksByWorkRequestId = async (req, res) => {
                         },
                         {
                             model: TaskDocuments,
-                            attributes: ['id', 'document_name', 'document_path', 'uploaded_at', 'status', 'version']
+                            attributes: ['id', 'document_name', 'document_path', 'uploaded_at', 'status', 'version', 'review']
                         }
                     ]
                 },

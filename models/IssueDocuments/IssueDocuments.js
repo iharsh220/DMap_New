@@ -38,6 +38,11 @@ const IssueDocuments = sequelize.define('IssueDocuments', {
     type: DataTypes.ENUM('uploading', 'uploaded', 'failed'),
     defaultValue: 'uploading',
   },
+  review: {
+    type: DataTypes.ENUM('pending', 'approved', 'change_request'),
+    defaultValue: 'pending',
+    comment: 'Document review status - pending, approved, or change_request',
+  },
   uploaded_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,
