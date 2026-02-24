@@ -3025,28 +3025,27 @@ const reviewTask = async (req, res) => {
 
         // Store previous stage for history
         const previousStage = currentReviewStage;
-        let newStage = 'manager_review';
         let newStatus = task.status;
+        let newReview = task.review; // Track review field changes
+        let newStage = currentReviewStage; // For history tracking
 
-        // Determine new stage and status based on action
+        // Update the task
+        const updateData = {};
+
+        // Determine what to update based on action
         if (action === 'approved') {
             // Manager approved, move to pm_review stage (next level)
+            updateData.review_stage = 'pm_review';
+            updateData.review = 'pending'; // Reset to pending for next level review (PM)
             newStage = 'pm_review';
         } else if (action === 'change_request') {
-            newStage = 'change_requested';
+            // Change request - only update review field, keep review_stage as is
+            updateData.review = 'change_request';
             // If task is completed, change status back to in_progress
             if (task.status === 'completed') {
                 newStatus = 'in_progress';
+                updateData.status = newStatus;
             }
-        }
-
-        // Update the task
-        const updateData = {
-            review_stage: newStage
-        };
-        
-        if (newStatus !== task.status) {
-            updateData.status = newStatus;
         }
 
         await Tasks.update(updateData, { where: { id: taskId } });
