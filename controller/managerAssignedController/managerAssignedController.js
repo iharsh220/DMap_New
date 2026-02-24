@@ -3004,14 +3004,34 @@ const reviewTask = async (req, res) => {
             });
         }
 
+        // Validation: Task must be completed for manager to review
+        if (task.status !== 'completed') {
+            return res.status(400).json({
+                success: false,
+                error: 'Task must be completed before review. Current status: ' + task.status
+            });
+        }
+
+        // Validation: Check if manager has already reviewed (review_stage should not be past manager_review)
+        const currentReviewStage = task.review_stage || 'not_started';
+        const stagesAfterManagerReview = ['pm_review', 'change_requested', 'final_approved'];
+        
+        if (stagesAfterManagerReview.includes(currentReviewStage)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Manager has already reviewed this task. Current review stage: ' + currentReviewStage + '. Waiting for next level review.'
+            });
+        }
+
         // Store previous stage for history
-        const previousStage = task.review_stage || 'not_started';
+        const previousStage = currentReviewStage;
         let newStage = 'manager_review';
         let newStatus = task.status;
 
         // Determine new stage and status based on action
         if (action === 'approved') {
-            newStage = 'manager_review';
+            // Manager approved, move to pm_review stage (next level)
+            newStage = 'pm_review';
         } else if (action === 'change_request') {
             newStage = 'change_requested';
             // If task is completed, change status back to in_progress

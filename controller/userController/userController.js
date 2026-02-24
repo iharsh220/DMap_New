@@ -942,7 +942,8 @@ const submitTask = async (req, res) => {
             const taskUpdateData = {
                 task_count: taskCount,
                 status: 'completed',
-                end_date: new Date()
+                end_date: new Date(),
+                review_stage: 'manager_review' // Set review_stage to manager_review when task is completed
             };
 
             if (link) {
