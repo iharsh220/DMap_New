@@ -10,7 +10,8 @@ const {
     User,
     TaskDocuments,
     UserDivisions,
-    JobRole
+    JobRole,
+    TaskReviewHistory
 } = require('../../models');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
@@ -672,6 +673,18 @@ const getTaskById = async (req, res) => {
                         {
                             model: TaskDocuments,
                             attributes: ['id', 'document_name', 'document_path', 'document_type', 'document_size', 'status', 'uploaded_at']
+                        }
+                    ]
+                },
+                {
+                    model: TaskReviewHistory,
+                    as: 'reviewHistory',
+                    attributes: ['id', 'reviewer_id', 'reviewer_type', 'action', 'comments', 'previous_stage', 'new_stage', 'created_at'],
+                    include: [
+                        {
+                            model: User,
+                            as: 'reviewer',
+                            attributes: ['id', 'name', 'email']
                         }
                     ]
                 }

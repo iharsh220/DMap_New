@@ -421,6 +421,18 @@ const getAssignedWorkRequestById = async (req, res) => {
                                         attributes: ['id', 'task_name', 'deadline', 'status']
                                     }
                                 ]
+                            },
+                            {
+                                model: TaskReviewHistory,
+                                as: 'reviewHistory',
+                                attributes: ['id', 'reviewer_id', 'reviewer_type', 'action', 'comments', 'previous_stage', 'new_stage', 'created_at'],
+                                include: [
+                                    {
+                                        model: User,
+                                        as: 'reviewer',
+                                        attributes: ['id', 'name', 'email']
+                                    }
+                                ]
                             }
                         ]
                     }
@@ -507,6 +519,18 @@ const getAssignedWorkRequestById = async (req, res) => {
                                             model: Tasks,
                                             as: 'dependencyTask',
                                             attributes: ['id', 'task_name', 'deadline', 'status']
+                                        }
+                                    ]
+                                },
+                                {
+                                    model: TaskReviewHistory,
+                                    as: 'reviewHistory',
+                                    attributes: ['id', 'reviewer_id', 'reviewer_type', 'action', 'comments', 'previous_stage', 'new_stage', 'created_at'],
+                                    include: [
+                                        {
+                                            model: User,
+                                            as: 'reviewer',
+                                            attributes: ['id', 'name', 'email']
                                         }
                                     ]
                                 }
