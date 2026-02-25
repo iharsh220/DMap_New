@@ -2978,7 +2978,10 @@ INSERT INTO `users` (`id`, `name`, `email`, `phone`, `password`, `department_id`
 (62, 'Angana Prakash Patil', 'angana.patil@alembic.co.in', '8591157125', '$2a$10$MS.FGF3ijl4REvUPejFbOedAEPNfvRRAtNC73w9BC3Vyy0E9gYCO6', 9, 4, 1, 20, 1, NULL, 'active', '2026-01-08 10:02:19', 0, NULL, '2026-01-08 10:02:09', '2026-04-08 10:02:09', '2026-01-08 10:01:03', '2026-01-08 10:02:19'),
 (63, 'Pooja Kirpekar', 'pooja.kirpekar@alembic.co.in', '9930115920', '$2a$10$6hoaAb.EicmP3Y31gfNTS.ALyxmOXMmPwyjedtcI3AgPtfbkVaUIK', 8, 2, 1, 16, 1, NULL, 'active', '2026-01-08 10:46:05', 0, NULL, '2026-01-08 10:45:37', '2026-04-08 10:45:37', '2026-01-08 10:43:56', '2026-01-08 10:46:05'),
 (64, 'Lopamudra Chakraborty', 'Lopamudra.c@alembic.co.in', '9693294111', '$2a$10$9k.O6cgdMcHtLISqTc4TqePToBrqtSyTxhgZeDqP4fphVLW6BoSsS', 1, 6, 1, 11, 1, NULL, 'active', '2026-01-09 03:57:40', 0, NULL, '2026-01-09 03:57:15', '2026-04-09 03:57:15', '2026-01-09 03:54:07', '2026-01-09 03:57:40'),
-(65, NULL, 'jayesh.mishra@alembic.co.in', NULL, NULL, NULL, NULL, NULL, NULL, 1, NULL, 'pending', NULL, 0, NULL, NULL, NULL, '2026-01-09 05:27:46', '2026-01-09 05:28:38');
+(65, 'Jayesh Mishra', 'jayesh.mishra@alembic.co.in', '8080302041', '$2a$12$EUpyWKG8MR6IkRag7k8QU.5hMFIlQMyPCQcEt15GSvAQW8UwPIjwG', 9, 4, 1, 20, 1, NULL, 'active', NULL, 0, NULL, '2026-02-25 06:00:00', '2026-05-25 06:00:00', '2026-02-25 06:00:00', '2026-02-25 06:00:00'),
+(66, 'PMT User', 'pmt@alembic.co.in', '8080302042', '$2a$12$EUpyWKG8MR6IkRag7k8QU.5hMFIlQMyPCQcEt15GSvAQW8UwPIjwG', 9, 3, 1, 20, 1, NULL, 'active', NULL, 0, NULL, '2026-02-25 06:00:00', '2026-05-25 06:00:00', '2026-02-25 06:00:00', '2026-02-25 06:00:00'),
+(67, 'Test User', 'user@alembic.co.in', '8080302043', '$2a$12$EUpyWKG8MR6IkRag7k8QU.5hMFIlQMyPCQcEt15GSvAQW8UwPIjwG', 9, 4, 1, 20, 1, NULL, 'active', NULL, 0, NULL, '2026-02-25 06:00:00', '2026-05-25 06:00:00', '2026-02-25 06:00:00', '2026-02-25 06:00:00'),
+(68, 'Test Manager', 'manager@alembic.co.in', '8080302044', '$2a$12$EUpyWKG8MR6IkRag7k8QU.5hMFIlQMyPCQcEt15GSvAQW8UwPIjwG', 9, 2, 1, 16, 1, NULL, 'active', NULL, 0, NULL, '2026-02-25 06:00:00', '2026-05-25 06:00:00', '2026-02-25 06:00:00', '2026-02-25 06:00:00');
 
 -- --------------------------------------------------------
 
