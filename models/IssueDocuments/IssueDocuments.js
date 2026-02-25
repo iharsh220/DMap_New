@@ -43,6 +43,11 @@ const IssueDocuments = sequelize.define('IssueDocuments', {
     defaultValue: 'pending',
     comment: 'Document review status - pending, approved, or change_request',
   },
+  intimate_client: {
+    type: DataTypes.TINYINT(1),
+    defaultValue: 0,
+    comment: '0=not shared with client, 1=shared with client for review',
+  },
   uploaded_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,

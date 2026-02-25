@@ -1935,6 +1935,7 @@ CREATE TABLE `issue_documents` (
   `version` varchar(10) NOT NULL DEFAULT 'V1' COMMENT 'Document version - V1, V2, V3, etc.',
   `status` enum('uploading','uploaded','failed') DEFAULT 'uploading',
   `review` enum('pending','approved','change_request') DEFAULT 'pending' COMMENT 'Document review status - pending, approved, or change_request',
+  `intimate_client` tinyint(1) DEFAULT 0 COMMENT '0=not shared with client, 1=shared with client for review',
   `uploaded_at` timestamp NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
@@ -2420,6 +2421,7 @@ CREATE TABLE `task_documents` (
   `version` varchar(10) DEFAULT 'V1',
   `status` enum('uploading','uploaded','failed') DEFAULT 'uploading',
   `review` enum('pending','approved','change_request') DEFAULT 'pending' COMMENT 'Document review status - pending, approved, or change_request',
+  `intimate_client` tinyint(1) DEFAULT 0 COMMENT '0=not shared with client, 1=shared with client for review',
   `uploaded_at` timestamp NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
@@ -2427,8 +2429,8 @@ CREATE TABLE `task_documents` (
 -- Dumping data for table `task_documents`
 --
 
-INSERT INTO `task_documents` (`id`, `task_assignment_id`, `document_name`, `document_path`, `document_type`, `document_size`, `version`, `status`, `review`, `uploaded_at`) VALUES
-(2, 45, 'udder.jpg', '/digilabs/dmap/api/uploads/Petal_POB_tracker/Front-end development/Gautam Baranwal/udder.jpg-1767610763150-962022545.jpg', 'image/jpeg', 82670, 'V1', 'uploaded', 'pending', '2026-01-05 10:59:23');
+INSERT INTO `task_documents` (`id`, `task_assignment_id`, `document_name`, `document_path`, `document_type`, `document_size`, `version`, `status`, `review`, `intimate_client`, `uploaded_at`) VALUES
+(2, 45, 'udder.jpg', '/digilabs/dmap/api/uploads/Petal_POB_tracker/Front-end development/Gautam Baranwal/udder.jpg-1767610763150-962022545.jpg', 'image/jpeg', 82670, 'V1', 'uploaded', 'pending', 0, '2026-01-05 10:59:23');
 
 -- --------------------------------------------------------
 

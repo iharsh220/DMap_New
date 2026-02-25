@@ -3260,6 +3260,14 @@ const shareForClientReview = async (req, res) => {
             { where: { id: task_id } }
         );
 
+        // Update intimate_client to 1 for the documents that are being shared
+        if (document_ids && document_ids.length > 0) {
+            await TaskDocuments.update(
+                { intimate_client: 1 },
+                { where: { id: { [Op.in]: document_ids } } }
+            );
+        }
+
         // Send email to client
         const html = renderTemplate('clientReviewNotification', {
             client_name: client.name,
