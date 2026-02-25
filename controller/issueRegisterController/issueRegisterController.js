@@ -6,6 +6,7 @@ const {
 } = require('../../models');
 
 // Get issue register data by task ID
+// Logic: task_id -> get task_type_id from tasks -> find issue_register via change_issue_tasktype
 const getIssueRegisterByTaskId = async (req, res) => {
     try {
         const taskId = parseInt(req.params.task_id, 10);
@@ -17,9 +18,9 @@ const getIssueRegisterByTaskId = async (req, res) => {
             });
         }
 
-        // Check if task exists
+        // Check if task exists and get task_type_id
         const task = await Tasks.findByPk(taskId, {
-            attributes: ['id', 'task_name']
+            attributes: ['id', 'task_name', 'task_type_id']
         });
 
         if (!task) {
@@ -29,13 +30,23 @@ const getIssueRegisterByTaskId = async (req, res) => {
             });
         }
 
-        // Get issue register entries linked to this task through change_issue_tasktype
+        const taskTypeId = task.task_type_id;
+
+        if (!taskTypeId) {
+            return res.status(400).json({
+                success: false,
+                error: 'Task does not have a task_type_id associated'
+            });
+        }
+
+        // Get issue register entries linked to this task_type_id through change_issue_tasktype
+        // Note: change_issue_tasktype.task_id actually stores task_type_id (naming inconsistency in table)
         const issueRegisters = await IssueRegister.findAll({
             include: [
                 {
                     model: ChangeIssueTasktype,
                     as: 'taskChangeIssues',
-                    where: { task_id: taskId },
+                    where: { task_id: taskTypeId }, // This is task_type_id
                     attributes: ['id', 'task_id', 'change_issue_id', 'created_at', 'updated_at'],
                     required: true
                 }
@@ -48,7 +59,8 @@ const getIssueRegisterByTaskId = async (req, res) => {
             data: {
                 task: {
                     id: task.id,
-                    task_name: task.task_name
+                    task_name: task.task_name,
+                    task_type_id: task.task_type_id
                 },
                 issue_registers: issueRegisters
             },
