@@ -104,6 +104,26 @@
         .footer p {
             margin: 0;
         }
+        .logo-section {
+            background-color: #ffffff;
+            padding: 20px 30px;
+            text-align: center;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .logo-section img {
+            max-height: 60px;
+            width: auto;
+        }
+        .banner-section {
+            width: 100%;
+            max-height: 200px;
+            overflow: hidden;
+        }
+        .banner-section img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
         @media (max-width: 600px) {
             .container {
                 margin: 10px;
@@ -120,6 +140,14 @@
 </head>
 <body>
     <div class="container">
+        <div class="logo-section">
+            <img src="{{logo_base64}}" alt="Alembic Logo">
+        </div>
+        
+        <div class="banner-section">
+            <img src="{{banner_base64}}" alt="D-Map Banner">
+        </div>
+
         <div class="header">
             <h1>Work Request Deferred</h1>
         </div>
