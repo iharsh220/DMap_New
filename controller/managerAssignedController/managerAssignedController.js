@@ -3254,6 +3254,12 @@ const shareForClientReview = async (req, res) => {
             });
         }
 
+        // Update intimate_client to 1 (shared with client for review)
+        await Tasks.update(
+            { intimate_client: 1 },
+            { where: { id: task_id } }
+        );
+
         // Send email to client
         const html = renderTemplate('clientReviewNotification', {
             client_name: client.name,

@@ -55,6 +55,11 @@ const Tasks = sequelize.define('Tasks', {
     type: DataTypes.TINYINT(1),
     defaultValue: 0,
   },
+  intimate_client: {
+    type: DataTypes.TINYINT(1),
+    defaultValue: 0,
+    comment: '0=not shared with client, 1=shared with client for review',
+  },
   task_count: {
     type: DataTypes.INTEGER,
     allowNull: true,

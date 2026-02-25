@@ -2312,6 +2312,7 @@ CREATE TABLE `tasks` (
   `status` enum('draft','pending','accepted','assigned','in_progress','completed','rejected','deferred') DEFAULT 'pending',
   `assignment_type` enum('new','mod') NOT NULL DEFAULT 'new' COMMENT 'new=first time assignment, mod=modification request',
   `intimate_team` tinyint(1) DEFAULT 0,
+  `intimate_client` tinyint(1) DEFAULT 0 COMMENT '0=not shared with client, 1=shared with client for review',
   `task_count` int(11) DEFAULT 0,
   `link` varchar(500) DEFAULT NULL,
   `start_date` date DEFAULT NULL,
@@ -2326,23 +2327,23 @@ CREATE TABLE `tasks` (
 -- Dumping data for table `tasks`
 --
 
-INSERT INTO `tasks` (`id`, `task_name`, `description`, `request_type_id`, `task_type_id`, `work_request_id`, `deadline`, `status`, `assignment_type`, `intimate_team`, `task_count`, `link`, `start_date`, `end_date`, `review`, `review_stage`, `created_at`, `updated_at`) VALUES
-(33, 'Ui design', 'test', 5, 89, 141, '2025-12-31', 'pending', 'new', 1, 0, NULL, NULL, NULL, 'pending', 'not_started', '2025-12-30 09:10:19', '2026-01-09 06:14:22'),
-(34, 'POster', 'Test', 1, 8, 141, NULL, 'accepted', 'new', 1, 0, NULL, NULL, NULL, 'pending', 'not_started', '2025-12-30 10:51:16', '2026-01-09 06:14:22'),
-(35, 'Packaging design', 'test', 1, 3, 141, NULL, 'accepted', 'new', 1, 0, NULL, NULL, NULL, 'pending', 'not_started', '2025-12-30 11:06:50', '2026-01-09 06:14:22'),
-(36, 'Data Schema', 'test', 5, 78, 141, '2026-01-01', 'in_progress', 'new', 1, 0, NULL, '2026-01-01', NULL, 'pending', 'not_started', '2025-12-31 09:15:34', '2026-01-09 06:14:22'),
-(37, 'Gantt chart', 'Showcase visual project timeline', 5, 86, 140, '2026-01-05', 'pending', 'new', 1, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-02 07:06:01', '2026-01-05 10:56:26'),
-(38, 'UI dev', 'based on bal ui', 5, 82, 140, '2026-01-08', 'pending', 'new', 1, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-02 07:07:16', '2026-01-05 10:56:26'),
-(39, 'Front-end development', 'UI', 5, 74, 140, '2026-01-15', 'completed', 'new', 1, 3, NULL, '2026-01-07', '2026-01-05', 'pending', 'not_started', '2026-01-05 10:53:51', '2026-01-05 10:59:23'),
-(40, 'test harsh', 'test', 5, 77, 141, '2026-01-08', 'pending', 'new', 1, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-07 10:44:32', '2026-01-09 06:14:22'),
-(41, 'api', 'test', 5, 75, 141, '2026-01-13', 'pending', 'new', 1, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 05:32:16', '2026-01-09 06:14:22'),
-(42, 'database', 'test_v02', 5, 77, 141, '2026-01-15', 'pending', 'new', 1, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 05:37:43', '2026-01-09 06:14:22'),
-(43, 'backend', 'test', 5, 75, 141, '2026-01-16', 'pending', 'new', 1, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 05:51:15', '2026-01-09 06:14:22'),
-(44, 'video framer', 'test', 5, 80, 141, '2026-01-20', 'pending', 'new', 1, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 05:54:50', '2026-01-09 06:14:22'),
-(45, 'system design', 'test', 5, 80, 141, '2026-01-21', 'pending', 'new', 1, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 05:58:02', '2026-01-09 06:14:22'),
-(46, 'photo framer', 'test', 5, 76, 141, '2026-01-26', 'pending', 'new', 1, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 06:02:34', '2026-01-09 06:14:22'),
-(47, 'custom website', 'test', 5, 80, 141, '2026-01-27', 'pending', 'new', 1, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 06:05:07', '2026-01-09 06:14:22'),
-(48, 'harsh ', 'test', 5, 78, 141, '2026-01-29', 'pending', 'new', 1, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 06:14:19', '2026-01-09 06:14:22');
+INSERT INTO `tasks` (`id`, `task_name`, `description`, `request_type_id`, `task_type_id`, `work_request_id`, `deadline`, `status`, `assignment_type`, `intimate_team`, `intimate_client`, `task_count`, `link`, `start_date`, `end_date`, `review`, `review_stage`, `created_at`, `updated_at`) VALUES
+(33, 'Ui design', 'test', 5, 89, 141, '2025-12-31', 'pending', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2025-12-30 09:10:19', '2026-01-09 06:14:22'),
+(34, 'POster', 'Test', 1, 8, 141, NULL, 'accepted', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2025-12-30 10:51:16', '2026-01-09 06:14:22'),
+(35, 'Packaging design', 'test', 1, 3, 141, NULL, 'accepted', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2025-12-30 11:06:50', '2026-01-09 06:14:22'),
+(36, 'Data Schema', 'test', 5, 78, 141, '2026-01-01', 'in_progress', 'new', 1, 0, 0, NULL, '2026-01-01', NULL, 'pending', 'not_started', '2025-12-31 09:15:34', '2026-01-09 06:14:22'),
+(37, 'Gantt chart', 'Showcase visual project timeline', 5, 86, 140, '2026-01-05', 'pending', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-02 07:06:01', '2026-01-05 10:56:26'),
+(38, 'UI dev', 'based on bal ui', 5, 82, 140, '2026-01-08', 'pending', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-02 07:07:16', '2026-01-05 10:56:26'),
+(39, 'Front-end development', 'UI', 5, 74, 140, '2026-01-15', 'completed', 'new', 1, 0, 3, NULL, '2026-01-07', '2026-01-05', 'pending', 'not_started', '2026-01-05 10:53:51', '2026-01-05 10:59:23'),
+(40, 'test harsh', 'test', 5, 77, 141, '2026-01-08', 'pending', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-07 10:44:32', '2026-01-09 06:14:22'),
+(41, 'api', 'test', 5, 75, 141, '2026-01-13', 'pending', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 05:32:16', '2026-01-09 06:14:22'),
+(42, 'database', 'test_v02', 5, 77, 141, '2026-01-15', 'pending', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 05:37:43', '2026-01-09 06:14:22'),
+(43, 'backend', 'test', 5, 75, 141, '2026-01-16', 'pending', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 05:51:15', '2026-01-09 06:14:22'),
+(44, 'video framer', 'test', 5, 80, 141, '2026-01-20', 'pending', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 05:54:50', '2026-01-09 06:14:22'),
+(45, 'system design', 'test', 5, 80, 141, '2026-01-21', 'pending', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 05:58:02', '2026-01-09 06:14:22'),
+(46, 'photo framer', 'test', 5, 76, 141, '2026-01-26', 'pending', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 06:02:34', '2026-01-09 06:14:22'),
+(47, 'custom website', 'test', 5, 80, 141, '2026-01-27', 'pending', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 06:05:07', '2026-01-09 06:14:22'),
+(48, 'harsh ', 'test', 5, 78, 141, '2026-01-29', 'pending', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 06:14:19', '2026-01-09 06:14:22');
 
 -- --------------------------------------------------------
 
