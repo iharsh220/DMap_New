@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Ready for Review</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #2c3e50;
+            margin: 0;
+            font-size: 24px;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin: 20px 0;
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .content {
+            margin-bottom: 25px;
+        }
+        .info-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .task-details {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .task-details h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        .detail-row {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        .detail-label {
+            font-weight: bold;
+            width: 120px;
+            color: #666;
+        }
+        .detail-value {
+            flex: 1;
+        }
+        .document-section {
+            background-color: #e8f4fd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .document-section h3 {
+            margin-top: 0;
+            color: #007bff;
+        }
+        .document-item {
+            background-color: #ffffff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px 15px;
+            margin: 10px 0;
+        }
+        .document-link {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .document-link:hover {
+            text-decoration: underline;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #666;
+            font-size: 14px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #007bff;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Task Ready for Your Review</h1>
+        </div>
+
+        <div class="content">
+            <p>Dear <strong>{{client_name}}</strong>,</p>
+            
+            <p>A task has been reviewed and approved by <strong>{{manager_name}}</strong> ({{manager_email}}) and is now ready for your review.</p>
+
+            <div class="status-badge">
+                Ready for PM Review
+            </div>
+
+            <div class="task-details">
+                <h3>Task Details</h3>
+                <div class="detail-row">
+                    <span class="detail-label">Task Name:</span>
+                    <span class="detail-value">{{task_name}}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Task ID:</span>
+                    <span class="detail-value">{{task_id}}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Project:</span>
+                    <span class="detail-value">{{project_name}}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Brand:</span>
+                    <span class="detail-value">{{brand}}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Work Request ID:</span>
+                    <span class="detail-value">{{work_request_id}}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Deadline:</span>
+                    <span class="detail-value">{{deadline}}</span>
+                </div>
+            </div>
+
+            {{#if documents.length}}
+            <div class="document-section">
+                <h3>Attached Documents</h3>
+                {{#each documents}}
+                <div class="document-item">
+                    <strong>{{this.document_name}}</strong>
+                    {{#if this.document_path}}
+                    <br><a href="{{this.document_path}}" class="document-link">View Document</a>
+                    {{/if}}
+                </div>
+                {{/each}}
+            </div>
+            {{/if}}
+
+            <div class="info-box">
+                <p style="margin: 0;"><strong>Action Required:</strong> Please review the task and provide your feedback. The task is currently in <strong>PM Review</strong> stage.</p>
+            </div>
+        </div>
+
+        <div style="text-align: center;">
+            <a href="{{frontend_url}}" class="btn">Review Task</a>
+        </div>
+
+        <div class="footer">
+            <p>This is an automated message from D-Map. Please do not reply directly to this email.</p>
+        </div>
+    </div>
+</body>
+</html>

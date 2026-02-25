@@ -3156,6 +3156,164 @@ const reviewTask = async (req, res) => {
     }
 };
 
+// Share task for client review (PM Review stage)
+const shareForClientReview = async (req, res) => {
+    try {
+        const manager_id = req.user.id;
+        const { work_request_id, task_id, document_ids } = req.body;
+
+        // Validate required fields
+        if (!work_request_id || !task_id) {
+            return res.status(400).json({
+                success: false,
+                error: 'work_request_id and task_id are required'
+            });
+        }
+
+        // Verify manager has access to this work request
+        const workRequest = await WorkRequests.findOne({
+            where: { id: work_request_id },
+            include: [
+                {
+                    model: WorkRequestManagers,
+                    where: { manager_id: manager_id },
+                    required: true,
+                    attributes: []
+                },
+                {
+                    model: User,
+                    as: 'users',
+                    attributes: ['id', 'name', 'email']
+                }
+            ]
+        });
+
+        if (!workRequest) {
+            return res.status(404).json({
+                success: false,
+                error: 'Work request not found or you do not have access to it'
+            });
+        }
+
+        // Get the task details
+        const task = await Tasks.findOne({
+            where: { id: task_id, work_request_id: work_request_id },
+            include: [
+                {
+                    model: User,
+                    as: 'assignedUsers',
+                    attributes: ['id', 'name', 'email'],
+                    through: { attributes: [] }
+                }
+            ]
+        });
+
+        if (!task) {
+            return res.status(404).json({
+                success: false,
+                error: 'Task not found or does not belong to this work request'
+            });
+        }
+
+        // Check if task is in correct stage for client review
+        if (task.review_stage !== 'pm_review') {
+            return res.status(400).json({
+                success: false,
+                error: 'Task must be in pm_review stage to share with client. Current stage: ' + (task.review_stage || 'not_started')
+            });
+        }
+
+        // Get documents if document_ids provided
+        let documents = [];
+        if (document_ids && document_ids.length > 0) {
+            const taskDocuments = await TaskDocuments.findAll({
+                where: {
+                    id: { [Op.in]: document_ids },
+                    task_assignment_id: {
+                        [Op.in]: (await TaskAssignments.findAll({
+                            where: { task_id: task_id },
+                            attributes: ['id']
+                        })).map(ta => ta.id)
+                    }
+                },
+                attributes: ['id', 'document_name', 'document_path']
+            });
+            documents = taskDocuments;
+        }
+
+        // Get manager details
+        const manager = req.user;
+
+        // Get client (work request creator) details
+        const client = workRequest.users;
+
+        if (!client) {
+            return res.status(404).json({
+                success: false,
+                error: 'Client (work request creator) not found'
+            });
+        }
+
+        // Send email to client
+        const html = renderTemplate('clientReviewNotification', {
+            client_name: client.name,
+            manager_name: manager.name,
+            manager_email: manager.email,
+            task_name: task.task_name,
+            task_id: task.id,
+            project_name: workRequest.project_name || 'N/A',
+            brand: workRequest.brand || 'N/A',
+            work_request_id: workRequest.id,
+            deadline: task.deadline ? new Date(task.deadline).toLocaleDateString('en-IN', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            }) : 'Not set',
+            documents: documents.map(doc => ({
+                document_name: doc.document_name,
+                document_path: doc.document_path
+            })),
+            frontend_url: process.env.FRONTEND_URL
+        });
+
+        await sendMail({
+            to: client.email,
+            subject: `Task Ready for Review - ${task.task_name}`,
+            html
+        });
+
+        res.json({
+            success: true,
+            data: {
+                task: {
+                    id: task.id,
+                    task_name: task.task_name,
+                    review_stage: task.review_stage
+                },
+                work_request: {
+                    id: workRequest.id,
+                    project_name: workRequest.project_name
+                },
+                client: {
+                    id: client.id,
+                    name: client.name,
+                    email: client.email
+                },
+                documents: documents,
+                email_sent: true
+            },
+            message: 'Task shared with client for review successfully'
+        });
+    } catch (error) {
+        console.error('Error sharing task for client review:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            message: 'Failed to share task for client review'
+        });
+    }
+};
+
 module.exports = {
     getAssignedWorkRequests,
     getAssignedWorkRequestById,
@@ -3177,5 +3335,6 @@ module.exports = {
     updateTask,
     reviewTaskDocument,
     reviewIssueDocument,
-    reviewTask
+    reviewTask,
+    shareForClientReview
 };

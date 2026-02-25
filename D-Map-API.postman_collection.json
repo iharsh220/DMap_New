@@ -1422,6 +1422,43 @@
 					"response": []
 				},
 				{
+					"name": "Share For Client Review",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"work_request_id\": 1,\n  \"task_id\": 1,\n  \"document_ids\": [1, 2, 3]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/tasks/share-for-client-review",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"digilabs",
+								"dmap",
+								"api",
+								"manager",
+								"assigned-work-requests",
+								"tasks",
+								"share-for-client-review"
+							]
+						},
+						"description": "Share task with client (work request creator) for PM review. Sends email notification to client with task and document details. Task must be in pm_review stage."
+					},
+					"response": []
+				},
+				{
 					"name": "Get Tasks for Work Request",
 					"request": {
 						"method": "GET",

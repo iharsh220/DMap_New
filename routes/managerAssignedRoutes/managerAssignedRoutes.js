@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getAssignedWorkRequests, getAssignedWorkRequestById, acceptWorkRequest, deferWorkRequest, updateWorkRequestProject, deleteWorkRequest, deleteTask, getMyTasks, getAssignableUsers, getTaskTypesByWorkRequest, createTask, getTasksByWorkRequestId, getTaskAnalytics, getMyTeam, assignTasksToUsers, getAssignedRequestsWithStatus, getUserTask, updateTask, reviewTaskDocument, reviewIssueDocument, reviewTask } = require('../../controller/managerAssignedController/managerAssignedController');
+const { getAssignedWorkRequests, getAssignedWorkRequestById, acceptWorkRequest, deferWorkRequest, updateWorkRequestProject, deleteWorkRequest, deleteTask, getMyTasks, getAssignableUsers, getTaskTypesByWorkRequest, createTask, getTasksByWorkRequestId, getTaskAnalytics, getMyTeam, assignTasksToUsers, getAssignedRequestsWithStatus, getUserTask, updateTask, reviewTaskDocument, reviewIssueDocument, reviewTask, shareForClientReview } = require('../../controller/managerAssignedController/managerAssignedController');
 const { authenticateToken } = require('../../middleware/jwtMiddleware');
 const { checkRole } = require('../../middleware/roleMiddleware');
 const filterMiddleware = require('../../middleware/filterMiddleware');
@@ -12,6 +12,7 @@ router.post('/tasks', authenticateToken, checkRole([1, 2, 3]), createTask); // C
 router.put('/tasks/:taskId', authenticateToken, checkRole([1, 2, 3]), updateTask); // Update a task by ID
 router.delete('/tasks/:taskId', authenticateToken, checkRole([1, 2, 3]), deleteTask); // Delete a task by ID
 router.put('/tasks/:taskId/review', authenticateToken, checkRole([1, 2, 3]), reviewTask); // Review (approve/change_request) a task
+router.post('/tasks/share-for-client-review', authenticateToken, checkRole([1, 2, 3]), shareForClientReview); // Share task with client for PM review
 router.get('/work-request/:work_request_id/tasks', authenticateToken, checkRole([1, 2, 3]), getTasksByWorkRequestId); // Get tasks for a specific work request
 router.get('/user/:user_id/tasks', authenticateToken, checkRole([1, 2, 3]), filterMiddleware, paginationMiddleware, searchMiddleware, getUserTask); // Get tasks for a specific user with status filter and pagination
 
