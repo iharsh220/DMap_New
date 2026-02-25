@@ -2064,6 +2064,72 @@
 					"response": []
 				}
 			]
+		},
+		{
+			"name": "Issue Register",
+			"item": [
+				{
+					"name": "Get Issue Register by Task ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/digilabs/dmap/api/issue-register/task/:task_id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"digilabs",
+								"dmap",
+								"api",
+								"issue-register",
+								"task",
+								":task_id"
+							],
+							"variable": [
+								{
+									"key": "task_id",
+									"value": "1",
+									"description": "Task ID"
+								}
+							]
+						},
+						"description": "Get issue register data linked to a specific task through change_issue_tasktype table (requires authentication)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Issue Registers",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/digilabs/dmap/api/issue-register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"digilabs",
+								"dmap",
+								"api",
+								"issue-register"
+							]
+						},
+						"description": "Get all issue register entries (requires authentication)"
+					},
+					"response": []
+				}
+			]
 		}
 	],
 	"variable": [

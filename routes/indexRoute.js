@@ -11,6 +11,7 @@ const workRequestRoutes = require('./workRequestRoutes/workRequestRoutes');
 const managerAssignedRoutes = require('./managerAssignedRoutes/managerAssignedRoutes');
 const userRoutes = require('./userRoutes/userRoutes');
 const adminRoutes = require('./adminRoutes');
+const issueRegisterRoutes = require('./issueRegisterRoutes/issueRegisterRoutes');
 
 // Use routes
 router.use('/auth', authRoutes);
@@ -26,6 +27,9 @@ router.use('/manager/assigned-work-requests', managerAssignedRoutes);
 router.use('/users', userRoutes);
 
 router.use('/datatable', adminRoutes);
+
+// Issue Register Routes
+router.use('/issue-register', issueRegisterRoutes);
 
 // const { authenticateToken } = require('../middleware/jwtMiddleware');
 
