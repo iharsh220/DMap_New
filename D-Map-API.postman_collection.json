@@ -2114,18 +2114,50 @@
 							}
 						],
 						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/issue-register",
+							"raw": "{{base_url}}{{base_route}}issue-register",
 							"host": [
 								"{{base_url}}"
 							],
 							"path": [
-								"digilabs",
-								"dmap",
-								"api",
+								"{{base_route}}",
 								"issue-register"
 							]
 						},
 						"description": "Get all issue register entries (requires authentication)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Tasks For Client Review",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}{{base_route}}issue-register/work-request/:work_request_id/tasks",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"{{base_route}}",
+								"issue-register",
+								"work-request",
+								":work_request_id",
+								"tasks"
+							],
+							"variable": [
+								{
+									"key": "work_request_id",
+									"value": "1",
+									"description": "Work Request ID"
+								}
+							]
+						},
+						"description": "Get tasks for client review by work request ID (intimate_client=1 and review_stage=pm_review)"
 					},
 					"response": []
 				}
@@ -2135,7 +2167,12 @@
 	"variable": [
 		{
 			"key": "base_url",
-			"value": "http://localhost:3001",
+			"value": "http://localhost:1007",
+			"type": "string"
+		},
+		{
+			"key": "base_route",
+			"value": "/digilabs/uat/dmap/api/",
 			"type": "string"
 		},
 		{
