@@ -17,6 +17,7 @@ const {
     TaskType,
     TaskDependencies,
     TaskAssignments,
+    TaskDocuments,
     AboutProject,
     RequestDivisionReference
 } = require('../../models');
@@ -460,6 +461,8 @@ const getWorkRequestById = async (req, res) => {
         // Define associations for TaskAssignments
         Tasks.hasMany(TaskAssignments, { foreignKey: 'task_id' });
         TaskAssignments.belongsTo(Tasks, { foreignKey: 'task_id' });
+        TaskAssignments.hasMany(TaskDocuments, { foreignKey: 'task_assignment_id' });
+        TaskDocuments.belongsTo(TaskAssignments, { foreignKey: 'task_assignment_id' });
 
         const id = parseInt(req.params.id, 10);
         if (isNaN(id)) {
@@ -471,10 +474,20 @@ const getWorkRequestById = async (req, res) => {
             where: { id, user_id },
             attributes: { exclude: ['request_type_id', 'created_at', 'updated_at'] },
             include: [
-                { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] }, include: [
-                    { model: Division, as: 'Divisions', attributes: { exclude: ['created_at', 'updated_at'] }, through: { attributes: [] } }
-                ] },
-                { model: RequestType, attributes: { exclude: ['created_at', 'updated_at'] } },
+                { 
+                    model: User, 
+                    as: 'users', 
+                    foreignKey: 'user_id', 
+                    attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] }, 
+                    include: [
+                        { model: Department, attributes: ['id', 'department_name'] },
+                        { model: JobRole, attributes: ['id', 'role_title'] },
+                        { model: Location, attributes: ['id', 'location_name'] },
+                        { model: Designation, attributes: ['id', 'designation_name'] },
+                        { model: Division, as: 'Divisions', attributes: { exclude: ['created_at', 'updated_at'] }, through: { attributes: [] } }
+                    ] 
+                },
+                { model: RequestType, attributes: { exclude: ['created_at', 'updated_at'] }, include: [{ model: Division, through: { attributes: [] }, attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
                 { model: ProjectType, attributes: { exclude: ['created_at', 'updated_at'] } },
                 {
                     model: WorkRequestManagers, attributes: { exclude: ['created_at', 'updated_at'] }, include: [
@@ -491,7 +504,8 @@ const getWorkRequestById = async (req, res) => {
                 { model: WorkRequestDocuments, attributes: { exclude: ['created_at', 'updated_at'] } },
                 {
                     model: Tasks,
-                    attributes: { exclude: ['created_at', 'updated_at'] },
+                    required: false,
+                    attributes: ['id', 'task_name', 'description', 'task_type_id', 'work_request_id', 'deadline', 'status', 'intimate_team', 'request_type_id', 'assignment_type', 'task_count', 'link', 'start_date', 'end_date', 'review', 'review_stage'],
                     include: [
                         {
                             model: TaskAssignments,
@@ -499,6 +513,11 @@ const getWorkRequestById = async (req, res) => {
                                 {
                                     model: User,
                                     attributes: ['id', 'name', 'email']
+                                },
+                                {
+                                    model: TaskDocuments,
+                                    required: false,
+                                    attributes: ['id', 'document_name', 'document_path', 'uploaded_at', 'status', 'version', 'review']
                                 }
                             ]
                         },
@@ -507,13 +526,17 @@ const getWorkRequestById = async (req, res) => {
                             attributes: ['id', 'task_type', 'description']
                         },
                         {
+                            model: RequestType,
+                            attributes: ['id', 'request_type', 'description']
+                        },
+                        {
                             model: TaskDependencies,
                             as: 'dependencies',
                             include: [
                                 {
                                     model: Tasks,
                                     as: 'dependencyTask',
-                                    attributes: ['id', 'task_name', 'status', 'deadline', 'description']
+                                    attributes: ['id', 'task_name', 'deadline', 'status']
                                 }
                             ]
                         }
@@ -526,6 +549,26 @@ const getWorkRequestById = async (req, res) => {
 
         if (result.success && result.data.length > 0) {
             const workRequest = result.data[0];
+
+            // Fetch complete user details with associations
+            if (workRequest.users) {
+                const userDetails = await User.findByPk(workRequest.users.id, {
+                    include: [
+                        { model: Department, attributes: ['id', 'department_name'] },
+                        { model: JobRole, attributes: ['id', 'role_title'] },
+                        { model: Location, attributes: ['id', 'location_name'] },
+                        { model: Designation, attributes: ['id', 'designation_name'] },
+                        {
+                            model: Division,
+                            as: 'Divisions',
+                            attributes: ['id', 'title'],
+                            through: { attributes: [] }
+                        }
+                    ],
+                    attributes: { exclude: ['password', 'created_at', 'updated_at', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] }
+                });
+                workRequest.dataValues.users = userDetails.toJSON();
+            }
 
             // Get user task counts (accepted + in_progress) for all assigned users
             const allAssignedUserIds = [];
@@ -617,6 +660,52 @@ const getWorkRequestById = async (req, res) => {
                     }
                 }
             }
+
+            // Collect all unique users from tasks with their full details (taskUsers)
+            const taskUsers = [];
+            const userIds = new Set();
+
+            if (workRequest.Tasks && workRequest.Tasks.length > 0) {
+                for (const task of workRequest.Tasks) {
+                    if (task.TaskAssignments && task.TaskAssignments.length > 0) {
+                        for (const assignment of task.TaskAssignments) {
+                            if (assignment.User && assignment.User.id && !userIds.has(assignment.User.id)) {
+                                userIds.add(assignment.User.id);
+
+                                // Get full user details with associations
+                                const userDetails = await User.findByPk(assignment.User.id, {
+                                    include: [
+                                        { model: Department, attributes: ['id', 'department_name'] },
+                                        { model: JobRole, attributes: ['id', 'role_title'] },
+                                        { model: Location, attributes: ['id', 'location_name'] },
+                                        { model: Designation, attributes: ['id', 'designation_name'] },
+                                        {
+                                            model: Division,
+                                            as: 'Divisions',
+                                            attributes: ['id', 'title'],
+                                            through: { attributes: [] }
+                                        }
+                                    ],
+                                    attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] }
+                                });
+
+                                if (userDetails) {
+                                    const counts = userTaskCounts[assignment.User.id] || { accepted: 0, in_progress: 0 };
+                                    taskUsers.push({
+                                        ...userDetails.toJSON(),
+                                        acceptedTasksCount: counts.accepted,
+                                        inProgressTasksCount: counts.in_progress,
+                                        totalActiveTasks: counts.accepted + counts.in_progress
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Add taskUsers to the work request response
+            workRequest.dataValues.taskUsers = taskUsers;
 
             res.json({ success: true, data: workRequest });
         } else {
