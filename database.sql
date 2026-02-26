@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Feb 23, 2026 at 12:06 PM
+-- Generation Time: Feb 26, 2026 at 11:23 AM
 -- Server version: 11.4.10-MariaDB
 -- PHP Version: 8.4.17
 
@@ -2331,23 +2331,24 @@ CREATE TABLE `tasks` (
 -- Dumping data for table `tasks`
 --
 
-INSERT INTO `tasks` (`id`, `task_name`, `description`, `request_type_id`, `task_type_id`, `work_request_id`, `deadline`, `status`, `assignment_type`, `intimate_team`, `intimate_client`, `task_count`, `link`, `start_date`, `end_date`, `review`, `review_stage`, `created_at`, `updated_at`) VALUES
-(33, 'Ui design', 'test', 5, 89, 141, '2025-12-31', 'pending', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2025-12-30 09:10:19', '2026-01-09 06:14:22'),
-(34, 'POster', 'Test', 1, 8, 141, NULL, 'accepted', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2025-12-30 10:51:16', '2026-01-09 06:14:22'),
-(35, 'Packaging design', 'test', 1, 3, 141, NULL, 'accepted', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2025-12-30 11:06:50', '2026-01-09 06:14:22'),
-(36, 'Data Schema', 'test', 5, 78, 141, '2026-01-01', 'in_progress', 'new', 1, 0, 0, NULL, '2026-01-01', NULL, 'pending', 'not_started', '2025-12-31 09:15:34', '2026-01-09 06:14:22'),
-(37, 'Gantt chart', 'Showcase visual project timeline', 5, 86, 140, '2026-01-05', 'pending', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-02 07:06:01', '2026-01-05 10:56:26'),
-(38, 'UI dev', 'based on bal ui', 5, 82, 140, '2026-01-08', 'pending', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-02 07:07:16', '2026-01-05 10:56:26'),
-(39, 'Front-end development', 'UI', 5, 74, 140, '2026-01-15', 'completed', 'new', 1, 0, 3, NULL, '2026-01-07', '2026-01-05', 'pending', 'not_started', '2026-01-05 10:53:51', '2026-01-05 10:59:23'),
-(40, 'test harsh', 'test', 5, 77, 141, '2026-01-08', 'pending', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-07 10:44:32', '2026-01-09 06:14:22'),
-(41, 'api', 'test', 5, 75, 141, '2026-01-13', 'pending', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 05:32:16', '2026-01-09 06:14:22'),
-(42, 'database', 'test_v02', 5, 77, 141, '2026-01-15', 'pending', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 05:37:43', '2026-01-09 06:14:22'),
-(43, 'backend', 'test', 5, 75, 141, '2026-01-16', 'pending', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 05:51:15', '2026-01-09 06:14:22'),
-(44, 'video framer', 'test', 5, 80, 141, '2026-01-20', 'pending', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 05:54:50', '2026-01-09 06:14:22'),
-(45, 'system design', 'test', 5, 80, 141, '2026-01-21', 'pending', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 05:58:02', '2026-01-09 06:14:22'),
-(46, 'photo framer', 'test', 5, 76, 141, '2026-01-26', 'pending', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 06:02:34', '2026-01-09 06:14:22'),
-(47, 'custom website', 'test', 5, 80, 141, '2026-01-27', 'pending', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 06:05:07', '2026-01-09 06:14:22'),
-(48, 'harsh ', 'test', 5, 78, 141, '2026-01-29', 'pending', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 06:14:19', '2026-01-09 06:14:22');
+INSERT INTO `tasks` (`id`, `task_name`, `description`, `request_type_id`, `task_type_id`, `work_request_id`, `deadline`, `status`, `version`, `assignment_type`, `intimate_team`, `intimate_client`, `task_count`, `link`, `start_date`, `end_date`, `review`, `review_stage`, `created_at`, `updated_at`) VALUES
+(33, 'Ui design', 'test', 5, 89, 141, '2025-12-31', 'pending', 'V1', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2025-12-30 09:10:19', '2026-01-09 06:14:22'),
+(34, 'POster', 'Test', 1, 8, 141, NULL, 'accepted', 'V1', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2025-12-30 10:51:16', '2026-01-09 06:14:22'),
+(35, 'Packaging design', 'test', 1, 3, 141, NULL, 'accepted', 'V1', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2025-12-30 11:06:50', '2026-01-09 06:14:22'),
+(36, 'Data Schema', 'test', 5, 78, 141, '2026-01-01', 'in_progress', 'V1', 'new', 1, 0, 0, NULL, '2026-01-01', NULL, 'pending', 'not_started', '2025-12-31 09:15:34', '2026-01-09 06:14:22'),
+(37, 'Gantt chart', 'Showcase visual project timeline', 5, 86, 140, '2026-01-05', 'pending', 'V1', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-02 07:06:01', '2026-01-05 10:56:26'),
+(38, 'UI dev', 'based on bal ui', 5, 82, 140, '2026-01-08', 'pending', 'V1', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-02 07:07:16', '2026-01-05 10:56:26'),
+(39, 'Front-end development', 'UI', 5, 74, 140, '2026-01-15', 'completed', 'V1', 'new', 1, 0, 3, NULL, '2026-01-07', '2026-01-05', 'pending', 'not_started', '2026-01-05 10:53:51', '2026-01-05 10:59:23'),
+(40, 'test harsh', 'test', 5, 77, 141, '2026-01-08', 'pending', 'V1', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-07 10:44:32', '2026-01-09 06:14:22'),
+(41, 'api', 'test', 5, 75, 141, '2026-01-13', 'pending', 'V1', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 05:32:16', '2026-01-09 06:14:22'),
+(42, 'database', 'test_v02', 5, 77, 141, '2026-01-15', 'pending', 'V1', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 05:37:43', '2026-01-09 06:14:22'),
+(43, 'backend', 'test', 5, 75, 141, '2026-01-16', 'pending', 'V1', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 05:51:15', '2026-01-09 06:14:22'),
+(44, 'video framer', 'test', 5, 80, 141, '2026-01-20', 'pending', 'V1', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 05:54:50', '2026-01-09 06:14:22'),
+(45, 'system design', 'test', 5, 80, 141, '2026-01-21', 'pending', 'V1', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 05:58:02', '2026-01-09 06:14:22'),
+(46, 'photo framer', 'test', 5, 76, 141, '2026-01-26', 'pending', 'V1', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 06:02:34', '2026-01-09 06:14:22'),
+(47, 'custom website', 'test', 5, 80, 141, '2026-01-27', 'pending', 'V1', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 06:05:07', '2026-01-09 06:14:22'),
+(48, 'harsh ', 'test', 5, 78, 141, '2026-01-29', 'pending', 'V1', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-01-09 06:14:19', '2026-01-09 06:14:22'),
+(49, 'testing', 'testing issue register', 4, 75, 149, '2026-03-31', 'completed', 'V1', 'new', 1, 1, 11, NULL, '2026-02-26', '2026-02-26', 'pending', 'pm_review', '2026-02-26 05:50:09', '2026-02-26 05:52:16');
 
 -- --------------------------------------------------------
 
@@ -2383,7 +2384,8 @@ INSERT INTO `task_assignments` (`id`, `task_id`, `user_id`, `created_at`, `updat
 (51, 45, 19, '2026-01-09 05:58:02', '2026-01-09 05:58:02'),
 (52, 46, 19, '2026-01-09 06:02:34', '2026-01-09 06:02:34'),
 (53, 47, 19, '2026-01-09 06:05:07', '2026-01-09 06:05:07'),
-(54, 48, 19, '2026-01-09 06:14:19', '2026-01-09 06:14:19');
+(54, 48, 19, '2026-01-09 06:14:19', '2026-01-09 06:14:19'),
+(55, 49, 19, '2026-02-26 05:50:09', '2026-02-26 05:50:09');
 
 -- --------------------------------------------------------
 
@@ -2433,7 +2435,8 @@ CREATE TABLE `task_documents` (
 --
 
 INSERT INTO `task_documents` (`id`, `task_assignment_id`, `document_name`, `document_path`, `document_type`, `document_size`, `version`, `status`, `review`, `intimate_client`, `uploaded_at`) VALUES
-(2, 45, 'udder.jpg', '/digilabs/dmap/api/uploads/Petal_POB_tracker/Front-end development/Gautam Baranwal/udder.jpg-1767610763150-962022545.jpg', 'image/jpeg', 82670, 'V1', 'uploaded', 'pending', 0, '2026-01-05 10:59:23');
+(2, 45, 'udder.jpg', '/digilabs/dmap/api/uploads/Petal_POB_tracker/Front-end development/Gautam Baranwal/udder.jpg-1767610763150-962022545.jpg', 'image/jpeg', 82670, 'V1', 'uploaded', 'pending', 0, '2026-01-05 10:59:23'),
+(3, 55, '1000153746.png', '/digilabs/uat/dmap/api//uploads/testing/testing/Harsh Gohil/V1/1000153746.png-1772085050892-524339727.png', 'image/png', 208007, 'V1', 'uploaded', 'pending', 1, '2026-02-26 05:50:50');
 
 -- --------------------------------------------------------
 
@@ -2785,6 +2788,13 @@ CREATE TABLE `task_review_history` (
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Tracks all task review actions for audit trail';
 
+--
+-- Dumping data for table `task_review_history`
+--
+
+INSERT INTO `task_review_history` (`id`, `task_id`, `reviewer_id`, `reviewer_type`, `action`, `comments`, `previous_stage`, `new_stage`, `created_at`, `updated_at`) VALUES
+(1, 49, 23, 'manager', 'approved', NULL, 'manager_review', 'pm_review', '2026-02-26 05:52:10', '2026-02-26 05:52:10');
+
 -- --------------------------------------------------------
 
 --
@@ -3082,7 +3092,8 @@ INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `request_
 (145, 60, 'PEDICON FLYERS', 'PEDICON', 1, 7, 'Requirement for the creation of Flyers for PEDICON. The conference is from 16 Jan to 20 Jan (days), so there would be a requirement for the creation of 5 Flyers. The format for the same is sent on mail to Bhagwan sir. Request to take this up on urgent basis since the date of conference is approaching,\r\n', '{\"output_devices\":[\"Mobile\"],\"target_audience\":[\"Doctors\"]}', 'high', 'accepted', '2026-01-08 09:21:07', '', '2026-01-08 09:21:07', '2026-01-08 09:46:52'),
 (146, 60, 'Reminder Flyers for PEDICON', 'PEDICON', 1, 7, 'Request you provide with Reminder Flyers for PEDICON( Just like you provided for AOICON)\r\nFormat- 3 days to go, 2 days to go, 1 day to go. Requesting this to provide before Monday since we need to flash it before 16th Jan. Fir the AICON task, this was done by Vivek, accordingly request to do this for PEDICON, \r\nPharma Division: Cloff OL, Vitaresp Fx Suspension\r\nMaxis: Brozeet-Ls, Wikoryl Liq\r\nMegacare: Azithral Xl Liquid, Laveta M syrup\r\n', '{\"output_devices\":[\"Mobile\"],\"target_audience\":[\"Doctors\"]}', 'high', 'accepted', '2026-01-08 09:30:04', '', '2026-01-08 09:30:04', '2026-01-08 09:56:55'),
 (147, 63, 'Alembic Health First_New Design', 'Internal Communications', 1, 6, 'As per our Employee engagement calendar the next activity shall be \'Alembic Health First\' .\r\n\r\nThe virtual program is planned for the employees and their families scheduled on 18th Jan 2026 on Zoom. \r\n\r\nBelow are tentative topics / theme to be covered in the sessions. \r\n1. Home remedies for common ailments\r\n2. Food combinations and the right time to eat them - for immunity and strength\r\n3. Food & remedies for a healthy structure - prevent soreness, aches & strengthen joints\r\n4. Lifestyle hacks for recovery and hydration\r\n', '{\"output_devices\":[\"Desktop\",\"Mobile\",\"iPad 9\",\"iPad 10\"],\"target_audience\":[\"Alembic HO\",\"Field Representatives\"]}', 'medium', 'pending', '2026-01-08 10:53:19', '', '2026-01-08 10:53:19', '2026-01-08 10:53:19'),
-(148, 20, 'Reach Her Website', 'Richar CR', 4, 28, 'Your organisation has partnered with Great Place To Work, the global authority on workplace culture, to collect feedback on your experience at work to help us understand how to create a high-trust and consistently positive employee experience. \r\n\r\nRest assured that your participation in the survey is entirely optional. There are no mandatory questions - you are free to choose to reply to all, some or none of the questions. \r\n\r\nThe survey takes approximately 15 minutes to complete. If you would like your feedback to be included in the survey results, please submit your response no later than the date below.', '{\"output_devices\":[\"Print\",\"Desktop\",\"iPad 10\"],\"target_audience\":[\"Others\",\"Doctors\"]}', 'high', 'pending', '2026-01-09 06:33:55', '', '2026-01-09 06:33:55', '2026-01-09 06:33:55');
+(148, 20, 'Reach Her Website', 'Richar CR', 4, 28, 'Your organisation has partnered with Great Place To Work, the global authority on workplace culture, to collect feedback on your experience at work to help us understand how to create a high-trust and consistently positive employee experience. \r\n\r\nRest assured that your participation in the survey is entirely optional. There are no mandatory questions - you are free to choose to reply to all, some or none of the questions. \r\n\r\nThe survey takes approximately 15 minutes to complete. If you would like your feedback to be included in the survey results, please submit your response no later than the date below.', '{\"output_devices\":[\"Print\",\"Desktop\",\"iPad 10\"],\"target_audience\":[\"Others\",\"Doctors\"]}', 'high', 'pending', '2026-01-09 06:33:55', '', '2026-01-09 06:33:55', '2026-01-09 06:33:55'),
+(149, 20, 'testing', 'test', 4, 27, 't t t t t t t t yh h hb b b gv ffd f g hn n m n b vf dxxs  c vb nb n n  j jn hh gt g h jm  n bg  hj mn n n j j j j j  jn jn n', '{\"output_devices\":[\"iPad 10\"],\"target_audience\":[\"Field Representatives\"]}', 'low', 'assigned', '2026-02-26 05:49:08', '', '2026-02-26 05:49:08', '2026-02-26 05:50:11');
 
 -- --------------------------------------------------------
 
@@ -3145,7 +3156,9 @@ INSERT INTO `work_request_managers` (`id`, `work_request_id`, `manager_id`, `cre
 (172, 146, 24, '2026-01-08 09:30:04', '2026-01-08 09:30:04'),
 (173, 147, 24, '2026-01-08 10:53:19', '2026-01-08 10:53:19'),
 (174, 148, 21, '2026-01-09 06:33:55', '2026-01-09 06:33:55'),
-(175, 148, 23, '2026-01-09 06:33:55', '2026-01-09 06:33:55');
+(175, 148, 23, '2026-01-09 06:33:55', '2026-01-09 06:33:55'),
+(176, 149, 21, '2026-02-26 05:49:08', '2026-02-26 05:49:08'),
+(177, 149, 23, '2026-02-26 05:49:08', '2026-02-26 05:49:08');
 
 --
 -- Indexes for dumped tables
@@ -3521,13 +3534,13 @@ ALTER TABLE `sales`
 -- AUTO_INCREMENT for table `tasks`
 --
 ALTER TABLE `tasks`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=49;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=50;
 
 --
 -- AUTO_INCREMENT for table `task_assignments`
 --
 ALTER TABLE `task_assignments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=55;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=56;
 
 --
 -- AUTO_INCREMENT for table `task_dependencies`
@@ -3539,7 +3552,7 @@ ALTER TABLE `task_dependencies`
 -- AUTO_INCREMENT for table `task_documents`
 --
 ALTER TABLE `task_documents`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `task_project_reference`
@@ -3551,7 +3564,7 @@ ALTER TABLE `task_project_reference`
 -- AUTO_INCREMENT for table `task_review_history`
 --
 ALTER TABLE `task_review_history`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `task_type`
@@ -3563,7 +3576,7 @@ ALTER TABLE `task_type`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=66;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=69;
 
 --
 -- AUTO_INCREMENT for table `user_divisions`
@@ -3575,7 +3588,7 @@ ALTER TABLE `user_divisions`
 -- AUTO_INCREMENT for table `work_requests`
 --
 ALTER TABLE `work_requests`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=149;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=150;
 
 --
 -- AUTO_INCREMENT for table `work_request_documents`
@@ -3587,7 +3600,7 @@ ALTER TABLE `work_request_documents`
 -- AUTO_INCREMENT for table `work_request_managers`
 --
 ALTER TABLE `work_request_managers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=176;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=178;
 
 --
 -- Constraints for dumped tables
