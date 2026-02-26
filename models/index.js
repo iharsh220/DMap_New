@@ -120,6 +120,10 @@ TaskAssignments.hasMany(TaskDocuments, { foreignKey: 'task_assignment_id' });
 IssueAssignments.belongsTo(Tasks, { foreignKey: 'task_id', as: 'task' });
 IssueAssignments.belongsTo(User, { foreignKey: 'requested_by_user_id', as: 'requester' });
 
+// Self-referencing association for issue-related changes
+IssueAssignments.belongsTo(IssueAssignments, { foreignKey: 'issue_id', as: 'parentIssue' });
+IssueAssignments.hasMany(IssueAssignments, { foreignKey: 'issue_id', as: 'childIssues' });
+
 // IssueAssignments <-> IssueRegister many-to-many through IssueAssignmentTypes (for multiple issue types)
 IssueAssignments.belongsToMany(IssueRegister, { through: IssueAssignmentTypes, foreignKey: 'issue_assignment_id', as: 'issueTypes' });
 IssueRegister.belongsToMany(IssueAssignments, { through: IssueAssignmentTypes, foreignKey: 'issue_register_id', as: 'issueAssignments' });

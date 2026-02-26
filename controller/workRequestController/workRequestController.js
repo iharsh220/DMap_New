@@ -1120,4 +1120,102 @@ const getUserDashboardStats = async (req, res) => {
     }
 };
 
-module.exports = { createWorkRequest, getMyWorkRequests, getWorkRequestById, getProjectTypesByRequestType, getAboutProjectOptions, getDivisionWorkRequests, getDivisionWorkRequestById, getUserDashboardStats };
+// PM Approve Task - Update task status to completed and review to approved
+// Only approves tasks where intimate_client = 1 and associated documents with intimate_client = 1
+const pmApproveTask = async (req, res) => {
+    const transaction = await require('../../models').sequelize.transaction();
+    
+    try {
+        const { task_id } = req.body;
+
+        if (!task_id) {
+            return res.status(400).json({
+                success: false,
+                error: 'task_id is required'
+            });
+        }
+
+        // Find the task
+        const task = await Tasks.findByPk(task_id);
+
+        if (!task) {
+            return res.status(404).json({
+                success: false,
+                error: 'Task not found'
+            });
+        }
+
+        // Check if task has intimate_client = 1
+        if (task.intimate_client !== 1) {
+            return res.status(400).json({
+                success: false,
+                error: 'Task is not marked for client review (intimate_client must be 1)'
+            });
+        }
+
+        // Update the task: status stays 'completed', review = 'approved', review_stage = 'final_approved'
+        await task.update({
+            status: 'completed',
+            review: 'approved',
+            review_stage: 'final_approved'
+        }, { transaction });
+
+        // Find all task assignments for this task
+        const taskAssignments = await require('../../models').TaskAssignments.findAll({
+            where: { task_id: task_id }
+        });
+
+        const taskAssignmentIds = taskAssignments.map(ta => ta.id);
+
+        // Find and update all documents for this task where intimate_client = 1
+        if (taskAssignmentIds.length > 0) {
+            await require('../../models').TaskDocuments.update(
+                { review: 'approved' },
+                {
+                    where: {
+                        task_assignment_id: { [require('../../models').Op.in]: taskAssignmentIds },
+                        intimate_client: 1
+                    },
+                    transaction
+                }
+            );
+        }
+
+        await transaction.commit();
+
+        // Fetch updated task
+        const updatedTask = await Tasks.findByPk(task_id, {
+            include: [
+                {
+                    model: TaskType,
+                    attributes: ['id', 'task_type', 'description']
+                },
+                {
+                    model: RequestType,
+                    attributes: ['id', 'request_type', 'description']
+                },
+                {
+                    model: WorkRequests,
+                    attributes: ['id', 'project_name', 'brand', 'status']
+                }
+            ]
+        });
+
+        res.json({
+            success: true,
+            data: updatedTask,
+            message: 'Task and associated documents (intimate_client=1) approved successfully by PM'
+        });
+
+    } catch (error) {
+        await transaction.rollback();
+        console.error('Error in PM approve task:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            message: 'Failed to approve task'
+        });
+    }
+};
+
+module.exports = { createWorkRequest, getMyWorkRequests, getWorkRequestById, getProjectTypesByRequestType, getAboutProjectOptions, getDivisionWorkRequests, getDivisionWorkRequestById, getUserDashboardStats, pmApproveTask };

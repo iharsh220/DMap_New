@@ -1888,7 +1888,8 @@ INSERT INTO `division` (`id`, `title`, `department_id`, `description`, `state`, 
 
 CREATE TABLE `issue_assignments` (
   `id` int(11) NOT NULL,
-  `task_id` int(11) NOT NULL COMMENT 'Linked to tasks table',
+  `issue_id` int(11) DEFAULT NULL COMMENT 'Self-referenced to parent issue_assignments (for issue-related changes)',
+  `task_id` int(11) DEFAULT NULL COMMENT 'Linked to tasks table (for task-related changes)',
   `requested_by_user_id` int(11) NOT NULL COMMENT 'User who requested the change (requester)',
   `assignment_type` enum('new','mod') NOT NULL DEFAULT 'new' COMMENT 'new=first time, mod=modification',
   `version` varchar(10) NOT NULL DEFAULT 'V1' COMMENT 'Dynamic version - V1, V2, V3, etc.',

@@ -7,10 +7,15 @@ const IssueAssignments = sequelize.define('IssueAssignments', {
     primaryKey: true,
     autoIncrement: true,
   },
+  issue_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    comment: 'Self-referenced to parent issue_assignments (for issue-related changes)',
+  },
   task_id: {
     type: DataTypes.INTEGER,
-    allowNull: false,
-    comment: 'Linked to tasks table',
+    allowNull: true,
+    comment: 'Linked to tasks table (for task-related changes)',
   },
   requested_by_user_id: {
     type: DataTypes.INTEGER,
@@ -20,7 +25,7 @@ const IssueAssignments = sequelize.define('IssueAssignments', {
   assignment_type: {
     type: DataTypes.ENUM('new', 'mod'),
     allowNull: false,
-    defaultValue: 'new',
+    defaultValue: 'mod',
     comment: 'new=first time, mod=modification',
   },
   version: {

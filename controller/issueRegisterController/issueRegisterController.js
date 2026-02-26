@@ -2,7 +2,12 @@ const { Op } = require('sequelize');
 const {
     IssueRegister,
     ChangeIssueTasktype,
-    Tasks
+    Tasks,
+    IssueAssignments,
+    IssueAssignmentTypes,
+    IssueUserAssignments,
+    IssueDocuments,
+    User
 } = require('../../models');
 
 // Get issue register data by task ID
@@ -76,7 +81,131 @@ const getIssueRegisterByTaskId = async (req, res) => {
     }
 };
 
-// Get all issue register entries
+// Create issue assignment with issue types
+const createIssueAssignment = async (req, res) => {
+    const transaction = await require('../../models').sequelize.transaction();
+    
+    try {
+        const {
+            task_id,
+            issue_id,
+            requested_by_user_id,
+            assignment_type,
+            version,
+            description,
+            // Array of issue_register IDs
+            issue_register_ids = []
+        } = req.body;
+
+        // Validate required fields - either task_id or issue_id must be provided
+        if (!task_id && !issue_id) {
+            return res.status(400).json({
+                success: false,
+                error: 'Either task_id or issue_id is required'
+            });
+        }
+
+        if (!requested_by_user_id || !assignment_type || !version) {
+            return res.status(400).json({
+                success: false,
+                error: 'Missing required fields: requested_by_user_id, assignment_type, version'
+            });
+        }
+
+        // Check if task exists (if task_id provided)
+        if (task_id) {
+            const task = await Tasks.findByPk(task_id);
+            if (!task) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Task not found'
+                });
+            }
+        }
+
+        // Check if issue exists (if issue_id provided)
+        if (issue_id) {
+            const existingIssue = await IssueAssignments.findByPk(issue_id);
+            if (!existingIssue) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Parent issue not found'
+                });
+            }
+        }
+
+        // Determine change type
+        const changeType = task_id ? 'task' : 'issue';
+
+        // Create issue assignment
+        const issueAssignment = await IssueAssignments.create({
+            issue_id: issue_id || null,
+            task_id: task_id || null,
+            requested_by_user_id,
+            assignment_type,
+            version,
+            description,
+            status: 'pending',
+            review: 'pending'
+        }, { transaction });
+
+        // Link issue_register IDs (multiple)
+        if (issue_register_ids && issue_register_ids.length > 0) {
+            const issueTypeLinks = issue_register_ids.map(registerId => ({
+                issue_assignment_id: issueAssignment.id,
+                issue_register_id: registerId
+            }));
+            await IssueAssignmentTypes.bulkCreate(issueTypeLinks, { transaction });
+        }
+
+        await transaction.commit();
+
+        // Fetch the created issue assignment with all related data
+        const createdIssueAssignment = await IssueAssignments.findByPk(issueAssignment.id, {
+            include: [
+                {
+                    model: Tasks,
+                    as: 'task',
+                    attributes: ['id', 'task_name', 'task_type_id', 'work_request_id']
+                },
+                {
+                    model: IssueAssignments,
+                    as: 'parentIssue',
+                    attributes: ['id', 'version', 'description']
+                },
+                {
+                    model: User,
+                    as: 'requester',
+                    attributes: ['id', 'name', 'email']
+                },
+                {
+                    model: IssueRegister,
+                    as: 'issueTypes',
+                    through: { attributes: [] },
+                    attributes: ['id', 'change_issue_type', 'description']
+                }
+            ]
+        });
+
+        res.status(201).json({
+            success: true,
+            data: {
+                ...createdIssueAssignment.toJSON(),
+                change_type: changeType
+            },
+            message: 'Issue assignment created successfully'
+        });
+
+    } catch (error) {
+        await transaction.rollback();
+        console.error('Error creating issue assignment:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            message: 'Failed to create issue assignment'
+        });
+    }
+};
 const getAllIssueRegisters = async (req, res) => {
     try {
         const issueRegisters = await IssueRegister.findAll({
@@ -101,5 +230,6 @@ const getAllIssueRegisters = async (req, res) => {
 
 module.exports = {
     getIssueRegisterByTaskId,
-    getAllIssueRegisters
+    getAllIssueRegisters,
+    createIssueAssignment
 };

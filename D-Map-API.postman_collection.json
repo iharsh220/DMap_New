@@ -1,2184 +1,2260 @@
 {
-	"info": {
-		"_postman_id": "c2e9f9d4-7020-433e-a0cb-e9b51b68e27e",
-		"name": "D-Map API",
-		"description": "API collection for D-Map application",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "26943450"
-	},
-	"item": [
-		{
-			"name": "Auth",
-			"item": [
-				{
-					"name": "Initiate Registration",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"email\": \"angana.patil@alembic.co.in\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/auth/initiate-registration",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"auth",
-								"initiate-registration"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Verify Email",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/auth/verify-email?token=eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..dODGC40Kz1h4YmxO.zvaq_0tXPwsOBnqH_jGCJA3SvPpMr4TGTDxcY1pxDyxzBOwZCQE2z5Xt2HwzbjqoH7ug9eS_.UeCfUwYt9YXzTCAQ-379AA",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"auth",
-								"verify-email"
-							],
-							"query": [
-								{
-									"key": "token",
-									"value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..dODGC40Kz1h4YmxO.zvaq_0tXPwsOBnqH_jGCJA3SvPpMr4TGTDxcY1pxDyxzBOwZCQE2z5Xt2HwzbjqoH7ug9eS_.UeCfUwYt9YXzTCAQ-379AA"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Logout",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/auth/logout",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"auth",
-								"logout"
-							]
-						},
-						"description": "Logout user (requires authentication)"
-					},
-					"response": []
-				},
-				{
-					"name": "Refresh Token",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"refreshToken\": \"your_refresh_token_here\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/auth/refresh-token",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"auth",
-								"refresh-token"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Login",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.collectionVariables.set(\"jwt_token\", pm.response.json().accessToken);"
-								],
-								"type": "text/javascript",
-								"packages": {}
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"identifier\": \"harsh.gohil@alembic.co.in\",\n  \"password\": \"SmartWolf@1234\",\n  \"loginType\": \"email\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/auth/login",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"auth",
-								"login"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Complete Registration",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"email\": \"angana.patil@alembic.co.in\",\n  \"name\": \"Angana Patil\",\n  \"password\": \"Angana@1234\",\n  \"phone\": \"8080302041\",\n  \"department_id\": 9,\n  \"division_ids\": [1],\n  \"designation_id\": 20,\n  \"location_id\": 1\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/auth/complete-registration",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"auth",
-								"complete-registration"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Forgot Password",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"identifier\": \"harsh.gohil@alembic.co.in\",\n  \"loginType\": \"email\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/auth/forgot-password",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"auth",
-								"forgot-password"
-							]
-						},
-						"description": "Request password reset email"
-					},
-					"response": []
-				},
-				{
-					"name": "Reset Password",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"token\": \"your_reset_jwt_token_here\",\n  \"newPassword\": \"NewPassword@123\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/auth/reset-password",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"auth",
-								"reset-password"
-							]
-						},
-						"description": "Reset password using token from email"
-					},
-					"response": []
-				},
-				{
-					"name": "Change Password",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"currentPassword\": \"OldPassword@123\",\n  \"newPassword\": \"NewPassword@123\",\n  \"confirmPassword\": \"NewPassword@123\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/auth/change-password",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"auth",
-								"change-password"
-							]
-						},
-						"description": "Change password for authenticated user (requires authentication)"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Profile",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/auth/profile",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"auth",
-								"profile"
-							]
-						},
-						"description": "Get complete user profile information (requires authentication)"
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Workflow",
-			"item": [
-				{
-					"name": "Get All Departments",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/departments",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"departments"
-							]
-						},
-						"description": "Get all departments with nested divisions and designations"
-					},
-					"response": []
-				},
-				{
-					"name": "Get All Request Types",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/request-types?exclude_request_type_id=",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"request-types"
-							],
-							"query": [
-								{
-									"key": "exclude_request_type_id",
-									"value": "",
-									"description": "ID of request type to exclude from results (optional)"
-								}
-							]
-						},
-						"description": "Get all request types grouped by type, optionally excluding a specific request type (requires authentication)"
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Work Requests",
-			"item": [
-				{
-					"name": "Get My Work Requests",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/work-requests/my-requests?page=1&limit=10&search=&searchFields=project_name,brand&priority=&status=",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"work-requests",
-								"my-requests"
-							],
-							"query": [
-								{
-									"key": "page",
-									"value": "1",
-									"description": "Page number for pagination"
-								},
-								{
-									"key": "limit",
-									"value": "10",
-									"description": "Number of items per page"
-								},
-								{
-									"key": "search",
-									"value": "",
-									"description": "Search term"
-								},
-								{
-									"key": "searchFields",
-									"value": "project_name,brand",
-									"description": "Fields to search in"
-								},
-								{
-									"key": "priority",
-									"value": "",
-									"description": "Filter by priority"
-								},
-								{
-									"key": "status",
-									"value": "",
-									"description": "Filter by status"
-								}
-							]
-						},
-						"description": "Get list of work requests submitted by the authenticated user with filtering, pagination, and search (requires authentication)"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Work Request by ID",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/work-requests/:id",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"work-requests",
-								":id"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "1",
-									"description": "Work request ID"
-								}
-							]
-						},
-						"description": "Get details of a specific work request by ID, including all assigned tasks and their progress (requires authentication, user can only access their own requests)"
-					},
-					"response": []
-				},
-				{
-					"name": "Create Work Request",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "project_name",
-									"value": "New Product Launch Campaign",
-									"type": "text"
-								},
-								{
-									"key": "brand",
-									"value": "Alembic Pharma",
-									"type": "text"
-								},
-								{
-									"key": "request_type_id",
-									"value": "5",
-									"type": "text"
-								},
-								{
-									"key": "project_id",
-									"value": "5",
-									"description": "Optional project type ID",
-									"type": "text"
-								},
-								{
-									"key": "about_project",
-									"value": "{\n  \"output_devices\": [\"iPad 9\", \"Mobile\"],\n  \"target_audience\": [\"Doctors\", \"Chemists\"]\n}",
-									"description": "JSON object containing output_devices and target_audience arrays for multi-selection",
-									"type": "text"
-								},
-								{
-									"key": "priority",
-									"value": "high",
-									"type": "text"
-								},
-								{
-									"key": "remarks",
-									"value": "Any additional remarks",
-									"type": "text"
-								},
-								{
-									"key": "documents",
-									"type": "file",
-									"src": []
-								}
-							]
-						},
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/work-requests",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"work-requests"
-							]
-						},
-						"description": "Create a new work request with optional file uploads (requires authentication)"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Project Types by Request Type",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/work-requests/project-types?request_type_id=1",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"work-requests",
-								"project-types"
-							],
-							"query": [
-								{
-									"key": "request_type_id",
-									"value": "1",
-									"description": "Request type ID to get associated project types"
-								}
-							]
-						},
-						"description": "Get list of project types associated with a specific request type via project_request_reference table (requires authentication)"
-					},
-					"response": []
-				},
-				{
-					"name": "Get About Project Options",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/work-requests/about-project-options",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"work-requests",
-								"about-project-options"
-							]
-						},
-						"description": "Get available options for about_project field with output_devices and target_audience categories (requires authentication)"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Division Work Requests",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/work-requests/division/all?page=1&limit=10&search=&searchFields=project_name,brand&priority=&status=",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"work-requests",
-								"division",
-								"all"
-							],
-							"query": [
-								{
-									"key": "page",
-									"value": "1",
-									"description": "Page number for pagination"
-								},
-								{
-									"key": "limit",
-									"value": "10",
-									"description": "Number of items per page"
-								},
-								{
-									"key": "search",
-									"value": "",
-									"description": "Search term"
-								},
-								{
-									"key": "searchFields",
-									"value": "project_name,brand",
-									"description": "Fields to search in"
-								},
-								{
-									"key": "priority",
-									"value": "",
-									"description": "Filter by priority"
-								},
-								{
-									"key": "status",
-									"value": "",
-									"description": "Filter by status (excludes draft by default)"
-								}
-							]
-						},
-						"description": "Get all running work requests from users in the same division as the authenticated user, including complete task details (requires authentication)"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Division Work Request by ID",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/work-requests/division/:id",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"work-requests",
-								"division",
-								":id"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "1",
-									"description": "Work request ID"
-								}
-							]
-						},
-						"description": "Get a specific work request by ID from users in the same division as the authenticated user, including complete task details and documents (requires authentication, only accessible if work request belongs to same division)"
-					},
-					"response": []
-				},
-				{
-					"name": "Get User Dashboard Stats",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/work-requests/dashboard-stats?request_type_id=1",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"work-requests",
-								"dashboard-stats"
-							],
-							"query": [
-								{
-									"key": "request_type_id",
-									"value": "1",
-									"description": "Request type ID to get dashboard stats for"
-								}
-							]
-						},
-						"description": "Get dashboard statistics for a specific request type including divisions linked to the request type, accepted+in_progress tasks count, accepted+in_progress projects count, upcoming deadlines count in the next 7 days, and creative manager information for divisions linked to that request type (requires authentication)"
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Manager",
-			"item": [
-				{
-					"name": "Get Assigned Work Requests",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests?page=1&limit=10",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"manager",
-								"assigned-work-requests"
-							],
-							"query": [
-								{
-									"key": "page",
-									"value": "1",
-									"description": "Page number for pagination"
-								},
-								{
-									"key": "limit",
-									"value": "10",
-									"description": "Number of items per page"
-								}
-							]
-						},
-						"description": "Get list of work requests assigned to the authenticated manager with filtering, pagination, and search (requires authentication and manager role)"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Assigned Requests with Status Filter",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/manager/requests?page=1&limit=10&search=&searchFields=project_name,brand&priority=&status=",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"manager",
-								"requests"
-							],
-							"query": [
-								{
-									"key": "page",
-									"value": "1",
-									"description": "Page number for pagination"
-								},
-								{
-									"key": "limit",
-									"value": "10",
-									"description": "Number of items per page"
-								},
-								{
-									"key": "search",
-									"value": "",
-									"description": "Search term"
-								},
-								{
-									"key": "searchFields",
-									"value": "project_name,brand",
-									"description": "Fields to search in"
-								},
-								{
-									"key": "priority",
-									"value": "",
-									"description": "Filter by priority"
-								},
-								{
-									"key": "status",
-									"value": "",
-									"description": "Filter by status (pending, accepted, in_progress). If not provided, returns all requests. For in_progress, includes latestTaskDeadline field"
-								}
-							]
-						},
-						"description": "Get work requests assigned to the authenticated manager with optional status filtering. For in_progress requests, includes the latest task deadline. Supports pagination, search, and filtering (requires authentication and manager role)"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Assigned Work Request by ID",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"manager",
-								"assigned-work-requests",
-								":id"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "1",
-									"description": "Work request ID"
-								}
-							]
-						},
-						"description": "Get details of a specific work request assigned to the authenticated manager, including all tasks assigned to users for this work request (requires authentication and manager role)"
-					},
-					"response": []
-				},
-				{
-					"name": "Accept Work Request",
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id/accept",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"manager",
-								"assigned-work-requests",
-								":id",
-								"accept"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "56",
-									"description": "Work request ID"
-								}
-							]
-						},
-						"description": "Accept a work request assigned to the authenticated manager (requires authentication and manager role)"
-					},
-					"response": []
-				},
-				{
-					"name": "Defer Work Request",
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"reason\": \"insufficient_details\",\n  \"message\": \"Please provide more details about the project requirements\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id/defer",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"manager",
-								"assigned-work-requests",
-								":id",
-								"defer"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "1",
-									"description": "Work request ID"
-								}
-							]
-						},
-						"description": "Defer a work request with reason (insufficient_details or incorrect_request_type). For insufficient_details, provide optional message. For incorrect_request_type, provide both new_request_type_id and new_project_type_id (requires authentication and manager role)"
-					},
-					"response": []
-				},
-				{
-					"name": "Update Work Request Project",
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"project_id\": 1,\n  \"project_name\": \"Updated Project Name\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id/project",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"manager",
-								"assigned-work-requests",
-								":id",
-								"project"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "1",
-									"description": "Work request ID"
-								}
-							]
-						},
-						"description": "Update project_id and project_name for a work request assigned to the authenticated manager (requires authentication and manager role)"
-					},
-					"response": []
-				},
-				{
-					"name": "Delete Work Request",
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"manager",
-								"assigned-work-requests",
-								":id"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "1",
-									"description": "Work request ID"
-								}
-							]
-						},
-						"description": "Delete a work request and all related data assigned to the authenticated manager (requires authentication and manager role)"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Assignable Users for Work Request",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:work_request_id/assignable-users?task_id=7",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"manager",
-								"assigned-work-requests",
-								":work_request_id",
-								"assignable-users"
-							],
-							"query": [
-								{
-									"key": "task_id",
-									"value": "7"
-								}
-							],
-							"variable": [
-								{
-									"key": "work_request_id",
-									"value": "45",
-									"description": "Work request ID"
-								}
-							]
-						},
-						"description": "Get list of users from the work request's division that can be assigned tasks (excludes managers, requires authentication and manager role)"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Task Types for Work Request",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/id/task-types?project_id=",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"manager",
-								"assigned-work-requests",
-								"id",
-								"task-types"
-							],
-							"query": [
-								{
-									"key": "project_id",
-									"value": "",
-									"description": "Optional project ID to get task types directly (alternative to using work_request_id)"
-								}
-							]
-						},
-						"description": "Get list of task types associated with the work request's project type or directly by project_id query parameter (requires authentication and manager role)"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Task Analytics",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id/analytics",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"manager",
-								"assigned-work-requests",
-								":id",
-								"analytics"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "1",
-									"description": "Work request ID"
-								}
-							]
-						},
-						"description": "Get task analytics for a specific work request including total tasks, publish date, estimated TAT, team members, and SME request count (requires authentication and manager role)"
-					},
-					"response": []
-				},
-				{
-					"name": "Send Task Assignment Notifications",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id/assign-tasks",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"manager",
-								"assigned-work-requests",
-								":id",
-								"assign-tasks"
-							],
-							"variable": [
-								{
-									"key": "id",
-									"value": "1",
-									"description": "Work request ID"
-								}
-							]
-						},
-						"description": "Send task assignment notifications to users (requires authentication and manager role)"
-					},
-					"response": []
-				},
-				{
-					"name": "Get My Team",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/my-team?page=1&limit=10&search=",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"manager",
-								"assigned-work-requests",
-								"my-team"
-							],
-							"query": [
-								{
-									"key": "page",
-									"value": "1",
-									"description": "Page number for pagination"
-								},
-								{
-									"key": "limit",
-									"value": "10",
-									"description": "Number of items per page"
-								},
-								{
-									"key": "search",
-									"value": "",
-									"description": "Search term"
-								}
-							]
-						},
-						"description": "Get manager's team with task counts grouped by division (requires authentication and manager role)"
-					},
-					"response": []
-				},
-				{
-					"name": "Get My Tasks",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/my-tasks",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"manager",
-								"assigned-work-requests",
-								"my-tasks"
-							]
-						},
-						"description": "Get tasks assigned to the manager themselves (requires authentication and manager role)"
-					},
-					"response": []
-				},
-				{
-					"name": "Create Task",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"task_name\": \"New Task\",\n  \"description\": \"Task description\",\n  \"request_type_id\": 1,\n  \"task_type_id\": 1,\n  \"work_request_id\": 1,\n  \"deadline\": \"2026-03-01\",\n  \"assignment_type\": \"new\",\n  \"intimate_team\": 1,\n  \"task_count\": 1,\n  \"link\": \"https://example.com\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/tasks",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"manager",
-								"assigned-work-requests",
-								"tasks"
-							]
-						},
-						"description": "Create a new task (requires authentication and manager role)"
-					},
-					"response": []
-				},
-				{
-					"name": "Update Task",
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"task_name\": \"Updated Task Name\",\n  \"description\": \"Updated description\",\n  \"deadline\": \"2026-03-15\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/tasks/:taskId",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"manager",
-								"assigned-work-requests",
-								"tasks",
-								":taskId"
-							],
-							"variable": [
-								{
-									"key": "taskId",
-									"value": "1",
-									"description": "Task ID"
-								}
-							]
-						},
-						"description": "Update a task by ID (requires authentication and manager role)"
-					},
-					"response": []
-				},
-				{
-					"name": "Delete Task",
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/tasks/:taskId",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"manager",
-								"assigned-work-requests",
-								"tasks",
-								":taskId"
-							],
-							"variable": [
-								{
-									"key": "taskId",
-									"value": "1",
-									"description": "Task ID"
-								}
-							]
-						},
-						"description": "Delete a task by ID (requires authentication and manager role)"
-					},
-					"response": []
-				},
-				{
-					"name": "Review Task",
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"action\": \"approved\",\n  \"comments\": \"Task completed successfully\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/tasks/:taskId/review",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"manager",
-								"assigned-work-requests",
-								"tasks",
-								":taskId",
-								"review"
-							],
-							"variable": [
-								{
-									"key": "taskId",
-									"value": "1",
-									"description": "Task ID"
-								}
-							]
-						},
-						"description": "Review (approve/change_request) a task (requires authentication and manager role)"
-					},
-					"response": []
-				},
-				{
-					"name": "Share For Client Review",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"work_request_id\": 1,\n  \"task_id\": 1,\n  \"document_ids\": [1, 2, 3]\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/tasks/share-for-client-review",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"manager",
-								"assigned-work-requests",
-								"tasks",
-								"share-for-client-review"
-							]
-						},
-						"description": "Share task with client (work request creator) for PM review. Sends email notification to client with task and document details. Task must be in pm_review stage."
-					},
-					"response": []
-				},
-				{
-					"name": "Get Tasks for Work Request",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/work-request/:work_request_id/tasks",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"manager",
-								"assigned-work-requests",
-								"work-request",
-								":work_request_id",
-								"tasks"
-							],
-							"variable": [
-								{
-									"key": "work_request_id",
-									"value": "1",
-									"description": "Work request ID"
-								}
-							]
-						},
-						"description": "Get tasks for a specific work request (requires authentication and manager role)"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Tasks for User",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/user/:user_id/tasks?page=1&limit=10&search=&status=",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"manager",
-								"assigned-work-requests",
-								"user",
-								":user_id",
-								"tasks"
-							],
-							"query": [
-								{
-									"key": "page",
-									"value": "1",
-									"description": "Page number"
-								},
-								{
-									"key": "limit",
-									"value": "10",
-									"description": "Items per page"
-								},
-								{
-									"key": "search",
-									"value": "",
-									"description": "Search term"
-								},
-								{
-									"key": "status",
-									"value": "",
-									"description": "Filter by status"
-								}
-							],
-							"variable": [
-								{
-									"key": "user_id",
-									"value": "1",
-									"description": "User ID"
-								}
-							]
-						},
-						"description": "Get tasks for a specific user with status filter and pagination (requires authentication and manager role)"
-					},
-					"response": []
-				},
-				{
-					"name": "Review Task Document",
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"action\": \"approved\",\n  \"comments\": \"Document approved\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/documents/:documentId/review",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"manager",
-								"assigned-work-requests",
-								"documents",
-								":documentId",
-								"review"
-							],
-							"variable": [
-								{
-									"key": "documentId",
-									"value": "1",
-									"description": "Document ID"
-								}
-							]
-						},
-						"description": "Review (approve/change_request) a task document (requires authentication and manager role)"
-					},
-					"response": []
-				},
-				{
-					"name": "Review Issue Document",
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"action\": \"approved\",\n  \"comments\": \"Issue document approved\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/issue-documents/:documentId/review",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"manager",
-								"assigned-work-requests",
-								"issue-documents",
-								":documentId",
-								"review"
-							],
-							"variable": [
-								{
-									"key": "documentId",
-									"value": "1",
-									"description": "Document ID"
-								}
-							]
-						},
-						"description": "Review (approve/change_request) an issue document (requires authentication and manager role)"
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "User",
-			"item": [
-				{
-					"name": "Get Assigned Tasks",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/users/tasks?page=1&limit=10&search=&searchFields=task_name&status=",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"users",
-								"tasks"
-							],
-							"query": [
-								{
-									"key": "page",
-									"value": "1",
-									"description": "Page number"
-								},
-								{
-									"key": "limit",
-									"value": "10",
-									"description": "Items per page"
-								},
-								{
-									"key": "search",
-									"value": "",
-									"description": "Search term"
-								},
-								{
-									"key": "searchFields",
-									"value": "task_name",
-									"description": "Fields to search"
-								},
-								{
-									"key": "status",
-									"value": "",
-									"description": "Filter by status"
-								}
-							]
-						},
-						"description": "Get assigned tasks for division 9 users or managers (requires authentication)"
-					},
-					"response": []
-				},
-				{
-					"name": "Get My Team Tasks",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/users/my-team",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"users",
-								"my-team"
-							]
-						},
-						"description": "Get in-progress tasks from user's division (only for division 9 users, requires authentication)"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Task by ID",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/users/tasks/:task_id",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"users",
-								"tasks",
-								":task_id"
-							],
-							"variable": [
-								{
-									"key": "task_id",
-									"value": "1",
-									"description": "Task ID"
-								}
-							]
-						},
-						"description": "Get single task details by task ID (requires authentication)"
-					},
-					"response": []
-				},
-				{
-					"name": "Assign Task to User",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"task_id\": 1,\n  \"user_id\": 1\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/users/assign-task",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"users",
-								"assign-task"
-							]
-						},
-						"description": "Assign task to user (only for managers and super admins, requires authentication)"
-					},
-					"response": []
-				},
-				{
-					"name": "Accept Task",
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"start_date\": \"2026-03-01\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/users/tasks/:taskId/accept",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"users",
-								"tasks",
-								":taskId",
-								"accept"
-							],
-							"variable": [
-								{
-									"key": "taskId",
-									"value": "1",
-									"description": "Task ID"
-								}
-							]
-						},
-						"description": "Accept a task and optionally set start_date (only if intimate_team = 1, requires authentication)"
-					},
-					"response": []
-				},
-				{
-					"name": "Submit Task",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "task_id",
-									"value": "1",
-									"type": "text"
-								},
-								{
-									"key": "link",
-									"value": "https://example.com deliverable",
-									"type": "text"
-								},
-								{
-									"key": "documents",
-									"type": "file",
-									"src": []
-								}
-							]
-						},
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/users/tasks/submit",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"users",
-								"tasks",
-								"submit"
-							]
-						},
-						"description": "Submit a task with optional link and files (requires authentication)"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Task Documents",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/users/tasks/:task_id/documents",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"users",
-								"tasks",
-								":task_id",
-								"documents"
-							],
-							"variable": [
-								{
-									"key": "task_id",
-									"value": "1",
-									"description": "Task ID"
-								}
-							]
-						},
-						"description": "Get all documents for a task (requires authentication)"
-					},
-					"response": []
-				},
-				{
-					"name": "Delete Document",
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/users/documents/:document_id",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"users",
-								"documents",
-								":document_id"
-							],
-							"variable": [
-								{
-									"key": "document_id",
-									"value": "1",
-									"description": "Document ID"
-								}
-							]
-						},
-						"description": "Delete a document by ID (requires authentication)"
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Admin",
-			"item": [
-				{
-					"name": "Get Projects Details Data",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/datatable/admin/projectsdetails/data",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"datatable",
-								"admin",
-								"projectsdetails",
-								"data"
-							]
-						},
-						"description": "Get project details data for admin panel (requires authentication)"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Task Details Data",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/datatable/admin/taskdetails/data",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"datatable",
-								"admin",
-								"taskdetails",
-								"data"
-							]
-						},
-						"description": "Get task details data for admin panel (requires authentication)"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Tasks for Work Request",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/datatable/admin/projectsdetails/tasks/:workRequestId",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"datatable",
-								"admin",
-								"projectsdetails",
-								"tasks",
-								":workRequestId"
-							],
-							"variable": [
-								{
-									"key": "workRequestId",
-									"value": "1",
-									"description": "Work request ID"
-								}
-							]
-						},
-						"description": "Get tasks for a specific work request (requires authentication)"
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Issue Register",
-			"item": [
-				{
-					"name": "Get Issue Register by Task ID",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/digilabs/dmap/api/issue-register/task/:task_id",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"digilabs",
-								"dmap",
-								"api",
-								"issue-register",
-								"task",
-								":task_id"
-							],
-							"variable": [
-								{
-									"key": "task_id",
-									"value": "1",
-									"description": "Task ID"
-								}
-							]
-						},
-						"description": "Get issue register data linked to a specific task through change_issue_tasktype table (requires authentication)"
-					},
-					"response": []
-				},
-				{
-					"name": "Get All Issue Registers",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}{{base_route}}issue-register",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"{{base_route}}",
-								"issue-register"
-							]
-						},
-						"description": "Get all issue register entries (requires authentication)"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Tasks For Client Review",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}{{base_route}}issue-register/work-request/:work_request_id/tasks",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"{{base_route}}",
-								"issue-register",
-								"work-request",
-								":work_request_id",
-								"tasks"
-							],
-							"variable": [
-								{
-									"key": "work_request_id",
-									"value": "1",
-									"description": "Work Request ID"
-								}
-							]
-						},
-						"description": "Get tasks for client review by work request ID (intimate_client=1 and review_stage=pm_review)"
-					},
-					"response": []
-				}
-			]
-		}
-	],
-	"variable": [
-		{
-			"key": "base_url",
-			"value": "http://localhost:1007",
-			"type": "string"
-		},
-		{
-			"key": "base_route",
-			"value": "/digilabs/uat/dmap/api/",
-			"type": "string"
-		},
-		{
-			"key": "jwt_token",
-			"value": "",
-			"type": "string"
-		}
-	]
+    "info": {
+        "_postman_id": "c2e9f9d4-7020-433e-a0cb-e9b51b68e27e",
+        "name": "D-Map API",
+        "description": "API collection for D-Map application",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "_exporter_id": "26943450"
+    },
+    "item": [
+        {
+            "name": "Auth",
+            "item": [
+                {
+                    "name": "Initiate Registration",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"angana.patil@alembic.co.in\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/auth/initiate-registration",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "auth",
+                                "initiate-registration"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Verify Email",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/auth/verify-email?token=eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..dODGC40Kz1h4YmxO.zvaq_0tXPwsOBnqH_jGCJA3SvPpMr4TGTDxcY1pxDyxzBOwZCQE2z5Xt2HwzbjqoH7ug9eS_.UeCfUwYt9YXzTCAQ-379AA",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "auth",
+                                "verify-email"
+                            ],
+                            "query": [
+                                {
+                                    "key": "token",
+                                    "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..dODGC40Kz1h4YmxO.zvaq_0tXPwsOBnqH_jGCJA3SvPpMr4TGTDxcY1pxDyxzBOwZCQE2z5Xt2HwzbjqoH7ug9eS_.UeCfUwYt9YXzTCAQ-379AA"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Logout",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/auth/logout",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "auth",
+                                "logout"
+                            ]
+                        },
+                        "description": "Logout user (requires authentication)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Refresh Token",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"refreshToken\": \"your_refresh_token_here\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/auth/refresh-token",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "auth",
+                                "refresh-token"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Login",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.collectionVariables.set(\"jwt_token\", pm.response.json().accessToken);"
+                                ],
+                                "type": "text/javascript",
+                                "packages": {}
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"identifier\": \"harsh.gohil@alembic.co.in\",\n  \"password\": \"SmartWolf@1234\",\n  \"loginType\": \"email\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/auth/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "auth",
+                                "login"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Complete Registration",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"angana.patil@alembic.co.in\",\n  \"name\": \"Angana Patil\",\n  \"password\": \"Angana@1234\",\n  \"phone\": \"8080302041\",\n  \"department_id\": 9,\n  \"division_ids\": [1],\n  \"designation_id\": 20,\n  \"location_id\": 1\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/auth/complete-registration",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "auth",
+                                "complete-registration"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Forgot Password",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"identifier\": \"harsh.gohil@alembic.co.in\",\n  \"loginType\": \"email\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/auth/forgot-password",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "auth",
+                                "forgot-password"
+                            ]
+                        },
+                        "description": "Request password reset email"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Reset Password",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"token\": \"your_reset_jwt_token_here\",\n  \"newPassword\": \"NewPassword@123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/auth/reset-password",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "auth",
+                                "reset-password"
+                            ]
+                        },
+                        "description": "Reset password using token from email"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Change Password",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"currentPassword\": \"OldPassword@123\",\n  \"newPassword\": \"NewPassword@123\",\n  \"confirmPassword\": \"NewPassword@123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/auth/change-password",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "auth",
+                                "change-password"
+                            ]
+                        },
+                        "description": "Change password for authenticated user (requires authentication)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Profile",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/auth/profile",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "auth",
+                                "profile"
+                            ]
+                        },
+                        "description": "Get complete user profile information (requires authentication)"
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Workflow",
+            "item": [
+                {
+                    "name": "Get All Departments",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/departments",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "departments"
+                            ]
+                        },
+                        "description": "Get all departments with nested divisions and designations"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get All Request Types",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/request-types?exclude_request_type_id=",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "request-types"
+                            ],
+                            "query": [
+                                {
+                                    "key": "exclude_request_type_id",
+                                    "value": "",
+                                    "description": "ID of request type to exclude from results (optional)"
+                                }
+                            ]
+                        },
+                        "description": "Get all request types grouped by type, optionally excluding a specific request type (requires authentication)"
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Work Requests",
+            "item": [
+                {
+                    "name": "Get My Work Requests",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/work-requests/my-requests?page=1&limit=10&search=&searchFields=project_name,brand&priority=&status=",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "work-requests",
+                                "my-requests"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "Page number for pagination"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10",
+                                    "description": "Number of items per page"
+                                },
+                                {
+                                    "key": "search",
+                                    "value": "",
+                                    "description": "Search term"
+                                },
+                                {
+                                    "key": "searchFields",
+                                    "value": "project_name,brand",
+                                    "description": "Fields to search in"
+                                },
+                                {
+                                    "key": "priority",
+                                    "value": "",
+                                    "description": "Filter by priority"
+                                },
+                                {
+                                    "key": "status",
+                                    "value": "",
+                                    "description": "Filter by status"
+                                }
+                            ]
+                        },
+                        "description": "Get list of work requests submitted by the authenticated user with filtering, pagination, and search (requires authentication)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Work Request by ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/work-requests/:id",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "work-requests",
+                                ":id"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "1",
+                                    "description": "Work request ID"
+                                }
+                            ]
+                        },
+                        "description": "Get details of a specific work request by ID, including all assigned tasks and their progress (requires authentication, user can only access their own requests)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Create Work Request",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "project_name",
+                                    "value": "New Product Launch Campaign",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "brand",
+                                    "value": "Alembic Pharma",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "request_type_id",
+                                    "value": "5",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "project_id",
+                                    "value": "5",
+                                    "description": "Optional project type ID",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "about_project",
+                                    "value": "{\n  \"output_devices\": [\"iPad 9\", \"Mobile\"],\n  \"target_audience\": [\"Doctors\", \"Chemists\"]\n}",
+                                    "description": "JSON object containing output_devices and target_audience arrays for multi-selection",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "priority",
+                                    "value": "high",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "remarks",
+                                    "value": "Any additional remarks",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "documents",
+                                    "type": "file",
+                                    "src": []
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/work-requests",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "work-requests"
+                            ]
+                        },
+                        "description": "Create a new work request with optional file uploads (requires authentication)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Project Types by Request Type",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/work-requests/project-types?request_type_id=1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "work-requests",
+                                "project-types"
+                            ],
+                            "query": [
+                                {
+                                    "key": "request_type_id",
+                                    "value": "1",
+                                    "description": "Request type ID to get associated project types"
+                                }
+                            ]
+                        },
+                        "description": "Get list of project types associated with a specific request type via project_request_reference table (requires authentication)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get About Project Options",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/work-requests/about-project-options",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "work-requests",
+                                "about-project-options"
+                            ]
+                        },
+                        "description": "Get available options for about_project field with output_devices and target_audience categories (requires authentication)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Division Work Requests",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/work-requests/division/all?page=1&limit=10&search=&searchFields=project_name,brand&priority=&status=",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "work-requests",
+                                "division",
+                                "all"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "Page number for pagination"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10",
+                                    "description": "Number of items per page"
+                                },
+                                {
+                                    "key": "search",
+                                    "value": "",
+                                    "description": "Search term"
+                                },
+                                {
+                                    "key": "searchFields",
+                                    "value": "project_name,brand",
+                                    "description": "Fields to search in"
+                                },
+                                {
+                                    "key": "priority",
+                                    "value": "",
+                                    "description": "Filter by priority"
+                                },
+                                {
+                                    "key": "status",
+                                    "value": "",
+                                    "description": "Filter by status (excludes draft by default)"
+                                }
+                            ]
+                        },
+                        "description": "Get all running work requests from users in the same division as the authenticated user, including complete task details (requires authentication)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Division Work Request by ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/work-requests/division/:id",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "work-requests",
+                                "division",
+                                ":id"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "1",
+                                    "description": "Work request ID"
+                                }
+                            ]
+                        },
+                        "description": "Get a specific work request by ID from users in the same division as the authenticated user, including complete task details and documents (requires authentication, only accessible if work request belongs to same division)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get User Dashboard Stats",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/work-requests/dashboard-stats?request_type_id=1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "work-requests",
+                                "dashboard-stats"
+                            ],
+                            "query": [
+                                {
+                                    "key": "request_type_id",
+                                    "value": "1",
+                                    "description": "Request type ID to get dashboard stats for"
+                                }
+                            ]
+                        },
+                        "description": "Get dashboard statistics for a specific request type including divisions linked to the request type, accepted+in_progress tasks count, accepted+in_progress projects count, upcoming deadlines count in the next 7 days, and creative manager information for divisions linked to that request type (requires authentication)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PM Approve Task",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"task_id\": 1\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}{{base_route}}work-requests/pm-approve",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "{{base_route}}",
+                                "work-requests",
+                                "pm-approve"
+                            ]
+                        },
+                        "description": "PM approve task - only approves tasks where intimate_client=1, updates task status to completed, review to approved, review_stage to final_approved, and also approves all documents with intimate_client=1 (requires authentication)"
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Manager",
+            "item": [
+                {
+                    "name": "Get Assigned Work Requests",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests?page=1&limit=10",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "manager",
+                                "assigned-work-requests"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "Page number for pagination"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10",
+                                    "description": "Number of items per page"
+                                }
+                            ]
+                        },
+                        "description": "Get list of work requests assigned to the authenticated manager with filtering, pagination, and search (requires authentication and manager role)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Assigned Requests with Status Filter",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/manager/requests?page=1&limit=10&search=&searchFields=project_name,brand&priority=&status=",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "manager",
+                                "requests"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "Page number for pagination"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10",
+                                    "description": "Number of items per page"
+                                },
+                                {
+                                    "key": "search",
+                                    "value": "",
+                                    "description": "Search term"
+                                },
+                                {
+                                    "key": "searchFields",
+                                    "value": "project_name,brand",
+                                    "description": "Fields to search in"
+                                },
+                                {
+                                    "key": "priority",
+                                    "value": "",
+                                    "description": "Filter by priority"
+                                },
+                                {
+                                    "key": "status",
+                                    "value": "",
+                                    "description": "Filter by status (pending, accepted, in_progress). If not provided, returns all requests. For in_progress, includes latestTaskDeadline field"
+                                }
+                            ]
+                        },
+                        "description": "Get work requests assigned to the authenticated manager with optional status filtering. For in_progress requests, includes the latest task deadline. Supports pagination, search, and filtering (requires authentication and manager role)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Assigned Work Request by ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "manager",
+                                "assigned-work-requests",
+                                ":id"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "1",
+                                    "description": "Work request ID"
+                                }
+                            ]
+                        },
+                        "description": "Get details of a specific work request assigned to the authenticated manager, including all tasks assigned to users for this work request (requires authentication and manager role)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Accept Work Request",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id/accept",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "manager",
+                                "assigned-work-requests",
+                                ":id",
+                                "accept"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "56",
+                                    "description": "Work request ID"
+                                }
+                            ]
+                        },
+                        "description": "Accept a work request assigned to the authenticated manager (requires authentication and manager role)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Defer Work Request",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"reason\": \"insufficient_details\",\n  \"message\": \"Please provide more details about the project requirements\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id/defer",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "manager",
+                                "assigned-work-requests",
+                                ":id",
+                                "defer"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "1",
+                                    "description": "Work request ID"
+                                }
+                            ]
+                        },
+                        "description": "Defer a work request with reason (insufficient_details or incorrect_request_type). For insufficient_details, provide optional message. For incorrect_request_type, provide both new_request_type_id and new_project_type_id (requires authentication and manager role)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Work Request Project",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"project_id\": 1,\n  \"project_name\": \"Updated Project Name\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id/project",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "manager",
+                                "assigned-work-requests",
+                                ":id",
+                                "project"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "1",
+                                    "description": "Work request ID"
+                                }
+                            ]
+                        },
+                        "description": "Update project_id and project_name for a work request assigned to the authenticated manager (requires authentication and manager role)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Work Request",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "manager",
+                                "assigned-work-requests",
+                                ":id"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "1",
+                                    "description": "Work request ID"
+                                }
+                            ]
+                        },
+                        "description": "Delete a work request and all related data assigned to the authenticated manager (requires authentication and manager role)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Assignable Users for Work Request",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:work_request_id/assignable-users?task_id=7",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "manager",
+                                "assigned-work-requests",
+                                ":work_request_id",
+                                "assignable-users"
+                            ],
+                            "query": [
+                                {
+                                    "key": "task_id",
+                                    "value": "7"
+                                }
+                            ],
+                            "variable": [
+                                {
+                                    "key": "work_request_id",
+                                    "value": "45",
+                                    "description": "Work request ID"
+                                }
+                            ]
+                        },
+                        "description": "Get list of users from the work request's division that can be assigned tasks (excludes managers, requires authentication and manager role)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Task Types for Work Request",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/id/task-types?project_id=",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "manager",
+                                "assigned-work-requests",
+                                "id",
+                                "task-types"
+                            ],
+                            "query": [
+                                {
+                                    "key": "project_id",
+                                    "value": "",
+                                    "description": "Optional project ID to get task types directly (alternative to using work_request_id)"
+                                }
+                            ]
+                        },
+                        "description": "Get list of task types associated with the work request's project type or directly by project_id query parameter (requires authentication and manager role)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Task Analytics",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id/analytics",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "manager",
+                                "assigned-work-requests",
+                                ":id",
+                                "analytics"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "1",
+                                    "description": "Work request ID"
+                                }
+                            ]
+                        },
+                        "description": "Get task analytics for a specific work request including total tasks, publish date, estimated TAT, team members, and SME request count (requires authentication and manager role)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Send Task Assignment Notifications",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id/assign-tasks",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "manager",
+                                "assigned-work-requests",
+                                ":id",
+                                "assign-tasks"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "1",
+                                    "description": "Work request ID"
+                                }
+                            ]
+                        },
+                        "description": "Send task assignment notifications to users (requires authentication and manager role)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get My Team",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/my-team?page=1&limit=10&search=",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "manager",
+                                "assigned-work-requests",
+                                "my-team"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "Page number for pagination"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10",
+                                    "description": "Number of items per page"
+                                },
+                                {
+                                    "key": "search",
+                                    "value": "",
+                                    "description": "Search term"
+                                }
+                            ]
+                        },
+                        "description": "Get manager's team with task counts grouped by division (requires authentication and manager role)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get My Tasks",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/my-tasks",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "manager",
+                                "assigned-work-requests",
+                                "my-tasks"
+                            ]
+                        },
+                        "description": "Get tasks assigned to the manager themselves (requires authentication and manager role)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Create Task",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"task_name\": \"New Task\",\n  \"description\": \"Task description\",\n  \"request_type_id\": 1,\n  \"task_type_id\": 1,\n  \"work_request_id\": 1,\n  \"deadline\": \"2026-03-01\",\n  \"assignment_type\": \"new\",\n  \"intimate_team\": 1,\n  \"task_count\": 1,\n  \"link\": \"https://example.com\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/tasks",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "manager",
+                                "assigned-work-requests",
+                                "tasks"
+                            ]
+                        },
+                        "description": "Create a new task (requires authentication and manager role)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Task",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"task_name\": \"Updated Task Name\",\n  \"description\": \"Updated description\",\n  \"deadline\": \"2026-03-15\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/tasks/:taskId",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "manager",
+                                "assigned-work-requests",
+                                "tasks",
+                                ":taskId"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "taskId",
+                                    "value": "1",
+                                    "description": "Task ID"
+                                }
+                            ]
+                        },
+                        "description": "Update a task by ID (requires authentication and manager role)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Task",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/tasks/:taskId",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "manager",
+                                "assigned-work-requests",
+                                "tasks",
+                                ":taskId"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "taskId",
+                                    "value": "1",
+                                    "description": "Task ID"
+                                }
+                            ]
+                        },
+                        "description": "Delete a task by ID (requires authentication and manager role)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Review Task",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"action\": \"approved\",\n  \"comments\": \"Task completed successfully\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/tasks/:taskId/review",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "manager",
+                                "assigned-work-requests",
+                                "tasks",
+                                ":taskId",
+                                "review"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "taskId",
+                                    "value": "1",
+                                    "description": "Task ID"
+                                }
+                            ]
+                        },
+                        "description": "Review (approve/change_request) a task (requires authentication and manager role)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Share For Client Review",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"work_request_id\": 1,\n  \"task_id\": 1,\n  \"document_ids\": [1, 2, 3]\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/tasks/share-for-client-review",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "manager",
+                                "assigned-work-requests",
+                                "tasks",
+                                "share-for-client-review"
+                            ]
+                        },
+                        "description": "Share task with client (work request creator) for PM review. Sends email notification to client with task and document details. Task must be in pm_review stage."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Tasks for Work Request",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/work-request/:work_request_id/tasks",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "manager",
+                                "assigned-work-requests",
+                                "work-request",
+                                ":work_request_id",
+                                "tasks"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "work_request_id",
+                                    "value": "1",
+                                    "description": "Work request ID"
+                                }
+                            ]
+                        },
+                        "description": "Get tasks for a specific work request (requires authentication and manager role)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Tasks for User",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/user/:user_id/tasks?page=1&limit=10&search=&status=",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "manager",
+                                "assigned-work-requests",
+                                "user",
+                                ":user_id",
+                                "tasks"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "Page number"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10",
+                                    "description": "Items per page"
+                                },
+                                {
+                                    "key": "search",
+                                    "value": "",
+                                    "description": "Search term"
+                                },
+                                {
+                                    "key": "status",
+                                    "value": "",
+                                    "description": "Filter by status"
+                                }
+                            ],
+                            "variable": [
+                                {
+                                    "key": "user_id",
+                                    "value": "1",
+                                    "description": "User ID"
+                                }
+                            ]
+                        },
+                        "description": "Get tasks for a specific user with status filter and pagination (requires authentication and manager role)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Review Task Document",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"action\": \"approved\",\n  \"comments\": \"Document approved\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/documents/:documentId/review",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "manager",
+                                "assigned-work-requests",
+                                "documents",
+                                ":documentId",
+                                "review"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "documentId",
+                                    "value": "1",
+                                    "description": "Document ID"
+                                }
+                            ]
+                        },
+                        "description": "Review (approve/change_request) a task document (requires authentication and manager role)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Review Issue Document",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"action\": \"approved\",\n  \"comments\": \"Issue document approved\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/issue-documents/:documentId/review",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "manager",
+                                "assigned-work-requests",
+                                "issue-documents",
+                                ":documentId",
+                                "review"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "documentId",
+                                    "value": "1",
+                                    "description": "Document ID"
+                                }
+                            ]
+                        },
+                        "description": "Review (approve/change_request) an issue document (requires authentication and manager role)"
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "User",
+            "item": [
+                {
+                    "name": "Get Assigned Tasks",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/users/tasks?page=1&limit=10&search=&searchFields=task_name&status=",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "users",
+                                "tasks"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "Page number"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10",
+                                    "description": "Items per page"
+                                },
+                                {
+                                    "key": "search",
+                                    "value": "",
+                                    "description": "Search term"
+                                },
+                                {
+                                    "key": "searchFields",
+                                    "value": "task_name",
+                                    "description": "Fields to search"
+                                },
+                                {
+                                    "key": "status",
+                                    "value": "",
+                                    "description": "Filter by status"
+                                }
+                            ]
+                        },
+                        "description": "Get assigned tasks for division 9 users or managers (requires authentication)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get My Team Tasks",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/users/my-team",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "users",
+                                "my-team"
+                            ]
+                        },
+                        "description": "Get in-progress tasks from user's division (only for division 9 users, requires authentication)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Task by ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/users/tasks/:task_id",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "users",
+                                "tasks",
+                                ":task_id"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "task_id",
+                                    "value": "1",
+                                    "description": "Task ID"
+                                }
+                            ]
+                        },
+                        "description": "Get single task details by task ID (requires authentication)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Assign Task to User",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"task_id\": 1,\n  \"user_id\": 1\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/users/assign-task",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "users",
+                                "assign-task"
+                            ]
+                        },
+                        "description": "Assign task to user (only for managers and super admins, requires authentication)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Accept Task",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"start_date\": \"2026-03-01\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/users/tasks/:taskId/accept",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "users",
+                                "tasks",
+                                ":taskId",
+                                "accept"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "taskId",
+                                    "value": "1",
+                                    "description": "Task ID"
+                                }
+                            ]
+                        },
+                        "description": "Accept a task and optionally set start_date (only if intimate_team = 1, requires authentication)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Submit Task",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "task_id",
+                                    "value": "1",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "link",
+                                    "value": "https://example.com deliverable",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "documents",
+                                    "type": "file",
+                                    "src": []
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/users/tasks/submit",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "users",
+                                "tasks",
+                                "submit"
+                            ]
+                        },
+                        "description": "Submit a task with optional link and files (requires authentication)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Task Documents",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/users/tasks/:task_id/documents",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "users",
+                                "tasks",
+                                ":task_id",
+                                "documents"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "task_id",
+                                    "value": "1",
+                                    "description": "Task ID"
+                                }
+                            ]
+                        },
+                        "description": "Get all documents for a task (requires authentication)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Document",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/users/documents/:document_id",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "users",
+                                "documents",
+                                ":document_id"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "document_id",
+                                    "value": "1",
+                                    "description": "Document ID"
+                                }
+                            ]
+                        },
+                        "description": "Delete a document by ID (requires authentication)"
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Admin",
+            "item": [
+                {
+                    "name": "Get Projects Details Data",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/datatable/admin/projectsdetails/data",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "datatable",
+                                "admin",
+                                "projectsdetails",
+                                "data"
+                            ]
+                        },
+                        "description": "Get project details data for admin panel (requires authentication)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Task Details Data",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/datatable/admin/taskdetails/data",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "datatable",
+                                "admin",
+                                "taskdetails",
+                                "data"
+                            ]
+                        },
+                        "description": "Get task details data for admin panel (requires authentication)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Tasks for Work Request",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/datatable/admin/projectsdetails/tasks/:workRequestId",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "datatable",
+                                "admin",
+                                "projectsdetails",
+                                "tasks",
+                                ":workRequestId"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "workRequestId",
+                                    "value": "1",
+                                    "description": "Work request ID"
+                                }
+                            ]
+                        },
+                        "description": "Get tasks for a specific work request (requires authentication)"
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Issue Register",
+            "item": [
+                {
+                    "name": "Get Issue Register by Task ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/issue-register/task/:task_id",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "issue-register",
+                                "task",
+                                ":task_id"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "task_id",
+                                    "value": "1",
+                                    "description": "Task ID"
+                                }
+                            ]
+                        },
+                        "description": "Get issue register data linked to a specific task through change_issue_tasktype table (requires authentication)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get All Issue Registers",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}{{base_route}}issue-register",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "{{base_route}}",
+                                "issue-register"
+                            ]
+                        },
+                        "description": "Get all issue register entries (requires authentication)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Create Issue Assignment",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"task_id\": 1,\n    \"issue_id\": null,\n    \"requested_by_user_id\": 5,\n    \"assignment_type\": \"new\",\n    \"version\": \"V1\",\n    \"description\": \"Issue description here\",\n    \"issue_register_ids\": [1, 2, 3]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}{{base_route}}issue-register/assignment",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "{{base_route}}",
+                                "issue-register",
+                                "assignment"
+                            ]
+                        },
+                        "description": "Create issue assignment - provide either task_id (for task-related changes) or issue_id (for issue-related changes) (requires authentication)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Tasks For Client Review",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}{{base_route}}issue-register/work-request/:work_request_id/tasks",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "{{base_route}}",
+                                "issue-register",
+                                "work-request",
+                                ":work_request_id",
+                                "tasks"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "work_request_id",
+                                    "value": "1",
+                                    "description": "Work Request ID"
+                                }
+                            ]
+                        },
+                        "description": "Get tasks for client review by work request ID (intimate_client=1 and review_stage=pm_review)"
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:1007",
+            "type": "string"
+        },
+        {
+            "key": "base_route",
+            "value": "/digilabs/uat/dmap/api/",
+            "type": "string"
+        },
+        {
+            "key": "jwt_token",
+            "value": "",
+            "type": "string"
+        }
+    ]
 }
