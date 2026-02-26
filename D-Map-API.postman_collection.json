@@ -444,6 +444,65 @@
                     "response": []
                 },
                 {
+                    "name": "Get My Task Requests",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/work-requests/my-task-requests?page=1&limit=10&search=&searchFields=project_name,brand&priority=&status=",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "work-requests",
+                                "my-task-requests"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "Page number for pagination"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10",
+                                    "description": "Number of items per page"
+                                },
+                                {
+                                    "key": "search",
+                                    "value": "",
+                                    "description": "Search term"
+                                },
+                                {
+                                    "key": "searchFields",
+                                    "value": "project_name,brand",
+                                    "description": "Fields to search in"
+                                },
+                                {
+                                    "key": "priority",
+                                    "value": "",
+                                    "description": "Filter by priority"
+                                },
+                                {
+                                    "key": "status",
+                                    "value": "",
+                                    "description": "Filter by status"
+                                }
+                            ]
+                        },
+                        "description": "Get task requests based on issue assignments for the authenticated user (requires authentication)"
+                    },
+                    "response": []
+                },
+                {
                     "name": "Get Work Request by ID",
                     "request": {
                         "method": "GET",
@@ -819,6 +878,46 @@
                             ]
                         },
                         "description": "Get list of work requests assigned to the authenticated manager with filtering, pagination, and search (requires authentication and manager role)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Pending Issue Assignments",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/pending-issues?page=1&limit=10",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "manager",
+                                "assigned-work-requests",
+                                "pending-issues"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "Page number for pagination"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10",
+                                    "description": "Number of items per page"
+                                }
+                            ]
+                        },
+                        "description": "Get pending issue assignments (tasks with intimate_team=0 and pending status) for the authenticated manager (requires authentication and manager role)"
                     },
                     "response": []
                 },

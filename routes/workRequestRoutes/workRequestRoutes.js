@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createWorkRequest, getMyWorkRequests, getWorkRequestById, getProjectTypesByRequestType, getAboutProjectOptions, getDivisionWorkRequests, getDivisionWorkRequestById, getUserDashboardStats, pmApproveTask } = require('../../controller/workRequestController/workRequestController');
+const { createWorkRequest, getMyWorkRequests, getMyTaskRequests, getWorkRequestById, getProjectTypesByRequestType, getAboutProjectOptions, getDivisionWorkRequests, getDivisionWorkRequestById, getUserDashboardStats, pmApproveTask } = require('../../controller/workRequestController/workRequestController');
 const { authenticateToken } = require('../../middleware/jwtMiddleware');
 const filterMiddleware = require('../../middleware/filterMiddleware');
 const paginationMiddleware = require('../../middleware/paginationMiddleware');
@@ -11,6 +11,9 @@ const fs = require('fs');
 
 // GET /work-requests/my-requests - Get user's work requests
 router.get('/my-requests', authenticateToken, filterMiddleware, paginationMiddleware, searchMiddleware, getMyWorkRequests);
+
+// GET /work-requests/my-task-requests - Get user's task requests based on issue_assignments
+router.get('/my-task-requests', authenticateToken, filterMiddleware, paginationMiddleware, searchMiddleware, getMyTaskRequests);
 
 // GET /work-requests/project-types - Get project types by request type
 router.get('/project-types', authenticateToken, getProjectTypesByRequestType);
