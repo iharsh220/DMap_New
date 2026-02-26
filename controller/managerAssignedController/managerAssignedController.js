@@ -35,6 +35,27 @@ const { renderTemplate } = require('../../services/templateService');
 const workRequestService = new CrudService(WorkRequests);
 const userService = new CrudService(User);
 
+// Helper include for IssueAssignments with IssueTypes
+const issueAssignmentsInclude = [
+    {
+        model: IssueAssignments,
+        as: 'issueAssignments',
+        include: [
+            {
+                model: IssueAssignmentTypes,
+                as: 'issueTypeLinks',
+                include: [
+                    {
+                        model: IssueRegister,
+                        as: 'issueRegister',
+                        attributes: ['id', 'change_issue_type', 'description']
+                    }
+                ]
+            }
+        ]
+    }
+];
+
 const getAssignableUsers = async (req, res) => {
     try {
         const manager_id = req.user.id;
@@ -283,7 +304,8 @@ const getAssignedWorkRequests = async (req, res) => {
                                     attributes: ['id', 'document_name', 'document_path', 'uploaded_at', 'status', 'version', 'review']
                                 }
                             ]
-                        }
+                        },
+                        ...issueAssignmentsInclude
                     ],
                     required: false
                 }
@@ -435,7 +457,8 @@ const getAssignedWorkRequestById = async (req, res) => {
                                         attributes: ['id', 'name', 'email']
                                     }
                                 ]
-                            }
+                            },
+                            ...issueAssignmentsInclude
                         ]
                     }
                 ],
@@ -535,7 +558,8 @@ const getAssignedWorkRequestById = async (req, res) => {
                                             attributes: ['id', 'name', 'email']
                                         }
                                     ]
-                                }
+                                },
+                                ...issueAssignmentsInclude
                             ]
                         }
                     ],
@@ -2587,7 +2611,8 @@ const getUserTask = async (req, res) => {
                         {
                             model: WorkRequests,
                             attributes: ['id', 'project_name', 'brand', 'status']
-                        }
+                        },
+                        ...issueAssignmentsInclude
                     ],
                     attributes: ['id', 'task_name', 'description', 'request_type_id', 'task_type_id', 'work_request_id', 'deadline', 'status', 'version', 'assignment_type', 'intimate_team', 'intimate_client', 'task_count', 'link', 'start_date', 'end_date', 'review', 'review_stage', 'created_at', 'updated_at']
                 }
