@@ -7,8 +7,22 @@ const {
     IssueAssignmentTypes,
     IssueUserAssignments,
     IssueDocuments,
-    User
+    User,
+    TaskAssignments,
+    UserDivisions,
+    WorkRequests,
+    WorkRequestManagers,
+    RequestType,
+    TaskType,
+    JobRole,
+    Division,
+    Department,
+    Location,
+    Designation
 } = require('../../models');
+const { sendMail } = require('../../services/mailService');
+const { renderTemplate } = require('../../services/templateService');
+const path = require('path');
 
 // Get issue register data by task ID
 // Logic: task_id -> get task_type_id from tasks -> find issue_register via change_issue_tasktype
@@ -183,6 +197,146 @@ const createIssueAssignment = async (req, res) => {
         }
 
         await transaction.commit();
+
+        // If task_id is provided, send email to managers of users assigned to this task
+        if (task_id) {
+            try {
+                // Fetch task with full details
+                const taskDetails = await Tasks.findByPk(task_id, {
+                    include: [
+                        {
+                            model: TaskType,
+                            attributes: ['id', 'task_type', 'description']
+                        },
+                        {
+                            model: WorkRequests,
+                            attributes: ['id', 'project_name', 'brand', 'priority', 'status'],
+                            include: [
+                                {
+                                    model: User,
+                                    as: 'users',
+                                    attributes: ['id', 'name', 'email']
+                                },
+                                {
+                                    model: RequestType,
+                                    attributes: ['id', 'request_type', 'description']
+                                }
+                            ]
+                        }
+                    ]
+                });
+
+                // Fetch issue register details for this issue assignment
+                const issueRegisters = await IssueRegister.findAll({
+                    where: { id: { [Op.in]: issue_register_ids } }
+                });
+
+                // Get all users assigned to this task
+                const taskAssignments = await TaskAssignments.findAll({
+                    where: { task_id: task_id },
+                    include: [
+                        {
+                            model: User,
+                            attributes: ['id', 'name', 'email']
+                        }
+                    ]
+                });
+
+                // Collect unique manager IDs from task users' divisions
+                const managerSet = new Set();
+                
+                for (const assignment of taskAssignments) {
+                    const userId = assignment.user_id;
+                    
+                    // Find divisions this user belongs to
+                    const userDivisions = await UserDivisions.findAll({
+                        where: { user_id: userId },
+                        attributes: ['division_id']
+                    });
+
+                    if (userDivisions.length > 0) {
+                        const divisionIds = userDivisions.map(ud => ud.division_id);
+                        
+                        // Find managers in these divisions (users with job_role_id = 2)
+                        const divisionManagers = await UserDivisions.findAll({
+                            where: { division_id: { [Op.in]: divisionIds } },
+                            include: [
+                                {
+                                    model: User,
+                                    where: { job_role_id: 2, account_status: 'active' },
+                                    attributes: ['id', 'name', 'email', 'job_role_id'],
+                                    include: [
+                                        {
+                                            model: JobRole,
+                                            attributes: ['id', 'role_title']
+                                        },
+                                        {
+                                            model: Designation,
+                                            attributes: ['id', 'designation_name']
+                                        },
+                                        {
+                                            model: Department,
+                                            attributes: ['id', 'department_name']
+                                        },
+                                        {
+                                            model: Location,
+                                            attributes: ['id', 'location_name']
+                                        }
+                                    ]
+                                }
+                            ],
+                            attributes: ['user_id']
+                        });
+
+                        divisionManagers.forEach(dm => {
+                            if (dm.User) {
+                                managerSet.add(JSON.stringify(dm.User));
+                            }
+                        });
+                    }
+                }
+
+                // Convert Set to array and remove duplicates
+                const uniqueManagers = [...managerSet].map(m => JSON.parse(m));
+
+                // Send email to each manager
+                for (const manager of uniqueManagers) {
+                    const html = renderTemplate('issueAssignmentNotification', {
+                        manager_name: manager.name,
+                        task_id: taskDetails.id,
+                        task_name: taskDetails.task_name,
+                        task_type: taskDetails.TaskType ? taskDetails.TaskType.task_type : 'N/A',
+                        project_name: taskDetails.WorkRequest ? taskDetails.WorkRequest.project_name : 'N/A',
+                        brand: taskDetails.WorkRequest ? taskDetails.WorkRequest.brand : 'N/A',
+                        priority: taskDetails.WorkRequest ? taskDetails.WorkRequest.priority : 'N/A',
+                        request_type: taskDetails.WorkRequest && taskDetails.WorkRequest.RequestType ? taskDetails.WorkRequest.RequestType.request_type : 'N/A',
+                        issue_version: version,
+                        issue_description: description,
+                        issue_registers: issueRegisters.map(ir => ({
+                            change_issue_type: ir.change_issue_type,
+                            description: ir.description,
+                            quantification: ir.quantification
+                        })),
+                        assigned_users: taskAssignments.map(ta => ({
+                            name: ta.User.name,
+                            email: ta.User.email
+                        })),
+                        created_at: new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })
+                    });
+
+                    await sendMail({
+                        to: manager.email,
+                        subject: `New Issue Assignment - Task: ${taskDetails.task_name} (${version})`,
+                        html: html
+                    });
+                }
+
+                console.log(`Sent issue assignment notification to ${uniqueManagers.length} managers`);
+            } catch (emailError) {
+                console.error('Error sending issue assignment emails:', emailError);
+                // Don't fail the request if email fails
+            }
+        }
 
         // Fetch the created issue assignment with all related data
         const createdIssueAssignment = await IssueAssignments.findByPk(issueAssignment.id, {

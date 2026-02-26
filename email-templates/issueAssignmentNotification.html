@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Issue Assignment - D-Map</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #dc3545 0%, #a71d2a 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 40px 30px;
+        }
+        .welcome-message {
+            font-size: 18px;
+            font-weight: 500;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        .info-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #dc3545;
+            border-radius: 4px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .info-row {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        .info-label {
+            font-weight: 600;
+            width: 140px;
+            flex-shrink: 0;
+            color: #555;
+        }
+        .info-value {
+            color: #333;
+        }
+        .issue-section {
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .issue-section h3 {
+            margin-top: 0;
+            color: #856404;
+        }
+        .issue-item {
+            background-color: #fff;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        .issue-item:last-child {
+            margin-bottom: 0;
+        }
+        .issue-type {
+            font-weight: 600;
+            color: #856404;
+            margin-bottom: 5px;
+        }
+        .issue-description {
+            color: #666;
+            font-size: 14px;
+        }
+        .users-section {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .users-section h3 {
+            margin-top: 0;
+            color: #0c5460;
+        }
+        .user-item {
+            display: inline-block;
+            background-color: #fff;
+            border-radius: 4px;
+            padding: 8px 12px;
+            margin: 4px;
+            font-size: 14px;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+        .footer a {
+            color: #007bff;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔔 New Issue Assignment</h1>
+        </div>
+        
+        <div class="content">
+            <div class="welcome-message">
+                Hello <strong>{{manager_name}}</strong>,
+            </div>
+            
+            <p>A new issue has been assigned to a task you're managing. Please review the details below:</p>
+            
+            <div class="info-box">
+                <div class="info-row">
+                    <span class="info-label">Task ID:</span>
+                    <span class="info-value">#{{task_id}}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Task Name:</span>
+                    <span class="info-value">{{task_name}}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Task Type:</span>
+                    <span class="info-value">{{task_type}}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Project Name:</span>
+                    <span class="info-value">{{project_name}}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Brand:</span>
+                    <span class="info-value">{{brand}}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Priority:</span>
+                    <span class="info-value">{{priority}}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Request Type:</span>
+                    <span class="info-value">{{request_type}}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Issue Version:</span>
+                    <span class="info-value">{{issue_version}}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Created Date:</span>
+                    <span class="info-value">{{created_at}}</span>
+                </div>
+            </div>
+            
+            <div class="issue-section">
+                <h3>📋 Issue Details</h3>
+                <p><strong>Description:</strong> {{issue_description}}</p>
+                
+                <h4>Issue Registers:</h4>
+                {{#issue_registers}}
+                <div class="issue-item">
+                    <div class="issue-type">{{change_issue_type}}</div>
+                    <div class="issue-description">{{description}}</div>
+                    {{#quantification}}<div class="issue-description"><strong>Quantification:</strong> {{quantification}}</div>{{/quantification}}
+                </div>
+                {{/issue_registers}}
+            </div>
+            
+            <div class="users-section">
+                <h3>👥 Assigned Users</h3>
+                {{#assigned_users}}
+                <span class="user-item">{{name}} ({{email}})</span>
+                {{/assigned_users}}
+            </div>
+            
+            <p>Please take necessary action on this issue assignment.</p>
+        </div>
+        
+        <div class="footer">
+            <p>This is an automated notification from <strong>D-Map</strong> System.</p>
+            <p>© 2024 Digilabs. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>
