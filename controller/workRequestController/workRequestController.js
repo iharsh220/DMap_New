@@ -505,7 +505,7 @@ const getWorkRequestById = async (req, res) => {
                 {
                     model: Tasks,
                     required: false,
-                    attributes: ['id', 'task_name', 'description', 'task_type_id', 'work_request_id', 'deadline', 'status', 'intimate_team', 'request_type_id', 'assignment_type', 'task_count', 'link', 'start_date', 'end_date', 'review', 'review_stage'],
+                    attributes: ['id', 'task_name', 'description', 'task_type_id', 'work_request_id', 'deadline', 'status', 'intimate_team', 'request_type_id', 'assignment_type', 'task_count', 'link', 'start_date', 'end_date', 'review', 'review_stage', 'version'],
                     include: [
                         {
                             model: TaskAssignments,

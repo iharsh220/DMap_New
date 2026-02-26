@@ -35,6 +35,12 @@ const Tasks = sequelize.define('Tasks', {
     type: DataTypes.ENUM('draft', 'pending', 'accepted', 'assigned', 'in_progress', 'completed', 'rejected', 'deferred'),
     defaultValue: 'pending',
   },
+  version: {
+    type: DataTypes.STRING(10),
+    allowNull: false,
+    defaultValue: 'V1',
+    comment: 'Task version',
+  },
   review: {
     type: DataTypes.ENUM('pending', 'approved', 'change_request'),
     defaultValue: 'pending',

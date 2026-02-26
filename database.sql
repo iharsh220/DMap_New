@@ -2311,6 +2311,7 @@ CREATE TABLE `tasks` (
   `work_request_id` int(11) NOT NULL,
   `deadline` date DEFAULT NULL,
   `status` enum('draft','pending','accepted','assigned','in_progress','completed','rejected','deferred') DEFAULT 'pending',
+  `version` varchar(10) NOT NULL DEFAULT 'V1' COMMENT 'Task version',
   `assignment_type` enum('new','mod') NOT NULL DEFAULT 'new' COMMENT 'new=first time assignment, mod=modification request',
   `intimate_team` tinyint(1) DEFAULT 0,
   `intimate_client` tinyint(1) DEFAULT 0 COMMENT '0=not shared with client, 1=shared with client for review',
@@ -2322,7 +2323,7 @@ CREATE TABLE `tasks` (
   `review_stage` enum('not_started','manager_review','pm_review','change_requested','final_approved') DEFAULT 'not_started' COMMENT 'Current review stage - not_started, manager_review, pm_review, change_requested, final_approved',
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `tasks`
