@@ -11,14 +11,16 @@ const {
     TaskDocuments,
     UserDivisions,
     JobRole,
-    TaskReviewHistory
+    TaskReviewHistory,
+    IssueAssignments,
+    IssueAssignmentTypes,
+    IssueRegister
 } = require('../../models');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
 const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
-
 
 const getAssignedTasks = async (req, res) => {
     try {
@@ -197,6 +199,27 @@ const getAssignedTasks = async (req, res) => {
                             model: Tasks,
                             as: 'dependencyTask',
                             attributes: ['id', 'task_name', 'deadline', 'status']
+                        }
+                    ]
+                },
+                {
+                    model: IssueAssignments,
+                    as: 'issueAssignments',
+                    include: [
+                        {
+                            model: IssueAssignmentTypes,
+                            as: 'issueTypeLinks',
+                            include: [
+                                {
+                                    model: IssueRegister,
+                                    as: 'issueRegister'
+                                }
+                            ]
+                        },
+                        {
+                            model: User,
+                            as: 'requester',
+                            attributes: ['id', 'name', 'email']
                         }
                     ]
                 }
