@@ -165,6 +165,14 @@ const createIssueAssignment = async (req, res) => {
             review: 'pending'
         }, { transaction });
 
+        // If task_id is provided, update task's review to 'change_request'
+        if (task_id) {
+            await Tasks.update(
+                { review: 'change_request' },
+                { where: { id: task_id }, transaction }
+            );
+        }
+
         // Link issue_register IDs (multiple)
         if (issue_register_ids && issue_register_ids.length > 0) {
             const issueTypeLinks = issue_register_ids.map(registerId => ({
