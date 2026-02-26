@@ -24,6 +24,8 @@ const {
     IssueDocuments,
     IssueUserAssignments,
     IssueAssignments,
+    IssueAssignmentTypes,
+    IssueRegister,
     TaskReviewHistory
 } = require('../../models');
 
@@ -1434,6 +1436,23 @@ const getTasksByWorkRequestId = async (req, res) => {
                 {
                     model: TaskType,
                     attributes: ['id', 'task_type', 'description']
+                },
+                {
+                    model: IssueAssignments,
+                    as: 'issueAssignments',
+                    include: [
+                        {
+                            model: IssueAssignmentTypes,
+                            as: 'issueTypeLinks',
+                            include: [
+                                {
+                                    model: IssueRegister,
+                                    as: 'issueRegister',
+                                    attributes: ['id', 'change_issue_type', 'description']
+                                }
+                            ]
+                        }
+                    ]
                 }
             ],
             order: [['created_at', 'ASC']]
@@ -1468,7 +1487,24 @@ const getTasksByWorkRequestId = async (req, res) => {
                     title: division.title
                 })),
                 documents: assignment.TaskDocuments
-            }))
+            })),
+            issueAssignments: task.issueAssignments ? task.issueAssignments.map(issue => ({
+                id: issue.id,
+                version: issue.version,
+                description: issue.description,
+                status: issue.status,
+                review: issue.review,
+                intimate_client: issue.intimate_client,
+                issueTypes: issue.issueTypeLinks ? issue.issueTypeLinks.map(issueType => ({
+                    id: issueType.id,
+                    issue_register_id: issueType.issue_register_id,
+                    issueRegister: issueType.issueRegister ? {
+                        id: issueType.issueRegister.id,
+                        change_issue_type: issueType.issueRegister.change_issue_type,
+                        description: issueType.issueRegister.description
+                    } : null
+                })) : []
+            })) : []
         }));
 
 
@@ -2318,6 +2354,23 @@ const getMyTasks = async (req, res) => {
                             attributes: ['id', 'task_name', 'deadline', 'status']
                         }
                     ]
+                },
+                {
+                    model: IssueAssignments,
+                    as: 'issueAssignments',
+                    include: [
+                        {
+                            model: IssueAssignmentTypes,
+                            as: 'issueTypeLinks',
+                            include: [
+                                {
+                                    model: IssueRegister,
+                                    as: 'issueRegister',
+                                    attributes: ['id', 'change_issue_type', 'description']
+                                }
+                            ]
+                        }
+                    ]
                 }
             ],
             attributes: { exclude: [] },
@@ -2671,6 +2724,23 @@ const updateTask = async (req, res) => {
                 {
                     model: TaskAssignments,
                     attributes: ['id', 'user_id']
+                },
+                {
+                    model: IssueAssignments,
+                    as: 'issueAssignments',
+                    include: [
+                        {
+                            model: IssueAssignmentTypes,
+                            as: 'issueTypeLinks',
+                            include: [
+                                {
+                                    model: IssueRegister,
+                                    as: 'issueRegister',
+                                    attributes: ['id', 'change_issue_type', 'description']
+                                }
+                            ]
+                        }
+                    ]
                 }
             ]
         });
@@ -3017,6 +3087,23 @@ const reviewTask = async (req, res) => {
                     as: 'assignedUsers',
                     attributes: ['id', 'name', 'email'],
                     through: { attributes: [] }
+                },
+                {
+                    model: IssueAssignments,
+                    as: 'issueAssignments',
+                    include: [
+                        {
+                            model: IssueAssignmentTypes,
+                            as: 'issueTypeLinks',
+                            include: [
+                                {
+                                    model: IssueRegister,
+                                    as: 'issueRegister',
+                                    attributes: ['id', 'change_issue_type', 'description']
+                                }
+                            ]
+                        }
+                    ]
                 }
             ]
         });
@@ -3204,6 +3291,23 @@ const shareForClientReview = async (req, res) => {
                     as: 'assignedUsers',
                     attributes: ['id', 'name', 'email'],
                     through: { attributes: [] }
+                },
+                {
+                    model: IssueAssignments,
+                    as: 'issueAssignments',
+                    include: [
+                        {
+                            model: IssueAssignmentTypes,
+                            as: 'issueTypeLinks',
+                            include: [
+                                {
+                                    model: IssueRegister,
+                                    as: 'issueRegister',
+                                    attributes: ['id', 'change_issue_type', 'description']
+                                }
+                            ]
+                        }
+                    ]
                 }
             ]
         });
