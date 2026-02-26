@@ -52,6 +52,8 @@ const TaskDocuments = sequelize.define('TaskDocuments', {
 }, {
   tableName: 'task_documents',
   timestamps: false,
+  charset: 'utf8mb4',
+  collate: 'utf8mb4_unicode_ci',
 });
 
 module.exports = TaskDocuments;

@@ -28,6 +28,8 @@ const TaskDependencies = sequelize.define('TaskDependencies', {
   timestamps: true,
   createdAt: 'created_at',
   updatedAt: 'updated_at',
+  charset: 'utf8mb4',
+  collate: 'utf8mb4_unicode_ci',
 });
 
 module.exports = TaskDependencies;
