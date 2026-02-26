@@ -265,7 +265,7 @@ const getAssignedWorkRequests = async (req, res) => {
                 { model: RequestType, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, through: { attributes: [] }, attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
                 {
                     model: Tasks,
-                    attributes: ['id', 'task_name', 'description', 'deadline', 'status'],
+                    attributes: ['id', 'task_name', 'description', 'request_type_id', 'task_type_id', 'work_request_id', 'deadline', 'status', 'version', 'assignment_type', 'intimate_team', 'intimate_client', 'task_count', 'link', 'start_date', 'end_date', 'review', 'review_stage', 'created_at', 'updated_at'],
                     include: [
                         {
                             model: User,
@@ -388,7 +388,7 @@ const getAssignedWorkRequestById = async (req, res) => {
                     { model: WorkRequestDocuments, attributes: { exclude: ['created_at', 'updated_at'] } },
                     {
                         model: Tasks,
-                        attributes: ['id', 'task_name', 'description', 'task_type_id', 'work_request_id', 'deadline', 'status', 'intimate_team', 'request_type_id', 'assignment_type', 'task_count', 'link', 'start_date', 'end_date', 'review', 'review_stage', 'version'],
+                        attributes: ['id', 'task_name', 'description', 'request_type_id', 'task_type_id', 'work_request_id', 'deadline', 'status', 'version', 'assignment_type', 'intimate_team', 'intimate_client', 'task_count', 'link', 'start_date', 'end_date', 'review', 'review_stage', 'created_at', 'updated_at'],
                         include: [
                             {
                                 model: TaskAssignments,
@@ -488,7 +488,7 @@ const getAssignedWorkRequestById = async (req, res) => {
                         { model: WorkRequestDocuments, attributes: { exclude: ['created_at', 'updated_at'] } },
                         {
                             model: Tasks,
-                            attributes: ['id', 'task_name', 'description', 'task_type_id', 'work_request_id', 'deadline', 'status', 'intimate_team', 'request_type_id', 'assignment_type', 'task_count', 'link', 'start_date', 'end_date', 'review', 'review_stage', 'version'],
+                            attributes: ['id', 'task_name', 'description', 'request_type_id', 'task_type_id', 'work_request_id', 'deadline', 'status', 'version', 'assignment_type', 'intimate_team', 'intimate_client', 'task_count', 'link', 'start_date', 'end_date', 'review', 'review_stage', 'created_at', 'updated_at'],
                             include: [
                                 {
                                     model: TaskAssignments,
@@ -1847,7 +1847,7 @@ const getAssignedRequestsWithStatus = async (req, res) => {
         if (status === 'in_progress' || status === 'assigned') {
             includes.push({
                 model: Tasks,
-                attributes: ['id', 'task_name', 'description', 'deadline', 'status', 'version'],
+                attributes: ['id', 'task_name', 'description', 'request_type_id', 'task_type_id', 'work_request_id', 'deadline', 'status', 'version', 'assignment_type', 'intimate_team', 'intimate_client', 'task_count', 'link', 'start_date', 'end_date', 'review', 'review_stage', 'created_at', 'updated_at'],
                 include: [
                     {
                         model: User,
@@ -2536,7 +2536,7 @@ const getUserTask = async (req, res) => {
                             attributes: ['id', 'project_name', 'brand', 'status']
                         }
                     ],
-                    attributes: ['id', 'task_name', 'description', 'deadline', 'status', 'version']
+                    attributes: ['id', 'task_name', 'description', 'request_type_id', 'task_type_id', 'work_request_id', 'deadline', 'status', 'version', 'assignment_type', 'intimate_team', 'intimate_client', 'task_count', 'link', 'start_date', 'end_date', 'review', 'review_stage', 'created_at', 'updated_at']
                 }
             ],
             attributes: ['id'],
