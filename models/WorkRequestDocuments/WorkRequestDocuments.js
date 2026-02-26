@@ -38,6 +38,8 @@ const WorkRequestDocuments = sequelize.define('WorkRequestDocuments', {
 }, {
   tableName: 'work_request_documents',
   timestamps: false,
+  charset: 'utf8mb4',
+  collate: 'utf8mb4_unicode_ci',
 });
 
 module.exports = WorkRequestDocuments;

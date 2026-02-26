@@ -10,6 +10,13 @@ const sequelize = new Sequelize(
     host: process.env.DB_HOST,
     dialect: 'mysql',
     logging: false,
+    dialectOptions: {
+      charset: 'utf8mb4',
+    },
+    define: {
+      charset: 'utf8mb4',
+      collate: 'utf8mb4_unicode_ci',
+    },
   }
 );
 
