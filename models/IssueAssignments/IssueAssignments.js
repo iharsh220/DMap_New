@@ -50,6 +50,11 @@ const IssueAssignments = sequelize.define('IssueAssignments', {
     defaultValue: 0,
     comment: 'Flag to intimate team (0=no, 1=yes)',
   },
+  intimate_client: {
+    type: DataTypes.TINYINT(1),
+    defaultValue: 0,
+    comment: '0=not shared with client, 1=shared with client for review',
+  },
   task_count: {
     type: DataTypes.INTEGER,
     allowNull: true,

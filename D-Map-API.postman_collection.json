@@ -2181,7 +2181,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"task_id\": 1,\n    \"issue_id\": null,\n    \"requested_by_user_id\": 5,\n    \"assignment_type\": \"new\",\n    \"version\": \"V1\",\n    \"description\": \"Issue description here\",\n    \"issue_register_ids\": [1, 2, 3]\n}",
+                            "raw": "{\n    \"task_id\": 1,\n    \"issue_id\": null,\n    \"requested_by_user_id\": 5,\n    \"assignment_type\": \"new\",\n    \"version\": \"V1\",\n    \"description\": \"Issue description here\",\n    \"intimate_client\": 1,\n    \"issue_register_ids\": [1, 2, 3]\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -2199,7 +2199,7 @@
                                 "assignment"
                             ]
                         },
-                        "description": "Create issue assignment - provide either task_id (for task-related changes) or issue_id (for issue-related changes) (requires authentication)"
+                        "description": "Create issue assignment - provide either task_id (for task-related changes) or issue_id (for issue-related changes). Note: task_id or issue_id must have intimate_client=1 to process the request. (requires authentication)"
                     },
                     "response": []
                 },

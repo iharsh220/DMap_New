@@ -1896,6 +1896,7 @@ CREATE TABLE `issue_assignments` (
   `description` text DEFAULT NULL COMMENT 'Details about the issue/change requested',
   `deadline` date DEFAULT NULL COMMENT 'Deadline for the issue assignment',
   `intimate_team` tinyint(1) DEFAULT 0 COMMENT 'Flag to intimate team (0=no, 1=yes)',
+  `intimate_client` tinyint(1) DEFAULT 0 COMMENT '0=not shared with client, 1=shared with client for review',
   `task_count` int(11) DEFAULT 0 COMMENT 'Count of tasks for this issue assignment',
   `start_date` date DEFAULT NULL COMMENT 'Start date for the issue assignment',
   `end_date` date DEFAULT NULL COMMENT 'End date for the issue assignment',

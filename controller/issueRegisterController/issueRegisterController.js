@@ -121,6 +121,14 @@ const createIssueAssignment = async (req, res) => {
                     error: 'Task not found'
                 });
             }
+            
+            // Validate: task must have intimate_client = 1 to create issue assignment
+            if (task.intimate_client !== 1) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Task does not have intimate_client enabled. Only tasks with intimate_client=1 can have issue assignments.'
+                });
+            }
         }
 
         // Check if issue exists (if issue_id provided)
@@ -130,6 +138,14 @@ const createIssueAssignment = async (req, res) => {
                 return res.status(404).json({
                     success: false,
                     error: 'Parent issue not found'
+                });
+            }
+            
+            // Validate: issue must have intimate_client = 1 to create sub-issue assignment
+            if (existingIssue.intimate_client !== 1) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Parent issue does not have intimate_client enabled. Only issues with intimate_client=1 can have sub-issue assignments.'
                 });
             }
         }
