@@ -100,7 +100,7 @@ const getTaskDetailsData = async (req, res) => {
                 COALESCE(rt.request_type, 'N/A') AS project_type,
                 COALESCE(rdiv.title, 'N/A') AS requester_division,
                 COALESCE(ru.name, 'N/A') AS requester_name,
-                COALESCE(mdiv.title, 'N/A') AS manager_division,
+                COALESCE(udiv.title, 'N/A') AS user_division,
                 COALESCE(GROUP_CONCAT(DISTINCT mu.name ORDER BY mu.name SEPARATOR ', '), 'N/A') AS manager_name,
                 t.id AS task_id,
                 t.task_name,
@@ -124,17 +124,17 @@ const getTaskDetailsData = async (req, res) => {
             LEFT JOIN division rdiv ON rud.division_id = rdiv.id
             LEFT JOIN work_request_managers wrm ON wr.id = wrm.work_request_id
             LEFT JOIN users mu ON wrm.manager_id = mu.id
-            LEFT JOIN request_division_reference rdr ON rt.id = rdr.request_id
-            LEFT JOIN division mdiv ON rdr.division_id = mdiv.id
             LEFT JOIN task_assignments ta ON t.id = ta.task_id
             LEFT JOIN users au ON ta.user_id = au.id
+            LEFT JOIN user_divisions aud ON au.id = aud.user_id
+            LEFT JOIN division udiv ON aud.division_id = udiv.id
         `;
 
         if (whereClauses.length > 0) {
             query += ` WHERE ${whereClauses.join(' AND ')}`;
         }
 
-        query += ` GROUP BY wr.id, wr.project_name, rt.request_type, rdiv.title, ru.name, mdiv.title, t.id, t.task_name, tt.task_type, au.name ORDER BY t.id DESC`;
+        query += ` GROUP BY wr.id, wr.project_name, rt.request_type, rdiv.title, ru.name, udiv.title, t.id, t.task_name, tt.task_type, au.name ORDER BY t.id DESC`;
 
         const results = await sequelize.query(query, {
             replacements,
