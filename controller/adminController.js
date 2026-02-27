@@ -24,7 +24,7 @@ const getAdminData = async (req, res) => {
                 COALESCE(rt.request_type, 'N/A') AS project_type,
                 COALESCE(rdiv.title, 'N/A') AS requester_division,
                 COALESCE(ru.name, 'N/A') AS requester_name,
-                COALESCE(mdiv.title, 'N/A') AS manager_division,
+                COALESCE(mudiv.title, 'N/A') AS user_division,
                 COALESCE(GROUP_CONCAT(DISTINCT mu.name ORDER BY mu.name SEPARATOR ', '), 'N/A') AS manager_name,
                 1 AS project_count,
                 COUNT(DISTINCT t.id) AS task_count,
@@ -48,8 +48,8 @@ const getAdminData = async (req, res) => {
             LEFT JOIN division rdiv ON rud.division_id = rdiv.id
             LEFT JOIN work_request_managers wrm ON wr.id = wrm.work_request_id
             LEFT JOIN users mu ON wrm.manager_id = mu.id
-            LEFT JOIN request_division_reference rdr ON rt.id = rdr.request_id
-            LEFT JOIN division mdiv ON rdr.division_id = mdiv.id
+            LEFT JOIN user_divisions mud ON mu.id = mud.user_id
+            LEFT JOIN division mudiv ON mud.division_id = mudiv.id
             LEFT JOIN tasks t ON wr.id = t.work_request_id
         `;
 
@@ -64,7 +64,7 @@ const getAdminData = async (req, res) => {
                 rt.request_type,
                 rdiv.title, 
                 ru.name, 
-                mdiv.title,
+                mudiv.title,
                 wr.requested_at
         `;
 
