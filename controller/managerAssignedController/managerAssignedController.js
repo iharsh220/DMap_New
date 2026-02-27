@@ -3516,6 +3516,99 @@ const shareForClientReview = async (req, res) => {
     }
 };
 
+const acceptIssueRequest = async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) {
+            return res.status(400).json({ success: false, error: 'Invalid issue assignment ID' });
+        }
+        const manager_id = req.user.id;
+
+        // Check if issue assignment exists and manager has access
+        const issueAssignment = await IssueAssignments.findByPk(id, {
+            include: [
+                { model: Tasks, as: 'task', attributes: ['id', 'task_name', 'work_request_id'] },
+                { model: User, as: 'requester', attributes: ['id', 'name', 'email'] }
+            ]
+        });
+
+        if (!issueAssignment) {
+            return res.status(404).json({ success: false, error: 'Issue assignment not found' });
+        }
+
+        // Verify manager has access through the task's work request
+        if (issueAssignment.task && issueAssignment.task.work_request_id) {
+            const workRequestManager = await WorkRequestManagers.findOne({
+                where: {
+                    work_request_id: issueAssignment.task.work_request_id,
+                    manager_id: manager_id
+                }
+            });
+
+            if (!workRequestManager) {
+                return res.status(403).json({ success: false, error: 'You are not authorized to accept this issue request' });
+            }
+        } else {
+            return res.status(400).json({ success: false, error: 'Issue assignment is not linked to a valid task' });
+        }
+
+        if (issueAssignment.status === 'accepted') {
+            return res.status(400).json({ success: false, error: 'Issue request is already accepted' });
+        }
+
+        if (issueAssignment.status !== 'pending') {
+            return res.status(400).json({ success: false, error: 'Only pending issue requests can be accepted' });
+        }
+
+        // Update status to accepted
+        await IssueAssignments.update({ status: 'accepted' }, { where: { id } });
+
+        // Get work request details for email
+        let workRequest = null;
+        if (issueAssignment.task && issueAssignment.task.work_request_id) {
+            workRequest = await WorkRequests.findByPk(issueAssignment.task.work_request_id, {
+                attributes: ['id', 'project_name', 'brand'],
+                include: [{ model: RequestType, attributes: ['id', 'request_type'] }]
+            });
+        }
+
+        // Send email to the requester
+        const requester = issueAssignment.requester;
+        if (requester) {
+            const html = renderTemplate('issueAcceptanceNotification', {
+                user_name: requester.name,
+                issue_version: issueAssignment.version,
+                issue_description: issueAssignment.description,
+                task_name: issueAssignment.task ? issueAssignment.task.task_name : 'N/A',
+                project_name: workRequest ? workRequest.project_name : 'N/A',
+                brand: workRequest ? workRequest.brand : 'N/A',
+                request_type: workRequest && workRequest.RequestType ? workRequest.RequestType.request_type : 'N/A',
+                accepted_at: new Date().toLocaleDateString('en-IN', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }),
+                frontend_url: process.env.FRONTEND_URL
+            });
+
+            const mailOptions = {
+                to: requester.email,
+                subject: 'Issue Request Accepted',
+                html
+            };
+
+            await sendMail(mailOptions);
+        }
+
+        res.json({ success: true, message: 'Issue request accepted successfully' });
+    } catch (error) {
+        console.error('Error accepting issue request:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
 // Assign issue assignment to a user
 const assignIssueToUser = async (req, res) => {
     try {
@@ -3634,6 +3727,7 @@ module.exports = {
     getAssignedWorkRequests,
     getAssignedWorkRequestById,
     acceptWorkRequest,
+    acceptIssueRequest,
     deferWorkRequest,
     updateWorkRequestProject,
     deleteWorkRequest,

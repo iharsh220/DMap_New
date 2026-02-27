@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getAssignedWorkRequests, getAssignedWorkRequestById, acceptWorkRequest, deferWorkRequest, updateWorkRequestProject, deleteWorkRequest, deleteTask, getMyTasks, getAssignableUsers, getTaskTypesByWorkRequest, createTask, getTasksByWorkRequestId, getTaskAnalytics, getMyTeam, assignTasksToUsers, getAssignedRequestsWithStatus, getUserTask, updateTask, reviewTaskDocument, reviewIssueDocument, reviewTask, shareForClientReview, assignIssueToUser } = require('../../controller/managerAssignedController/managerAssignedController');
+const { getAssignedWorkRequests, getAssignedWorkRequestById, acceptWorkRequest, acceptIssueRequest, deferWorkRequest, updateWorkRequestProject, deleteWorkRequest, deleteTask, getMyTasks, getAssignableUsers, getTaskTypesByWorkRequest, createTask, getTasksByWorkRequestId, getTaskAnalytics, getMyTeam, assignTasksToUsers, getAssignedRequestsWithStatus, getUserTask, updateTask, reviewTaskDocument, reviewIssueDocument, reviewTask, shareForClientReview, assignIssueToUser } = require('../../controller/managerAssignedController/managerAssignedController');
 const { authenticateToken } = require('../../middleware/jwtMiddleware');
 const { checkRole } = require('../../middleware/roleMiddleware');
 const filterMiddleware = require('../../middleware/filterMiddleware');
@@ -40,5 +40,6 @@ router.post('/:id/assign-tasks', authenticateToken, checkRole([1, 2, 3]), assign
 
 // Issue assignment routes
 router.post('/assign-issue-to-user', authenticateToken, checkRole([1, 2, 3]), assignIssueToUser); // Assign issue to a user
+router.put('/issue/:id/accept', authenticateToken, checkRole([1, 2, 3]), acceptIssueRequest); // Accept an issue request
 
 module.exports = router;

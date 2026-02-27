@@ -77,7 +77,7 @@ const IssueAssignments = sequelize.define('IssueAssignments', {
     comment: 'Link URL for the issue assignment',
   },
   status: {
-    type: DataTypes.ENUM('pending', 'in_progress', 'completed', 'rejected'),
+    type: DataTypes.ENUM('pending', 'accepted', 'in_progress', 'completed', 'rejected'),
     defaultValue: 'pending',
   },
   review: {
