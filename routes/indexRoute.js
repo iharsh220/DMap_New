@@ -29,7 +29,7 @@ router.use('/users', userRoutes);
 router.use('/datatable', adminRoutes);
 
 // Issue Register Routes
-// router.use('/issue-register', issueRegisterRoutes);
+router.use('/issue-register', issueRegisterRoutes);
 
 // Issue-related APIs under work-requests
 // Issue routes are now part of work-requests routes

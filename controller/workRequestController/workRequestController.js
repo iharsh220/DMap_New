@@ -1227,4 +1227,15 @@ const getMyTaskRequests = async (req, res) => {
    
 };
 
-module.exports = { createWorkRequest, getMyWorkRequests, getMyTaskRequests, getWorkRequestById, getProjectTypesByRequestType, getAboutProjectOptions, getDivisionWorkRequests, getDivisionWorkRequestById, getUserDashboardStats, pmApproveTask };
+module.exports = { 
+    createWorkRequest, 
+    getMyWorkRequests, 
+    getMyTaskRequests, 
+    getWorkRequestById, 
+    getProjectTypesByRequestType, 
+    getAboutProjectOptions, 
+    getDivisionWorkRequests, 
+    getDivisionWorkRequestById, 
+    getUserDashboardStats, 
+    pmApproveTask 
+};

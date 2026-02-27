@@ -2265,6 +2265,43 @@
                     "response": []
                 },
                 {
+                    "name": "Get Issue Assignments with Task Details",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}{{base_route}}issue-register/assignments?task_id=&status=",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "{{base_route}}",
+                                "issue-register",
+                                "assignments"
+                            ],
+                            "query": [
+                                {
+                                    "key": "task_id",
+                                    "value": "",
+                                    "description": "Filter by task ID (optional)"
+                                },
+                                {
+                                    "key": "status",
+                                    "value": "",
+                                    "description": "Filter by status (optional)"
+                                }
+                            ]
+                        },
+                        "description": "Get issue assignments with full task details, work request details, assigned users and their managers (requires authentication)"
+                    },
+                    "response": []
+                },
+                {
                     "name": "Create Issue Assignment",
                     "request": {
                         "method": "POST",
