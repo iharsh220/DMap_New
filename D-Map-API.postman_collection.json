@@ -25,7 +25,7 @@
                             "raw": "{\n  \"email\": \"angana.patil@alembic.co.in\"\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/auth/initiate-registration",
+                            "raw": "{{base_url}}{{base_route}}auth/initiate-registration",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -46,7 +46,7 @@
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/auth/verify-email?token=eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..dODGC40Kz1h4YmxO.zvaq_0tXPwsOBnqH_jGCJA3SvPpMr4TGTDxcY1pxDyxzBOwZCQE2z5Xt2HwzbjqoH7ug9eS_.UeCfUwYt9YXzTCAQ-379AA",
+                            "raw": "{{base_url}}{{base_route}}auth/verify-email?token=eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..dODGC40Kz1h4YmxO.zvaq_0tXPwsOBnqH_jGCJA3SvPpMr4TGTDxcY1pxDyxzBOwZCQE2z5Xt2HwzbjqoH7ug9eS_.UeCfUwYt9YXzTCAQ-379AA",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -78,7 +78,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/auth/logout",
+                            "raw": "{{base_url}}{{base_route}}auth/logout",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -109,7 +109,7 @@
                             "raw": "{\n  \"refreshToken\": \"your_refresh_token_here\"\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/auth/refresh-token",
+                            "raw": "{{base_url}}{{base_route}}auth/refresh-token",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -151,7 +151,7 @@
                             "raw": "{\n  \"identifier\": \"harsh.gohil@alembic.co.in\",\n  \"password\": \"SmartWolf@1234\",\n  \"loginType\": \"email\"\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/auth/login",
+                            "raw": "{{base_url}}{{base_route}}auth/login",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -181,7 +181,7 @@
                             "raw": "{\n  \"email\": \"angana.patil@alembic.co.in\",\n  \"name\": \"Angana Patil\",\n  \"password\": \"Angana@1234\",\n  \"phone\": \"8080302041\",\n  \"department_id\": 9,\n  \"division_ids\": [1],\n  \"designation_id\": 20,\n  \"location_id\": 1\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/auth/complete-registration",
+                            "raw": "{{base_url}}{{base_route}}auth/complete-registration",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -211,7 +211,7 @@
                             "raw": "{\n  \"identifier\": \"harsh.gohil@alembic.co.in\",\n  \"loginType\": \"email\"\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/auth/forgot-password",
+                            "raw": "{{base_url}}{{base_route}}auth/forgot-password",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -242,7 +242,7 @@
                             "raw": "{\n  \"token\": \"your_reset_jwt_token_here\",\n  \"newPassword\": \"NewPassword@123\"\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/auth/reset-password",
+                            "raw": "{{base_url}}{{base_route}}auth/reset-password",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -277,7 +277,7 @@
                             "raw": "{\n  \"currentPassword\": \"OldPassword@123\",\n  \"newPassword\": \"NewPassword@123\",\n  \"confirmPassword\": \"NewPassword@123\"\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/auth/change-password",
+                            "raw": "{{base_url}}{{base_route}}auth/change-password",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -304,7 +304,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/auth/profile",
+                            "raw": "{{base_url}}{{base_route}}auth/profile",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -331,7 +331,7 @@
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/departments",
+                            "raw": "{{base_url}}{{base_route}}departments",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -357,7 +357,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/request-types?exclude_request_type_id=",
+                            "raw": "{{base_url}}{{base_route}}request-types?exclude_request_type_id=",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -395,7 +395,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/work-requests/my-requests?page=1&limit=10&search=&searchFields=project_name,brand&priority=&status=",
+                            "raw": "{{base_url}}{{base_route}}work-requests/my-requests?page=1&limit=10&search=&searchFields=project_name,brand&priority=&status=",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -454,7 +454,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/work-requests/my-task-requests?page=1&limit=10&search=&searchFields=project_name,brand&priority=&status=",
+                            "raw": "{{base_url}}{{base_route}}work-requests/my-task-requests?page=1&limit=10&search=&searchFields=project_name,brand&priority=&status=",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -513,7 +513,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/work-requests/:id",
+                            "raw": "{{base_url}}{{base_route}}work-requests/:id",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -594,7 +594,7 @@
                             ]
                         },
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/work-requests",
+                            "raw": "{{base_url}}{{base_route}}work-requests",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -620,7 +620,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/work-requests/project-types?request_type_id=1",
+                            "raw": "{{base_url}}{{base_route}}work-requests/project-types?request_type_id=1",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -654,7 +654,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/work-requests/about-project-options",
+                            "raw": "{{base_url}}{{base_route}}work-requests/about-project-options",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -681,7 +681,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/work-requests/division/all?page=1&limit=10&search=&searchFields=project_name,brand&priority=&status=",
+                            "raw": "{{base_url}}{{base_route}}work-requests/division/all?page=1&limit=10&search=&searchFields=project_name,brand&priority=&status=",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -741,7 +741,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/work-requests/division/:id",
+                            "raw": "{{base_url}}{{base_route}}work-requests/division/:id",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -776,7 +776,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/work-requests/dashboard-stats?request_type_id=1",
+                            "raw": "{{base_url}}{{base_route}}work-requests/dashboard-stats?request_type_id=1",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -853,7 +853,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests?page=1&limit=10",
+                            "raw": "{{base_url}}{{base_route}}manager/assigned-work-requests?page=1&limit=10",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -892,7 +892,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/pending-issues?page=1&limit=10",
+                            "raw": "{{base_url}}{{base_route}}manager/assigned-work-requests/pending-issues?page=1&limit=10",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -932,7 +932,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/manager/requests?page=1&limit=10&search=&searchFields=project_name,brand&priority=&status=",
+                            "raw": "{{base_url}}{{base_route}}manager/requests?page=1&limit=10&search=&searchFields=project_name,brand&priority=&status=",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -991,7 +991,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id",
+                            "raw": "{{base_url}}{{base_route}}manager/assigned-work-requests/:id",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -1026,7 +1026,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id/accept",
+                            "raw": "{{base_url}}{{base_route}}manager/assigned-work-requests/:id/accept",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -1070,7 +1070,7 @@
                             "raw": "{\n  \"reason\": \"insufficient_details\",\n  \"message\": \"Please provide more details about the project requirements\"\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id/defer",
+                            "raw": "{{base_url}}{{base_route}}manager/assigned-work-requests/:id/defer",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -1114,7 +1114,7 @@
                             "raw": "{\n  \"project_id\": 1,\n  \"project_name\": \"Updated Project Name\"\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id/project",
+                            "raw": "{{base_url}}{{base_route}}manager/assigned-work-requests/:id/project",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -1150,7 +1150,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id",
+                            "raw": "{{base_url}}{{base_route}}manager/assigned-work-requests/:id",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -1185,7 +1185,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:work_request_id/assignable-users?task_id=7",
+                            "raw": "{{base_url}}{{base_route}}manager/assigned-work-requests/:work_request_id/assignable-users?task_id=7",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -1227,7 +1227,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/id/task-types?project_id=",
+                            "raw": "{{base_url}}{{base_route}}manager/assigned-work-requests/id/task-types?project_id=",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -1263,7 +1263,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id/analytics",
+                            "raw": "{{base_url}}{{base_route}}manager/assigned-work-requests/:id/analytics",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -1299,7 +1299,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/:id/assign-tasks",
+                            "raw": "{{base_url}}{{base_route}}manager/assigned-work-requests/:id/assign-tasks",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -1344,7 +1344,7 @@
                             }
                         },
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assign-issue-to-user",
+                            "raw": "{{base_url}}{{base_route}}manager/assign-issue-to-user",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -1371,7 +1371,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/my-team?page=1&limit=10&search=",
+                            "raw": "{{base_url}}{{base_route}}manager/assigned-work-requests/my-team?page=1&limit=10&search=",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -1416,7 +1416,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/my-tasks",
+                            "raw": "{{base_url}}{{base_route}}manager/assigned-work-requests/my-tasks",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -1452,7 +1452,7 @@
                             "raw": "{\n  \"task_name\": \"New Task\",\n  \"description\": \"Task description\",\n  \"request_type_id\": 1,\n  \"task_type_id\": 1,\n  \"work_request_id\": 1,\n  \"deadline\": \"2026-03-01\",\n  \"assignment_type\": \"new\",\n  \"intimate_team\": 1,\n  \"task_count\": 1,\n  \"link\": \"https://example.com\"\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/tasks",
+                            "raw": "{{base_url}}{{base_route}}manager/assigned-work-requests/tasks",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -1488,7 +1488,7 @@
                             "raw": "{\n  \"task_name\": \"Updated Task Name\",\n  \"description\": \"Updated description\",\n  \"deadline\": \"2026-03-15\"\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/tasks/:taskId",
+                            "raw": "{{base_url}}{{base_route}}manager/assigned-work-requests/tasks/:taskId",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -1524,7 +1524,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/tasks/:taskId",
+                            "raw": "{{base_url}}{{base_route}}manager/assigned-work-requests/tasks/:taskId",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -1568,7 +1568,7 @@
                             "raw": "{\n  \"action\": \"approved\",\n  \"comments\": \"Task completed successfully\"\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/tasks/:taskId/review",
+                            "raw": "{{base_url}}{{base_route}}manager/assigned-work-requests/tasks/:taskId/review",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -1613,7 +1613,7 @@
                             "raw": "{\n  \"work_request_id\": 1,\n  \"task_id\": 1,\n  \"document_ids\": [1, 2, 3]\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/tasks/share-for-client-review",
+                            "raw": "{{base_url}}{{base_route}}manager/assigned-work-requests/tasks/share-for-client-review",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -1642,7 +1642,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/work-request/:work_request_id/tasks",
+                            "raw": "{{base_url}}{{base_route}}manager/assigned-work-requests/work-request/:work_request_id/tasks",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -1679,7 +1679,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/user/:user_id/tasks?page=1&limit=10&search=&status=",
+                            "raw": "{{base_url}}{{base_route}}manager/assigned-work-requests/user/:user_id/tasks?page=1&limit=10&search=&status=",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -1746,7 +1746,7 @@
                             "raw": "{\n  \"action\": \"approved\",\n  \"comments\": \"Document approved\"\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/documents/:documentId/review",
+                            "raw": "{{base_url}}{{base_route}}manager/assigned-work-requests/documents/:documentId/review",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -1791,7 +1791,7 @@
                             "raw": "{\n  \"action\": \"approved\",\n  \"comments\": \"Issue document approved\"\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assigned-work-requests/issue-documents/:documentId/review",
+                            "raw": "{{base_url}}{{base_route}}manager/assigned-work-requests/issue-documents/:documentId/review",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -1833,7 +1833,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/users/tasks?page=1&limit=10&search=&searchFields=task_name&status=",
+                            "raw": "{{base_url}}{{base_route}}users/tasks?page=1&limit=10&search=&searchFields=task_name&status=",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -1887,7 +1887,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/users/my-team",
+                            "raw": "{{base_url}}{{base_route}}users/my-team",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -1914,7 +1914,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/users/tasks/:task_id",
+                            "raw": "{{base_url}}{{base_route}}users/tasks/:task_id",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -1957,7 +1957,7 @@
                             "raw": "{\n  \"task_id\": 1,\n  \"user_id\": 1\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/users/assign-task",
+                            "raw": "{{base_url}}{{base_route}}users/assign-task",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -1992,7 +1992,7 @@
                             "raw": "{\n  \"start_date\": \"2026-03-01\"\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/users/tasks/:taskId/accept",
+                            "raw": "{{base_url}}{{base_route}}users/tasks/:taskId/accept",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -2048,7 +2048,7 @@
                             ]
                         },
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/users/tasks/submit",
+                            "raw": "{{base_url}}{{base_route}}users/tasks/submit",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -2076,7 +2076,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/users/tasks/:task_id/documents",
+                            "raw": "{{base_url}}{{base_route}}users/tasks/:task_id/documents",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -2112,7 +2112,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/users/documents/:document_id",
+                            "raw": "{{base_url}}{{base_route}}users/documents/:document_id",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -2147,7 +2147,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/users/issues?status=",
+                            "raw": "{{base_url}}{{base_route}}users/issues?status=",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -2183,7 +2183,7 @@
                             }
                         },
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/users/issues/:issueId/accept",
+                            "raw": "{{base_url}}{{base_route}}users/issues/:issueId/accept",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -2228,7 +2228,7 @@
                             }
                         },
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/users/issues/submit",
+                            "raw": "{{base_url}}{{base_route}}users/issues/submit",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -2261,7 +2261,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/datatable/admin/projectsdetails/data",
+                            "raw": "{{base_url}}{{base_route}}datatable/admin/projectsdetails/data",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -2290,7 +2290,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/datatable/admin/taskdetails/data",
+                            "raw": "{{base_url}}{{base_route}}datatable/admin/taskdetails/data",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -2319,7 +2319,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/datatable/admin/projectsdetails/tasks/:workRequestId",
+                            "raw": "{{base_url}}{{base_route}}datatable/admin/projectsdetails/tasks/:workRequestId",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -2361,7 +2361,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{base_url}}/digilabs/dmap/api/issue-register/task/:task_id",
+                            "raw": "{{base_url}}{{base_route}}issue-register/task/:task_id",
                             "host": [
                                 "{{base_url}}"
                             ],

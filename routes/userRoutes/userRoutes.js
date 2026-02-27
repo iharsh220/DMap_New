@@ -33,7 +33,7 @@ router.delete('/documents/:document_id', authenticateToken, deleteTaskDocument);
 // Issue Routes
 // GET /api/users/issues - Get issues assigned to the user
 router.get('/issues', authenticateToken, getAssignedIssues);
-
+ 
 // PUT /api/users/issues/:issueId/accept - Accept an issue
 router.put('/issues/:issueId/accept', authenticateToken, acceptIssue);
 
