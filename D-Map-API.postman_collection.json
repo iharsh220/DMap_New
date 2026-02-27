@@ -2135,6 +2135,115 @@
                         "description": "Delete a document by ID (requires authentication)"
                     },
                     "response": []
+                },
+                {
+                    "name": "Get Assigned Issues",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/users/issues?status=",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "users",
+                                "issues"
+                            ]
+                        },
+                        "description": "Get issues assigned to the user (from issue_user_assignments) with optional status filter (requires authentication)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Accept Issue",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"start_date\": \"2026-03-01\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/users/issues/:issueId/accept",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "users",
+                                "issues",
+                                ":issueId",
+                                "accept"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "issueId",
+                                    "value": "1",
+                                    "description": "Issue ID"
+                                }
+                            ]
+                        },
+                        "description": "Accept an issue with optional start_date. Sets status to in_progress (requires authentication)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Submit Issue",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"link\": \"https://example.com/work\",\n    \"description\": \"Completed the issue work\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/users/issues/submit",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "users",
+                                "issues",
+                                "submit"
+                            ]
+                        },
+                        "description": "Submit/complete an issue. Sends email notification to manager (requires authentication)"
+                    },
+                    "response": []
                 }
             ]
         },

@@ -1500,6 +1500,321 @@ const getMyTeamTasks = async (req, res) => {
     }
 };
 
+// Get issues assigned to the user (from issue_user_assignments)
+const getAssignedIssues = async (req, res) => {
+    try {
+        const user_id = req.user.id;
+        const { status } = req.query;
+
+        // Get issue_user_assignments for this user
+        const userIssueAssignments = await IssueUserAssignments.findAll({
+            where: { user_id: user_id },
+            attributes: ['issue_assignment_id']
+        });
+
+        const issueAssignmentIds = userIssueAssignments.map(ua => ua.issue_assignment_id);
+
+        if (issueAssignmentIds.length === 0) {
+            return res.json({
+                success: true,
+                data: [],
+                message: 'No issues assigned to you'
+            });
+        }
+
+        // Build where condition
+        let whereCondition = {
+            id: { [Op.in]: issueAssignmentIds }
+        };
+
+        // Apply status filter
+        if (status) {
+            const statusArray = status.split(',').map(s => s.trim());
+            const validStatuses = ['pending', 'in_progress', 'completed', 'rejected'];
+            const invalidStatuses = statusArray.filter(s => !validStatuses.includes(s));
+
+            if (invalidStatuses.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Invalid status values: ${invalidStatuses.join(', ')}. Valid values are: ${validStatuses.join(', ')}`
+                });
+            }
+
+            if (statusArray.length > 1) {
+                whereCondition.status = { [Op.in]: statusArray };
+            } else {
+                whereCondition.status = statusArray[0];
+            }
+        } else {
+            // Default: show pending issues
+            whereCondition.status = 'pending';
+        }
+
+        // Get issue assignments with full details
+        const issueAssignments = await IssueAssignments.findAll({
+            where: whereCondition,
+            include: [
+                {
+                    model: Tasks,
+                    as: 'task',
+                    attributes: ['id', 'task_name', 'description', 'request_type_id', 'task_type_id', 'work_request_id', 'deadline', 'status', 'version'],
+                    include: [
+                        { model: RequestType, attributes: ['id', 'request_type', 'description'] },
+                        { model: TaskType, attributes: ['id', 'task_type', 'description'] },
+                        { model: WorkRequests, attributes: ['id', 'project_name', 'brand'], include: [{ model: User, as: 'users', attributes: ['id', 'name', 'email'] }] }
+                    ]
+                },
+                { model: User, as: 'requester', attributes: ['id', 'name', 'email'] },
+                { model: IssueAssignmentTypes, as: 'issueTypeLinks', include: [{ model: IssueRegister, as: 'issueRegister' }] }
+            ]
+        });
+
+        const result = issueAssignments.map(ia => ({
+            id: ia.id,
+            issue_id: ia.issue_id,
+            task_id: ia.task_id,
+            version: ia.version,
+            description: ia.description,
+            deadline: ia.deadline,
+            start_date: ia.start_date,
+            end_date: ia.end_date,
+            link: ia.link,
+            task_count: ia.task_count,
+            status: ia.status,
+            review: ia.review,
+            intimate_team: ia.intimate_team,
+            intimate_client: ia.intimate_client,
+            created_at: ia.created_at,
+            updated_at: ia.updated_at,
+            task: ia.task ? {
+                id: ia.task.id,
+                task_name: ia.task.task_name,
+                description: ia.task.description,
+                request_type_id: ia.task.request_type_id,
+                request_type: ia.task.RequestType ? ia.task.RequestType.request_type : null,
+                task_type_id: ia.task.task_type_id,
+                task_type: ia.task.TaskType ? ia.task.TaskType.task_type : null,
+                work_request_id: ia.task.work_request_id,
+                work_request: ia.task.WorkRequest ? {
+                    id: ia.task.WorkRequest.id,
+                    project_name: ia.task.WorkRequest.project_name,
+                    brand: ia.task.WorkRequest.brand,
+                    client: ia.task.WorkRequest.users ? { id: ia.task.WorkRequest.users.id, name: ia.task.WorkRequest.users.name, email: ia.task.WorkRequest.users.email } : null
+                } : null,
+                deadline: ia.task.deadline,
+                status: ia.task.status,
+                version: ia.task.version
+            } : null,
+            requester: ia.requester ? { id: ia.requester.id, name: ia.requester.name, email: ia.requester.email } : null,
+            issue_types: ia.issueTypeLinks ? ia.issueTypeLinks.map(itl => ({
+                id: itl.id,
+                issue_register_id: itl.issue_register_id,
+                change_issue_type: itl.issueRegister ? itl.issueRegister.change_issue_type : null,
+                description: itl.issueRegister ? itl.issueRegister.description : null
+            })) : []
+        }));
+
+        res.json({
+            success: true,
+            data: result,
+            message: 'Assigned issues retrieved successfully'
+        });
+    } catch (error) {
+        console.error('Error fetching assigned issues:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            message: 'Failed to fetch assigned issues'
+        });
+    }
+};
+
+// Accept an issue
+const acceptIssue = async (req, res) => {
+    try {
+        const issueId = parseInt(req.params.issueId, 10);
+        const { start_date } = req.body;
+        const user_id = req.user.id;
+
+        if (isNaN(issueId)) {
+            return res.status(400).json({ success: false, error: 'Invalid issue ID' });
+        }
+
+        // Check if issue exists and is assigned to the user
+        const userIssueAssignment = await IssueUserAssignments.findOne({
+            where: { issue_assignment_id: issueId, user_id: user_id }
+        });
+
+        if (!userIssueAssignment) {
+            return res.status(404).json({ success: false, error: 'Issue not found or not assigned to you' });
+        }
+
+        // Get the issue assignment
+        const issueAssignment = await IssueAssignments.findByPk(issueId);
+
+        if (!issueAssignment) {
+            return res.status(404).json({ success: false, error: 'Issue assignment not found' });
+        }
+
+        // Check if intimate_team is 1
+        if (issueAssignment.intimate_team !== 1) {
+            return res.status(403).json({ success: false, error: 'You do not have permission to accept this issue' });
+        }
+
+        // Check if issue is already accepted
+        if (issueAssignment.status === 'in_progress') {
+            return res.status(400).json({ success: false, error: 'Issue is already accepted' });
+        }
+
+        if (issueAssignment.status === 'completed') {
+            return res.status(400).json({ success: false, error: 'Issue is already completed' });
+        }
+
+        // Validate start_date if provided
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (start_date) {
+            const providedStartDate = new Date(start_date);
+            providedStartDate.setHours(0, 0, 0, 0);
+            if (providedStartDate < today) {
+                return res.status(400).json({ success: false, error: 'Start date cannot be before today' });
+            }
+        }
+
+        // Prepare update data
+        const updateData = { status: 'in_progress' };
+
+        // Set start_date
+        if (start_date) {
+            updateData.start_date = start_date;
+        } else {
+            updateData.start_date = new Date();
+        }
+
+        // Update the issue assignment
+        await IssueAssignments.update(updateData, { where: { id: issueId } });
+
+        res.json({
+            success: true,
+            message: 'Issue accepted successfully',
+            data: {
+                issue_id: issueId,
+                status: updateData.status,
+                start_date: updateData.start_date
+            }
+        });
+    } catch (error) {
+        console.error('Error accepting issue:', error);
+        res.status(500).json({ success: false, error: error.message, message: 'Failed to accept issue' });
+    }
+};
+
+// Submit/complete an issue
+const submitIssue = async (req, res) => {
+    try {
+        const issueId = parseInt(req.params.issueId, 10);
+        const { link, description } = req.body;
+        const user_id = req.user.id;
+
+        if (isNaN(issueId)) {
+            return res.status(400).json({ success: false, error: 'Invalid issue ID' });
+        }
+
+        // Check if issue exists and is assigned to the user
+        const userIssueAssignment = await IssueUserAssignments.findOne({
+            where: { issue_assignment_id: issueId, user_id: user_id }
+        });
+
+        if (!userIssueAssignment) {
+            return res.status(404).json({ success: false, error: 'Issue not found or not assigned to you' });
+        }
+
+        // Get the issue assignment
+        const issueAssignment = await IssueAssignments.findByPk(issueId, {
+            include: [
+                { model: Tasks, as: 'task' },
+                { model: User, as: 'requester' }
+            ]
+        });
+
+        if (!issueAssignment) {
+            return res.status(404).json({ success: false, error: 'Issue assignment not found' });
+        }
+
+        // Check if issue is in progress
+        if (issueAssignment.status !== 'in_progress') {
+            return res.status(400).json({ success: false, error: 'Issue must be in_progress to submit' });
+        }
+
+        // Update the issue assignment
+        await IssueAssignments.update(
+            {
+                status: 'completed',
+                end_date: new Date(),
+                link: link || issueAssignment.link,
+                description: description || issueAssignment.description
+            },
+            { where: { id: issueId } }
+        );
+
+        // Get work request details to find manager
+        let manager = null;
+        if (issueAssignment.task && issueAssignment.task.work_request_id) {
+            const workRequestManagers = await WorkRequestManagers.findAll({
+                where: { work_request_id: issueAssignment.task.work_request_id },
+                include: [{ model: User, as: 'manager', attributes: ['id', 'name', 'email'] }]
+            });
+            if (workRequestManagers.length > 0) {
+                manager = workRequestManagers[0].manager;
+            }
+        }
+
+        // Send email to manager if found
+        if (manager) {
+            const user = req.user;
+            
+            const html = renderTemplate('taskCompletionNotification', {
+                user_name: manager.name,
+                task_name: issueAssignment.task ? issueAssignment.task.task_name : 'Issue ' + issueAssignment.version,
+                project_name: issueAssignment.task && issueAssignment.task.WorkRequest ? issueAssignment.task.WorkRequest.project_name : 'N/A',
+                submitted_by: user.name,
+                submitted_at: new Date().toLocaleDateString('en-IN', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }),
+                link: link || 'N/A',
+                description: description || 'No description provided',
+                frontend_url: process.env.FRONTEND_URL
+            });
+
+            const mailOptions = {
+                to: manager.email,
+                subject: `Issue Completed - ${issueAssignment.version}`,
+                html
+            };
+
+            await sendMail(mailOptions);
+        }
+
+        res.json({
+            success: true,
+            message: 'Issue submitted successfully' + (manager ? ' and manager notified' : ''),
+            data: {
+                issue_id: issueId,
+                status: 'completed',
+                end_date: new Date()
+            }
+        });
+    } catch (error) {
+        console.error('Error submitting issue:', error);
+        res.status(500).json({ success: false, error: error.message, message: 'Failed to submit issue' });
+    }
+};
+
 module.exports = {
     getAssignedTasks,
     getMyTeamTasks,
@@ -1508,5 +1823,9 @@ module.exports = {
     acceptTask,
     submitTask,
     getTaskDocuments,
-    deleteTaskDocument
+    deleteTaskDocument,
+    // Issue functions
+    getAssignedIssues,
+    acceptIssue,
+    submitIssue
 };

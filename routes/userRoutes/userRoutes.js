@@ -4,7 +4,7 @@ const { authenticateToken } = require('../../middleware/jwtMiddleware');
 const filterMiddleware = require('../../middleware/filterMiddleware');
 const paginationMiddleware = require('../../middleware/paginationMiddleware');
 const searchMiddleware = require('../../middleware/searchMiddleware');
-const { getAssignedTasks, getMyTeamTasks, getTaskById, assignTaskToUser, acceptTask, submitTask, getTaskDocuments, deleteTaskDocument } = require('../../controller/userController/userController');
+const { getAssignedTasks, getMyTeamTasks, getTaskById, assignTaskToUser, acceptTask, submitTask, getTaskDocuments, deleteTaskDocument, getAssignedIssues, acceptIssue, submitIssue } = require('../../controller/userController/userController');
 
 // GET /api/users/tasks - Get assigned tasks (only for division 9 users or managers)
 router.get('/tasks', authenticateToken, filterMiddleware, paginationMiddleware, searchMiddleware, getAssignedTasks);
@@ -29,5 +29,15 @@ router.get('/tasks/:task_id/documents', authenticateToken, getTaskDocuments);
 
 // DELETE /api/users/documents/:document_id - Delete a document by ID
 router.delete('/documents/:document_id', authenticateToken, deleteTaskDocument);
+
+// Issue Routes
+// GET /api/users/issues - Get issues assigned to the user
+router.get('/issues', authenticateToken, getAssignedIssues);
+
+// PUT /api/users/issues/:issueId/accept - Accept an issue
+router.put('/issues/:issueId/accept', authenticateToken, acceptIssue);
+
+// POST /api/users/issues/submit - Submit/complete an issue
+router.post('/issues/submit', authenticateToken, submitIssue);
 
 module.exports = router;
