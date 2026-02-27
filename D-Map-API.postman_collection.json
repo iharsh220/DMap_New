@@ -1325,6 +1325,42 @@
                     "response": []
                 },
                 {
+                    "name": "Assign Issue To User",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"issue_assignment_id\": 1,\n    \"user_id\": 23,\n    \"deadline\": \"2026-03-15\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/digilabs/dmap/api/manager/assign-issue-to-user",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "manager",
+                                "assign-issue-to-user"
+                            ]
+                        },
+                        "description": "Assign an issue to a user. Creates entry in issue_user_assignments table and sends email notification. Updates intimate_team to 1 so user gets task assignment email (requires authentication and manager role)"
+                    },
+                    "response": []
+                },
+                {
                     "name": "Get My Team",
                     "request": {
                         "method": "GET",

@@ -3516,6 +3516,120 @@ const shareForClientReview = async (req, res) => {
     }
 };
 
+// Assign issue assignment to a user
+const assignIssueToUser = async (req, res) => {
+    try {
+        const { issue_assignment_id, user_id, deadline } = req.body;
+        const manager_id = req.user.id;
+
+        if (!issue_assignment_id || !user_id) {
+            return res.status(400).json({ success: false, error: 'issue_assignment_id and user_id are required' });
+        }
+
+        // Check if issue_assignment exists
+        const issueAssignment = await IssueAssignments.findByPk(issue_assignment_id, {
+            include: [
+                { model: Tasks, as: 'task', attributes: ['id', 'task_name', 'work_request_id'] },
+                { model: User, as: 'requester', attributes: ['id', 'name', 'email'] }
+            ]
+        });
+
+        if (!issueAssignment) {
+            return res.status(404).json({ success: false, error: 'Issue assignment not found' });
+        }
+
+        // Check if user exists
+        const assignedUser = await User.findByPk(user_id, {
+            attributes: ['id', 'name', 'email', 'job_role_id']
+        });
+
+        if (!assignedUser) {
+            return res.status(404).json({ success: false, error: 'User not found' });
+        }
+
+        // Check if already assigned
+        const existingAssignment = await IssueUserAssignments.findOne({
+            where: { issue_assignment_id, user_id }
+        });
+
+        if (existingAssignment) {
+            return res.status(400).json({ success: false, error: 'User is already assigned to this issue' });
+        }
+
+        // Create the assignment in issue_user_assignments
+        const issueUserAssignment = await IssueUserAssignments.create({
+            issue_assignment_id,
+            user_id
+        });
+
+        // Update issue_assignment intimate_team to 1 so user gets email notification
+        await IssueAssignments.update(
+            { intimate_team: 1, deadline: deadline || null },
+            { where: { id: issue_assignment_id } }
+        );
+
+        // Get work request details for email
+        let workRequest = null;
+        if (issueAssignment.task && issueAssignment.task.work_request_id) {
+            workRequest = await WorkRequests.findByPk(issueAssignment.task.work_request_id, {
+                attributes: ['id', 'project_name', 'brand'],
+                include: [{ model: User, as: 'users', attributes: ['id', 'name', 'email'] }]
+            });
+        }
+
+        // Send email to the assigned user
+        const html = renderTemplate('issueAssignmentNotification', {
+            user_name: assignedUser.name,
+            issue_version: issueAssignment.version,
+            issue_description: issueAssignment.description,
+            deadline: deadline,
+            task_name: issueAssignment.task ? issueAssignment.task.task_name : 'N/A',
+            project_name: workRequest ? workRequest.project_name : 'N/A',
+            brand: workRequest ? workRequest.brand : 'N/A',
+            assigned_by: manager_id,
+            assigned_at: new Date().toLocaleDateString('en-IN', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            }),
+            frontend_url: process.env.FRONTEND_URL
+        });
+
+        const mailOptions = {
+            to: assignedUser.email,
+            subject: `Issue Assignment - ${issueAssignment.version}`,
+            html
+        };
+
+        await sendMail(mailOptions);
+
+        res.json({
+            success: true,
+            data: {
+                id: issueUserAssignment.id,
+                issue_assignment_id: issueUserAssignment.issue_assignment_id,
+                user_id: issueUserAssignment.user_id,
+                user: {
+                    id: assignedUser.id,
+                    name: assignedUser.name,
+                    email: assignedUser.email
+                },
+                email_sent: true
+            },
+            message: 'Issue assigned to user successfully and email sent'
+        });
+    } catch (error) {
+        console.error('Error assigning issue to user:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            message: 'Failed to assign issue to user'
+        });
+    }
+};
+
 module.exports = {
     getAssignedWorkRequests,
     getAssignedWorkRequestById,
@@ -3538,5 +3652,6 @@ module.exports = {
     reviewTaskDocument,
     reviewIssueDocument,
     reviewTask,
-    shareForClientReview
+    shareForClientReview,
+    assignIssueToUser
 };
