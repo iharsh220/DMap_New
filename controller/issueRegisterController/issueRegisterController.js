@@ -173,7 +173,8 @@ const getIssueAssignmentsWithTaskDetails = async (req, res) => {
                         { model: TaskType, attributes: ['id', 'task_type', 'description'] },
                         { model: WorkRequests, attributes: ['id', 'project_name', 'brand', 'description', 'priority', 'status', 'requested_at'], include: [{ model: User, as: 'users', attributes: ['id', 'name', 'email'] }] },
                         { model: TaskDependencies, as: 'dependencies', attributes: ['id', 'dependency_task_id'], include: [{ model: Tasks, as: 'dependencyTask', attributes: ['id', 'task_name', 'status'] }] },
-                        { model: TaskReviewHistory, as: 'reviewHistory', attributes: ['id', 'reviewer_id', 'reviewer_type', 'action', 'comments', 'previous_stage', 'new_stage'], include: [{ model: User, as: 'reviewer', attributes: ['id', 'name', 'email'] }] }
+                        { model: TaskReviewHistory, as: 'reviewHistory', attributes: ['id', 'reviewer_id', 'reviewer_type', 'action', 'comments', 'previous_stage', 'new_stage'], include: [{ model: User, as: 'reviewer', attributes: ['id', 'name', 'email'] }] },
+                        { model: User, as: 'assignedUsers', attributes: ['id', 'name', 'email', 'job_role_id'], through: { attributes: [] }, include: [{ model: JobRole, attributes: ['id', 'role_title'] }, { model: Designation, attributes: ['id', 'designation_name'] }, { model: Department, attributes: ['id', 'department_name'] }, { model: Location, attributes: ['id', 'location_name'] }] }
                     ]
                 },
                 { model: IssueAssignments, as: 'parentIssue', attributes: ['id', 'version', 'description', 'status', 'assignment_type'] },
@@ -377,6 +378,16 @@ const getIssueAssignmentsWithTaskDetails = async (req, res) => {
                     review: task.review, 
                     review_stage: task.review_stage, 
                     task_documents: taskDocuments, 
+                    assigned_users: task.assignedUsers ? task.assignedUsers.map(user => ({
+                        id: user.id,
+                        name: user.name,
+                        email: user.email,
+                        job_role_id: user.job_role_id,
+                        role_title: user.JobRole ? user.JobRole.role_title : null,
+                        designation_name: user.Designation ? user.Designation.designation_name : null,
+                        department_name: user.Department ? user.Department.department_name : null,
+                        location_name: user.Location ? user.Location.location_name : null
+                    })) : [],
                     dependencies: dependencies, 
                     review_history: reviewHistory 
                 } : null,
