@@ -1361,6 +1361,43 @@
                     "response": []
                 },
                 {
+                    "name": "Accept Issue Request",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}{{base_route}}manager/assigned-work-requests/issue/:id/accept",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "manager",
+                                "assigned-work-requests",
+                                "issue",
+                                ":id",
+                                "accept"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "1",
+                                    "description": "Issue assignment ID"
+                                }
+                            ]
+                        },
+                        "description": "Accept an issue request (requires authentication and manager role)"
+                    },
+                    "response": []
+                },
+                {
                     "name": "Get My Team",
                     "request": {
                         "method": "GET",

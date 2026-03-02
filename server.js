@@ -71,6 +71,7 @@ app.use('/uploads', express.static('uploads'));
 app.use(baseRoute, express.static(path.join(__dirname, 'public')));
 
 // Logging middleware
+
 // const loggingMiddleware = require('./middleware/loggingMiddleware');
 // app.use(loggingMiddleware);
 
