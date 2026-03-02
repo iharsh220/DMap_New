@@ -1901,7 +1901,7 @@ CREATE TABLE `issue_assignments` (
   `start_date` date DEFAULT NULL COMMENT 'Start date for the issue assignment',
   `end_date` date DEFAULT NULL COMMENT 'End date for the issue assignment',
   `link` varchar(500) DEFAULT NULL COMMENT 'Link URL for the issue assignment',
-  `status` enum('pending','in_progress','completed','rejected') DEFAULT 'pending',
+  `status` enum('m_pending','u_pending','m_accepted','u_accepted','in_progress','completed','rejected','on_hold','cancelled') DEFAULT 'm_pending',
   `review` enum('pending','approved','change_request') DEFAULT 'pending' COMMENT 'Review status - pending, approved, or change_request',
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()

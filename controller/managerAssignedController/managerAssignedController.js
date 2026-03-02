@@ -3552,16 +3552,16 @@ const acceptIssueRequest = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Issue assignment is not linked to a valid task' });
         }
 
-        if (issueAssignment.status === 'accepted') {
-            return res.status(400).json({ success: false, error: 'Issue request is already accepted' });
+        if (issueAssignment.status === 'm_accepted') {
+            return res.status(400).json({ success: false, error: 'Issue request is already accepted by manager' });
         }
 
-        if (issueAssignment.status !== 'pending') {
-            return res.status(400).json({ success: false, error: 'Only pending issue requests can be accepted' });
+        if (issueAssignment.status !== 'm_pending') {
+            return res.status(400).json({ success: false, error: 'Only m_pending issue requests can be accepted' });
         }
 
-        // Update status to accepted
-        await IssueAssignments.update({ status: 'accepted' }, { where: { id } });
+        // Update status to m_accepted (manager accepted)
+        await IssueAssignments.update({ status: 'm_accepted' }, { where: { id } });
 
         // Get work request details for email
         let workRequest = null;

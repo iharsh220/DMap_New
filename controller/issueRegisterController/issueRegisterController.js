@@ -107,7 +107,7 @@ const createIssueAssignment = async (req, res) => {
             task_count,
             intimate_team,
             intimate_client,
-            status: 'pending',
+            status: 'm_pending',
             review: 'pending'
         }, { transaction });
 

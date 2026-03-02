@@ -1530,7 +1530,7 @@ const getAssignedIssues = async (req, res) => {
         // Apply status filter
         if (status) {
             const statusArray = status.split(',').map(s => s.trim());
-            const validStatuses = ['pending', 'in_progress', 'completed', 'rejected'];
+            const validStatuses = ['m_pending', 'u_pending', 'm_accepted', 'u_accepted', 'in_progress', 'completed', 'rejected', 'on_hold', 'cancelled'];
             const invalidStatuses = statusArray.filter(s => !validStatuses.includes(s));
 
             if (invalidStatuses.length > 0) {
@@ -1546,8 +1546,8 @@ const getAssignedIssues = async (req, res) => {
                 whereCondition.status = statusArray[0];
             }
         } else {
-            // Default: show pending issues
-            whereCondition.status = 'pending';
+            // Default: show u_pending issues
+            whereCondition.status = 'u_pending';
         }
 
         // Get issue assignments with full details
@@ -1662,7 +1662,7 @@ const acceptIssue = async (req, res) => {
         }
 
         // Check if issue is already accepted
-        if (issueAssignment.status === 'in_progress') {
+        if (issueAssignment.status === 'u_accepted') {
             return res.status(400).json({ success: false, error: 'Issue is already accepted' });
         }
 
@@ -1683,7 +1683,7 @@ const acceptIssue = async (req, res) => {
         }
 
         // Prepare update data
-        const updateData = { status: 'in_progress' };
+        const updateData = { status: 'u_accepted' };
 
         // Set start_date
         if (start_date) {
@@ -1742,9 +1742,9 @@ const submitIssue = async (req, res) => {
             return res.status(404).json({ success: false, error: 'Issue assignment not found' });
         }
 
-        // Check if issue is in progress
-        if (issueAssignment.status !== 'in_progress') {
-            return res.status(400).json({ success: false, error: 'Issue must be in_progress to submit' });
+        // Check if issue is ready to submit
+        if (issueAssignment.status !== 'u_accepted' && issueAssignment.status !== 'in_progress') {
+            return res.status(400).json({ success: false, error: 'Issue must be u_accepted or in_progress to submit' });
         }
 
         // Update the issue assignment

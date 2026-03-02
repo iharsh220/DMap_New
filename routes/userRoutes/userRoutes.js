@@ -37,7 +37,7 @@ router.get('/issues', authenticateToken, getAssignedIssues);
 // PUT /api/users/issues/:issueId/accept - Accept an issue
 router.put('/issues/:issueId/accept', authenticateToken, acceptIssue);
 
-// POST /api/users/issues/submit - Submit/complete an issue
-router.post('/issues/submit', authenticateToken, submitIssue);
+// PUT /api/users/issues/:issueId/submit - Submit/complete an issue
+router.put('/issues/:issueId/submit', authenticateToken, submitIssue);
 
 module.exports = router;

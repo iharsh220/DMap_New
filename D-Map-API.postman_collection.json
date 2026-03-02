@@ -2194,6 +2194,13 @@
                                 "api",
                                 "users",
                                 "issues"
+                            ],
+                            "query": [
+                                {
+                                    "key": "status",
+                                    "value": "",
+                                    "description": "Filter by status: m_pending, u_pending, m_accepted, u_accepted, in_progress, completed, rejected, on_hold, cancelled (optional)"
+                                }
                             ]
                         },
                         "description": "Get issues assigned to the user (from issue_user_assignments) with optional status filter (requires authentication)"
@@ -2241,14 +2248,14 @@
                                 }
                             ]
                         },
-                        "description": "Accept an issue with optional start_date. Sets status to in_progress (requires authentication)"
+                        "description": "Accept an issue with optional start_date. Sets status to u_accepted (requires authentication)"
                     },
                     "response": []
                 },
                 {
                     "name": "Submit Issue",
                     "request": {
-                        "method": "POST",
+                        "method": "PUT",
                         "header": [
                             {
                                 "key": "Authorization",
@@ -2265,7 +2272,7 @@
                             }
                         },
                         "url": {
-                            "raw": "{{base_url}}{{base_route}}users/issues/submit",
+                            "raw": "{{base_url}}{{base_route}}users/issues/:issueId/submit",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -2275,10 +2282,18 @@
                                 "api",
                                 "users",
                                 "issues",
+                                ":issueId",
                                 "submit"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "issueId",
+                                    "value": "1",
+                                    "description": "Issue ID"
+                                }
                             ]
                         },
-                        "description": "Submit/complete an issue. Sends email notification to manager (requires authentication)"
+                        "description": "Submit/complete an issue. Sets status to completed. Sends email notification to manager (requires authentication)"
                     },
                     "response": []
                 }
