@@ -1903,6 +1903,7 @@ CREATE TABLE `issue_assignments` (
   `link` varchar(500) DEFAULT NULL COMMENT 'Link URL for the issue assignment',
   `status` enum('m_pending','u_pending','m_accepted','u_accepted','in_progress','completed','rejected','on_hold','cancelled') DEFAULT 'm_pending',
   `review` enum('pending','approved','change_request') DEFAULT 'pending' COMMENT 'Review status - pending, approved, or change_request',
+  `review_stage` enum('not_started','manager_review','pm_review','change_requested','final_approved') DEFAULT 'not_started' COMMENT 'Review stage - not_started, manager_review, pm_review, change_requested, final_approved',
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

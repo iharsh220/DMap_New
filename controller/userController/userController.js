@@ -15,7 +15,8 @@ const {
     IssueAssignments,
     IssueAssignmentTypes,
     IssueRegister,
-    IssueUserAssignments
+    IssueUserAssignments,
+    IssueDocuments
 } = require('../../models');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
@@ -1786,7 +1787,7 @@ const acceptIssue = async (req, res) => {
 const submitIssue = async (req, res) => {
     try {
         const issueId = parseInt(req.params.issueId, 10);
-        const { link, description } = req.body;
+        const { link, description, task_count } = req.body;
         const user_id = req.user.id;
 
         if (isNaN(issueId)) {
@@ -1802,11 +1803,38 @@ const submitIssue = async (req, res) => {
             return res.status(404).json({ success: false, error: 'Issue not found or not assigned to you' });
         }
 
-        // Get the issue assignment
+        // Get the issue assignment with full details
         const issueAssignment = await IssueAssignments.findByPk(issueId, {
             include: [
-                { model: Tasks, as: 'task' },
-                { model: User, as: 'requester' }
+                {
+                    model: Tasks,
+                    as: 'task',
+                    include: [
+                        {
+                            model: WorkRequests,
+                            attributes: ['id', 'project_name', 'brand', 'priority', 'user_id', 'status'],
+                            include: [
+                                { model: RequestType, attributes: ['request_type'] },
+                                {
+                                    model: WorkRequestManagers,
+                                    include: [
+                                        {
+                                            model: User,
+                                            as: 'manager',
+                                            attributes: ['id', 'name', 'email'],
+                                            include: [{
+                                                model: JobRole,
+                                                attributes: ['id', 'role_title', 'level', 'description']
+                                            }]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                { model: User, as: 'requester', attributes: ['id', 'name', 'email'] },
+                { model: IssueAssignmentTypes, as: 'issueTypeLinks', include: [{ model: IssueRegister, as: 'issueRegister' }] }
             ]
         });
 
@@ -1814,76 +1842,221 @@ const submitIssue = async (req, res) => {
             return res.status(404).json({ success: false, error: 'Issue assignment not found' });
         }
 
+        const task = issueAssignment.task;
+        const workRequest = task ? task.WorkRequest : null;
+
         // Check if issue is ready to submit
         if (issueAssignment.status !== 'u_accepted' && issueAssignment.status !== 'in_progress') {
             return res.status(400).json({ success: false, error: 'Issue must be u_accepted or in_progress to submit' });
         }
 
-        // Update the issue assignment
-        await IssueAssignments.update(
-            {
+        // Use a transaction for the issue update and file uploads
+        const issueTransaction = await IssueAssignments.sequelize.transaction();
+
+        try {
+            // Update issue with task_count, link, description FIRST
+            const issueUpdateData = {
                 status: 'completed',
                 end_date: new Date(),
+                review_stage: 'manager_review', // Set review_stage to manager_review when issue is completed
                 link: link || issueAssignment.link,
                 description: description || issueAssignment.description
-            },
-            { where: { id: issueId } }
-        );
-
-        // Get work request details to find manager
-        let manager = null;
-        if (issueAssignment.task && issueAssignment.task.work_request_id) {
-            const workRequestManagers = await WorkRequestManagers.findAll({
-                where: { work_request_id: issueAssignment.task.work_request_id },
-                include: [{ model: User, as: 'manager', attributes: ['id', 'name', 'email'] }]
-            });
-            if (workRequestManagers.length > 0) {
-                manager = workRequestManagers[0].manager;
-            }
-        }
-
-        // Send email to manager if found
-        if (manager) {
-            const user = req.user;
-
-            const html = renderTemplate('taskCompletionNotification', {
-                user_name: manager.name,
-                task_name: issueAssignment.task ? issueAssignment.task.task_name : 'Issue ' + issueAssignment.version,
-                project_name: issueAssignment.task && issueAssignment.task.WorkRequest ? issueAssignment.task.WorkRequest.project_name : 'N/A',
-                submitted_by: user.name,
-                submitted_at: new Date().toLocaleDateString('en-IN', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                }),
-                link: link || 'N/A',
-                description: description || 'No description provided',
-                frontend_url: process.env.FRONTEND_URL
-            });
-
-            const mailOptions = {
-                to: manager.email,
-                subject: `Issue Completed - ${issueAssignment.version}`,
-                html
             };
 
-            await sendMail(mailOptions);
+            if (task_count) {
+                issueUpdateData.task_count = parseInt(task_count, 10);
+            }
+
+            console.log(`Updating issue ${issueId} to completed...`);
+            const [affectedRows] = await IssueAssignments.update(issueUpdateData, {
+                where: { id: issueId },
+                transaction: issueTransaction
+            });
+            console.log(`Issue update result: ${affectedRows} rows affected`);
+
+            // Handle file uploads for issue documents
+            const documents = [];
+            if (req.files && req.files.documents) {
+                const files = Array.isArray(req.files.documents) ? req.files.documents : [req.files.documents];
+
+                // Create user folder with version structure if it doesn't exist
+                const uploadDir = path.join(__dirname, '../../uploads');
+                const sanitizedProjectName = workRequest ? workRequest.project_name.replace(/[^a-zA-Z0-9]/g, '_') : 'Issue';
+                const projectFolder = path.join(uploadDir, sanitizedProjectName);
+                const taskFolder = task ? path.join(projectFolder, task.task_name) : path.join(projectFolder, 'Issue_' + issueId);
+                const userFolder = path.join(taskFolder, req.user.name);
+                const versionFolder = path.join(userFolder, issueAssignment.version || 'V1');
+
+                if (!fs.existsSync(versionFolder)) {
+                    fs.mkdirSync(versionFolder, { recursive: true });
+                }
+
+                for (const file of files) {
+                    // Generate unique filename for each file
+                    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+                    const filename = file.name.replace(/[^a-zA-Z0-9.]/g, '_') + '-' + uniqueSuffix + path.extname(file.name);
+
+                    // Create unique temp directory for this file to avoid conflicts
+                    const tempDir = path.join('temp', 'uploads', uniqueSuffix);
+                    if (!fs.existsSync(tempDir)) {
+                        fs.mkdirSync(tempDir, { recursive: true });
+                    }
+
+                    // Save file to temp location
+                    const tempFilename = `${filename}`;
+                    const tempFilepath = path.join(tempDir, tempFilename);
+                    await file.mv(tempFilepath);
+
+                    const documentData = {
+                        issue_user_assignment_id: userIssueAssignment.id,
+                        document_name: file.name,
+                        document_path: `${process.env.BASE_ROUTE}/uploads/${sanitizedProjectName}/${task ? task.task_name : 'Issue_' + issueId}/${req.user.name}/${issueAssignment.version || 'V1'}/${filename}`,
+                        document_type: file.mimetype,
+                        document_size: file.size,
+                        version: issueAssignment.version || 'V1',
+                        status: 'uploading',
+                        uploaded_at: new Date()
+                    };
+
+                    const docResult = await IssueDocuments.create(documentData, { transaction: issueTransaction });
+                    documents.push(docResult);
+
+                    // Move file synchronously instead of using queue
+                    try {
+                        // Ensure version directory exists
+                        if (!fs.existsSync(versionFolder)) {
+                            fs.mkdirSync(versionFolder, { recursive: true });
+                        }
+
+                        const finalFilepath = path.join(versionFolder, filename);
+                        fs.renameSync(tempFilepath, finalFilepath);
+
+                        // Update document status to uploaded
+                        await IssueDocuments.update(
+                            { status: 'uploaded' },
+                            { where: { id: docResult.id }, transaction: issueTransaction }
+                        );
+
+                        // Clean up temp directory
+                        try {
+                            fs.rmdirSync(tempDir);
+                        } catch (cleanupError) {
+                            console.error('Failed to cleanup temp directory:', cleanupError);
+                        }
+
+                    } catch (uploadError) {
+                        console.error(`Failed to upload issue file ${filename}:`, uploadError);
+
+                        // Update document status to failed
+                        await IssueDocuments.update(
+                            { status: 'failed' },
+                            { where: { id: docResult.id }, transaction: issueTransaction }
+                        );
+
+                        // Clean up temp directory
+                        try {
+                            if (fs.existsSync(tempDir)) {
+                                fs.rmSync(tempDir, { recursive: true, force: true });
+                            }
+                        } catch (cleanupError) {
+                            console.error('Failed to cleanup temp directory on error:', cleanupError);
+                        }
+
+                        throw uploadError;
+                    }
+                }
+            }
+
+            // Commit the issue transaction
+            await issueTransaction.commit();
+
+            // Get user details for email
+            const user = await User.findByPk(user_id, { attributes: ['id', 'name', 'email'] });
+
+            // Send email notification for issue completion
+            const completedAt = new Date().toLocaleDateString('en-IN', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            // Find the creative lead manager (assuming the first manager is the creative lead)
+            const creativeLead = workRequest && workRequest.WorkRequestManagers && workRequest.WorkRequestManagers.length > 0
+                ? workRequest.WorkRequestManagers[0].manager
+                : null;
+
+            if (creativeLead) {
+                const emailData = {
+                    project_name: workRequest ? workRequest.project_name : 'N/A',
+                    brand: workRequest ? workRequest.brand : 'N/A',
+                    request_type: workRequest?.RequestType?.request_type || 'N/A',
+                    priority: workRequest ? workRequest.priority : 'N/A',
+                    request_id: workRequest ? workRequest.id : 'N/A',
+                    completed_at: completedAt,
+                    task_name: task ? task.task_name : 'Issue ' + issueAssignment.version,
+                    description: description || issueAssignment.description,
+                    completed_by: user.name,
+                    task_count: task_count || issueAssignment.task_count || 0,
+                    link: link || null,
+                    frontend_url: process.env.FRONTEND_URL
+                };
+
+                const html = renderTemplate('taskCompletionNotification', emailData);
+
+                const mailOptions = {
+                    to: creativeLead.email,
+                    cc: user.email,
+                    subject: 'Issue Completed - D-Map',
+                    html
+                };
+
+                await sendMail(mailOptions);
+            }
+
+            res.json({
+                success: true,
+                data: {
+                    issue_id: issueId,
+                    task_count: task_count || issueAssignment.task_count || 0,
+                    link: link || null,
+                    documents: documents,
+                    work_request_id: workRequest ? workRequest.id : null
+                },
+                message: 'Issue submitted successfully'
+            });
+
+        } catch (issueError) {
+            // Rollback issue transaction on any error
+            await issueTransaction.rollback();
+            throw issueError;
         }
 
-        res.json({
-            success: true,
-            message: 'Issue submitted successfully' + (manager ? ' and manager notified' : ''),
-            data: {
-                issue_id: issueId,
-                status: 'completed',
-                end_date: new Date()
-            }
-        });
     } catch (error) {
         console.error('Error submitting issue:', error);
-        res.status(500).json({ success: false, error: error.message, message: 'Failed to submit issue' });
+
+        // Return appropriate error response based on error type
+        if (error.name === 'SequelizeValidationError') {
+            return res.status(400).json({
+                success: false,
+                error: 'Validation error',
+                details: error.errors.map(e => e.message)
+            });
+        }
+
+        if (error.name === 'SequelizeForeignKeyConstraintError') {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid foreign key reference'
+            });
+        }
+
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            message: 'Failed to submit issue'
+        });
     }
 };
 

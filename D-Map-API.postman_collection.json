@@ -2263,13 +2263,29 @@
                             }
                         ],
                         "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"link\": \"https://example.com/work\",\n    \"description\": \"Completed the issue work\"\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "link",
+                                    "value": "https://example.com/work",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "description",
+                                    "value": "Completed the issue work",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "task_count",
+                                    "value": "1",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "documents",
+                                    "type": "file",
+                                    "src": []
                                 }
-                            }
+                            ]
                         },
                         "url": {
                             "raw": "{{base_url}}{{base_route}}users/issues/:issueId/submit",
@@ -2293,7 +2309,7 @@
                                 }
                             ]
                         },
-                        "description": "Submit/complete an issue. Sets status to completed. Sends email notification to manager (requires authentication)"
+                        "description": "Submit/complete an issue. Accepts form-data with: link, description, task_count, documents. Sets status to completed, review_stage to manager_review. Sends email notification to manager."
                     },
                     "response": []
                 }
