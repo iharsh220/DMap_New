@@ -1973,7 +1973,7 @@ const submitIssue = async (req, res) => {
             // Get user details for email
             const user = await User.findByPk(user_id, { attributes: ['id', 'name', 'email'] });
 
-            // Send email notification for issue completion
+            // Send email notification for issue completion to the issue's manager(s)
             const completedAt = new Date().toLocaleDateString('en-IN', {
                 year: 'numeric',
                 month: 'long',
@@ -1982,32 +1982,75 @@ const submitIssue = async (req, res) => {
                 minute: '2-digit'
             });
 
-            // Find the creative lead manager (assuming the first manager is the creative lead)
-            const creativeLead = workRequest && workRequest.WorkRequestManagers && workRequest.WorkRequestManagers.length > 0
-                ? workRequest.WorkRequestManagers[0].manager
-                : null;
+            // Get the issue's requester (manager who created the issue)
+            const issueRequester = issueAssignment.requester;
 
-            if (creativeLead) {
+            // Collect all unique manager emails from:
+            // 1. Issue requester (the manager who created the issue)
+            // 2. All work request managers
+            const managerEmails = new Set();
+
+            // Add issue requester email if exists
+            if (issueRequester && issueRequester.email) {
+                managerEmails.add(issueRequester.email);
+            }
+
+            // Add all work request managers
+            if (workRequest && workRequest.WorkRequestManagers) {
+                workRequest.WorkRequestManagers.forEach(wrm => {
+                    if (wrm.manager && wrm.manager.email) {
+                        managerEmails.add(wrm.manager.email);
+                    }
+                });
+            }
+
+            // Get issue type details for email
+            const issueRegisters = issueAssignment.issueTypeLinks ? issueAssignment.issueTypeLinks.map(itl => ({
+                change_issue_type: itl.issueRegister ? itl.issueRegister.change_issue_type : null,
+                description: itl.issueRegister ? itl.issueRegister.description : null,
+                quantification: itl.issueRegister ? itl.issueRegister.quantification : null
+            })) : [];
+
+            // Get task type if available
+            let taskType = 'N/A';
+            if (task && task.TaskType) {
+                taskType = task.TaskType.task_type;
+            } else if (issueAssignment.issueTypeLinks && issueAssignment.issueTypeLinks.length > 0) {
+                // Try to get from first issue type link
+                taskType = issueAssignment.issueTypeLinks[0].issueRegister?.change_issue_type || 'Issue';
+            }
+
+            if (managerEmails.size > 0) {
+                // Prepare email data for issueAssignmentNotification template
                 const emailData = {
+                    manager_name: issueRequester ? issueRequester.name : 'Manager',
+                    task_id: task ? task.id : null,
+                    task_name: task ? task.task_name : 'Issue ' + issueAssignment.version,
+                    issue_id: issueAssignment.id,
+                    task_type: taskType,
                     project_name: workRequest ? workRequest.project_name : 'N/A',
                     brand: workRequest ? workRequest.brand : 'N/A',
-                    request_type: workRequest?.RequestType?.request_type || 'N/A',
                     priority: workRequest ? workRequest.priority : 'N/A',
-                    request_id: workRequest ? workRequest.id : 'N/A',
-                    completed_at: completedAt,
-                    task_name: task ? task.task_name : 'Issue ' + issueAssignment.version,
-                    description: description || issueAssignment.description,
-                    completed_by: user.name,
-                    task_count: task_count || issueAssignment.task_count || 0,
-                    link: link || null,
+                    request_type: workRequest?.RequestType?.request_type || 'N/A',
+                    issue_version: issueAssignment.version || 'V1',
+                    assigned_by: issueRequester ? issueRequester.name : 'System',
+                    created_at: completedAt,
+                    issue_description: description || issueAssignment.description || 'No description provided',
+                    issue_registers: issueRegisters,
+                    assigned_users: [{ name: user.name, email: user.email }],
                     frontend_url: process.env.FRONTEND_URL
                 };
 
-                const html = renderTemplate('taskCompletionNotification', emailData);
+                const html = renderTemplate('issueAssignmentNotification', emailData);
+
+                // Convert Set to array and take first as TO, rest as CC
+                const emailArray = Array.from(managerEmails);
+                const toEmail = emailArray[0];
+                const ccEmails = emailArray.slice(1);
 
                 const mailOptions = {
-                    to: creativeLead.email,
-                    cc: user.email,
+                    to: toEmail,
+                    cc: ccEmails.length > 0 ? ccEmails.join(',') : undefined,
                     subject: 'Issue Completed - D-Map',
                     html
                 };
