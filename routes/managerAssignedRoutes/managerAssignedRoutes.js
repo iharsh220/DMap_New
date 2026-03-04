@@ -11,8 +11,8 @@ const searchMiddleware = require('../../middleware/searchMiddleware');
 router.post('/tasks', authenticateToken, checkRole([1, 2, 3]), createTask); // Create a new task
 router.put('/tasks/:taskId', authenticateToken, checkRole([1, 2, 3]), updateTask); // Update a task by ID
 router.delete('/tasks/:taskId', authenticateToken, checkRole([1, 2, 3]), deleteTask); // Delete a task by ID
-router.put('/tasks/:taskId/review', authenticateToken, checkRole([1, 2, 3]), reviewTask); // Review (approve/change_request) a task
-router.post('/tasks/share-for-client-review', authenticateToken, checkRole([1, 2, 3]), shareForClientReview); // Share task with client for PM review
+router.put('/review', authenticateToken, checkRole([1, 2, 3]), reviewTask); // Review (approve/change_request) a task or issue (use task_id or issue_id in body)
+router.post('/share-for-client-review', authenticateToken, checkRole([1, 2, 3]), shareForClientReview); // Share task or issue with client for PM review (use task_id or issue_id in body)
 router.get('/work-request/:work_request_id/tasks', authenticateToken, checkRole([1, 2, 3]), getTasksByWorkRequestId); // Get tasks for a specific work request
 router.get('/user/:user_id/tasks', authenticateToken, checkRole([1, 2, 3]), filterMiddleware, paginationMiddleware, searchMiddleware, getUserTask); // Get tasks for a specific user with status filter and pagination
 

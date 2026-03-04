@@ -3131,13 +3131,8 @@ const reviewIssueDocument = async (req, res) => {
 
 const reviewTask = async (req, res) => {
     try {
-        const taskId = parseInt(req.params.taskId, 10);
-        if (isNaN(taskId)) {
-            return res.status(400).json({ success: false, error: 'Invalid task ID' });
-        }
-
         const manager_id = req.user.id;
-        const { action, comments } = req.body;
+        const { task_id, issue_id, action, comments } = req.body;
 
         // Validate action value
         if (!action || !['approved', 'change_request'].includes(action)) {
@@ -3147,197 +3142,408 @@ const reviewTask = async (req, res) => {
             });
         }
 
-        // Find the task with its work request and verify manager access
-        const task = await Tasks.findByPk(taskId, {
-            include: [
-                {
-                    model: WorkRequests,
-                    include: [
-                        {
-                            model: WorkRequestManagers,
-                            where: { manager_id: manager_id },
-                            required: true,
-                            attributes: []
-                        },
-                        {
-                            model: User,
-                            as: 'users',
-                            attributes: ['id', 'name', 'email']
-                        }
-                    ]
-                },
-                {
-                    model: User,
-                    as: 'assignedUsers',
-                    attributes: ['id', 'name', 'email'],
-                    through: { attributes: [] }
-                },
-                {
-                    model: IssueAssignments,
-                    as: 'issueAssignments',
-                    include: [
-                        {
-                            model: IssueAssignmentTypes,
-                            as: 'issueTypeLinks',
-                            include: [
-                                {
-                                    model: IssueRegister,
-                                    as: 'issueRegister',
-                                    attributes: ['id', 'change_issue_type', 'description']
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        });
-
-        if (!task) {
-            return res.status(404).json({
-                success: false,
-                error: 'Task not found or not assigned to you'
-            });
-        }
-
-        // Validation: Task must be completed for manager to review
-        if (task.status !== 'completed') {
+        // Check if either task_id or issue_id is provided
+        if (!task_id && !issue_id) {
             return res.status(400).json({
                 success: false,
-                error: 'Task must be completed before review. Current status: ' + task.status
+                error: 'Either task_id or issue_id is required'
             });
         }
 
-        // Validation: Check if manager has already reviewed (review_stage should not be past manager_review)
-        const currentReviewStage = task.review_stage || 'not_started';
-        const stagesAfterManagerReview = ['pm_review', 'change_requested', 'final_approved'];
+        // If task_id is provided, handle task review
+        if (task_id) {
+            const taskId = parseInt(task_id, 10);
+            if (isNaN(taskId)) {
+                return res.status(400).json({ success: false, error: 'Invalid task ID' });
+            }
 
-        if (stagesAfterManagerReview.includes(currentReviewStage)) {
-            return res.status(400).json({
-                success: false,
-                error: 'Manager has already reviewed this task. Current review stage: ' + currentReviewStage + '. Waiting for next level review.'
+            // Find the task with its work request and verify manager access
+            const task = await Tasks.findByPk(taskId, {
+                include: [
+                    {
+                        model: WorkRequests,
+                        include: [
+                            {
+                                model: WorkRequestManagers,
+                                where: { manager_id: manager_id },
+                                required: true,
+                                attributes: []
+                            },
+                            {
+                                model: User,
+                                as: 'users',
+                                attributes: ['id', 'name', 'email']
+                            }
+                        ]
+                    },
+                    {
+                        model: User,
+                        as: 'assignedUsers',
+                        attributes: ['id', 'name', 'email'],
+                        through: { attributes: [] }
+                    },
+                    {
+                        model: IssueAssignments,
+                        as: 'issueAssignments',
+                        include: [
+                            {
+                                model: IssueAssignmentTypes,
+                                as: 'issueTypeLinks',
+                                include: [
+                                    {
+                                        model: IssueRegister,
+                                        as: 'issueRegister',
+                                        attributes: ['id', 'change_issue_type', 'description']
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            });
+
+            if (!task) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Task not found or not assigned to you'
+                });
+            }
+
+            // Validation: Task must be completed for manager to review
+            if (task.status !== 'completed') {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Task must be completed before review. Current status: ' + task.status
+                });
+            }
+
+            // Validation: Check if manager has already reviewed (review_stage should not be past manager_review)
+            const currentReviewStage = task.review_stage || 'not_started';
+            const stagesAfterManagerReview = ['pm_review', 'change_requested', 'final_approved'];
+
+            if (stagesAfterManagerReview.includes(currentReviewStage)) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Manager has already reviewed this task. Current review stage: ' + currentReviewStage + '. Waiting for next level review.'
+                });
+            }
+
+            // Store previous stage for history
+            const previousStage = currentReviewStage;
+            let newStatus = task.status;
+            let newReview = task.review; // Track review field changes
+            let newStage = currentReviewStage; // For history tracking
+
+            // Update the task
+            const updateData = {};
+
+            // Determine what to update based on action
+            if (action === 'approved') {
+                // Manager approved, move to pm_review stage (next level)
+                updateData.review_stage = 'pm_review';
+                updateData.review = 'pending'; // Reset to pending for next level review (PM)
+                newStage = 'pm_review';
+            } else if (action === 'change_request') {
+                // Change request - only update review field, keep review_stage as is
+                updateData.review = 'change_request';
+                // If task is completed, change status back to in_progress
+                if (task.status === 'completed') {
+                    newStatus = 'in_progress';
+                    updateData.status = newStatus;
+                }
+            }
+
+            await Tasks.update(updateData, { where: { id: taskId } });
+
+            // Create review history entry
+            await TaskReviewHistory.create({
+                task_id: taskId,
+                reviewer_id: manager_id,
+                reviewer_type: 'manager',
+                action: action,
+                comments: comments || null,
+                previous_stage: previousStage,
+                new_stage: newStage
+            });
+
+            // Send email to assigned creative users
+            if (task.assignedUsers && task.assignedUsers.length > 0) {
+                const manager = req.user;
+                const workRequest = task.WorkRequest;
+
+                for (const user of task.assignedUsers) {
+                    const html = renderTemplate('taskReviewNotification', {
+                        user_name: user.name,
+                        manager_name: manager.name,
+                        manager_email: manager.email,
+                        task_name: task.task_name,
+                        project_name: workRequest?.project_name || 'N/A',
+                        brand: workRequest?.brand || 'N/A',
+                        action: action === 'approved' ? 'Approved' : 'Change Requested',
+                        comments: comments || 'No comments provided',
+                        review_date: new Date().toLocaleDateString('en-IN', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        }),
+                        frontend_url: process.env.FRONTEND_URL
+                    });
+
+                    await sendMail({
+                        to: user.email,
+                        subject: `Task Review Update - ${action === 'approved' ? 'Approved' : 'Change Requested'}`,
+                        html
+                    });
+                }
+            }
+
+            // Fetch updated task
+            const updatedTask = await Tasks.findByPk(taskId, {
+                attributes: ['id', 'task_name', 'status', 'review_stage', 'deadline'],
+                include: [
+                    {
+                        model: User,
+                        as: 'assignedUsers',
+                        attributes: ['id', 'name', 'email'],
+                        through: { attributes: [] }
+                    }
+                ]
+            });
+
+            return res.json({
+                success: true,
+                data: {
+                    type: 'task',
+                    task: updatedTask,
+                    reviewAction: {
+                        action,
+                        previousStage,
+                        newStage,
+                        statusChanged: newStatus !== task.status,
+                        previousStatus: task.status,
+                        newStatus
+                    }
+                },
+                message: `Task review ${action === 'approved' ? 'approved' : 'change requested'} successfully`
             });
         }
 
-        // Store previous stage for history
-        const previousStage = currentReviewStage;
-        let newStatus = task.status;
-        let newReview = task.review; // Track review field changes
-        let newStage = currentReviewStage; // For history tracking
-
-        // Update the task
-        const updateData = {};
-
-        // Determine what to update based on action
-        if (action === 'approved') {
-            // Manager approved, move to pm_review stage (next level)
-            updateData.review_stage = 'pm_review';
-            updateData.review = 'pending'; // Reset to pending for next level review (PM)
-            newStage = 'pm_review';
-        } else if (action === 'change_request') {
-            // Change request - only update review field, keep review_stage as is
-            updateData.review = 'change_request';
-            // If task is completed, change status back to in_progress
-            if (task.status === 'completed') {
-                newStatus = 'in_progress';
-                updateData.status = newStatus;
+        // If issue_id is provided, handle issue review
+        if (issue_id) {
+            const issueId = parseInt(issue_id, 10);
+            if (isNaN(issueId)) {
+                return res.status(400).json({ success: false, error: 'Invalid issue ID' });
             }
-        }
 
-        await Tasks.update(updateData, { where: { id: taskId } });
+            // Find the issue with its task and work request and verify manager access
+            const issueAssignment = await IssueAssignments.findByPk(issueId, {
+                include: [
+                    {
+                        model: Tasks,
+                        as: 'task',
+                        attributes: ['id', 'task_name', 'work_request_id', 'status', 'review_stage'],
+                        include: [
+                            {
+                                model: WorkRequests,
+                                include: [
+                                    {
+                                        model: WorkRequestManagers,
+                                        where: { manager_id: manager_id },
+                                        required: true,
+                                        attributes: []
+                                    },
+                                    {
+                                        model: User,
+                                        as: 'users',
+                                        attributes: ['id', 'name', 'email']
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        model: IssueUserAssignments,
+                        as: 'userAssignments',
+                        include: [
+                            {
+                                model: User,
+                                attributes: ['id', 'name', 'email']
+                            }
+                        ]
+                    },
+                    {
+                        model: IssueAssignmentTypes,
+                        as: 'issueTypeLinks',
+                        include: [
+                            {
+                                model: IssueRegister,
+                                as: 'issueRegister',
+                                attributes: ['id', 'change_issue_type', 'description']
+                            }
+                        ]
+                    },
+                    {
+                        model: User,
+                        as: 'requester',
+                        attributes: ['id', 'name', 'email']
+                    }
+                ]
+            });
 
-        // Create review history entry
-        await TaskReviewHistory.create({
-            task_id: taskId,
-            reviewer_id: manager_id,
-            reviewer_type: 'manager',
-            action: action,
-            comments: comments || null,
-            previous_stage: previousStage,
-            new_stage: newStage
-        });
-
-        // Send email to assigned creative users
-        if (task.assignedUsers && task.assignedUsers.length > 0) {
-            const manager = req.user;
-            const workRequest = task.WorkRequest;
-
-            for (const user of task.assignedUsers) {
-                const html = renderTemplate('taskReviewNotification', {
-                    user_name: user.name,
-                    manager_name: manager.name,
-                    manager_email: manager.email,
-                    task_name: task.task_name,
-                    project_name: workRequest?.project_name || 'N/A',
-                    brand: workRequest?.brand || 'N/A',
-                    action: action === 'approved' ? 'Approved' : 'Change Requested',
-                    comments: comments || 'No comments provided',
-                    review_date: new Date().toLocaleDateString('en-IN', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    }),
-                    frontend_url: process.env.FRONTEND_URL
-                });
-
-                await sendMail({
-                    to: user.email,
-                    subject: `Task Review Update - ${action === 'approved' ? 'Approved' : 'Change Requested'}`,
-                    html
+            if (!issueAssignment) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Issue not found or not assigned to you'
                 });
             }
+
+            // Validation: Issue must be completed for manager to review
+            if (issueAssignment.status !== 'completed') {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Issue must be completed before review. Current status: ' + issueAssignment.status
+                });
+            }
+
+            // Validation: Check if manager has already reviewed (review_stage should not be past manager_review)
+            const currentReviewStage = issueAssignment.review_stage || 'not_started';
+            const stagesAfterManagerReview = ['pm_review', 'change_requested', 'final_approved'];
+
+            if (stagesAfterManagerReview.includes(currentReviewStage)) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Manager has already reviewed this issue. Current review stage: ' + currentReviewStage + '. Waiting for next level review.'
+                });
+            }
+
+            // Store previous stage for history
+            const previousStage = currentReviewStage;
+            let newStatus = issueAssignment.status;
+            let newReview = issueAssignment.review;
+            let newStage = currentReviewStage;
+
+            // Update the issue
+            const updateData = {};
+
+            // Determine what to update based on action
+            if (action === 'approved') {
+                // Manager approved, move to pm_review stage (next level)
+                updateData.review_stage = 'pm_review';
+                updateData.review = 'pending'; // Reset to pending for next level review (PM)
+                newStage = 'pm_review';
+            } else if (action === 'change_request') {
+                // Change request - only update review field, keep review_stage as is
+                updateData.review = 'change_request';
+                // If issue is completed, change status back to in_progress
+                if (issueAssignment.status === 'completed') {
+                    newStatus = 'in_progress';
+                    updateData.status = newStatus;
+                }
+            }
+
+            await IssueAssignments.update(updateData, { where: { id: issueId } });
+
+            // Send email to assigned users about the review
+            if (issueAssignment.userAssignments && issueAssignment.userAssignments.length > 0) {
+                const manager = req.user;
+                const task = issueAssignment.task;
+                const workRequest = task ? task.WorkRequest : null;
+
+                for (const userAssignment of issueAssignment.userAssignments) {
+                    const user = userAssignment.User;
+                    if (user && user.email) {
+                        const html = renderTemplate('taskReviewNotification', {
+                            user_name: user.name,
+                            manager_name: manager.name,
+                            manager_email: manager.email,
+                            task_name: issueAssignment.version ? `Issue ${issueAssignment.version}` : 'Issue',
+                            project_name: workRequest?.project_name || 'N/A',
+                            brand: workRequest?.brand || 'N/A',
+                            action: action === 'approved' ? 'Approved' : 'Change Requested',
+                            comments: comments || 'No comments provided',
+                            review_date: new Date().toLocaleDateString('en-IN', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            }),
+                            frontend_url: process.env.FRONTEND_URL
+                        });
+
+                        await sendMail({
+                            to: user.email,
+                            subject: `Issue Review Update - ${action === 'approved' ? 'Approved' : 'Change Requested'}`,
+                            html
+                        });
+                    }
+                }
+            }
+
+            // Fetch updated issue
+            const updatedIssue = await IssueAssignments.findByPk(issueId, {
+                attributes: ['id', 'issue_id', 'version', 'status', 'review_stage', 'deadline', 'description'],
+                include: [
+                    {
+                        model: IssueUserAssignments,
+                        as: 'userAssignments',
+                        include: [
+                            {
+                                model: User,
+                                attributes: ['id', 'name', 'email']
+                            }
+                        ]
+                    }
+                ]
+            });
+
+            return res.json({
+                success: true,
+                data: {
+                    type: 'issue',
+                    issue: updatedIssue,
+                    reviewAction: {
+                        action,
+                        previousStage,
+                        newStage,
+                        statusChanged: newStatus !== issueAssignment.status,
+                        previousStatus: issueAssignment.status,
+                        newStatus
+                    }
+                },
+                message: `Issue review ${action === 'approved' ? 'approved' : 'change requested'} successfully`
+            });
         }
-
-        // Fetch updated task
-        const updatedTask = await Tasks.findByPk(taskId, {
-            attributes: ['id', 'task_name', 'status', 'review_stage', 'deadline'],
-            include: [
-                {
-                    model: User,
-                    as: 'assignedUsers',
-                    attributes: ['id', 'name', 'email'],
-                    through: { attributes: [] }
-                }
-            ]
-        });
-
-        res.json({
-            success: true,
-            data: {
-                task: updatedTask,
-                reviewAction: {
-                    action,
-                    previousStage,
-                    newStage,
-                    statusChanged: newStatus !== task.status,
-                    previousStatus: task.status,
-                    newStatus
-                }
-            },
-            message: `Task review ${action === 'approved' ? 'approved' : 'change requested'} successfully`
-        });
     } catch (error) {
-        console.error('Error reviewing task:', error);
+        console.error('Error reviewing:', error);
         res.status(500).json({
             success: false,
             error: error.message,
-            message: 'Failed to review task'
+            message: 'Failed to review'
         });
     }
 };
 
-// Share task for client review (PM Review stage)
+// Share task or issue for client review (PM Review stage)
 const shareForClientReview = async (req, res) => {
     try {
         const manager_id = req.user.id;
-        const { work_request_id, task_id, document_ids } = req.body;
+        const { work_request_id, task_id, issue_id, document_ids } = req.body;
 
-        // Validate required fields
-        if (!work_request_id || !task_id) {
+        // Check if either task_id or issue_id is provided
+        if (!task_id && !issue_id) {
             return res.status(400).json({
                 success: false,
-                error: 'work_request_id and task_id are required'
+                error: 'Either task_id or issue_id is required'
+            });
+        }
+
+        if (!work_request_id) {
+            return res.status(400).json({
+                success: false,
+                error: 'work_request_id is required'
             });
         }
 
@@ -3366,69 +3572,6 @@ const shareForClientReview = async (req, res) => {
             });
         }
 
-        // Get the task details
-        const task = await Tasks.findOne({
-            where: { id: task_id, work_request_id: work_request_id },
-            include: [
-                {
-                    model: User,
-                    as: 'assignedUsers',
-                    attributes: ['id', 'name', 'email'],
-                    through: { attributes: [] }
-                },
-                {
-                    model: IssueAssignments,
-                    as: 'issueAssignments',
-                    include: [
-                        {
-                            model: IssueAssignmentTypes,
-                            as: 'issueTypeLinks',
-                            include: [
-                                {
-                                    model: IssueRegister,
-                                    as: 'issueRegister',
-                                    attributes: ['id', 'change_issue_type', 'description']
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        });
-
-        if (!task) {
-            return res.status(404).json({
-                success: false,
-                error: 'Task not found or does not belong to this work request'
-            });
-        }
-
-        // Check if task is in correct stage for client review
-        if (task.review_stage !== 'pm_review') {
-            return res.status(400).json({
-                success: false,
-                error: 'Task must be in pm_review stage to share with client. Current stage: ' + (task.review_stage || 'not_started')
-            });
-        }
-
-        // Get documents if document_ids provided
-        let documents = [];
-        if (document_ids && document_ids.length > 0) {
-            const taskDocuments = await TaskDocuments.findAll({
-                where: {
-                    id: { [Op.in]: document_ids },
-                    task_assignment_id: {
-                        [Op.in]: (await TaskAssignments.findAll({
-                            where: { task_id: task_id },
-                            attributes: ['id']
-                        })).map(ta => ta.id)
-                    }
-                },
-                attributes: ['id', 'document_name', 'document_path']
-            });
-            documents = taskDocuments;
-        }
-
         // Get manager details
         const manager = req.user;
 
@@ -3442,76 +3585,303 @@ const shareForClientReview = async (req, res) => {
             });
         }
 
-        // Update intimate_client to 1 (shared with client for review)
-        await Tasks.update(
-            { intimate_client: 1 },
-            { where: { id: task_id } }
-        );
+        // Handle task sharing if task_id is provided
+        if (task_id) {
+            const taskId = parseInt(task_id, 10);
+            if (isNaN(taskId)) {
+                return res.status(400).json({ success: false, error: 'Invalid task ID' });
+            }
 
-        // Update intimate_client to 1 for the documents that are being shared
-        if (document_ids && document_ids.length > 0) {
-            await TaskDocuments.update(
+            // Get the task details
+            const task = await Tasks.findOne({
+                where: { id: taskId, work_request_id: work_request_id },
+                include: [
+                    {
+                        model: User,
+                        as: 'assignedUsers',
+                        attributes: ['id', 'name', 'email'],
+                        through: { attributes: [] }
+                    },
+                    {
+                        model: IssueAssignments,
+                        as: 'issueAssignments',
+                        include: [
+                            {
+                                model: IssueAssignmentTypes,
+                                as: 'issueTypeLinks',
+                                include: [
+                                    {
+                                        model: IssueRegister,
+                                        as: 'issueRegister',
+                                        attributes: ['id', 'change_issue_type', 'description']
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            });
+
+            if (!task) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Task not found or does not belong to this work request'
+                });
+            }
+
+            // Check if task is in correct stage for client review
+            if (task.review_stage !== 'pm_review') {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Task must be in pm_review stage to share with client. Current stage: ' + (task.review_stage || 'not_started')
+                });
+            }
+
+            // Get documents if document_ids provided
+            let documents = [];
+            if (document_ids && document_ids.length > 0) {
+                const taskDocuments = await TaskDocuments.findAll({
+                    where: {
+                        id: { [Op.in]: document_ids },
+                        task_assignment_id: {
+                            [Op.in]: (await TaskAssignments.findAll({
+                                where: { task_id: taskId },
+                                attributes: ['id']
+                            })).map(ta => ta.id)
+                        }
+                    },
+                    attributes: ['id', 'document_name', 'document_path']
+                });
+                documents = taskDocuments;
+            }
+
+            // Update intimate_client to 1 (shared with client for review)
+            await Tasks.update(
                 { intimate_client: 1 },
-                { where: { id: { [Op.in]: document_ids } } }
+                { where: { id: taskId } }
             );
+
+            // Update intimate_client to 1 for the documents that are being shared
+            if (document_ids && document_ids.length > 0) {
+                await TaskDocuments.update(
+                    { intimate_client: 1 },
+                    { where: { id: { [Op.in]: document_ids } } }
+                );
+            }
+
+            // Send email to client
+            const html = renderTemplate('clientReviewNotification', {
+                client_name: client.name,
+                manager_name: manager.name,
+                manager_email: manager.email,
+                task_name: task.task_name,
+                task_id: task.id,
+                project_name: workRequest.project_name || 'N/A',
+                brand: workRequest.brand || 'N/A',
+                work_request_id: workRequest.id,
+                deadline: task.deadline ? new Date(task.deadline).toLocaleDateString('en-IN', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                }) : 'Not set',
+                documents: documents.map(doc => ({
+                    document_name: doc.document_name,
+                    document_path: doc.document_path
+                })),
+                frontend_url: process.env.FRONTEND_URL
+            });
+
+            await sendMail({
+                to: client.email,
+                subject: `Task Ready for Review - ${task.task_name}`,
+                html
+            });
+
+            return res.json({
+                success: true,
+                data: {
+                    type: 'task',
+                    task: {
+                        id: task.id,
+                        task_name: task.task_name,
+                        review_stage: task.review_stage
+                    },
+                    work_request: {
+                        id: workRequest.id,
+                        project_name: workRequest.project_name
+                    },
+                    client: {
+                        id: client.id,
+                        name: client.name,
+                        email: client.email
+                    },
+                    documents: documents,
+                    email_sent: true
+                },
+                message: 'Task shared with client for review successfully'
+            });
         }
 
-        // Send email to client
-        const html = renderTemplate('clientReviewNotification', {
-            client_name: client.name,
-            manager_name: manager.name,
-            manager_email: manager.email,
-            task_name: task.task_name,
-            task_id: task.id,
-            project_name: workRequest.project_name || 'N/A',
-            brand: workRequest.brand || 'N/A',
-            work_request_id: workRequest.id,
-            deadline: task.deadline ? new Date(task.deadline).toLocaleDateString('en-IN', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            }) : 'Not set',
-            documents: documents.map(doc => ({
-                document_name: doc.document_name,
-                document_path: doc.document_path
-            })),
-            frontend_url: process.env.FRONTEND_URL
-        });
+        // Handle issue sharing if issue_id is provided
+        if (issue_id) {
+            const issueId = parseInt(issue_id, 10);
+            if (isNaN(issueId)) {
+                return res.status(400).json({ success: false, error: 'Invalid issue ID' });
+            }
 
-        await sendMail({
-            to: client.email,
-            subject: `Task Ready for Review - ${task.task_name}`,
-            html
-        });
+            // Get the issue details
+            const issueAssignment = await IssueAssignments.findByPk(issueId, {
+                include: [
+                    {
+                        model: Tasks,
+                        as: 'task',
+                        attributes: ['id', 'task_name', 'work_request_id'],
+                        where: { work_request_id: work_request_id }
+                    },
+                    {
+                        model: IssueUserAssignments,
+                        as: 'userAssignments',
+                        include: [
+                            {
+                                model: User,
+                                attributes: ['id', 'name', 'email']
+                            }
+                        ]
+                    },
+                    {
+                        model: IssueAssignmentTypes,
+                        as: 'issueTypeLinks',
+                        include: [
+                            {
+                                model: IssueRegister,
+                                as: 'issueRegister',
+                                attributes: ['id', 'change_issue_type', 'description']
+                            }
+                        ]
+                    },
+                    {
+                        model: User,
+                        as: 'requester',
+                        attributes: ['id', 'name', 'email']
+                    }
+                ]
+            });
 
-        res.json({
-            success: true,
-            data: {
-                task: {
-                    id: task.id,
-                    task_name: task.task_name,
-                    review_stage: task.review_stage
+            if (!issueAssignment) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Issue not found or does not belong to this work request'
+                });
+            }
+
+            // Check if issue is in correct stage for client review
+            if (issueAssignment.review_stage !== 'pm_review') {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Issue must be in pm_review stage to share with client. Current stage: ' + (issueAssignment.review_stage || 'not_started')
+                });
+            }
+
+            // Get documents if document_ids provided
+            let documents = [];
+            if (document_ids && document_ids.length > 0) {
+                const issueDocuments = await IssueDocuments.findAll({
+                    where: {
+                        id: { [Op.in]: document_ids },
+                        issue_user_assignment_id: {
+                            [Op.in]: (await IssueUserAssignments.findAll({
+                                where: { issue_assignment_id: issueId },
+                                attributes: ['id']
+                            })).map(iua => iua.id)
+                        }
+                    },
+                    attributes: ['id', 'document_name', 'document_path']
+                });
+                documents = issueDocuments;
+            }
+
+            // Update intimate_client to 1 (shared with client for review)
+            await IssueAssignments.update(
+                { intimate_client: 1 },
+                { where: { id: issueId } }
+            );
+
+            // Update intimate_client to 1 for the documents that are being shared
+            if (document_ids && document_ids.length > 0) {
+                await IssueDocuments.update(
+                    { intimate_client: 1 },
+                    { where: { id: { [Op.in]: document_ids } } }
+                );
+            }
+
+            // Get issue registers for email
+            const issueRegisters = issueAssignment.issueTypeLinks ?
+                issueAssignment.issueTypeLinks.map(link => ({
+                    change_issue_type: link.issueRegister?.change_issue_type || 'N/A',
+                    description: link.issueRegister?.description || 'No description'
+                })) : [];
+
+            // Send email to client
+            const html = renderTemplate('clientReviewNotification', {
+                client_name: client.name,
+                manager_name: manager.name,
+                manager_email: manager.email,
+                task_name: issueAssignment.version ? `Issue ${issueAssignment.version}` : 'Issue',
+                task_id: issueAssignment.id,
+                project_name: workRequest.project_name || 'N/A',
+                brand: workRequest.brand || 'N/A',
+                work_request_id: workRequest.id,
+                deadline: issueAssignment.deadline ? new Date(issueAssignment.deadline).toLocaleDateString('en-IN', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                }) : 'Not set',
+                documents: documents.map(doc => ({
+                    document_name: doc.document_name,
+                    document_path: doc.document_path
+                })),
+                issue_description: issueAssignment.description,
+                issue_registers: issueRegisters,
+                frontend_url: process.env.FRONTEND_URL
+            });
+
+            await sendMail({
+                to: client.email,
+                subject: `Issue Ready for Review - ${issueAssignment.version || 'Issue ' + issueAssignment.id}`,
+                html
+            });
+
+            return res.json({
+                success: true,
+                data: {
+                    type: 'issue',
+                    issue: {
+                        id: issueAssignment.id,
+                        version: issueAssignment.version,
+                        description: issueAssignment.description,
+                        review_stage: issueAssignment.review_stage
+                    },
+                    work_request: {
+                        id: workRequest.id,
+                        project_name: workRequest.project_name
+                    },
+                    client: {
+                        id: client.id,
+                        name: client.name,
+                        email: client.email
+                    },
+                    documents: documents,
+                    email_sent: true
                 },
-                work_request: {
-                    id: workRequest.id,
-                    project_name: workRequest.project_name
-                },
-                client: {
-                    id: client.id,
-                    name: client.name,
-                    email: client.email
-                },
-                documents: documents,
-                email_sent: true
-            },
-            message: 'Task shared with client for review successfully'
-        });
+                message: 'Issue shared with client for review successfully'
+            });
+        }
     } catch (error) {
-        console.error('Error sharing task for client review:', error);
+        console.error('Error sharing for client review:', error);
         res.status(500).json({
             success: false,
             error: error.message,
-            message: 'Failed to share task for client review'
+            message: 'Failed to share for client review'
         });
     }
 };
