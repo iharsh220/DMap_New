@@ -14,7 +14,8 @@ const {
     TaskReviewHistory,
     IssueAssignments,
     IssueAssignmentTypes,
-    IssueRegister
+    IssueRegister,
+    IssueUserAssignments
 } = require('../../models');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
@@ -229,7 +230,7 @@ const getAssignedTasks = async (req, res) => {
             offset: req.pagination.offset,
             order: [['deadline', 'ASC']] // Sort by deadline ascending by default
         });
-        
+
         // Sort WorkRequestManagers by nested manager ID ascending (23 then 27)
         tasks.forEach(task => {
             if (task.WorkRequest && task.WorkRequest.WorkRequestManagers) {
@@ -240,7 +241,7 @@ const getAssignedTasks = async (req, res) => {
                 });
             }
         });
-        
+
         // Collect all unique user IDs from assigned users
         const allAssignedUserIds = [...new Set(tasks.flatMap(task => task.assignedUsers.map(user => user.id)))];
 
@@ -631,7 +632,7 @@ const getTaskById = async (req, res) => {
 
         const taskResult = await Tasks.findOne({
             // where: { id: taskId, intimate_team: 1 },
-            where: { id: taskId},
+            where: { id: taskId },
             include: [
                 {
                     model: User,
@@ -1561,58 +1562,108 @@ const getAssignedIssues = async (req, res) => {
                     include: [
                         { model: RequestType, attributes: ['id', 'request_type', 'description'] },
                         { model: TaskType, attributes: ['id', 'task_type', 'description'] },
-                        { model: WorkRequests, attributes: ['id', 'project_name', 'brand'], include: [{ model: User, as: 'users', attributes: ['id', 'name', 'email'] }] }
+                        {
+                            model: WorkRequests,
+                            attributes: ['id', 'project_name', 'brand', 'priority', 'status'],
+                            include: [
+                                { model: User, as: 'users', attributes: ['id', 'name', 'email'] },
+                                {
+                                    model: WorkRequestManagers,
+                                    include: [{ model: User, as: 'manager', attributes: ['id', 'name', 'email'] }]
+                                }
+                            ]
+                        }
                     ]
                 },
                 { model: User, as: 'requester', attributes: ['id', 'name', 'email'] },
-                { model: IssueAssignmentTypes, as: 'issueTypeLinks', include: [{ model: IssueRegister, as: 'issueRegister' }] }
+                { model: IssueAssignmentTypes, as: 'issueTypeLinks', include: [{ model: IssueRegister, as: 'issueRegister' }] },
+                { model: IssueUserAssignments, as: 'userAssignments', where: { user_id: user_id }, attributes: ['id'] }
             ]
         });
 
-        const result = issueAssignments.map(ia => ({
-            id: ia.id,
-            issue_id: ia.issue_id,
-            task_id: ia.task_id,
-            version: ia.version,
-            description: ia.description,
-            deadline: ia.deadline,
-            start_date: ia.start_date,
-            end_date: ia.end_date,
-            link: ia.link,
-            task_count: ia.task_count,
-            status: ia.status,
-            review: ia.review,
-            intimate_team: ia.intimate_team,
-            intimate_client: ia.intimate_client,
-            created_at: ia.created_at,
-            updated_at: ia.updated_at,
-            task: ia.task ? {
-                id: ia.task.id,
-                task_name: ia.task.task_name,
-                description: ia.task.description,
-                request_type_id: ia.task.request_type_id,
-                request_type: ia.task.RequestType ? ia.task.RequestType.request_type : null,
-                task_type_id: ia.task.task_type_id,
-                task_type: ia.task.TaskType ? ia.task.TaskType.task_type : null,
-                work_request_id: ia.task.work_request_id,
-                work_request: ia.task.WorkRequest ? {
-                    id: ia.task.WorkRequest.id,
-                    project_name: ia.task.WorkRequest.project_name,
-                    brand: ia.task.WorkRequest.brand,
-                    client: ia.task.WorkRequest.users ? { id: ia.task.WorkRequest.users.id, name: ia.task.WorkRequest.users.name, email: ia.task.WorkRequest.users.email } : null
+        // Get all unique work request IDs to fetch all task assignments
+        const workRequestIds = [...new Set(issueAssignments.map(ia => ia.task?.work_request_id).filter(Boolean))];
+
+        // Get all task assignments for these work requests
+        let allTaskAssignments = {};
+        if (workRequestIds.length > 0) {
+            const tasksWithAssignments = await Tasks.findAll({
+                where: { work_request_id: { [Op.in]: workRequestIds } },
+                include: [{ model: TaskAssignments, include: [{ model: User, attributes: ['id', 'name', 'email'] }] }]
+            });
+
+            tasksWithAssignments.forEach(task => {
+                allTaskAssignments[task.id] = task.TaskAssignments || [];
+            });
+        }
+
+        const result = issueAssignments.map(ia => {
+            // Get manager who sent the request (first manager)
+            const manager = ia.task?.WorkRequest?.WorkRequestManagers?.[0]?.manager || null;
+
+            // Get client who created the work request
+            const client = ia.task?.WorkRequest?.users || null;
+
+            // Get all managers for this work request
+            const managers = ia.task?.WorkRequest?.WorkRequestManagers?.map(m => m.manager).filter(Boolean) || [];
+
+            // Get task assignments for this task
+            const taskAssignments = allTaskAssignments[ia.task_id] || [];
+
+            return {
+                issue: {
+                    id: ia.id,
+                    issue_id: ia.issue_id,
+                    version: ia.version,
+                    description: ia.description,
+                    deadline: ia.deadline,
+                    start_date: ia.start_date,
+                    end_date: ia.end_date,
+                    link: ia.link,
+                    task_count: ia.task_count,
+                    status: ia.status,
+                    review: ia.review,
+                    intimate_team: ia.intimate_team,
+                    intimate_client: ia.intimate_client,
+                    created_at: ia.created_at,
+                    updated_at: ia.updated_at
+                },
+                request_info: {
+                    client: client ? { id: client.id, name: client.name, email: client.email } : null,
+                    managers: managers.map(m => ({ id: m.id, name: m.name, email: m.email })),
+                    assigned_to: taskAssignments.map(ta => ({
+                        id: ta.User.id,
+                        name: ta.User.name,
+                        email: ta.User.email
+                    }))
+                },
+                task: ia.task ? {
+                    id: ia.task.id,
+                    task_name: ia.task.task_name,
+                    description: ia.task.description,
+                    request_type: ia.task.RequestType ? ia.task.RequestType.request_type : null,
+                    task_type: ia.task.TaskType ? ia.task.TaskType.task_type : null,
+                    work_request: ia.task.WorkRequest ? {
+                        id: ia.task.WorkRequest.id,
+                        project_name: ia.task.WorkRequest.project_name,
+                        brand: ia.task.WorkRequest.brand,
+                        priority: ia.task.WorkRequest.priority,
+                        status: ia.task.WorkRequest.status
+                    } : null,
+                    deadline: ia.task.deadline,
+                    status: ia.task.status,
+                    version: ia.task.version
                 } : null,
-                deadline: ia.task.deadline,
-                status: ia.task.status,
-                version: ia.task.version
-            } : null,
-            requester: ia.requester ? { id: ia.requester.id, name: ia.requester.name, email: ia.requester.email } : null,
-            issue_types: ia.issueTypeLinks ? ia.issueTypeLinks.map(itl => ({
-                id: itl.id,
-                issue_register_id: itl.issue_register_id,
-                change_issue_type: itl.issueRegister ? itl.issueRegister.change_issue_type : null,
-                description: itl.issueRegister ? itl.issueRegister.description : null
-            })) : []
-        }));
+                issue_types: ia.issueTypeLinks ? ia.issueTypeLinks.map(itl => ({
+                    id: itl.id,
+                    issue_register_id: itl.issue_register_id,
+                    change_issue_type: itl.issueRegister ? itl.issueRegister.change_issue_type : null,
+                    description: itl.issueRegister ? itl.issueRegister.description : null,
+                    quantification: itl.issueRegister ? itl.issueRegister.quantification : null
+                })) : [],
+                requester: ia.requester ? { id: ia.requester.id, name: ia.requester.name, email: ia.requester.email } : null
+            };
+        });
 
         res.json({
             success: true,
@@ -1661,9 +1712,9 @@ const acceptIssue = async (req, res) => {
             return res.status(403).json({ success: false, error: 'You do not have permission to accept this issue' });
         }
 
-        // Check if issue is already accepted
-        if (issueAssignment.status === 'u_accepted') {
-            return res.status(400).json({ success: false, error: 'Issue is already accepted' });
+        // Check if issue is already accepted or in progress
+        if (issueAssignment.status === 'u_accepted' || issueAssignment.status === 'in_progress') {
+            return res.status(400).json({ success: false, error: 'Issue is already accepted or in progress' });
         }
 
         if (issueAssignment.status === 'completed') {
@@ -1674,30 +1725,51 @@ const acceptIssue = async (req, res) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
+        let providedStartDate = null;
         if (start_date) {
-            const providedStartDate = new Date(start_date);
+            providedStartDate = new Date(start_date);
             providedStartDate.setHours(0, 0, 0, 0);
             if (providedStartDate < today) {
                 return res.status(400).json({ success: false, error: 'Start date cannot be before today' });
             }
         }
 
-        // Prepare update data
-        const updateData = { status: 'u_accepted' };
+        // Determine status based on start_date
+        // If start_date is today -> in_progress
+        // If start_date is in the future -> u_accepted
+        let newStatus = 'in_progress';
+        let finalStartDate = null;
 
-        // Set start_date
-        if (start_date) {
-            updateData.start_date = start_date;
+        if (providedStartDate) {
+            // Check if start_date is today or in the future
+            const isToday = providedStartDate.getTime() === today.getTime();
+            
+            if (isToday) {
+                newStatus = 'in_progress';
+                finalStartDate = providedStartDate;
+            } else {
+                // Future date
+                newStatus = 'u_accepted';
+                finalStartDate = providedStartDate;
+            }
         } else {
-            updateData.start_date = new Date();
+            // No start_date provided, default to today -> in_progress
+            finalStartDate = today;
+            newStatus = 'in_progress';
         }
+
+        // Prepare update data
+        const updateData = { 
+            status: newStatus,
+            start_date: finalStartDate
+        };
 
         // Update the issue assignment
         await IssueAssignments.update(updateData, { where: { id: issueId } });
 
         res.json({
             success: true,
-            message: 'Issue accepted successfully',
+            message: newStatus === 'in_progress' ? 'Issue accepted and started successfully' : 'Issue accepted successfully (scheduled for future start)',
             data: {
                 issue_id: issueId,
                 status: updateData.status,
@@ -1773,7 +1845,7 @@ const submitIssue = async (req, res) => {
         // Send email to manager if found
         if (manager) {
             const user = req.user;
-            
+
             const html = renderTemplate('taskCompletionNotification', {
                 user_name: manager.name,
                 task_name: issueAssignment.task ? issueAssignment.task.task_name : 'Issue ' + issueAssignment.version,

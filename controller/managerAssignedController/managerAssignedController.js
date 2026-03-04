@@ -3619,11 +3619,22 @@ const assignIssueToUser = async (req, res) => {
             return res.status(400).json({ success: false, error: 'issue_assignment_id and user_id are required' });
         }
 
-        // Check if issue_assignment exists
+        // Check if issue_assignment exists with issue_type_links for issue details
         const issueAssignment = await IssueAssignments.findByPk(issue_assignment_id, {
             include: [
                 { model: Tasks, as: 'task', attributes: ['id', 'task_name', 'work_request_id'] },
-                { model: User, as: 'requester', attributes: ['id', 'name', 'email'] }
+                { model: User, as: 'requester', attributes: ['id', 'name', 'email'] },
+                {
+                    model: IssueAssignmentTypes,
+                    as: 'issueTypeLinks',
+                    include: [
+                        {
+                            model: IssueRegister,
+                            as: 'issueRegister',
+                            attributes: ['id', 'change_issue_type', 'description', 'quantification']
+                        }
+                    ]
+                }
             ]
         });
 
@@ -3655,31 +3666,70 @@ const assignIssueToUser = async (req, res) => {
             user_id
         });
 
-        // Update issue_assignment intimate_team to 1 so user gets email notification
+        // Update issue_assignment status to 'u_pending' and intimate_team to 1 so user gets email notification
         await IssueAssignments.update(
-            { intimate_team: 1, deadline: deadline || null },
+            { status: 'u_pending', intimate_team: 1, deadline: deadline || null },
             { where: { id: issue_assignment_id } }
         );
 
         // Get work request details for email
         let workRequest = null;
+        let requestType = null;
         if (issueAssignment.task && issueAssignment.task.work_request_id) {
             workRequest = await WorkRequests.findByPk(issueAssignment.task.work_request_id, {
-                attributes: ['id', 'project_name', 'brand'],
-                include: [{ model: User, as: 'users', attributes: ['id', 'name', 'email'] }]
+                attributes: ['id', 'project_name', 'brand', 'priority', 'requested_at'],
+                include: [
+                    { model: User, as: 'users', attributes: ['id', 'name', 'email'] },
+                    { model: RequestType, attributes: ['id', 'request_type'] }
+                ]
             });
+            requestType = workRequest ? workRequest.RequestType : null;
         }
+
+        // Get manager details for email
+        const manager = await User.findByPk(manager_id, {
+            attributes: ['id', 'name', 'email']
+        });
+
+        // Format issue registers from issue_type_links
+        const issueRegisters = issueAssignment.issueTypeLinks ?
+            issueAssignment.issueTypeLinks.map(link => ({
+                change_issue_type: link.issueRegister?.change_issue_type || 'N/A',
+                description: link.issueRegister?.description || 'No description',
+                quantification: link.issueRegister?.quantification || null
+            })) : [];
+
+        // Format assigned users for email
+        const assignedUsersList = [{
+            name: assignedUser.name,
+            email: assignedUser.email
+        }];
 
         // Send email to the assigned user
         const html = renderTemplate('issueAssignmentNotification', {
-            user_name: assignedUser.name,
+            manager_name: manager ? manager.name : 'Manager',
+            task_id: issueAssignment.task ? issueAssignment.task.id : 'N/A',
+            task_name: issueAssignment.task ? issueAssignment.task.task_name : 'N/A',
+            issue_id: issueAssignment.id,
             issue_version: issueAssignment.version,
             issue_description: issueAssignment.description,
-            deadline: deadline,
-            task_name: issueAssignment.task ? issueAssignment.task.task_name : 'N/A',
+            task_type: 'Issue Assignment',
             project_name: workRequest ? workRequest.project_name : 'N/A',
             brand: workRequest ? workRequest.brand : 'N/A',
-            assigned_by: manager_id,
+            priority: workRequest ? workRequest.priority : 'N/A',
+            request_type: requestType ? requestType.request_type : 'N/A',
+            created_at: workRequest ? new Date(workRequest.requested_at).toLocaleDateString('en-IN', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            }) : new Date().toLocaleDateString('en-IN', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            }),
+            issue_registers: issueRegisters,
+            assigned_users: assignedUsersList,
+            assigned_by: manager ? manager.name : 'Manager',
             assigned_at: new Date().toLocaleDateString('en-IN', {
                 year: 'numeric',
                 month: 'long',
@@ -3692,7 +3742,7 @@ const assignIssueToUser = async (req, res) => {
 
         const mailOptions = {
             to: assignedUser.email,
-            subject: `Issue Assignment - ${issueAssignment.version}`,
+            subject: `Issue Assignment - ${issueAssignment.task ? issueAssignment.task.task_name : 'Task'} - ${issueAssignment.version}`,
             html
         };
 
@@ -3704,6 +3754,7 @@ const assignIssueToUser = async (req, res) => {
                 id: issueUserAssignment.id,
                 issue_assignment_id: issueUserAssignment.issue_assignment_id,
                 user_id: issueUserAssignment.user_id,
+                status: 'u_pending',
                 user: {
                     id: assignedUser.id,
                     name: assignedUser.name,
