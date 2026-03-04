@@ -24,7 +24,7 @@ const getAdminData = async (req, res) => {
                 COALESCE(rt.request_type, 'N/A') AS project_type,
                 COALESCE(GROUP_CONCAT(DISTINCT rdiv.title SEPARATOR ', '), 'N/A') AS requester_division,
                 COALESCE(ru.name, 'N/A') AS requester_name,
-                COALESCE(GROUP_CONCAT(DISTINCT tddiv.title SEPARATOR ', '), 'N/A') AS user_division,
+                COALESCE(GROUP_CONCAT(DISTINCT udiv.title SEPARATOR ', '), 'N/A') AS user_division,
                 COALESCE(GROUP_CONCAT(DISTINCT mu.name ORDER BY mu.name SEPARATOR ', '), 'N/A') AS manager_name,
                 1 AS project_count,
                 COUNT(DISTINCT t.id) AS task_count,
@@ -49,9 +49,10 @@ const getAdminData = async (req, res) => {
             LEFT JOIN work_request_managers wrm ON wr.id = wrm.work_request_id
             LEFT JOIN users mu ON wrm.manager_id = mu.id
             LEFT JOIN tasks t ON wr.id = t.work_request_id
-            LEFT JOIN request_type trt ON t.request_type_id = trt.id
-            LEFT JOIN request_division_reference rdr2 ON trt.id = rdr2.request_id
-            LEFT JOIN division tddiv ON rdr2.division_id = tddiv.id
+            LEFT JOIN task_assignments ta ON t.id = ta.task_id
+            LEFT JOIN users au ON ta.user_id = au.id
+            LEFT JOIN user_divisions aud ON au.id = aud.user_id
+            LEFT JOIN division udiv ON aud.division_id = udiv.id
         `;
 
         if (whereClauses.length > 0) {
@@ -99,7 +100,7 @@ const getTaskDetailsData = async (req, res) => {
                 COALESCE(rt.request_type, 'N/A') AS project_type,
                 COALESCE(GROUP_CONCAT(DISTINCT rdiv.title SEPARATOR ', '), 'N/A') AS requester_division,
                 COALESCE(ru.name, 'N/A') AS requester_name,
-                COALESCE(GROUP_CONCAT(DISTINCT tddiv.title SEPARATOR ', '), 'N/A') AS user_division,
+                COALESCE(GROUP_CONCAT(DISTINCT udiv.title SEPARATOR ', '), 'N/A') AS user_division,
                 COALESCE(GROUP_CONCAT(DISTINCT mu.name ORDER BY mu.name SEPARATOR ', '), 'N/A') AS manager_name,
                 t.id AS task_id,
                 t.task_name,
@@ -125,9 +126,8 @@ const getTaskDetailsData = async (req, res) => {
             LEFT JOIN users mu ON wrm.manager_id = mu.id
             LEFT JOIN task_assignments ta ON t.id = ta.task_id
             LEFT JOIN users au ON ta.user_id = au.id
-            LEFT JOIN request_type trt ON t.request_type_id = trt.id
-            LEFT JOIN request_division_reference rdr2 ON trt.id = rdr2.request_id
-            LEFT JOIN division tddiv ON rdr2.division_id = tddiv.id
+            LEFT JOIN user_divisions aud ON au.id = aud.user_id
+            LEFT JOIN division udiv ON aud.division_id = udiv.id
         `;
 
         if (whereClauses.length > 0) {
