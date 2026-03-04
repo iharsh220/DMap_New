@@ -1398,6 +1398,51 @@
                     "response": []
                 },
                 {
+                    "name": "Get Issue Assignments with Filters",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{jwt_token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}{{base_route}}manager/assigned-work-requests/issue-assignments?status=&review_stage=&review=",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "digilabs",
+                                "dmap",
+                                "api",
+                                "manager",
+                                "assigned-work-requests",
+                                "issue-assignments"
+                            ],
+                            "query": [
+                                {
+                                    "key": "status",
+                                    "value": "",
+                                    "description": "Filter by status: m_pending, u_pending, m_accepted, u_accepted, in_progress, completed, rejected, on_hold, cancelled (optional)"
+                                },
+                                {
+                                    "key": "review_stage",
+                                    "value": "",
+                                    "description": "Filter by review_stage: not_started, manager_review, pm_review, change_requested, final_approved (optional)"
+                                },
+                                {
+                                    "key": "review",
+                                    "value": "",
+                                    "description": "Filter by review: pending, approved, change_request (optional)"
+                                }
+                            ]
+                        },
+                        "description": "Get all issue assignments with optional filters for status, review_stage, and review (requires authentication and manager role)"
+                    },
+                    "response": []
+                },
+                {
                     "name": "Get My Team",
                     "request": {
                         "method": "GET",

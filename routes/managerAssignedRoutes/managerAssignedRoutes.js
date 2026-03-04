@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getAssignedWorkRequests, getAssignedWorkRequestById, acceptWorkRequest, acceptIssueRequest, deferWorkRequest, updateWorkRequestProject, deleteWorkRequest, deleteTask, getMyTasks, getAssignableUsers, getTaskTypesByWorkRequest, createTask, getTasksByWorkRequestId, getTaskAnalytics, getMyTeam, assignTasksToUsers, getAssignedRequestsWithStatus, getUserTask, updateTask, reviewTaskDocument, reviewIssueDocument, reviewTask, shareForClientReview, assignIssueToUser } = require('../../controller/managerAssignedController/managerAssignedController');
+const { getAssignedWorkRequests, getAssignedWorkRequestById, acceptWorkRequest, acceptIssueRequest, deferWorkRequest, updateWorkRequestProject, deleteWorkRequest, deleteTask, getMyTasks, getAssignableUsers, getTaskTypesByWorkRequest, createTask, getTasksByWorkRequestId, getTaskAnalytics, getMyTeam, assignTasksToUsers, getAssignedRequestsWithStatus, getUserTask, updateTask, reviewTaskDocument, reviewIssueDocument, reviewTask, shareForClientReview, assignIssueToUser, getIssueAssignments } = require('../../controller/managerAssignedController/managerAssignedController');
 const { authenticateToken } = require('../../middleware/jwtMiddleware');
 const { checkRole } = require('../../middleware/roleMiddleware');
 const filterMiddleware = require('../../middleware/filterMiddleware');
@@ -26,6 +26,12 @@ router.get('/requests', authenticateToken, checkRole([1, 2, 3]), filterMiddlewar
 
 router.get('/my-team', authenticateToken, checkRole([1, 2, 3]), searchMiddleware, paginationMiddleware, getMyTeam); // Get manager's team with task counts grouped by division
 router.get('/my-tasks', authenticateToken, checkRole([1, 2, 3]), getMyTasks); // Get tasks assigned to the manager themselves
+
+// Issue assignment routes - must come before /:id routes
+router.get('/issue-assignments', authenticateToken, checkRole([1, 2, 3]), getIssueAssignments); // Get all issue assignments with filters (status, review_stage, review)
+router.post('/assign-issue-to-user', authenticateToken, checkRole([1, 2, 3]), assignIssueToUser); // Assign issue to a user
+router.put('/issue/:id/accept', authenticateToken, checkRole([1, 2, 3]), acceptIssueRequest); // Accept an issue request
+
 router.get('/:id', authenticateToken, checkRole([1, 2, 3, 4]), getAssignedWorkRequestById); // Get specific assigned work request by ID
 router.put('/:id/accept', authenticateToken, checkRole([1, 2, 3]), acceptWorkRequest); // Accept a work request
 router.put('/:id/defer', authenticateToken, checkRole([1, 2, 3]), deferWorkRequest); // Defer a work request
@@ -37,9 +43,5 @@ router.get('/:id/assignable-users', authenticateToken, checkRole([1, 2, 3]), get
 router.get('/id/task-types', authenticateToken, checkRole([1, 2, 3]), getTaskTypesByWorkRequest); // Get task types for a specific work request based on its project_id or directly by project_id query param
 router.get('/:id/analytics', authenticateToken, checkRole([1, 2, 3]), getTaskAnalytics); // Get task analytics for a specific work request
 router.post('/:id/assign-tasks', authenticateToken, checkRole([1, 2, 3]), assignTasksToUsers); // Send task assignment notifications to users
-
-// Issue assignment routes
-router.post('/assign-issue-to-user', authenticateToken, checkRole([1, 2, 3]), assignIssueToUser); // Assign issue to a user
-router.put('/issue/:id/accept', authenticateToken, checkRole([1, 2, 3]), acceptIssueRequest); // Accept an issue request
 
 module.exports = router;

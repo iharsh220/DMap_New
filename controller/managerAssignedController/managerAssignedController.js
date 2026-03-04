@@ -3979,6 +3979,233 @@ const acceptIssueRequest = async (req, res) => {
     }
 };
 
+const getIssueAssignments = async (req, res) => {
+    try {
+        const manager_id = req.user.id;
+        const { status, review_stage, review } = req.query;
+
+        // Define valid enum values
+        const validStatuses = ['m_pending', 'u_pending', 'm_accepted', 'u_accepted', 'in_progress', 'completed', 'rejected', 'on_hold', 'cancelled'];
+        const validReviewStages = ['not_started', 'manager_review', 'pm_review', 'change_requested', 'final_approved'];
+        const validReviews = ['pending', 'approved', 'change_request'];
+
+        // Build where condition
+        let where = {};
+
+        // Apply status filter if provided
+        if (status) {
+            if (!validStatuses.includes(status)) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Invalid status. Allowed values: ${validStatuses.join(', ')}`
+                });
+            }
+            where.status = status;
+        }
+
+        // Apply review_stage filter if provided
+        if (review_stage) {
+            if (!validReviewStages.includes(review_stage)) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Invalid review_stage. Allowed values: ${validReviewStages.join(', ')}`
+                });
+            }
+            where.review_stage = review_stage;
+        }
+
+        // Apply review filter if provided
+        if (review) {
+            if (!validReviews.includes(review)) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Invalid review. Allowed values: ${validReviews.join(', ')}`
+                });
+            }
+            where.review = review;
+        }
+
+        // Get all work requests assigned to this manager
+        const workRequestsAssignedToManager = await WorkRequestManagers.findAll({
+            where: { manager_id: manager_id },
+            attributes: ['work_request_id']
+        });
+
+        const workRequestIds = workRequestsAssignedToManager.map(wrm => wrm.work_request_id);
+
+        if (workRequestIds.length === 0) {
+            return res.json({
+                success: true,
+                data: [],
+                message: 'No work requests assigned to this manager'
+            });
+        }
+
+        // Get all tasks from manager's assigned work requests
+        const tasksInWorkRequests = await Tasks.findAll({
+            attributes: ['id'],
+            where: { work_request_id: { [Op.in]: workRequestIds } },
+            raw: true
+        });
+
+        const taskIds = tasksInWorkRequests.map(t => t.id);
+
+        if (taskIds.length === 0) {
+            return res.json({
+                success: true,
+                data: [],
+                message: 'No tasks found in your assigned work requests'
+            });
+        }
+
+        // Get issue assignments with filters from manager's work requests only
+        const issueAssignments = await IssueAssignments.findAll({
+            where: {
+                ...where,
+                task_id: { [Op.in]: taskIds }
+            },
+            include: [
+                {
+                    model: Tasks,
+                    as: 'task',
+                    attributes: ['id', 'task_name', 'work_request_id', 'deadline', 'status'],
+                    include: [
+                        {
+                            model: WorkRequests,
+                            attributes: ['id', 'project_name', 'brand', 'priority', 'status'],
+                            include: [
+                                {
+                                    model: User,
+                                    as: 'users',
+                                    attributes: ['id', 'name', 'email']
+                                },
+                                {
+                                    model: RequestType,
+                                    attributes: ['id', 'request_type']
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    model: IssueAssignmentTypes,
+                    as: 'issueTypeLinks',
+                    include: [
+                        {
+                            model: IssueRegister,
+                            as: 'issueRegister',
+                            attributes: ['id', 'change_issue_type', 'description']
+                        }
+                    ]
+                },
+                {
+                    model: User,
+                    as: 'requester',
+                    attributes: ['id', 'name', 'email']
+                },
+                {
+                    model: IssueUserAssignments,
+                    as: 'userAssignments',
+                    include: [
+                        {
+                            model: User,
+                            as: 'user',
+                            attributes: ['id', 'name', 'email']
+                        },
+                        {
+                            model: IssueDocuments,
+                            as: 'documents',
+                            attributes: ['id', 'document_name', 'document_path', 'uploaded_at', 'status', 'version', 'review']
+                        }
+                    ]
+                }
+            ],
+            order: [['created_at', 'DESC']]
+        });
+
+        // Format the response
+        const formattedData = issueAssignments.map(issue => ({
+            id: issue.id,
+            issue_id: issue.issue_id,
+            version: issue.version,
+            description: issue.description,
+            deadline: issue.deadline,
+            start_date: issue.start_date,
+            end_date: issue.end_date,
+            assignment_type: issue.assignment_type,
+            intimate_team: issue.intimate_team,
+            intimate_client: issue.intimate_client,
+            task_count: issue.task_count,
+            link: issue.link,
+            status: issue.status,
+            review: issue.review,
+            review_stage: issue.review_stage,
+            created_at: issue.created_at,
+            updated_at: issue.updated_at,
+            task: issue.task ? {
+                id: issue.task.id,
+                task_name: issue.task.task_name,
+                work_request_id: issue.task.work_request_id,
+                deadline: issue.task.deadline,
+                status: issue.task.status,
+                workRequest: issue.task.WorkRequest ? {
+                    id: issue.task.WorkRequest.id,
+                    project_name: issue.task.WorkRequest.project_name,
+                    brand: issue.task.WorkRequest.brand,
+                    priority: issue.task.WorkRequest.priority,
+                    status: issue.task.WorkRequest.status,
+                    user: issue.task.WorkRequest.users ? {
+                        id: issue.task.WorkRequest.users.id,
+                        name: issue.task.WorkRequest.users.name,
+                        email: issue.task.WorkRequest.users.email
+                    } : null,
+                    requestType: issue.task.WorkRequest.RequestType ? {
+                        id: issue.task.WorkRequest.RequestType.id,
+                        request_type: issue.task.WorkRequest.RequestType.request_type
+                    } : null
+                } : null
+            } : null,
+            requester: issue.requester ? {
+                id: issue.requester.id,
+                name: issue.requester.name,
+                email: issue.requester.email
+            } : null,
+            issueTypes: issue.issueTypeLinks ? issue.issueTypeLinks.map(link => ({
+                id: link.id,
+                issue_register_id: link.issue_register_id,
+                issueRegister: link.issueRegister ? {
+                    id: link.issueRegister.id,
+                    change_issue_type: link.issueRegister.change_issue_type,
+                    description: link.issueRegister.description
+                } : null
+            })) : [],
+            assignedUsers: issue.userAssignments ? issue.userAssignments.map(ua => ({
+                id: ua.id,
+                user_id: ua.user_id,
+                user: ua.user ? {
+                    id: ua.user.id,
+                    name: ua.user.name,
+                    email: ua.user.email
+                } : null,
+                documents: ua.documents
+            })) : []
+        }));
+
+        res.json({
+            success: true,
+            data: formattedData,
+            message: 'Issue assignments retrieved successfully'
+        });
+    } catch (error) {
+        console.error('Error fetching issue assignments:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            message: 'Failed to fetch issue assignments'
+        });
+    }
+};
+
 // Assign issue assignment to a user
 const assignIssueToUser = async (req, res) => {
     try {
@@ -4168,5 +4395,6 @@ module.exports = {
     reviewIssueDocument,
     reviewTask,
     shareForClientReview,
-    assignIssueToUser
+    assignIssueToUser,
+    getIssueAssignments
 };
