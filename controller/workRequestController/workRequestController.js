@@ -19,6 +19,8 @@ const {
     TaskAssignments,
     TaskDocuments,
     IssueAssignments,
+    IssueUserAssignments,
+    IssueDocuments,
     IssueAssignmentTypes,
     IssueRegister,
     AboutProject,
@@ -1129,12 +1131,17 @@ const pmApproveTask = async (req, res) => {
     const transaction = await require('../../models').sequelize.transaction();
     
     try {
-        const { task_id } = req.body;
+        const { task_id, issue_id } = req.body;
+
+        // If issue_id is provided, handle issue approval
+        if (issue_id) {
+            return await handleIssuePmApproval(req, res, transaction, issue_id);
+        }
 
         if (!task_id) {
             return res.status(400).json({
                 success: false,
-                error: 'task_id is required'
+                error: 'task_id or issue_id is required'
             });
         }
 
@@ -1217,6 +1224,111 @@ const pmApproveTask = async (req, res) => {
             success: false,
             error: error.message,
             message: 'Failed to approve task'
+        });
+    }
+};
+
+// Handle PM approval for issues
+const handleIssuePmApproval = async (req, res, transaction, issueId) => {
+    try {
+        const manager = req.user;
+
+        // Find the issue
+        const issueAssignment = await IssueAssignments.findByPk(issueId);
+
+        if (!issueAssignment) {
+            await transaction.rollback();
+            return res.status(404).json({
+                success: false,
+                error: 'Issue not found'
+            });
+        }
+
+        // Check if issue has intimate_client = 1
+        if (issueAssignment.intimate_client !== 1) {
+            await transaction.rollback();
+            return res.status(400).json({
+                success: false,
+                error: 'Issue is not marked for client review (intimate_client must be 1)'
+            });
+        }
+
+        const previousStatus = issueAssignment.status;
+        const previousStage = issueAssignment.review_stage;
+
+        // Update the issue: status stays 'completed', review = 'approved', review_stage = 'final_approved'
+        const newStatus = 'completed';
+        await issueAssignment.update({
+            status: newStatus,
+            review: 'approved',
+            review_stage: 'final_approved'
+        }, { transaction });
+
+        // Find all issue user assignments for this issue
+        const issueUserAssignments = await IssueUserAssignments.findAll({
+            where: { issue_assignment_id: issueId }
+        });
+
+        const issueUserAssignmentIds = issueUserAssignments.map(iua => iua.id);
+
+        // Find and update all documents for this issue where intimate_client = 1
+        if (issueUserAssignmentIds.length > 0) {
+            await IssueDocuments.update(
+                { review: 'approved' },
+                {
+                    where: {
+                        issue_user_assignment_id: { [Op.in]: issueUserAssignmentIds },
+                        intimate_client: 1
+                    },
+                    transaction
+                }
+            );
+        }
+
+        await transaction.commit();
+
+        // Fetch updated issue
+        const updatedIssue = await IssueAssignments.findByPk(issueId, {
+            attributes: ['id', 'issue_id', 'version', 'status', 'review_stage', 'deadline', 'description'],
+            include: [
+                {
+                    model: IssueUserAssignments,
+                    as: 'userAssignments',
+                    include: [
+                        {
+                            model: User,
+                            as: 'user',
+                            attributes: ['id', 'name', 'email']
+                        }
+                    ]
+                }
+            ]
+        });
+
+        return res.json({
+            success: true,
+            data: {
+                type: 'issue',
+                issue: updatedIssue,
+                reviewAction: {
+                    action: 'approved',
+                    previousStage,
+                    newStage: 'final_approved',
+                    statusChanged: newStatus !== previousStatus,
+                    previousStatus,
+                    newStatus
+                }
+            },
+            message: 'Issue approved successfully by PM'
+        });
+
+    } catch (error) {
+        await transaction.rollback();
+        console.error('Error in PM approve issue:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            message: 'Failed to approve issue'
         });
     }
 };

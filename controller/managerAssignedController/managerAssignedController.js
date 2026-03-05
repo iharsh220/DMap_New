@@ -3369,6 +3369,7 @@ const reviewTask = async (req, res) => {
                         include: [
                             {
                                 model: User,
+                                as: 'user',
                                 attributes: ['id', 'name', 'email']
                             }
                         ]
@@ -3492,6 +3493,7 @@ const reviewTask = async (req, res) => {
                         include: [
                             {
                                 model: User,
+                                as: 'user',
                                 attributes: ['id', 'name', 'email']
                             }
                         ]
@@ -3744,6 +3746,7 @@ const shareForClientReview = async (req, res) => {
                         include: [
                             {
                                 model: User,
+                                as: 'user',
                                 attributes: ['id', 'name', 'email']
                             }
                         ]
