@@ -475,6 +475,29 @@ const getWorkRequestById = async (req, res) => {
         }
         const user_id = req.user.id;
 
+        // First check if user is the creator OR a manager assigned to this work request
+        const workRequest = await WorkRequests.findByPk(id, {
+            attributes: ['id', 'user_id'],
+            include: [{
+                model: WorkRequestManagers,
+                where: { manager_id: user_id },
+                attributes: ['id'],
+                required: false
+            }]
+        });
+
+        if (!workRequest) {
+            return res.status(404).json({ success: false, error: 'Work request not found' });
+        }
+
+        // Check if user is either the creator or a manager
+        const isCreator = workRequest.user_id === user_id;
+        const isManager = workRequest.WorkRequestManagers && workRequest.WorkRequestManagers.length > 0;
+        
+        if (!isCreator && !isManager) {
+            return res.status(403).json({ success: false, error: 'You do not have access to this work request' });
+        }
+
         const result = await workRequestService.getAll({
             where: { id, user_id },
             attributes: { exclude: ['request_type_id', 'created_at', 'updated_at'] },
@@ -542,6 +565,53 @@ const getWorkRequestById = async (req, res) => {
                                     model: Tasks,
                                     as: 'dependencyTask',
                                     attributes: ['id', 'task_name', 'deadline', 'status']
+                                }
+                            ]
+                        },
+                        // Include issues for each task
+                        {
+                            model: IssueAssignments,
+                            as: 'issueAssignments',
+                            required: false,
+                            attributes: ['id', 'issue_id', 'task_id', 'version', 'status', 'review', 'review_stage', 'description', 'deadline', 'assignment_type', 'intimate_team', 'intimate_client', 'task_count', 'link', 'start_date', 'end_date', 'created_at', 'updated_at'],
+                            include: [
+                                // User who requested the issue
+                                {
+                                    model: User,
+                                    as: 'requester',
+                                    attributes: ['id', 'name', 'email']
+                                },
+                                // Issue types (IssueRegister through IssueAssignmentTypes)
+                                {
+                                    model: IssueAssignmentTypes,
+                                    as: 'issueTypeLinks',
+                                    attributes: ['id'],
+                                    include: [
+                                        {
+                                            model: IssueRegister,
+                                            as: 'issueRegister',
+                                            attributes: ['id', 'change_issue_type', 'description']
+                                        }
+                                    ]
+                                },
+                                // User assignments with documents
+                                {
+                                    model: IssueUserAssignments,
+                                    as: 'userAssignments',
+                                    attributes: ['id', 'user_id', 'created_at', 'updated_at'],
+                                    include: [
+                                        {
+                                            model: User,
+                                            as: 'user',
+                                            attributes: ['id', 'name', 'email']
+                                        },
+                                        // Documents for each user assignment
+                                        {
+                                            model: IssueDocuments,
+                                            as: 'documents',
+                                            attributes: ['id', 'document_name', 'document_path', 'document_type', 'document_size', 'version', 'status', 'review', 'intimate_client', 'uploaded_at']
+                                        }
+                                    ]
                                 }
                             ]
                         }
