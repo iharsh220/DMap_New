@@ -3984,6 +3984,11 @@ const acceptIssueRequest = async (req, res) => {
 
 const getIssueAssignments = async (req, res) => {
     try {
+        // Define associations for TaskAssignments
+        Tasks.hasMany(TaskAssignments, { foreignKey: 'task_id' });
+        TaskAssignments.belongsTo(Tasks, { foreignKey: 'task_id' });
+        TaskAssignments.belongsTo(User, { foreignKey: 'user_id' });
+
         const manager_id = req.user.id;
         const { status, review_stage, review } = req.query;
 
@@ -4087,6 +4092,15 @@ const getIssueAssignments = async (req, res) => {
                                     attributes: ['id', 'request_type']
                                 }
                             ]
+                        },
+                        {
+                            model: TaskAssignments,
+                            include: [
+                                {
+                                    model: User,
+                                    attributes: ['id', 'name', 'email']
+                                }
+                            ]
                         }
                     ]
                 },
@@ -4151,6 +4165,15 @@ const getIssueAssignments = async (req, res) => {
                 work_request_id: issue.task.work_request_id,
                 deadline: issue.task.deadline,
                 status: issue.task.status,
+                taskAssignments: issue.task.TaskAssignments ? issue.task.TaskAssignments.map(ta => ({
+                    id: ta.id,
+                    user_id: ta.user_id,
+                    user: ta.User ? {
+                        id: ta.User.id,
+                        name: ta.User.name,
+                        email: ta.User.email
+                    } : null
+                })) : [],
                 workRequest: issue.task.WorkRequest ? {
                     id: issue.task.WorkRequest.id,
                     project_name: issue.task.WorkRequest.project_name,
