@@ -1632,7 +1632,7 @@
                     "response": []
                 },
                 {
-                    "name": "Review Task",
+                    "name": "Review Task / Issue",
                     "request": {
                         "method": "PUT",
                         "header": [
@@ -1647,10 +1647,10 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"action\": \"approved\",\n  \"comments\": \"Task completed successfully\"\n}"
+                            "raw": "{\n  \"task_id\": 1,\n  \"issue_id\": null,\n  \"action\": \"approved\",\n  \"comments\": \"Task completed successfully\"\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}{{base_route}}manager/assigned-work-requests/tasks/:taskId/review",
+                            "raw": "{{base_url}}{{base_route}}manager/assigned-work-requests/review",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -1660,19 +1660,10 @@
                                 "api",
                                 "manager",
                                 "assigned-work-requests",
-                                "tasks",
-                                ":taskId",
                                 "review"
-                            ],
-                            "variable": [
-                                {
-                                    "key": "taskId",
-                                    "value": "1",
-                                    "description": "Task ID"
-                                }
                             ]
                         },
-                        "description": "Review (approve/change_request) a task (requires authentication and manager role)"
+                        "description": "Review (approve/change_request) a task or issue. Provide either task_id or issue_id in the body. For task: updates review_stage based on action. For issue: updates review and review_stage based on action. (requires authentication and manager role)"
                     },
                     "response": []
                 },
@@ -1692,10 +1683,10 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"work_request_id\": 1,\n  \"task_id\": 1,\n  \"document_ids\": [1, 2, 3]\n}"
+                            "raw": "{\n  \"work_request_id\": 1,\n  \"task_id\": 1,\n  \"issue_id\": null,\n  \"document_ids\": [1, 2, 3]\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}{{base_route}}manager/assigned-work-requests/tasks/share-for-client-review",
+                            "raw": "{{base_url}}{{base_route}}manager/assigned-work-requests/share-for-client-review",
                             "host": [
                                 "{{base_url}}"
                             ],
@@ -1705,11 +1696,10 @@
                                 "api",
                                 "manager",
                                 "assigned-work-requests",
-                                "tasks",
                                 "share-for-client-review"
                             ]
                         },
-                        "description": "Share task with client (work request creator) for PM review. Sends email notification to client with task and document details. Task must be in pm_review stage."
+                        "description": "Share task or issue with client (work request creator) for PM review. Provide either task_id or issue_id in the body. Sends email notification to client with task/issue and document details. Must be in pm_review stage."
                     },
                     "response": []
                 },
