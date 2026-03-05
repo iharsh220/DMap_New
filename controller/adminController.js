@@ -24,7 +24,7 @@ const getAdminData = async (req, res) => {
                 COALESCE(rt.request_type, 'N/A') AS project_type,
                 COALESCE(GROUP_CONCAT(DISTINCT rdiv.title SEPARATOR ', '), 'N/A') AS requester_division,
                 COALESCE(ru.name, 'N/A') AS requester_name,
-                COALESCE(GROUP_CONCAT(DISTINCT udiv.title SEPARATOR ', '), 'N/A') AS user_division,
+                COALESCE(tdiv.title, 'N/A') AS user_division,
                 COALESCE(GROUP_CONCAT(DISTINCT mu.name ORDER BY mu.name SEPARATOR ', '), 'N/A') AS manager_name,
                 1 AS project_count,
                 COUNT(DISTINCT t.id) AS task_count,
@@ -49,10 +49,13 @@ const getAdminData = async (req, res) => {
             LEFT JOIN work_request_managers wrm ON wr.id = wrm.work_request_id
             LEFT JOIN users mu ON wrm.manager_id = mu.id
             LEFT JOIN tasks t ON wr.id = t.work_request_id
-            LEFT JOIN task_assignments ta ON t.id = ta.task_id
-            LEFT JOIN users au ON ta.user_id = au.id
-            LEFT JOIN user_divisions aud ON au.id = aud.user_id
-            LEFT JOIN division udiv ON aud.division_id = udiv.id
+            LEFT JOIN task_type tt ON t.task_type_id = tt.id
+            LEFT JOIN task_project_reference tpr ON tt.id = tpr.task_id
+            LEFT JOIN project_type pt ON tpr.project_id = pt.id
+            LEFT JOIN project_request_reference prr ON pt.id = prr.project_id
+            LEFT JOIN request_type rt2 ON prr.request_id = rt2.id
+            LEFT JOIN request_division_reference rdr2 ON rt2.id = rdr2.request_id
+            LEFT JOIN division tdiv ON rdr2.division_id = tdiv.id
         `;
 
         if (whereClauses.length > 0) {
@@ -100,7 +103,7 @@ const getTaskDetailsData = async (req, res) => {
                 COALESCE(rt.request_type, 'N/A') AS project_type,
                 COALESCE(GROUP_CONCAT(DISTINCT rdiv.title SEPARATOR ', '), 'N/A') AS requester_division,
                 COALESCE(ru.name, 'N/A') AS requester_name,
-                COALESCE(GROUP_CONCAT(DISTINCT udiv.title SEPARATOR ', '), 'N/A') AS user_division,
+                COALESCE(tdiv.title, 'N/A') AS user_division,
                 COALESCE(GROUP_CONCAT(DISTINCT mu.name ORDER BY mu.name SEPARATOR ', '), 'N/A') AS manager_name,
                 t.id AS task_id,
                 t.task_name,
@@ -119,6 +122,12 @@ const getTaskDetailsData = async (req, res) => {
             LEFT JOIN work_requests wr ON t.work_request_id = wr.id
             LEFT JOIN request_type rt ON wr.request_type_id = rt.id
             LEFT JOIN task_type tt ON t.task_type_id = tt.id
+            LEFT JOIN task_project_reference tpr ON tt.id = tpr.task_id
+            LEFT JOIN project_type pt ON tpr.project_id = pt.id
+            LEFT JOIN project_request_reference prr ON pt.id = prr.project_id
+            LEFT JOIN request_type rt2 ON prr.request_id = rt2.id
+            LEFT JOIN request_division_reference rdr2 ON rt2.id = rdr2.request_id
+            LEFT JOIN division tdiv ON rdr2.division_id = tdiv.id
             LEFT JOIN users ru ON wr.user_id = ru.id
             LEFT JOIN user_divisions rud ON ru.id = rud.user_id
             LEFT JOIN division rdiv ON rud.division_id = rdiv.id
@@ -126,8 +135,6 @@ const getTaskDetailsData = async (req, res) => {
             LEFT JOIN users mu ON wrm.manager_id = mu.id
             LEFT JOIN task_assignments ta ON t.id = ta.task_id
             LEFT JOIN users au ON ta.user_id = au.id
-            LEFT JOIN user_divisions aud ON au.id = aud.user_id
-            LEFT JOIN division udiv ON aud.division_id = udiv.id
         `;
 
         if (whereClauses.length > 0) {
