@@ -1313,6 +1313,11 @@ const createTask = async (req, res) => {
         }
 
 
+        // Check if work request status is 'completed' and update to 'pending'
+        if (workRequest.status === 'completed') {
+            await workRequestService.updateById(work_request_id, { status: 'pending' });
+        }
+
         res.status(201).json({
             success: true,
             data: taskResult,
