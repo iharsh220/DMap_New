@@ -1334,6 +1334,40 @@ const handleIssuePmApproval = async (req, res, transaction, issueId) => {
             review_stage: 'final_approved'
         }, { transaction });
 
+        // If issue has a linked task, update the task as well
+        if (issueAssignment.task_id) {
+            const linkedTask = await Tasks.findByPk(issueAssignment.task_id);
+            
+            if (linkedTask) {
+                // Update the linked task: status = 'completed', review = 'approved', review_stage = 'final_approved'
+                await linkedTask.update({
+                    status: 'completed',
+                    review: 'approved',
+                    review_stage: 'final_approved'
+                }, { transaction });
+
+                // Also update all documents for this task where intimate_client = 1
+                const taskAssignments = await TaskAssignments.findAll({
+                    where: { task_id: linkedTask.id }
+                });
+                
+                const taskAssignmentIds = taskAssignments.map(ta => ta.id);
+                
+                if (taskAssignmentIds.length > 0) {
+                    await TaskDocuments.update(
+                        { review: 'approved' },
+                        {
+                            where: {
+                                task_assignment_id: { [Op.in]: taskAssignmentIds },
+                                intimate_client: 1
+                            },
+                            transaction
+                        }
+                    );
+                }
+            }
+        }
+
         // Find all issue user assignments for this issue
         const issueUserAssignments = await IssueUserAssignments.findAll({
             where: { issue_assignment_id: issueId }
@@ -1371,6 +1405,11 @@ const handleIssuePmApproval = async (req, res, transaction, issueId) => {
                             attributes: ['id', 'name', 'email']
                         }
                     ]
+                },
+                {
+                    model: Tasks,
+                    as: 'task',
+                    attributes: ['id', 'task_name', 'status', 'review', 'review_stage']
                 }
             ]
         });
@@ -1380,6 +1419,7 @@ const handleIssuePmApproval = async (req, res, transaction, issueId) => {
             data: {
                 type: 'issue',
                 issue: updatedIssue,
+                linkedTaskUpdated: issueAssignment.task_id ? true : false,
                 reviewAction: {
                     action: 'approved',
                     previousStage,
