@@ -1908,12 +1908,12 @@ const assignTasksToUsers = async (req, res) => {
         const workRequest = workRequestResult.data[0];
 
         // Check if work request is accepted
-        if (workRequest.status !== 'accepted' && workRequest.status !== 'assigned') {
-            return res.status(400).json({
-                success: false,
-                error: 'Work request must be accepted before sending task notifications'
-            });
-        }
+        // if (workRequest.status !== 'accepted' && workRequest.status !== 'assigned') {
+        //     return res.status(400).json({
+        //         success: false,
+        //         error: 'Work request must be accepted before sending task notifications'
+        //     });
+        // }
 
         // Get the latest task assignment for this work request with task details
         const latestTaskAssignment = await TaskAssignments.findOne({
