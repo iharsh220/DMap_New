@@ -118,12 +118,12 @@ const getAssignableUsers = async (req, res) => {
             const workRequest = workRequestResult.data[0];
 
             // Check if work request is accepted
-            if (workRequest.status !== 'accepted' && workRequest.status !== 'assigned' && workRequest.status !== 'in_progress') {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Work request must be accepted before assigning users'
-                });
-            }
+            // if (workRequest.status !== 'accepted' && workRequest.status !== 'assigned' && workRequest.status !== 'in_progress' && workRequest.status !== 'completed' ) {
+            //     return res.status(400).json({
+            //         success: false,
+            //         error: 'Work request must be accepted before assigning users'
+            //     });
+            // }
 
             divisionIds = workRequest.RequestType?.Divisions?.map(d => d.id) || [];
 
