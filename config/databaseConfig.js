@@ -17,6 +17,16 @@ const sequelize = new Sequelize(
       charset: 'utf8mb4',
       collate: 'utf8mb4_unicode_ci',
     },
+    pool: {
+      max: 20,
+      min: 0,
+      acquire: 60000,
+      idle: 10000,
+      evict: 1000
+    },
+    retry: {
+      max: 3
+    }
   }
 );
 
