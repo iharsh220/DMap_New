@@ -869,7 +869,7 @@ const acceptTask = async (req, res) => {
 const submitTask = async (req, res) => {
     try {
         const user_id = req.user.id;
-        const { task_id, task_count, link, work_request_id } = req.body;
+        const { task_id, task_count, link, work_request_id, start_date } = req.body;
 
         // Validate required parameters
         if (!task_id || !task_count) {
@@ -983,6 +983,19 @@ const submitTask = async (req, res) => {
                 end_date: new Date(),
                 review_stage: 'manager_review' // Set review_stage to manager_review when task is completed
             };
+
+            // Add start_date if provided in request body
+            if (start_date) {
+                // Validate and parse the start_date
+                const startDateObj = new Date(start_date);
+                if (isNaN(startDateObj.getTime())) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Invalid start_date format. Use YYYY-MM-DD format.'
+                    });
+                }
+                taskUpdateData.start_date = startDateObj;
+            }
 
             if (link) {
                 taskUpdateData.link = link;
