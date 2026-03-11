@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!--[if mso]>
+    <style type="text/css">
+        body, table, td {font-family: Arial, Helvetica, sans-serif !important;}
+    </style>
+    <![endif]-->
+    <title>{{title}}</title>
+    <style>
+        /* Reset styles */
+        body, table, td, p, h1, h2, h3, h4, h5, h6 {
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f4;
+            color: #333333;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        /* Main container */
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+        }
+        
+        /* Header with gradient fallback */
+        .header {
+            background-color: #007bff;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            color: #ffffff;
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+        
+        /* Banner section */
+        .banner {
+            width: 100%;
+            display: block;
+        }
+        
+        .banner img {
+            width: 100%;
+            height: auto;
+            display: block;
+            max-width: 600px;
+        }
+        
+        /* Logo section */
+        .logo-section {
+            background-color: #ffffff;
+            padding: 25px 20px;
+            text-align: center;
+            border-bottom: 3px solid #007bff;
+        }
+        
+        .logo-section img {
+            max-height: 50px;
+            width: auto;
+        }
+        
+        /* Content area */
+        .content {
+            padding: 30px 25px;
+        }
+        
+        /* Headings */
+        .content h2 {
+            color: #2c3e50;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+        
+        /* Info boxes */
+        .info-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 15px 20px;
+            margin: 20px 0;
+        }
+        
+        .success-box {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px 20px;
+            margin: 20px 0;
+        }
+        
+        .warning-box {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px 20px;
+            margin: 20px 0;
+        }
+        
+        /* Tables */
+        .details-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        .details-table td {
+            padding: 10px 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .details-table td:first-child {
+            font-weight: 600;
+            color: #495057;
+            width: 40%;
+        }
+        
+        /* Task list */
+        .task-item {
+            background-color: #f8f9fa;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .task-item strong {
+            color: #007bff;
+        }
+        
+        /* Buttons */
+        .btn {
+            display: inline-block;
+            background-color: #007bff;
+            color: #ffffff !important;
+            padding: 14px 28px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            margin: 15px 0;
+            text-align: center;
+        }
+        
+        .btn-success {
+            background-color: #28a745;
+        }
+        
+        /* Footer */
+        .footer {
+            background-color: #f8f9fa;
+            padding: 25px 20px;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .footer p {
+            margin: 5px 0;
+            font-size: 12px;
+            color: #6c757d;
+        }
+        
+        .footer a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        
+        /* Utility classes */
+        .text-center {
+            text-align: center;
+        }
+        
+        .mb-0 {
+            margin-bottom: 0;
+        }
+        
+        .mt-20 {
+            margin-top: 20px;
+        }
+        
+        /* Responsive */
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                width: 100% !important;
+            }
+            
+            .content {
+                padding: 20px 15px !important;
+            }
+            
+            .header h1 {
+                font-size: 20px !important;
+            }
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f4f4;">
+    <!-- Preheader (hidden text) -->
+    <div style="display: none; font-size: 1px; color: #fefefe; line-height: 1px; font-family: Arial, sans-serif; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;">
+        {{preheader}}
+    </div>
+    
+    <!-- Main Email Container -->
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f4f4f4; padding: 20px 0;">
+        <tr>
+            <td align="center">
+                <!-- Email Container -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" class="email-container" style="background-color: #ffffff; max-width: 600px;">
+                    
+                    <!-- Banner Image -->
+                    <tr>
+                        <td class="banner" style="padding: 0;">
+                            <a href="{{frontend_url}}">
+                                <img src="{{banner_base64}}" alt="D-Map Banner" width="600" style="display: block; width: 100%; max-width: 600px; height: auto; border: 0;">
+                            </a>
+                        </td>
+                    </tr>
+                    
+                    <!-- Logo Section -->
+                    <tr>
+                        <td class="logo-section" style="background-color: #ffffff; padding: 20px; text-align: center; border-bottom: 3px solid #007bff;">
+                            <img src="{{logo_base64}}" alt="Alembic Logo" height="50" style="display: inline-block; height: 50px; width: auto; border: 0;">
+                        </td>
+                    </tr>
+                    
+                    <!-- Header -->
+                    <tr>
+                        <td class="header" style="background-color: #007bff; padding: 25px 20px; text-align: center;">
+                            <h1 style="color: #ffffff; font-size: 22px; font-weight: 600; margin: 0; font-family: Arial, Helvetica, sans-serif;">{{header_title}}</h1>
+                        </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                        <td class="content" style="padding: 30px 25px;">
+                            {{content}}
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td class="footer" style="background-color: #f8f9fa; padding: 25px 20px; text-align: center; border-top: 1px solid #e9ecef;">
+                            <p style="margin: 5px 0; font-size: 12px; color: #6c757d;">This is an automated message from D-Map. Please do not reply to this email.</p>
+                            <p style="margin: 5px 0; font-size: 12px; color: #6c757d;">&copy; 2026 Alembic Digital Labs. All rights reserved.</p>
+                            <p style="margin: 10px 0 0 0; font-size: 12px;">
+                                <a href="{{frontend_url}}" style="color: #007bff; text-decoration: none;">Visit D-Map</a> | 
+                                <a href="mailto:support@alembicdigilabs.com" style="color: #007bff; text-decoration: none;">Support</a>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

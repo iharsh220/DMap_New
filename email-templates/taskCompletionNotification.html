@@ -4,207 +4,120 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Task Completed - D-Map</title>
+    <!--[if mso]>
+    <style type="text/css">
+        body, table, td {font-family: Arial, Helvetica, sans-serif !important;}
+    </style>
+    <![endif]-->
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f8f9fa;
-            color: #333;
-            line-height: 1.6;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .header {
-            background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
-            color: white;
-            padding: 40px 30px;
-            text-align: center;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 28px;
-            font-weight: 600;
-        }
-        .content {
-            padding: 40px 30px;
-        }
-        .welcome-message {
-            font-size: 18px;
-            font-weight: 500;
-            color: #2c3e50;
-            margin-bottom: 20px;
-        }
-        .success {
-            background-color: #d4edda;
-            border: 1px solid #c3e6cb;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 20px 0;
-            color: #155724;
-        }
-        .info {
-            background-color: #d1ecf1;
-            border: 1px solid #bee5eb;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 20px 0;
-            color: #0c5460;
-        }
-        .task-list {
-            background-color: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 25px 0;
-        }
-        .task-list ul {
-            margin: 0;
-            padding-left: 20px;
-        }
-        .task-list li {
-            margin-bottom: 8px;
-            color: #495057;
-        }
-        .support {
-            background-color: #e9ecef;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 25px 0;
-            text-align: center;
-        }
-        .support a {
-            color: #007bff;
-            text-decoration: none;
-            font-weight: 500;
-        }
-        .action-button {
-            display: inline-block;
-            background-color: #28a745;
-            color: white !important;
-            padding: 12px 24px;
-            text-decoration: none;
-            border-radius: 6px;
-            font-weight: 500;
-            margin: 10px 0;
-        }
-        .footer {
-            background-color: #f8f9fa;
-            padding: 20px 30px;
-            text-align: center;
-            font-size: 12px;
-            color: #6c757d;
-            border-top: 1px solid #dee2e6;
-        }
-        .footer p {
-            margin: 0;
-        }
-        .logo-section {
-            background-color: #ffffff;
-            padding: 20px 30px;
-            text-align: center;
-            border-bottom: 1px solid #e9ecef;
-        }
-        .logo-section img {
-            max-height: 60px;
-            width: auto;
-        }
-        .banner-section {
-            width: 100%;
-            max-height: 200px;
-            overflow: hidden;
-        }
-        .banner-section img {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
-        @media (max-width: 600px) {
-            .container {
-                margin: 10px;
-                border-radius: 8px;
-            }
-            .header, .content, .footer {
-                padding: 20px;
-            }
-            .header h1 {
-                font-size: 24px;
-            }
+        body { margin: 0; padding: 0; background-color: #f4f4f4; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .email-container { max-width: 600px; margin: 0 auto; }
+        .banner img { width: 100%; max-width: 600px; height: auto; display: block; }
+        .logo-section { background-color: #ffffff; padding: 20px; text-align: center; border-bottom: 3px solid #28a745; }
+        .logo-section img { height: 50px; width: auto; }
+        .header { background-color: #28a745; padding: 25px 20px; text-align: center; }
+        .header h1 { color: #ffffff; font-size: 22px; font-weight: 600; margin: 0; }
+        .content { padding: 30px 25px; }
+        .content h2 { color: #2c3e50; font-size: 20px; font-weight: 600; margin: 0 0 15px 0; }
+        .info-box { background-color: #f8f9fa; border-left: 4px solid #007bff; padding: 15px 20px; margin: 20px 0; }
+        .success-box { background-color: #d4edda; border-left: 4px solid #28a745; padding: 15px 20px; margin: 20px 0; }
+        .details-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .details-table td { padding: 10px 15px; border-bottom: 1px solid #e9ecef; }
+        .details-table td:first-child { font-weight: 600; color: #495057; width: 40%; }
+        .task-item { background-color: #f8f9fa; padding: 15px; margin: 10px 0; border-radius: 6px; border: 1px solid #e9ecef; }
+        .btn { display: inline-block; background-color: #28a745; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 15px 0; }
+        .footer { background-color: #f8f9fa; padding: 25px 20px; text-align: center; border-top: 1px solid #e9ecef; }
+        .footer p { margin: 5px 0; font-size: 12px; color: #6c757d; }
+        .footer a { color: #007bff; text-decoration: none; }
+        @media only screen and (max-width: 600px) {
+            .content { padding: 20px 15px !important; }
+            .header h1 { font-size: 20px !important; }
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="logo-section">
-            <img src="{{logo_base64}}" alt="Alembic Logo">
-        </div>
-        
-        <div class="banner-section">
-            <img src="{{banner_base64}}" alt="D-Map Banner">
-        </div>
-
-        <div class="header">
-            <h1>Task Completed</h1>
-        </div>
-        <div class="content">
-            <div class="welcome-message">
-                Task Completion Notification
-            </div>
-
-            <div class="success">
-                <strong>Great Job!</strong><br>
-                A task has been completed successfully.
-            </div>
-
-            <div class="info">
-                <strong>Work Request Details:</strong>
-                <ul>
-                    <li><strong>Project Name:</strong> {{project_name}}</li>
-                    <li><strong>Brand:</strong> {{brand}}</li>
-                    <li><strong>Request Type:</strong> {{request_type}}</li>
-                    <li><strong>Priority:</strong> {{priority}}</li>
-                    <li><strong>Request ID:</strong> #{{request_id}}</li>
-                    <li><strong>Completed At:</strong> {{completed_at}}</li>
-                </ul>
-            </div>
-
-            <div class="task-list">
-                <p><strong>Completed Task:</strong></p>
-                <ul>
-                    <li>
-                        <strong>Task Name:</strong> {{task_name}}<br>
-                        {{#if description}}<strong>Description:</strong> {{description}}<br>{{/if}}
-                        <strong>Completed By:</strong> {{completed_by}}<br>
-                        {{#if task_count}}<strong>Task Count:</strong> {{task_count}}<br>{{/if}}
-                        {{#if link}}<strong>Link:</strong> <a href="{{link}}">{{link}}</a>{{/if}}
-                    </li>
-                </ul>
-            </div>
-
-            <div class="info">
-                <strong>Status:</strong> Task completed successfully<br>
-                <strong>Next Steps:</strong> Review the completed work and provide feedback if needed
-            </div>
-
-            <div style="text-align: center;">
-                <a href="{{frontend_url}}/dashboard" class="action-button">
-                    View Work Request
-                </a>
-            </div>
-
-            <div class="support">
-                <p>For any questions, contact support at <a href="mailto:support@alembicdigilabs.com">support@alembicdigilabs.com</a></p>
-            </div>
-        </div>
-        <div class="footer">
-            <p>This is an automated message from D-Map. Please do not reply to this email.</p>
-            <p>&copy; 2026 Alembic Digital Labs. All rights reserved.</p>
-        </div>
+<body style="margin: 0; padding: 0; background-color: #f4f4f4;">
+    <div style="display: none; font-size: 1px; color: #fefefe; line-height: 1px; max-height: 0; max-width: 0; opacity: 0; overflow: hidden;">
+        A task has been completed successfully. Review the completed work.
     </div>
+    
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f4f4f4; padding: 20px 0;">
+        <tr>
+            <td align="center">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="background-color: #ffffff; max-width: 600px;">
+                    <!-- Banner -->
+                    <tr>
+                        <td style="padding: 0;">
+                            <a href="{{frontend_url}}">
+                                <img src="{{banner_base64}}" alt="D-Map Banner" width="600" style="display: block; width: 100%; max-width: 600px; height: auto; border: 0;">
+                            </a>
+                        </td>
+                    </tr>
+                    
+                    <!-- Logo -->
+                    <tr>
+                        <td style="background-color: #ffffff; padding: 20px; text-align: center; border-bottom: 3px solid #28a745;">
+                            <img src="{{logo_base64}}" alt="Alembic Logo" height="50" style="display: inline-block; height: 50px; width: auto; border: 0;">
+                        </td>
+                    </tr>
+                    
+                    <!-- Header -->
+                    <tr>
+                        <td style="background-color: #28a745; padding: 25px 20px; text-align: center;">
+                            <h1 style="color: #ffffff; font-size: 22px; font-weight: 600; margin: 0;">Task Completed</h1>
+                        </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <td class="content" style="padding: 30px 25px;">
+                        <h2>Task Completion Notification</h2>
+                        
+                        <div class="success-box" style="background-color: #d4edda; border-left: 4px solid #28a745; padding: 15px 20px; margin: 20px 0;">
+                            <strong>Great Job!</strong><br>
+                            A task has been completed successfully.
+                        </div>
+                        
+                        <table class="details-table" style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                            <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;"><strong>Project Name:</strong></td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{project_name}}</td></tr>
+                            <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;"><strong>Brand:</strong></td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{brand}}</td></tr>
+                            <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;"><strong>Request Type:</strong></td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{request_type}}</td></tr>
+                            <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;"><strong>Priority:</strong></td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{priority}}</td></tr>
+                            <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;"><strong>Request ID:</strong></td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">#{{request_id}}</td></tr>
+                            <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;"><strong>Completed At:</strong></td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{completed_at}}</td></tr>
+                        </table>
+                        
+                        <h3 style="color: #2c3e50; font-size: 16px; font-weight: 600; margin: 25px 0 10px 0;">Completed Task:</h3>
+                        <div class="task-item" style="background-color: #f8f9fa; padding: 15px; margin: 10px 0; border-radius: 6px; border: 1px solid #e9ecef;">
+                            <strong style="color: #28a745;">{{task_name}}</strong><br>
+                            {{#if description}}{{description}}<br>{{/if}}
+                            <strong>Completed By:</strong> {{completed_by}}<br>
+                            {{#if task_count}}<strong>Task Count:</strong> {{task_count}}<br>{{/if}}
+                            {{#if link}}<strong>Link:</strong> <a href="{{link}}" style="color: #007bff;">{{link}}</a>{{/if}}
+                        </div>
+                        
+                        <div class="info-box" style="background-color: #f8f9fa; border-left: 4px solid #007bff; padding: 15px 20px; margin: 20px 0;">
+                            <strong>Status:</strong> Task completed successfully<br>
+                            <strong>Next Steps:</strong> Review the completed work and provide feedback if needed
+                        </div>
+                        
+                        <div style="text-align: center;">
+                            <a href="{{frontend_url}}/dashboard" class="btn" style="display: inline-block; background-color: #28a745; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 15px 0;">View Work Request</a>
+                        </div>
+                        
+                        <div style="background-color: #f8f9fa; padding: 15px; margin: 20px 0; border-radius: 6px; text-align: center;">
+                            <strong>Questions?</strong> Contact support at <a href="mailto:support@alembicdigilabs.com" style="color: #007bff;">support@alembicdigilabs.com</a>
+                        </div>
+                    </td>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td class="footer" style="background-color: #f8f9fa; padding: 25px 20px; text-align: center; border-top: 1px solid #e9ecef;">
+                            <p style="margin: 5px 0; font-size: 12px; color: #6c757d;">This is an automated message from D-Map. Please do not reply to this email.</p>
+                            <p style="margin: 5px 0; font-size: 12px; color: #6c757d;">&copy; 2026 Alembic Digital Labs. All rights reserved.</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>
