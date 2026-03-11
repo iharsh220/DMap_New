@@ -111,10 +111,10 @@ const getTaskDetailsData = async (req, res) => {
                 COALESCE(GROUP_CONCAT(DISTINCT au.name SEPARATOR ', '), 'N/A') AS creative_user,
                 COUNT(DISTINCT ta.id) AS task_count,
                 t.task_count AS no_of_work_pages,
-                COALESCE(DATE_FORMAT(wr.requested_at, '%d/%m/%Y'), 'N/A') AS request_date,
+                COALESCE(DATE_FORMAT(wr.requested_at, '%Y-%m-%d'), 'N/A') AS request_date,
                 COALESCE(wr.priority, 'N/A') AS scale,
-                COALESCE(DATE_FORMAT(t.start_date, '%d/%m/%Y'), 'N/A') AS task_start_date,
-                COALESCE(DATE_FORMAT(t.end_date, '%d/%m/%Y'), 'N/A') AS task_end_date,
+                COALESCE(DATE_FORMAT(t.start_date, '%Y-%m-%d'), 'N/A') AS task_start_date,
+                COALESCE(DATE_FORMAT(t.end_date, '%Y-%m-%d'), 'N/A') AS task_end_date,
                 CASE
                     WHEN t.start_date IS NULL AND t.end_date IS NULL THEN 'upcoming'
                     WHEN t.start_date IS NOT NULL AND t.end_date IS NOT NULL THEN 'completed'
