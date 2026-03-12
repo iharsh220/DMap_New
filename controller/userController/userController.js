@@ -985,6 +985,7 @@ const submitTask = async (req, res) => {
             };
 
             // Add start_date if provided in request body
+            let providedStartDate = null;
             if (start_date) {
                 // Validate and parse the start_date
                 const startDateObj = new Date(start_date);
@@ -994,7 +995,26 @@ const submitTask = async (req, res) => {
                         error: 'Invalid start_date format. Use YYYY-MM-DD format.'
                     });
                 }
+                providedStartDate = startDateObj;
                 taskUpdateData.start_date = startDateObj;
+            } else if (task.start_date) {
+                // If no new start_date provided, use the existing one from the task
+                providedStartDate = new Date(task.start_date);
+            }
+
+            // Validate that end_date is not before start_date
+            if (providedStartDate) {
+                const endDate = new Date(); // Current date/time when submitting
+                endDate.setHours(0, 0, 0, 0); // Set to start of day for comparison
+                const startDateOnly = new Date(providedStartDate);
+                startDateOnly.setHours(0, 0, 0, 0);
+                
+                if (endDate < startDateOnly) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'End date cannot be before start date'
+                    });
+                }
             }
 
             if (link) {
@@ -1875,6 +1895,22 @@ const submitIssue = async (req, res) => {
                 link: link || issueAssignment.link,
                 description: description || issueAssignment.description
             };
+
+            // Validate that end_date is not before start_date
+            const existingStartDate = issueAssignment.start_date;
+            if (existingStartDate) {
+                const endDate = new Date(); // Current date/time when submitting
+                endDate.setHours(0, 0, 0, 0); // Set to start of day for comparison
+                const startDateOnly = new Date(existingStartDate);
+                startDateOnly.setHours(0, 0, 0, 0);
+                
+                if (endDate < startDateOnly) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'End date cannot be before start date'
+                    });
+                }
+            }
 
             if (task_count) {
                 issueUpdateData.task_count = parseInt(task_count, 10);

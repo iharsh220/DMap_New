@@ -3245,7 +3245,8 @@ const reviewTask = async (req, res) => {
                 newStage = 'pm_review';
             } else if (action === 'change_request') {
                 // Change request - only update review field, keep review_stage as is
-                updateData.review = 'change_request';
+                // updateData.review = 'change_request';
+                updateData.review = 'pending';
                 // If task is completed, change status back to in_progress
                 if (task.status === 'completed') {
                     newStatus = 'in_progress';
