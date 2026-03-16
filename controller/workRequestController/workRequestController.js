@@ -1326,22 +1326,22 @@ const handleIssuePmApproval = async (req, res, transaction, issueId) => {
         const previousStatus = issueAssignment.status;
         const previousStage = issueAssignment.review_stage;
 
-        // Update the issue: status stays 'completed', review = 'approved', review_stage = 'final_approved'
-        const newStatus = 'completed';
-        await issueAssignment.update({
-            status: newStatus,
-            review: 'approved',
-            review_stage: 'final_approved'
-        }, { transaction });
-
-        // If issue has a linked task, update the task as well
+        // If issue has a linked task, update all issues with that task_id and the task itself
         if (issueAssignment.task_id) {
-            const linkedTask = await Tasks.findByPk(issueAssignment.task_id);
+            const taskId = issueAssignment.task_id;
+            
+            // Update ALL issues with the same task_id to review='approved' and review_stage='final_approved'
+            await IssueAssignments.update(
+                { review: 'approved', review_stage: 'final_approved' },
+                { where: { task_id: taskId }, transaction }
+            );
+
+            // Update the task to status='accepted', review='approved', review_stage='final_approved'
+            const linkedTask = await Tasks.findByPk(taskId);
             
             if (linkedTask) {
-                // Update the linked task: status = 'completed', review = 'approved', review_stage = 'final_approved'
                 await linkedTask.update({
-                    status: 'completed',
+                    status: 'accepted',
                     review: 'approved',
                     review_stage: 'final_approved'
                 }, { transaction });
@@ -1414,22 +1414,30 @@ const handleIssuePmApproval = async (req, res, transaction, issueId) => {
             ]
         });
 
+        // Fetch all issues updated for this task
+        const allUpdatedIssues = issueAssignment.task_id ? 
+            await IssueAssignments.findAll({ 
+                where: { task_id: issueAssignment.task_id },
+                attributes: ['id', 'issue_id', 'version', 'status', 'review', 'review_stage']
+            }) : [];
+
         return res.json({
             success: true,
             data: {
                 type: 'issue',
                 issue: updatedIssue,
+                allIssuesUpdated: allUpdatedIssues,
                 linkedTaskUpdated: issueAssignment.task_id ? true : false,
                 reviewAction: {
                     action: 'approved',
                     previousStage,
                     newStage: 'final_approved',
-                    statusChanged: newStatus !== previousStatus,
+                    statusChanged: true,
                     previousStatus,
-                    newStatus
+                    newStatus: 'completed'
                 }
             },
-            message: 'Issue approved successfully by PM'
+            message: 'Issue and all related issues approved successfully by PM'
         });
 
     } catch (error) {
