@@ -980,6 +980,7 @@ const submitTask = async (req, res) => {
             const taskUpdateData = {
                 task_count: taskCount,
                 status: 'completed',
+                review: 'pending',
                 end_date: new Date(),
                 review_stage: 'manager_review' // Set review_stage to manager_review when task is completed
             };
@@ -1008,7 +1009,7 @@ const submitTask = async (req, res) => {
                 endDate.setHours(0, 0, 0, 0); // Set to start of day for comparison
                 const startDateOnly = new Date(providedStartDate);
                 startDateOnly.setHours(0, 0, 0, 0);
-                
+
                 if (endDate < startDateOnly) {
                     return res.status(400).json({
                         success: false,
@@ -1777,7 +1778,7 @@ const acceptIssue = async (req, res) => {
         if (providedStartDate) {
             // Check if start_date is today or in the future
             const isToday = providedStartDate.getTime() === today.getTime();
-            
+
             if (isToday) {
                 newStatus = 'in_progress';
                 finalStartDate = providedStartDate;
@@ -1793,7 +1794,7 @@ const acceptIssue = async (req, res) => {
         }
 
         // Prepare update data
-        const updateData = { 
+        const updateData = {
             status: newStatus,
             start_date: finalStartDate
         };
@@ -1891,6 +1892,7 @@ const submitIssue = async (req, res) => {
             const issueUpdateData = {
                 status: 'completed',
                 end_date: new Date(),
+                review: 'pending',
                 review_stage: 'manager_review', // Set review_stage to manager_review when issue is completed
                 link: link || issueAssignment.link,
                 description: description || issueAssignment.description
@@ -1903,7 +1905,7 @@ const submitIssue = async (req, res) => {
                 endDate.setHours(0, 0, 0, 0); // Set to start of day for comparison
                 const startDateOnly = new Date(existingStartDate);
                 startDateOnly.setHours(0, 0, 0, 0);
-                
+
                 if (endDate < startDateOnly) {
                     return res.status(400).json({
                         success: false,
