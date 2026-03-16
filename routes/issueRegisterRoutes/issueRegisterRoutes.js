@@ -6,8 +6,8 @@ const { checkRole } = require('../../middleware/roleMiddleware');
 const filterMiddleware = require('../../middleware/filterMiddleware');
 const paginationMiddleware = require('../../middleware/paginationMiddleware');
 
-// Get issue register data by task ID
-router.get('/task/:task_id', authenticateToken, getIssueRegisterByTaskId);
+// Get issue register data by task ID or issue ID
+router.get('/task/:task_id/:issue_id?', authenticateToken, getIssueRegisterByTaskId);
 
 // Get all issue register entries
 router.get('/', authenticateToken, getAllIssueRegisters);

@@ -25,13 +25,41 @@ const {
     TaskReviewHistory
 } = require('../../models');
 
-// Get issue register data by task ID
+// Get issue register data by task ID or issue ID
 const getIssueRegisterByTaskId = async (req, res) => {
     try {
-        const taskId = parseInt(req.params.task_id, 10);
+        const task_id = req.params.task_id;
+        const issue_id = req.params.issue_id;
         
-        if (isNaN(taskId)) {
-            return res.status(400).json({ success: false, error: 'Invalid task ID' });
+        let taskId = null;
+
+        // If issue_id is provided, get the task_id from the issue
+        if (issue_id) {
+            const issueIdNum = parseInt(issue_id, 10);
+            if (isNaN(issueIdNum)) {
+                return res.status(400).json({ success: false, error: 'Invalid issue ID' });
+            }
+
+            const issueAssignment = await IssueAssignments.findByPk(issueIdNum, { 
+                attributes: ['id', 'task_id'] 
+            });
+
+            if (!issueAssignment) {
+                return res.status(404).json({ success: false, error: 'Issue not found' });
+            }
+
+            if (!issueAssignment.task_id) {
+                return res.status(400).json({ success: false, error: 'Issue is not linked to a task' });
+            }
+
+            taskId = issueAssignment.task_id;
+        } else if (task_id) {
+            // If only task_id is provided
+            taskId = parseInt(task_id, 10);
+        }
+
+        if (!taskId || isNaN(taskId)) {
+            return res.status(400).json({ success: false, error: 'Either task_id or issue_id is required' });
         }
 
         const task = await Tasks.findByPk(taskId, { attributes: ['id', 'task_name', 'task_type_id'] });
@@ -57,7 +85,14 @@ const getIssueRegisterByTaskId = async (req, res) => {
             attributes: ['id', 'change_issue_type', 'description', 'quantification']
         });
 
-        res.json({ success: true, data: { task: { id: task.id, task_name: task.task_name, task_type_id: task.task_type_id }, issue_registers: issueRegisters }, message: 'Issue register data retrieved successfully' });
+        res.json({ 
+            success: true, 
+            data: { 
+                task: { id: task.id, task_name: task.task_name, task_type_id: task.task_type_id }, 
+                issue_registers: issueRegisters 
+            }, 
+            message: 'Issue register data retrieved successfully' 
+        });
     } catch (error) {
         console.error('Error fetching issue register data:', error);
         res.status(500).json({ success: false, error: error.message, message: 'Failed to fetch issue register data' });
@@ -113,6 +148,11 @@ const createIssueAssignment = async (req, res) => {
 
         if (task_id) {
             await Tasks.update({ review: 'change_request' }, { where: { id: task_id }, transaction });
+        }
+
+        // If issue_id is provided, update the parent issue's review to 'change_request'
+        if (issue_id) {
+            await IssueAssignments.update({ review: 'change_request' }, { where: { id: issue_id }, transaction });
         }
 
         if (issue_register_ids && issue_register_ids.length > 0) {
