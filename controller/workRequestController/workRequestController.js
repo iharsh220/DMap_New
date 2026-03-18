@@ -1242,7 +1242,7 @@ const pmApproveTask = async (req, res) => {
         }, { transaction });
 
         // Find all task assignments for this task
-        const taskAssignments = await require('../../models').TaskAssignments.findAll({
+        const taskAssignments = await TaskAssignments.findAll({
             where: { task_id: task_id }
         });
 
@@ -1250,11 +1250,11 @@ const pmApproveTask = async (req, res) => {
 
         // Find and update all documents for this task where intimate_client = 1
         if (taskAssignmentIds.length > 0) {
-            await require('../../models').TaskDocuments.update(
+            await TaskDocuments.update(
                 { review: 'approved' },
                 {
                     where: {
-                        task_assignment_id: { [require('../../models').Op.in]: taskAssignmentIds },
+                        task_assignment_id: { [Op.in]: taskAssignmentIds },
                         intimate_client: 1
                     },
                     transaction

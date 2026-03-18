@@ -475,6 +475,23 @@ const getAssignedWorkRequestById = async (req, res) => {
                                         model: User,
                                         as: 'requester',
                                         attributes: ['id', 'name', 'email']
+                                    },
+                                    {
+                                        model: IssueUserAssignments,
+                                        as: 'userAssignments',
+                                        attributes: ['id', 'user_id', 'created_at', 'updated_at'],
+                                        include: [
+                                            {
+                                                model: User,
+                                                as: 'user',
+                                                attributes: ['id', 'name', 'email']
+                                            },
+                                            {
+                                                model: IssueDocuments,
+                                                as: 'documents',
+                                                attributes: ['id', 'document_name', 'document_path', 'document_type', 'document_size', 'uploaded_at', 'status', 'version', 'review']
+                                            }
+                                        ]
                                     }
                                 ]
                             }
@@ -596,6 +613,23 @@ const getAssignedWorkRequestById = async (req, res) => {
                                             model: User,
                                             as: 'requester',
                                             attributes: ['id', 'name', 'email']
+                                        },
+                                        {
+                                            model: IssueUserAssignments,
+                                            as: 'userAssignments',
+                                            attributes: ['id', 'user_id', 'created_at', 'updated_at'],
+                                            include: [
+                                                {
+                                                    model: User,
+                                                    as: 'user',
+                                                    attributes: ['id', 'name', 'email']
+                                                },
+                                                {
+                                                    model: IssueDocuments,
+                                                    as: 'documents',
+                                                    attributes: ['id', 'document_name', 'document_path', 'document_type', 'document_size', 'uploaded_at', 'status', 'version', 'review']
+                                                }
+                                            ]
                                         }
                                     ]
                                 }
