@@ -16,7 +16,8 @@ const {
     IssueAssignmentTypes,
     IssueRegister,
     IssueUserAssignments,
-    IssueDocuments
+    IssueDocuments,
+    Division
 } = require('../../models');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
@@ -662,7 +663,14 @@ const getTaskById = async (req, res) => {
                         },
                         {
                             model: RequestType,
-                            attributes: ['id', 'request_type', 'description']
+                            attributes: ['id', 'request_type', 'description'],
+                            include: [
+                                {
+                                    model: Division,
+                                    attributes: ['id', 'title'],
+                                    through: { attributes: [] }
+                                }
+                            ]
                         },
                         {
                             model: WorkRequestManagers,

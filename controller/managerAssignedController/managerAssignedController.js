@@ -422,7 +422,7 @@ const getAssignedWorkRequestById = async (req, res) => {
                                     },
                                     {
                                         model: TaskDocuments,
-                                        attributes: ['id', 'document_name', 'document_path', 'uploaded_at', 'status', 'version', 'review']
+                                        attributes: ['id', 'document_name', 'document_path', 'document_type', 'document_size', 'uploaded_at', 'status', 'version', 'review']
                                     }
                                 ]
                             },
@@ -543,7 +543,7 @@ const getAssignedWorkRequestById = async (req, res) => {
                                         },
                                         {
                                             model: TaskDocuments,
-                                            attributes: ['id', 'document_name', 'document_path', 'uploaded_at', 'status', 'version', 'review']
+                                            attributes: ['id', 'document_name', 'document_path','document_size', 'uploaded_at', 'status', 'version', 'review']
                                         }
                                     ]
                                 },
@@ -3256,6 +3256,23 @@ const reviewTask = async (req, res) => {
 
             await Tasks.update(updateData, { where: { id: taskId } });
 
+            // If action is change_request, delete all related task documents
+            if (action === 'change_request') {
+                // Find all task assignments for this task
+                const taskAssignments = await TaskAssignments.findAll({
+                    where: { task_id: taskId }
+                });
+                
+                const taskAssignmentIds = taskAssignments.map(ta => ta.id);
+                
+                // Delete all documents for these task assignments
+                if (taskAssignmentIds.length > 0) {
+                    await TaskDocuments.destroy({
+                        where: { task_assignment_id: { [Op.in]: taskAssignmentIds } }
+                    });
+                }
+            }
+
             // Create review history entry
             await TaskReviewHistory.create({
                 task_id: taskId,
@@ -3446,6 +3463,36 @@ const reviewTask = async (req, res) => {
             }
 
             await IssueAssignments.update(updateData, { where: { id: issueId } });
+
+            // If action is change_request, delete all related issue documents
+            if (action === 'change_request') {
+                // Find all issue user assignments for this issue
+                const issueUserAssignments = await IssueUserAssignments.findAll({
+                    where: { issue_assignment_id: issueId }
+                });
+                
+                const issueUserAssignmentIds = issueUserAssignments.map(iua => iua.id);
+                
+                // Delete all documents for these issue user assignments
+                if (issueUserAssignmentIds.length > 0) {
+                    await IssueDocuments.destroy({
+                        where: { issue_user_assignment_id: { [Op.in]: issueUserAssignmentIds } }
+                    });
+                }
+            }
+
+            // Create review history entry for issue (using task_id)
+            if (issueAssignment.task_id) {
+                await TaskReviewHistory.create({
+                    task_id: issueAssignment.task_id,
+                    reviewer_id: manager_id,
+                    reviewer_type: 'manager',
+                    action: action,
+                    comments: comments || null,
+                    previous_stage: previousStage,
+                    new_stage: newStage
+                });
+            }
 
             // Send email to assigned users about the review
             if (issueAssignment.userAssignments && issueAssignment.userAssignments.length > 0) {
@@ -4133,7 +4180,7 @@ const getIssueAssignments = async (req, res) => {
                         {
                             model: IssueDocuments,
                             as: 'documents',
-                            attributes: ['id', 'document_name', 'document_path', 'uploaded_at', 'status', 'version', 'review']
+                            attributes: ['id', 'document_name', 'document_path', 'document_type', 'document_size', 'uploaded_at', 'status', 'version', 'review']
                         }
                     ]
                 }

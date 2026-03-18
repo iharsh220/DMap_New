@@ -24,7 +24,8 @@ const {
     IssueAssignmentTypes,
     IssueRegister,
     AboutProject,
-    RequestDivisionReference
+    RequestDivisionReference,
+    TaskReviewHistory
 } = require('../../models');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
@@ -545,7 +546,7 @@ const getWorkRequestById = async (req, res) => {
                                 {
                                     model: TaskDocuments,
                                     required: false,
-                                    attributes: ['id', 'document_name', 'document_path', 'uploaded_at', 'status', 'version', 'review']
+                                    attributes: ['id', 'document_name', 'document_path', 'document_type', 'document_size', 'uploaded_at', 'status', 'version', 'review']
                                 }
                             ]
                         },
@@ -1387,6 +1388,19 @@ const handleIssuePmApproval = async (req, res, transaction, issueId) => {
                     transaction
                 }
             );
+        }
+
+        // Create review history entry for PM approval
+        if (issueAssignment.task_id) {
+            await TaskReviewHistory.create({
+                task_id: issueAssignment.task_id,
+                reviewer_id: manager.id,
+                reviewer_type: 'project_manager',
+                action: 'approved',
+                comments: 'PM approved the issue',
+                previous_stage: previousStage || 'pm_review',
+                new_stage: 'final_approved'
+            }, { transaction });
         }
 
         await transaction.commit();

@@ -148,11 +148,36 @@ const createIssueAssignment = async (req, res) => {
 
         if (task_id) {
             await Tasks.update({ review: 'change_request' }, { where: { id: task_id }, transaction });
+            
+            // Create review history entry when new issue is created for a task
+            await TaskReviewHistory.create({
+                task_id: task_id,
+                reviewer_id: requested_by_user_id,
+                reviewer_type: 'project_manager',
+                action: 'change_request',
+                comments: `New issue request created - ${version}`,
+                previous_stage: 'final_approved',
+                new_stage: 'change_requested'
+            }, { transaction });
         }
 
         // If issue_id is provided, update the parent issue's review to 'change_request'
         if (issue_id) {
             await IssueAssignments.update({ review: 'change_request' }, { where: { id: issue_id }, transaction });
+            
+            // Get the task_id from the parent issue to create history
+            const parentIssue = await IssueAssignments.findByPk(issue_id, { attributes: ['task_id'] });
+            if (parentIssue && parentIssue.task_id) {
+                await TaskReviewHistory.create({
+                    task_id: parentIssue.task_id,
+                    reviewer_id: requested_by_user_id,
+                    reviewer_type: 'project_manager',
+                    action: 'change_request',
+                    comments: `New issue request created for issue - ${version}`,
+                    previous_stage: 'final_approved',
+                    new_stage: 'change_requested'
+                }, { transaction });
+            }
         }
 
         if (issue_register_ids && issue_register_ids.length > 0) {
