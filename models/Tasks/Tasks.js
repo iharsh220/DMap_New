@@ -88,6 +88,90 @@ const Tasks = sequelize.define('Tasks', {
     type: DataTypes.DATEONLY,
     allowNull: true,
   },
+  // Content Work fields
+  no_of_options_provided: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: 0,
+    comment: 'Number of options provided for content work',
+  },
+  no_of_words_written: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: 0,
+    comment: 'Number of words written for content work',
+  },
+  options_submitted: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: 0,
+    comment: 'Number of options submitted',
+  },
+  concept_work: {
+    type: DataTypes.TINYINT(1),
+    defaultValue: 0,
+    comment: 'Concept work done - 0=no, 1=yes',
+  },
+  resize_work: {
+    type: DataTypes.TINYINT(1),
+    defaultValue: 0,
+    comment: 'Resize work done - 0=no, 1=yes',
+  },
+  no_of_concepts: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: 0,
+    comment: 'Number of concepts created',
+  },
+  // Duration fields (minutes and seconds)
+  duration_minutes: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: 0,
+    comment: 'Duration in minutes',
+  },
+  duration_seconds: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: 0,
+    comment: 'Duration in seconds',
+  },
+  // Shoot/Product work fields
+  product_shoot: {
+    type: DataTypes.TINYINT(1),
+    defaultValue: 0,
+    comment: 'Product shoot done - 0=no, 1=yes',
+  },
+  no_of_products_shot: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: 0,
+    comment: 'Number of products shot',
+  },
+  shoot_setup: {
+    type: DataTypes.TINYINT(1),
+    defaultValue: 0,
+    comment: 'Shoot setup done - 0=no, 1=yes',
+  },
+  // Video/Web work fields
+  no_of_resize: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: 0,
+    comment: 'Number of resize operations',
+  },
+  // Responsive work fields
+  responsive_screen: {
+    type: DataTypes.TINYINT(1),
+    defaultValue: 0,
+    comment: 'Responsive screen work done - 0=no, 1=yes',
+  },
+  no_of_responsive_screen: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: 0,
+    comment: 'Number of responsive screens',
+  },
   created_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,

@@ -877,7 +877,32 @@ const acceptTask = async (req, res) => {
 const submitTask = async (req, res) => {
     try {
         const user_id = req.user.id;
-        const { task_id, task_count, link, work_request_id, start_date } = req.body;
+        const { 
+            task_id, 
+            task_count, 
+            link, 
+            work_request_id, 
+            start_date,
+            // Content Work fields
+            no_of_options_provided,
+            no_of_words_written,
+            options_submitted,
+            concept_work,
+            resize_work,
+            no_of_concepts,
+            // Duration fields
+            duration_minutes,
+            duration_seconds,
+            // Shoot/Product work fields
+            product_shoot,
+            no_of_products_shot,
+            shoot_setup,
+            // Video/Web work fields
+            no_of_resize,
+            // Responsive work fields
+            responsive_screen,
+            no_of_responsive_screen
+        } = req.body;
 
         // Validate required parameters
         if (!task_id || !task_count) {
@@ -1028,6 +1053,54 @@ const submitTask = async (req, res) => {
 
             if (link) {
                 taskUpdateData.link = link;
+            }
+
+            // Add Content Work fields if provided
+            if (no_of_options_provided !== undefined) {
+                taskUpdateData.no_of_options_provided = parseInt(no_of_options_provided, 10) || 0;
+            }
+            if (no_of_words_written !== undefined) {
+                taskUpdateData.no_of_words_written = parseInt(no_of_words_written, 10) || 0;
+            }
+            if (options_submitted !== undefined) {
+                taskUpdateData.options_submitted = parseInt(options_submitted, 10) || 0;
+            }
+            if (concept_work !== undefined) {
+                taskUpdateData.concept_work = concept_work === true || concept_work === 'true' || concept_work === 1 || concept_work === '1' ? 1 : 0;
+            }
+            if (resize_work !== undefined) {
+                taskUpdateData.resize_work = resize_work === true || resize_work === 'true' || resize_work === 1 || resize_work === '1' ? 1 : 0;
+            }
+            if (no_of_concepts !== undefined) {
+                taskUpdateData.no_of_concepts = parseInt(no_of_concepts, 10) || 0;
+            }
+            // Duration fields
+            if (duration_minutes !== undefined) {
+                taskUpdateData.duration_minutes = parseInt(duration_minutes, 10) || 0;
+            }
+            if (duration_seconds !== undefined) {
+                taskUpdateData.duration_seconds = parseInt(duration_seconds, 10) || 0;
+            }
+            // Shoot/Product work fields
+            if (product_shoot !== undefined) {
+                taskUpdateData.product_shoot = product_shoot === true || product_shoot === 'true' || product_shoot === 1 || product_shoot === '1' ? 1 : 0;
+            }
+            if (no_of_products_shot !== undefined) {
+                taskUpdateData.no_of_products_shot = parseInt(no_of_products_shot, 10) || 0;
+            }
+            if (shoot_setup !== undefined) {
+                taskUpdateData.shoot_setup = shoot_setup === true || shoot_setup === 'true' || shoot_setup === 1 || shoot_setup === '1' ? 1 : 0;
+            }
+            // Video/Web work fields
+            if (no_of_resize !== undefined) {
+                taskUpdateData.no_of_resize = parseInt(no_of_resize, 10) || 0;
+            }
+            // Responsive work fields
+            if (responsive_screen !== undefined) {
+                taskUpdateData.responsive_screen = responsive_screen === true || responsive_screen === 'true' || responsive_screen === 1 || responsive_screen === '1' ? 1 : 0;
+            }
+            if (no_of_responsive_screen !== undefined) {
+                taskUpdateData.no_of_responsive_screen = parseInt(no_of_responsive_screen, 10) || 0;
             }
 
             console.log(`Updating task ${taskId} to completed...`);
@@ -1830,7 +1903,30 @@ const acceptIssue = async (req, res) => {
 const submitIssue = async (req, res) => {
     try {
         const issueId = parseInt(req.params.issueId, 10);
-        const { link, description, task_count } = req.body;
+        const { 
+            link, 
+            description, 
+            task_count,
+            // Content Work fields
+            no_of_options_provided,
+            no_of_words_written,
+            options_submitted,
+            concept_work,
+            resize_work,
+            no_of_concepts,
+            // Duration fields
+            duration_minutes,
+            duration_seconds,
+            // Shoot/Product work fields
+            product_shoot,
+            no_of_products_shot,
+            shoot_setup,
+            // Video/Web work fields
+            no_of_resize,
+            // Responsive work fields
+            responsive_screen,
+            no_of_responsive_screen
+        } = req.body;
         const user_id = req.user.id;
 
         if (isNaN(issueId)) {
@@ -1925,6 +2021,54 @@ const submitIssue = async (req, res) => {
 
             if (task_count) {
                 issueUpdateData.task_count = parseInt(task_count, 10);
+            }
+
+            // Add Content Work fields if provided
+            if (no_of_options_provided !== undefined) {
+                issueUpdateData.no_of_options_provided = parseInt(no_of_options_provided, 10) || 0;
+            }
+            if (no_of_words_written !== undefined) {
+                issueUpdateData.no_of_words_written = parseInt(no_of_words_written, 10) || 0;
+            }
+            if (options_submitted !== undefined) {
+                issueUpdateData.options_submitted = parseInt(options_submitted, 10) || 0;
+            }
+            if (concept_work !== undefined) {
+                issueUpdateData.concept_work = concept_work === true || concept_work === 'true' || concept_work === 1 || concept_work === '1' ? 1 : 0;
+            }
+            if (resize_work !== undefined) {
+                issueUpdateData.resize_work = resize_work === true || resize_work === 'true' || resize_work === 1 || resize_work === '1' ? 1 : 0;
+            }
+            if (no_of_concepts !== undefined) {
+                issueUpdateData.no_of_concepts = parseInt(no_of_concepts, 10) || 0;
+            }
+            // Duration fields
+            if (duration_minutes !== undefined) {
+                issueUpdateData.duration_minutes = parseInt(duration_minutes, 10) || 0;
+            }
+            if (duration_seconds !== undefined) {
+                issueUpdateData.duration_seconds = parseInt(duration_seconds, 10) || 0;
+            }
+            // Shoot/Product work fields
+            if (product_shoot !== undefined) {
+                issueUpdateData.product_shoot = product_shoot === true || product_shoot === 'true' || product_shoot === 1 || product_shoot === '1' ? 1 : 0;
+            }
+            if (no_of_products_shot !== undefined) {
+                issueUpdateData.no_of_products_shot = parseInt(no_of_products_shot, 10) || 0;
+            }
+            if (shoot_setup !== undefined) {
+                issueUpdateData.shoot_setup = shoot_setup === true || shoot_setup === 'true' || shoot_setup === 1 || shoot_setup === '1' ? 1 : 0;
+            }
+            // Video/Web work fields
+            if (no_of_resize !== undefined) {
+                issueUpdateData.no_of_resize = parseInt(no_of_resize, 10) || 0;
+            }
+            // Responsive work fields
+            if (responsive_screen !== undefined) {
+                issueUpdateData.responsive_screen = responsive_screen === true || responsive_screen === 'true' || responsive_screen === 1 || responsive_screen === '1' ? 1 : 0;
+            }
+            if (no_of_responsive_screen !== undefined) {
+                issueUpdateData.no_of_responsive_screen = parseInt(no_of_responsive_screen, 10) || 0;
             }
 
             console.log(`Updating issue ${issueId} to completed...`);
