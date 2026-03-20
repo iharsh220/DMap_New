@@ -3740,8 +3740,9 @@ const shareForClientReview = async (req, res) => {
             }
 
             // Update intimate_client to 1 (shared with client for review)
+            // Also set the shared_with_client_at date
             await Tasks.update(
-                { intimate_client: 1 },
+                { intimate_client: 1, shared_with_client_at: new Date() },
                 { where: { id: taskId } }
             );
 
@@ -3886,8 +3887,9 @@ const shareForClientReview = async (req, res) => {
             }
 
             // Update intimate_client to 1 (shared with client for review)
+            // Also set the shared_with_client_at date
             await IssueAssignments.update(
-                { intimate_client: 1 },
+                { intimate_client: 1, shared_with_client_at: new Date() },
                 { where: { id: issueId } }
             );
 

@@ -534,7 +534,7 @@ const getWorkRequestById = async (req, res) => {
                 {
                     model: Tasks,
                     required: false,
-                    attributes: ['id', 'task_name', 'description', 'request_type_id', 'task_type_id', 'work_request_id', 'deadline', 'status', 'version', 'assignment_type', 'intimate_team', 'intimate_client', 'task_count', 'link', 'start_date', 'end_date', 'review', 'review_stage', 'created_at', 'updated_at'],
+                    attributes: ['id', 'task_name', 'description', 'request_type_id', 'task_type_id', 'work_request_id', 'deadline', 'status', 'version', 'assignment_type', 'intimate_team', 'intimate_client', 'task_count', 'link', 'start_date', 'end_date', 'review', 'review_stage', 'shared_with_client_at', 'created_at', 'updated_at'],
                     include: [
                         {
                             model: TaskAssignments,
@@ -574,7 +574,7 @@ const getWorkRequestById = async (req, res) => {
                             model: IssueAssignments,
                             as: 'issueAssignments',
                             required: false,
-                            attributes: ['id', 'issue_id', 'task_id', 'version', 'status', 'review', 'review_stage', 'description', 'deadline', 'assignment_type', 'intimate_team', 'intimate_client', 'task_count', 'link', 'start_date', 'end_date', 'created_at', 'updated_at'],
+                            attributes: ['id', 'issue_id', 'task_id', 'requested_by_user_id', 'version', 'status', 'review', 'review_stage', 'description', 'deadline', 'assignment_type', 'intimate_team', 'intimate_client', 'task_count', 'link', 'start_date', 'end_date', 'shared_with_client_at', 'created_at', 'updated_at'],
                             include: [
                                 // User who requested the issue
                                 {

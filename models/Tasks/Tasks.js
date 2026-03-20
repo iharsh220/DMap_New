@@ -66,6 +66,11 @@ const Tasks = sequelize.define('Tasks', {
     defaultValue: 0,
     comment: '0=not shared with client, 1=shared with client for review',
   },
+  shared_with_client_at: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: 'Date when task was shared with client for review',
+  },
   task_count: {
     type: DataTypes.INTEGER,
     allowNull: true,
