@@ -4481,6 +4481,172 @@ const assignIssueToUser = async (req, res) => {
     }
 };
 
+// Complete all tasks and issues for a work request
+const completeAllTasksAndIssues = async (req, res) => {
+    try {
+        const { work_request_id } = req.body;
+        
+        const manager_id = req.user.id;
+
+        if (!work_request_id) {
+            return res.status(400).json({
+                success: false,
+                error: 'work_request_id is required'
+            });
+        }
+
+        const workRequestId = parseInt(work_request_id, 10);
+        if (isNaN(workRequestId)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid work_request_id'
+            });
+        }
+
+        // Check if work request exists and is assigned to the manager
+        const workRequest = await WorkRequests.findByPk(workRequestId);
+        if (!workRequest) {
+            return res.status(404).json({
+                success: false,
+                error: 'Work request not found'
+            });
+        }
+
+        // Check if the manager is assigned to this work request
+        const managerAssignment = await WorkRequestManagers.findOne({
+            where: {
+                work_request_id: workRequestId,
+                manager_id: manager_id
+            }
+        });
+
+        if (!managerAssignment) {
+            return res.status(404).json({
+                success: false,
+                error: 'Work request not found or not assigned to you'
+            });
+        }
+
+        // Find all tasks linked to this work_request_id
+        const tasks = await Tasks.findAll({
+            where: { work_request_id: workRequestId }
+        });
+
+        if (tasks.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'No tasks found for this work request'
+            });
+        }
+
+        const taskIds = tasks.map(task => task.id);
+
+        // Update all tasks: status = 'completed', review = 'approved', review_stage = 'final_approved'
+        const tasksUpdateResult = await Tasks.update(
+            {
+                status: 'completed',
+                review: 'approved',
+                review_stage: 'final_approved'
+            },
+            {
+                where: { id: taskIds }
+            }
+        );
+
+        // Find all issue_assignments linked to these tasks
+        const issueAssignments = await IssueAssignments.findAll({
+            where: {
+                task_id: taskIds
+            }
+        });
+
+        let issuesUpdateResult = 0;
+        if (issueAssignments.length > 0) {
+            const issueIds = issueAssignments.map(issue => issue.id);
+
+            // Update all issue_assignments: status = 'completed', review = 'approved', review_stage = 'final_approved'
+            issuesUpdateResult = await IssueAssignments.update(
+                {
+                    status: 'completed',
+                    review: 'approved',
+                    review_stage: 'final_approved'
+                },
+                {
+                    where: { id: issueIds }
+                }
+            );
+        }
+
+        // Get user details who created the work request
+        const requestCreator = await User.findByPk(workRequest.user_id, {
+            attributes: ['id', 'name', 'email']
+        });
+
+        // Get manager details who completed the tasks
+        const manager = await User.findByPk(manager_id, {
+            attributes: ['id', 'name', 'email']
+        });
+
+        // Get request type for the work request
+        const requestType = await RequestType.findByPk(workRequest.request_type_id, {
+            attributes: ['request_type']
+        });
+
+        // Send email notification to the user who created the work request
+        if (requestCreator && requestCreator.email) {
+            try {
+                const html = renderTemplate('workRequestCompletionNotification', {
+                    project_name: workRequest.project_name || 'N/A',
+                    brand: workRequest.brand || 'N/A',
+                    request_type: requestType ? requestType.request_type : 'N/A',
+                    priority: workRequest.priority || 'N/A',
+                    request_id: workRequest.id,
+                    completed_at: new Date().toLocaleDateString('en-IN', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }),
+                    description: `All ${tasks.length} task(s) and ${issueAssignments.length} issue(s) have been completed successfully.`,
+                    completed_by: manager ? manager.name : 'Manager',
+                    task_count: tasks.length,
+                    issue_count: issueAssignments.length,
+                    frontend_url: process.env.FRONTEND_URL
+                });
+
+                const mailOptions = {
+                    to: requestCreator.email,
+                    cc: manager && manager.email ? [manager.email] : [],
+                    subject: `Project Completed - Work Request #${workRequest.id} - ${workRequest.project_name}`,
+                    html
+                };
+
+                await sendMail(mailOptions);
+            } catch (emailError) {
+                console.error('Error sending completion email:', emailError);
+                // Don't fail the request if email fails, just log the error
+            }
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'All tasks and issues completed successfully',
+            data: {
+                tasks_updated: tasksUpdateResult[0],
+                issues_updated: issuesUpdateResult[0]
+            }
+        });
+
+    } catch (error) {
+        console.error('Error completing all tasks and issues:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Internal server error'
+        });
+    }
+};
+
 module.exports = {
     getAssignedWorkRequests,
     getAssignedWorkRequestById,
@@ -4506,5 +4672,6 @@ module.exports = {
     reviewTask,
     shareForClientReview,
     assignIssueToUser,
-    getIssueAssignments
+    getIssueAssignments,
+    completeAllTasksAndIssues
 };
