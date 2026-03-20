@@ -1666,6 +1666,7 @@ const getAssignedIssues = async (req, res) => {
                     task_count: ia.task_count,
                     status: ia.status,
                     review: ia.review,
+                    review_stage: ia.review_stage,
                     intimate_team: ia.intimate_team,
                     intimate_client: ia.intimate_client,
                     created_at: ia.created_at,
