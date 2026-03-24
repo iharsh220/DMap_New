@@ -495,7 +495,7 @@ const getWorkRequestById = async (req, res) => {
         // Check if user is either the creator or a manager
         const isCreator = workRequest.user_id === user_id;
         const isManager = workRequest.WorkRequestManagers && workRequest.WorkRequestManagers.length > 0;
-        
+
         if (!isCreator && !isManager) {
             return res.status(403).json({ success: false, error: 'You do not have access to this work request' });
         }
@@ -504,18 +504,18 @@ const getWorkRequestById = async (req, res) => {
             where: { id, user_id },
             attributes: { exclude: ['request_type_id', 'created_at', 'updated_at'] },
             include: [
-                { 
-                    model: User, 
-                    as: 'users', 
-                    foreignKey: 'user_id', 
-                    attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] }, 
+                {
+                    model: User,
+                    as: 'users',
+                    foreignKey: 'user_id',
+                    attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] },
                     include: [
                         { model: Department, attributes: ['id', 'department_name'] },
                         { model: JobRole, attributes: ['id', 'role_title'] },
                         { model: Location, attributes: ['id', 'location_name'] },
                         { model: Designation, attributes: ['id', 'designation_name'] },
                         { model: Division, as: 'Divisions', attributes: { exclude: ['created_at', 'updated_at'] }, through: { attributes: [] } }
-                    ] 
+                    ]
                 },
                 { model: RequestType, attributes: { exclude: ['created_at', 'updated_at'] }, include: [{ model: Division, through: { attributes: [] }, attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
                 { model: ProjectType, attributes: { exclude: ['created_at', 'updated_at'] } },
@@ -674,7 +674,7 @@ const getWorkRequestById = async (req, res) => {
                     include: [
                         {
                             model: Tasks,
-                            where: { status: 'accepted' },
+                            where: { status: { [Op.in]: ['accepted', 'in_progress', 'pending'] } },
                             attributes: []
                         }
                     ],
@@ -694,7 +694,7 @@ const getWorkRequestById = async (req, res) => {
                     include: [
                         {
                             model: Tasks,
-                            where: { status: 'in_progress' },
+                            where: { status: { [Op.in]: ['accepted', 'in_progress', 'pending'] } },
                             attributes: []
                         }
                     ],
@@ -1177,7 +1177,7 @@ const getUserDashboardStats = async (req, res) => {
         // 1. Count accepted + in_progress tasks for this request type
         const ongoingTasksCount = await Tasks.count({
             where: {
-                status: { [Op.in]: ['accepted', 'in_progress'] },
+                status: { [Op.in]: ['accepted', 'in_progress', 'pending'] },
                 request_type_id: request_type_id
             }
         });
@@ -1186,7 +1186,7 @@ const getUserDashboardStats = async (req, res) => {
         const ongoingProjectsCount = await WorkRequests.count({
             where: {
                 request_type_id: request_type_id,
-                status: { [Op.in]: ['accepted', 'in_progress'] }
+                status: { [Op.in]: ['accepted', 'in_progress', 'pending'] }
             }
         });
 
@@ -1265,7 +1265,7 @@ const getUserDashboardStats = async (req, res) => {
 // Only approves tasks where intimate_client = 1 and associated documents with intimate_client = 1
 const pmApproveTask = async (req, res) => {
     const transaction = await require('../../models').sequelize.transaction();
-    
+
     try {
         const { task_id, issue_id } = req.body;
 
@@ -1395,7 +1395,7 @@ const handleIssuePmApproval = async (req, res, transaction, issueId) => {
         // If issue has a linked task, update all issues with that task_id and the task itself
         if (issueAssignment.task_id) {
             const taskId = issueAssignment.task_id;
-            
+
             // Update ALL issues with the same task_id to review='approved' and review_stage='final_approved'
             await IssueAssignments.update(
                 { review: 'approved', review_stage: 'final_approved' },
@@ -1404,7 +1404,7 @@ const handleIssuePmApproval = async (req, res, transaction, issueId) => {
 
             // Update the task to status='accepted', review='approved', review_stage='final_approved'
             const linkedTask = await Tasks.findByPk(taskId);
-            
+
             if (linkedTask) {
                 await linkedTask.update({
                     status: 'accepted',
@@ -1416,9 +1416,9 @@ const handleIssuePmApproval = async (req, res, transaction, issueId) => {
                 const taskAssignments = await TaskAssignments.findAll({
                     where: { task_id: linkedTask.id }
                 });
-                
+
                 const taskAssignmentIds = taskAssignments.map(ta => ta.id);
-                
+
                 if (taskAssignmentIds.length > 0) {
                     await TaskDocuments.update(
                         { review: 'approved' },
@@ -1494,8 +1494,8 @@ const handleIssuePmApproval = async (req, res, transaction, issueId) => {
         });
 
         // Fetch all issues updated for this task
-        const allUpdatedIssues = issueAssignment.task_id ? 
-            await IssueAssignments.findAll({ 
+        const allUpdatedIssues = issueAssignment.task_id ?
+            await IssueAssignments.findAll({
                 where: { task_id: issueAssignment.task_id },
                 attributes: ['id', 'issue_id', 'version', 'status', 'review', 'review_stage']
             }) : [];
@@ -1533,18 +1533,18 @@ const handleIssuePmApproval = async (req, res, transaction, issueId) => {
 // Get my task requests - based on issue_assignments
 // This gets work requests where the manager is assigned via issue_assignments -> task -> user -> user's manager
 const getMyTaskRequests = async (req, res) => {
-   
+
 };
 
-module.exports = { 
-    createWorkRequest, 
-    getMyWorkRequests, 
-    getMyTaskRequests, 
-    getWorkRequestById, 
-    getProjectTypesByRequestType, 
-    getAboutProjectOptions, 
-    getDivisionWorkRequests, 
-    getDivisionWorkRequestById, 
-    getUserDashboardStats, 
-    pmApproveTask 
+module.exports = {
+    createWorkRequest,
+    getMyWorkRequests,
+    getMyTaskRequests,
+    getWorkRequestById,
+    getProjectTypesByRequestType,
+    getAboutProjectOptions,
+    getDivisionWorkRequests,
+    getDivisionWorkRequestById,
+    getUserDashboardStats,
+    pmApproveTask
 };
