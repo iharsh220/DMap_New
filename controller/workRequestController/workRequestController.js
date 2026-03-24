@@ -674,7 +674,7 @@ const getWorkRequestById = async (req, res) => {
                     include: [
                         {
                             model: Tasks,
-                            where: { status: { [Op.in]: ['accepted', 'in_progress', 'pending'] } },
+                            where: { status: { [Op.in]: ['accepted', 'in_progress', 'pending'] }, intimate_team: 1 },
                             attributes: []
                         }
                     ],
@@ -694,7 +694,7 @@ const getWorkRequestById = async (req, res) => {
                     include: [
                         {
                             model: Tasks,
-                            where: { status: { [Op.in]: ['accepted', 'in_progress', 'pending'] } },
+                            where: { status: { [Op.in]: ['accepted', 'in_progress', 'pending'] }, intimate_team: 1 },
                             attributes: []
                         }
                     ],
@@ -1174,20 +1174,42 @@ const getUserDashboardStats = async (req, res) => {
             title: rtd.Division.title
         }));
 
-        // 1. Count accepted + in_progress tasks for this request type
+        // 1. Count accepted + in_progress tasks for this request type where intimate_team = 1
         const ongoingTasksCount = await Tasks.count({
             where: {
                 status: { [Op.in]: ['accepted', 'in_progress', 'pending'] },
-                request_type_id: request_type_id
+                request_type_id: request_type_id,
+                intimate_team: 1
             }
         });
 
-        // 2. Count accepted + in_progress projects for this request type
+        // 2. Count accepted + in_progress projects for this request type where intimate_team = 1
         const ongoingProjectsCount = await WorkRequests.count({
             where: {
                 request_type_id: request_type_id,
                 status: { [Op.in]: ['accepted', 'in_progress', 'pending'] }
-            }
+            },
+            include: [{
+                model: Tasks,
+                where: { intimate_team: 1 },
+                attributes: [],
+                required: true
+            }]
+        });
+
+        // 2.1 Count accepted + in_progress issues for this request type where intimate_team = 1
+        const ongoingIssuesCount = await IssueAssignments.count({
+            where: {
+                status: { [Op.in]: ['m_accepted', 'u_accepted', 'in_progress'] },
+                intimate_team: 1
+            },
+            include: [{
+                model: Tasks,
+                as: 'task',
+                where: { request_type_id: request_type_id },
+                attributes: [],
+                required: true
+            }]
         });
 
         // 3. Count accepted + in_progress tasks with deadlines in the next 7 days for this request type
@@ -1251,6 +1273,7 @@ const getUserDashboardStats = async (req, res) => {
             data: {
                 ongoing_tasks: ongoingTasksCount,
                 ongoing_projects: ongoingProjectsCount,
+                ongoing_issues: ongoingIssuesCount,
                 upcoming_deadlines: upcomingDeadlinesCount,
                 creative_manager: creativeManagerInfo
             }

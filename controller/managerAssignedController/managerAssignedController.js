@@ -1,4 +1,4 @@
-const { Op } = require('sequelize');
+const { Op, col, literal } = require('sequelize');
 const fs = require('fs');
 const path = require('path');
 
@@ -1734,7 +1734,15 @@ const getTaskAnalytics = async (req, res) => {
             attributes: []
         });
 
-        const teamMembers = [...new Set(assignedUsers.map(ta => ta.User))].map(user => ({
+        // Get unique users by user id
+        const uniqueUserMap = new Map();
+        assignedUsers.forEach(ta => {
+            if (ta.User && !uniqueUserMap.has(ta.User.id)) {
+                uniqueUserMap.set(ta.User.id, ta.User);
+            }
+        });
+
+        const teamMembers = Array.from(uniqueUserMap.values()).map(user => ({
             id: user.id,
             name: user.name,
             email: user.email
@@ -1786,6 +1794,7 @@ const getTaskAnalytics = async (req, res) => {
         const analytics = {
             workRequest: workRequestDetails,
             totalTasks,
+            totalUsers: teamMembers.length,
             publishDate,
             estimatedTAT,
             teamMembers,
@@ -1867,13 +1876,26 @@ const getMyTeam = async (req, res) => {
             for (const userDivision of creativeUsers) {
                 const user = userDivision.User;
 
-                // Count active tasks (accepted or in_progress) assigned to this user
+                // Count active tasks (accepted or in_progress) assigned to this user where intimate_team = 1
                 const taskCount = await TaskAssignments.count({
                     where: { user_id: user.id },
                     include: [
                         {
                             model: Tasks,
-                            where: { status: { [Op.in]: ['pending', 'accepted', 'in_progress'] } },
+                            where: { status: { [Op.in]: ['pending', 'accepted', 'in_progress'] }, intimate_team: 1 },
+                            attributes: []
+                        }
+                    ]
+                });
+
+                // Count active issues (m_accepted, u_accepted, in_progress) assigned to this user where intimate_team = 1
+                const issueCount = await IssueUserAssignments.count({
+                    where: { user_id: user.id },
+                    include: [
+                        {
+                            model: IssueAssignments,
+                            as: 'issueAssignment',
+                            where: { status: { [Op.in]: ['m_accepted', 'u_accepted', 'in_progress'] }, intimate_team: 1 },
                             attributes: []
                         }
                     ]
@@ -1884,7 +1906,8 @@ const getMyTeam = async (req, res) => {
                     name: user.name,
                     email: user.email,
                     jobRole: user.job_role_id,
-                    taskCount: taskCount
+                    taskCount: taskCount,
+                    issueCount: issueCount
                 });
             }
 
@@ -2666,6 +2689,9 @@ const getUserTask = async (req, res) => {
             taskWhereCondition = { ...taskWhereCondition, ...req.filters };
         }
 
+        // Add intimate_team = 1 filter
+        taskWhereCondition.intimate_team = 1;
+
         const tasks = await TaskAssignments.findAll({
             where: { user_id: user_id },
             include: [
@@ -2688,6 +2714,7 @@ const getUserTask = async (req, res) => {
                         {
                             model: IssueAssignments,
                             as: 'issueAssignments',
+                            where: { intimate_team: 1 },
                             include: [
                                 {
                                     model: IssueAssignmentTypes,
@@ -2712,8 +2739,7 @@ const getUserTask = async (req, res) => {
             ],
             attributes: ['id'],
             limit: req.pagination.limit,
-            offset: req.pagination.offset,
-            order: [['created_at', 'DESC']]
+            offset: req.pagination.offset
         });
 
 
