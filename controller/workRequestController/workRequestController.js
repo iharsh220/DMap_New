@@ -25,7 +25,8 @@ const {
     IssueRegister,
     AboutProject,
     RequestDivisionReference,
-    TaskReviewHistory
+    TaskReviewHistory,
+    TaskProjectReference
 } = require('../../models');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
@@ -804,6 +805,7 @@ const getProjectTypesByRequestType = async (req, res) => {
             });
         }
 
+        // Get request type with project types
         const requestType = await RequestType.findByPk(request_type_id, {
             include: [{
                 model: ProjectType,
@@ -819,9 +821,72 @@ const getProjectTypesByRequestType = async (req, res) => {
             });
         }
 
+        const projectTypes = requestType.ProjectTypes;
+
+        if (!projectTypes || projectTypes.length === 0) {
+            return res.json({
+                success: true,
+                data: []
+            });
+        }
+
+        // If request_type_id is 4, return normal description
+        if (parseInt(request_type_id) === 4) {
+            return res.json({
+                success: true,
+                data: projectTypes.map(pt => ({
+                    id: pt.id,
+                    project_type: pt.project_type,
+                    description: pt.description,
+                    quantification: pt.quantification
+                }))
+            });
+        }
+
+        // Get all task project references
+        const taskProjectRefs = await TaskProjectReference.findAll({
+            attributes: ['task_id', 'project_id']
+        });
+
+        // Get all task types excluding 'web application'
+        const allTaskTypes = await TaskType.findAll({
+            where: {
+                task_type: { [Op.ne]: 'web application' }
+            },
+            attributes: ['id', 'task_type']
+        });
+
+        const taskTypeMap = {};
+        allTaskTypes.forEach(tt => {
+            taskTypeMap[tt.id] = tt.task_type;
+        });
+
+        // Build project types with task types in description
+        const result = projectTypes.map(pt => {
+            // Find task_ids related to this project
+            const relatedTaskIds = taskProjectRefs
+                .filter(tpr => tpr.project_id === pt.id)
+                .map(tpr => tpr.task_id);
+
+            // Get task types excluding web application
+            const relatedTaskTypes = relatedTaskIds
+                .map(taskId => taskTypeMap[taskId])
+                .filter(taskType => taskType !== undefined && taskType !== 'web application');
+
+            // Remove duplicates
+            const uniqueTaskTypes = [...new Set(relatedTaskTypes)];
+
+            return {
+                id: pt.id,
+                project_type: pt.project_type,
+                description: uniqueTaskTypes.join(', '),
+                quantification: pt.quantification
+            };
+        });
+
         res.json({
             success: true,
-            data: requestType.ProjectTypes
+            data: result
         });
     } catch (error) {
         console.error('Error fetching project types:', error);
