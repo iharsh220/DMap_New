@@ -689,7 +689,27 @@ const getAssignedWorkRequestById = async (req, res) => {
 
         let userTaskCounts = {};
         if (uniqueUserIds.length > 0) {
-            // Get accepted tasks count
+            // Get pending tasks count (status: pending)
+            const pendingCounts = await TaskAssignments.findAll({
+                where: {
+                    user_id: { [Op.in]: uniqueUserIds }
+                },
+                include: [
+                    {
+                        model: Tasks,
+                        where: { status: 'pending', intimate_team: 1 },
+                        attributes: []
+                    }
+                ],
+                attributes: [
+                    'user_id',
+                    [Tasks.sequelize.fn('COUNT', Tasks.sequelize.col('task_id')), 'pending_count']
+                ],
+                group: ['user_id'],
+                raw: true
+            });
+
+            // Get accepted tasks count (status: accepted)
             const acceptedCounts = await TaskAssignments.findAll({
                 where: {
                     user_id: { [Op.in]: uniqueUserIds }
@@ -697,7 +717,7 @@ const getAssignedWorkRequestById = async (req, res) => {
                 include: [
                     {
                         model: Tasks,
-                        where: { status: 'accepted' },
+                        where: { status: 'accepted', intimate_team: 1 },
                         attributes: []
                     }
                 ],
@@ -717,7 +737,7 @@ const getAssignedWorkRequestById = async (req, res) => {
                 include: [
                     {
                         model: Tasks,
-                        where: { status: 'in_progress' },
+                        where: { status: 'in_progress', intimate_team: 1 },
                         attributes: []
                     }
                 ],
@@ -729,19 +749,87 @@ const getAssignedWorkRequestById = async (req, res) => {
                 raw: true
             });
 
+            // Get issue counts
+            const issuePendingCounts = await IssueUserAssignments.findAll({
+                where: { user_id: { [Op.in]: uniqueUserIds } },
+                include: [{
+                    model: IssueAssignments,
+                    as: 'issueAssignment',
+                    where: { status: 'm_pending', intimate_team: 1 },
+                    attributes: []
+                }],
+                attributes: ['user_id', [IssueAssignments.sequelize.fn('COUNT', IssueAssignments.sequelize.col('issue_assignment_id')), 'pending_count']],
+                group: ['user_id'],
+                raw: true
+            });
+
+            const issueAcceptedCounts = await IssueUserAssignments.findAll({
+                where: { user_id: { [Op.in]: uniqueUserIds } },
+                include: [{
+                    model: IssueAssignments,
+                    as: 'issueAssignment',
+                    where: { status: 'm_accepted', intimate_team: 1 },
+                    attributes: []
+                }],
+                attributes: ['user_id', [IssueAssignments.sequelize.fn('COUNT', IssueAssignments.sequelize.col('issue_assignment_id')), 'accepted_count']],
+                group: ['user_id'],
+                raw: true
+            });
+
+            const issueInProgressCounts = await IssueUserAssignments.findAll({
+                where: { user_id: { [Op.in]: uniqueUserIds } },
+                include: [{
+                    model: IssueAssignments,
+                    as: 'issueAssignment',
+                    where: { status: 'in_progress', intimate_team: 1 },
+                    attributes: []
+                }],
+                attributes: ['user_id', [IssueAssignments.sequelize.fn('COUNT', IssueAssignments.sequelize.col('issue_assignment_id')), 'in_progress_count']],
+                group: ['user_id'],
+                raw: true
+            });
+
             // Organize counts
+            pendingCounts.forEach(count => {
+                if (!userTaskCounts[count.user_id]) {
+                    userTaskCounts[count.user_id] = { pending: 0, accepted: 0, in_progress: 0, issuePending: 0, issueAccepted: 0, issueInProgress: 0 };
+                }
+                userTaskCounts[count.user_id].pending = parseInt(count.pending_count);
+            });
+
             acceptedCounts.forEach(count => {
                 if (!userTaskCounts[count.user_id]) {
-                    userTaskCounts[count.user_id] = { accepted: 0, in_progress: 0 };
+                    userTaskCounts[count.user_id] = { pending: 0, accepted: 0, in_progress: 0, issuePending: 0, issueAccepted: 0, issueInProgress: 0 };
                 }
                 userTaskCounts[count.user_id].accepted = parseInt(count.accepted_count);
             });
 
             inProgressCounts.forEach(count => {
                 if (!userTaskCounts[count.user_id]) {
-                    userTaskCounts[count.user_id] = { accepted: 0, in_progress: 0 };
+                    userTaskCounts[count.user_id] = { pending: 0, accepted: 0, in_progress: 0, issuePending: 0, issueAccepted: 0, issueInProgress: 0 };
                 }
                 userTaskCounts[count.user_id].in_progress = parseInt(count.in_progress_count);
+            });
+
+            issuePendingCounts.forEach(count => {
+                if (!userTaskCounts[count.user_id]) {
+                    userTaskCounts[count.user_id] = { pending: 0, accepted: 0, in_progress: 0, issuePending: 0, issueAccepted: 0, issueInProgress: 0 };
+                }
+                userTaskCounts[count.user_id].issuePending = parseInt(count.pending_count);
+            });
+
+            issueAcceptedCounts.forEach(count => {
+                if (!userTaskCounts[count.user_id]) {
+                    userTaskCounts[count.user_id] = { pending: 0, accepted: 0, in_progress: 0, issuePending: 0, issueAccepted: 0, issueInProgress: 0 };
+                }
+                userTaskCounts[count.user_id].issueAccepted = parseInt(count.accepted_count);
+            });
+
+            issueInProgressCounts.forEach(count => {
+                if (!userTaskCounts[count.user_id]) {
+                    userTaskCounts[count.user_id] = { pending: 0, accepted: 0, in_progress: 0, issuePending: 0, issueAccepted: 0, issueInProgress: 0 };
+                }
+                userTaskCounts[count.user_id].issueInProgress = parseInt(count.in_progress_count);
             });
         }
 
@@ -751,10 +839,15 @@ const getAssignedWorkRequestById = async (req, res) => {
                 if (task.TaskAssignments && task.TaskAssignments.length > 0) {
                     for (const assignment of task.TaskAssignments) {
                         if (assignment.User && assignment.User.id) {
-                            const counts = userTaskCounts[assignment.User.id] || { accepted: 0, in_progress: 0 };
+                            const counts = userTaskCounts[assignment.User.id] || { pending: 0, accepted: 0, in_progress: 0, issuePending: 0, issueAccepted: 0, issueInProgress: 0 };
+                            assignment.User.dataValues.pendingTasksCount = counts.pending;
                             assignment.User.dataValues.acceptedTasksCount = counts.accepted;
                             assignment.User.dataValues.inProgressTasksCount = counts.in_progress;
-                            assignment.User.dataValues.totalActiveTasks = counts.accepted + counts.in_progress;
+                            assignment.User.dataValues.totalActiveTasks = counts.pending + counts.accepted + counts.in_progress;
+                            assignment.User.dataValues.issuePendingCount = counts.issuePending;
+                            assignment.User.dataValues.issueAcceptedCount = counts.issueAccepted;
+                            assignment.User.dataValues.issueInProgressCount = counts.issueInProgress;
+                            assignment.User.dataValues.totalActiveIssues = counts.issuePending + counts.issueAccepted + counts.issueInProgress;
                         }
                     }
                 }
@@ -790,12 +883,17 @@ const getAssignedWorkRequestById = async (req, res) => {
                             });
 
                             if (userDetails) {
-                                const counts = userTaskCounts[assignment.User.id] || { accepted: 0, in_progress: 0 };
+                                const counts = userTaskCounts[assignment.User.id] || { pending: 0, accepted: 0, in_progress: 0, issuePending: 0, issueAccepted: 0, issueInProgress: 0 };
                                 taskUsers.push({
                                     ...userDetails.toJSON(),
+                                    pendingTasksCount: counts.pending,
                                     acceptedTasksCount: counts.accepted,
                                     inProgressTasksCount: counts.in_progress,
-                                    totalActiveTasks: counts.accepted + counts.in_progress
+                                    totalActiveTasks: counts.pending + counts.accepted + counts.in_progress,
+                                    issuePendingCount: counts.issuePending,
+                                    issueAcceptedCount: counts.issueAccepted,
+                                    issueInProgressCount: counts.issueInProgress,
+                                    totalActiveIssues: counts.issuePending + counts.issueAccepted + counts.issueInProgress
                                 });
                             }
                         }
