@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Mar 25, 2026 at 01:25 PM
+-- Generation Time: Mar 25, 2026 at 10:40 AM
 -- Server version: 11.4.10-MariaDB
 -- PHP Version: 8.4.18
 
@@ -18,26 +18,531 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `alembicdigilabs_Digi_dmap`
+-- Database: `alembicdigilabs_Digi_dmap_v2`
 --
+
+
+
+SET FOREIGN_KEY_CHECKS=0;
+
+-- ========================================================
+-- SCHEMA FROM NEW FILE (UAT Structure)
+-- ========================================================
 
 -- --------------------------------------------------------
-
---
 -- Table structure for table `about_project`
---
+-- --------------------------------------------------------
 
 CREATE TABLE `about_project` (
-  `id` int(11) NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
   `type` enum('output_devices','target_audience') NOT NULL,
   `category` varchar(100) NOT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
+-- --------------------------------------------------------
+-- Table structure for table `change_issue_tasktype`
+-- --------------------------------------------------------
+
+CREATE TABLE `change_issue_tasktype` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `task_id` int(11) NOT NULL,
+  `change_issue_id` int(11) NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `department`
+-- --------------------------------------------------------
+
+CREATE TABLE `department` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `department_name` varchar(100) NOT NULL,
+  `description` text DEFAULT NULL,
+  `state` enum('active','inactive') DEFAULT 'active',
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `designation`
+-- --------------------------------------------------------
+
+CREATE TABLE `designation` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `designation_name` varchar(100) NOT NULL,
+  `designation_category` varchar(50) NOT NULL,
+  `state` enum('active','inactive') DEFAULT 'active',
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `designation_departments`
+-- --------------------------------------------------------
+
+CREATE TABLE `designation_departments` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `designation_id` int(11) NOT NULL,
+  `department_id` int(11) NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `designation_jobroles`
+-- --------------------------------------------------------
+
+CREATE TABLE `designation_jobroles` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `designation_id` int(11) NOT NULL,
+  `jobrole_id` int(11) NOT NULL,
+  `department_id` int(11) NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `division`
+-- --------------------------------------------------------
+
+CREATE TABLE `division` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `title` varchar(100) NOT NULL,
+  `department_id` int(11) NOT NULL,
+  `description` text DEFAULT NULL,
+  `state` enum('active','inactive') DEFAULT 'active',
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `issue_assignments`
+-- --------------------------------------------------------
+
+CREATE TABLE `issue_assignments` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `issue_id` int(11) DEFAULT NULL COMMENT 'Self-referenced to parent issue_assignments (for issue-related changes)',
+  `task_id` int(11) DEFAULT NULL COMMENT 'Linked to tasks table (for task-related changes)',
+  `requested_by_user_id` int(11) NOT NULL COMMENT 'User who requested the change (requester)',
+  `assignment_type` enum('new','mod') NOT NULL DEFAULT 'new' COMMENT 'new=first time, mod=modification',
+  `version` varchar(10) NOT NULL DEFAULT 'V1' COMMENT 'Dynamic version - V1, V2, V3, etc.',
+  `description` text DEFAULT NULL COMMENT 'Details about the issue/change requested',
+  `deadline` date DEFAULT NULL COMMENT 'Deadline for the issue assignment',
+  `intimate_team` tinyint(1) DEFAULT 0 COMMENT 'Flag to intimate team (0=no, 1=yes)',
+  `intimate_client` tinyint(1) DEFAULT 0 COMMENT '0=not shared with client, 1=shared with client for review',
+  `task_count` int(11) DEFAULT 0 COMMENT 'Count of tasks for this issue assignment',
+  `start_date` date DEFAULT NULL COMMENT 'Start date for the issue assignment',
+  `end_date` date DEFAULT NULL COMMENT 'End date for the issue assignment',
+  `link` varchar(500) DEFAULT NULL COMMENT 'Link URL for the issue assignment',
+  `status` enum('m_pending','u_pending','m_accepted','u_accepted','in_progress','completed','rejected','on_hold','cancelled') DEFAULT 'm_pending',
+  `review` enum('pending','approved','change_request') DEFAULT 'pending' COMMENT 'Review status - pending, approved, or change_request',
+  `review_stage` enum('not_started','manager_review','pm_review','change_requested','final_approved') DEFAULT 'not_started' COMMENT 'Review stage - not_started, manager_review, pm_review, change_requested, final_approved',
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `shared_with_client_at` datetime DEFAULT NULL COMMENT 'Date when issue was shared with client for review',
+  `no_of_options_provided` int(11) DEFAULT 0 COMMENT 'Number of options provided for content work',
+  `no_of_words_written` int(11) DEFAULT 0 COMMENT 'Number of words written for content work',
+  `options_submitted` int(11) DEFAULT 0 COMMENT 'Number of options submitted',
+  `concept_work` tinyint(1) DEFAULT 0 COMMENT 'Concept work done - 0=no, 1=yes',
+  `resize_work` tinyint(1) DEFAULT 0 COMMENT 'Resize work done - 0=no, 1=yes',
+  `no_of_concepts` int(11) DEFAULT 0 COMMENT 'Number of concepts created',
+  `duration_minutes` int(11) DEFAULT 0 COMMENT 'Duration in minutes',
+  `duration_seconds` int(11) DEFAULT 0 COMMENT 'Duration in seconds',
+  `product_shoot` tinyint(1) DEFAULT 0 COMMENT 'Product shoot done - 0=no, 1=yes',
+  `no_of_products_shot` int(11) DEFAULT 0 COMMENT 'Number of products shot',
+  `shoot_setup` tinyint(1) DEFAULT 0 COMMENT 'Shoot setup done - 0=no, 1=yes',
+  `no_of_resize` int(11) DEFAULT 0 COMMENT 'Number of resize operations',
+  `responsive_screen` tinyint(1) DEFAULT 0 COMMENT 'Responsive screen work done - 0=no, 1=yes',
+  `no_of_responsive_screen` int(11) DEFAULT 0 COMMENT 'Number of responsive screens',
+  `comments` text DEFAULT NULL COMMENT 'Optional comments when submitting/completing an issue'
+,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `issue_assignment_types`
+-- --------------------------------------------------------
+
+CREATE TABLE `issue_assignment_types` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `issue_assignment_id` int(11) NOT NULL COMMENT 'Reference to issue_assignments table',
+  `issue_register_id` int(11) NOT NULL COMMENT 'Reference to issue_register table (change_issue_type)',
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `issue_documents`
+-- --------------------------------------------------------
+
+CREATE TABLE `issue_documents` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `issue_user_assignment_id` int(11) NOT NULL COMMENT 'Linked to issue_user_assignments table',
+  `document_name` varchar(255) NOT NULL,
+  `document_path` varchar(500) NOT NULL,
+  `document_type` varchar(255) DEFAULT NULL,
+  `document_size` int(11) DEFAULT NULL,
+  `version` varchar(10) NOT NULL DEFAULT 'V1' COMMENT 'Document version - V1, V2, V3, etc.',
+  `status` enum('uploading','uploaded','failed') DEFAULT 'uploading',
+  `review` enum('pending','approved','change_request') DEFAULT 'pending' COMMENT 'Document review status - pending, approved, or change_request',
+  `intimate_client` tinyint(1) DEFAULT 0 COMMENT '0=not shared with client, 1=shared with client for review',
+  `uploaded_at` timestamp NULL DEFAULT current_timestamp()
+,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `issue_register`
+-- --------------------------------------------------------
+
+CREATE TABLE `issue_register` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `change_issue_type` varchar(100) NOT NULL,
+  `description` text DEFAULT NULL,
+  `quantification` varchar(100) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `issue_user_assignments`
+-- --------------------------------------------------------
+
+CREATE TABLE `issue_user_assignments` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `issue_assignment_id` int(11) NOT NULL COMMENT 'Linked to issue_assignments table',
+  `user_id` int(11) NOT NULL COMMENT 'User assigned to work on this issue',
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `job_role`
+-- --------------------------------------------------------
+
+CREATE TABLE `job_role` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `role_title` varchar(100) NOT NULL,
+  `level` varchar(50) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `department_id` int(11) DEFAULT NULL,
+  `state` enum('active','inactive') DEFAULT 'active',
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `location`
+-- --------------------------------------------------------
+
+CREATE TABLE `location` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `location_name` varchar(100) NOT NULL,
+  `type` enum('HO','HQ','Field','Other') NOT NULL,
+  `description` text DEFAULT NULL,
+  `state` enum('active','inactive') DEFAULT 'active',
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `project_request_reference`
+-- --------------------------------------------------------
+
+CREATE TABLE `project_request_reference` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `project_id` int(11) NOT NULL,
+  `request_id` int(11) NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `project_type`
+-- --------------------------------------------------------
+
+CREATE TABLE `project_type` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `project_type` varchar(100) NOT NULL,
+  `description` text DEFAULT NULL,
+  `quantification` varchar(100) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `request_division_reference`
+-- --------------------------------------------------------
+
+CREATE TABLE `request_division_reference` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `request_id` int(11) NOT NULL,
+  `division_id` int(11) NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `request_type`
+-- --------------------------------------------------------
+
+CREATE TABLE `request_type` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `request_type` varchar(100) NOT NULL,
+  `description` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `sales`
+-- --------------------------------------------------------
+
+CREATE TABLE `sales` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `emp_code` int(11) NOT NULL,
+  `emp_name` varchar(100) NOT NULL,
+  `level` varchar(50) DEFAULT NULL,
+  `hq` varchar(100) DEFAULT NULL,
+  `region` varchar(100) DEFAULT NULL,
+  `zone` varchar(100) DEFAULT NULL,
+  `division_id` int(11) DEFAULT NULL,
+  `sap_code` int(11) NOT NULL,
+  `mobile_number` varchar(15) DEFAULT NULL,
+  `email_id` varchar(100) NOT NULL,
+  `user_type` enum('sales') DEFAULT 'sales',
+  `email_verified_status` tinyint(1) DEFAULT 0,
+  `password` varchar(255) DEFAULT NULL,
+  `account_status` enum('pending','active','inactive','locked','rejected','vacant') DEFAULT 'pending',
+  `last_login` datetime DEFAULT NULL,
+  `login_attempts` int(11) DEFAULT 0,
+  `lock_until` datetime DEFAULT NULL,
+  `password_changed_at` datetime DEFAULT NULL,
+  `password_expires_at` datetime DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `tasks`
+-- --------------------------------------------------------
+
+CREATE TABLE `tasks` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `task_name` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `request_type_id` int(11) NOT NULL,
+  `task_type_id` int(11) NOT NULL,
+  `work_request_id` int(11) NOT NULL,
+  `deadline` date DEFAULT NULL,
+  `status` enum('draft','pending','accepted','assigned','in_progress','completed','rejected','deferred') DEFAULT 'pending',
+  `version` varchar(10) NOT NULL DEFAULT 'V1' COMMENT 'Task version',
+  `assignment_type` enum('new','mod') NOT NULL DEFAULT 'new' COMMENT 'new=first time assignment, mod=modification request',
+  `intimate_team` tinyint(1) DEFAULT 0,
+  `intimate_client` tinyint(1) DEFAULT 0 COMMENT '0=not shared with client, 1=shared with client for review',
+  `task_count` int(11) DEFAULT 0,
+  `link` varchar(500) DEFAULT NULL,
+  `start_date` date DEFAULT NULL,
+  `end_date` date DEFAULT NULL,
+  `review` enum('pending','approved','change_request') DEFAULT 'pending' COMMENT 'Review status - pending, approved, or change_request',
+  `review_stage` enum('not_started','manager_review','pm_review','change_requested','final_approved') DEFAULT 'not_started' COMMENT 'Current review stage - not_started, manager_review, pm_review, change_requested, final_approved',
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `shared_with_client_at` datetime DEFAULT NULL COMMENT 'Date when task was shared with client for review',
+  `no_of_options_provided` int(11) DEFAULT 0 COMMENT 'Number of options provided for content work',
+  `no_of_words_written` int(11) DEFAULT 0 COMMENT 'Number of words written for content work',
+  `options_submitted` int(11) DEFAULT 0 COMMENT 'Number of options submitted',
+  `concept_work` tinyint(1) DEFAULT 0 COMMENT 'Concept work done - 0=no, 1=yes',
+  `resize_work` tinyint(1) DEFAULT 0 COMMENT 'Resize work done - 0=no, 1=yes',
+  `no_of_concepts` int(11) DEFAULT 0 COMMENT 'Number of concepts created',
+  `duration_minutes` int(11) DEFAULT 0 COMMENT 'Duration in minutes',
+  `duration_seconds` int(11) DEFAULT 0 COMMENT 'Duration in seconds',
+  `product_shoot` tinyint(1) DEFAULT 0 COMMENT 'Product shoot done - 0=no, 1=yes',
+  `no_of_products_shot` int(11) DEFAULT 0 COMMENT 'Number of products shot',
+  `shoot_setup` tinyint(1) DEFAULT 0 COMMENT 'Shoot setup done - 0=no, 1=yes',
+  `no_of_resize` int(11) DEFAULT 0 COMMENT 'Number of resize operations',
+  `responsive_screen` tinyint(1) DEFAULT 0 COMMENT 'Responsive screen work done - 0=no, 1=yes',
+  `no_of_responsive_screen` int(11) DEFAULT 0 COMMENT 'Number of responsive screens',
+  `comments` text DEFAULT NULL COMMENT 'Optional comments when submitting/completing a task'
+,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `task_assignments`
+-- --------------------------------------------------------
+
+CREATE TABLE `task_assignments` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `task_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `task_dependencies`
+-- --------------------------------------------------------
+
+CREATE TABLE `task_dependencies` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `task_id` int(11) NOT NULL,
+  `dependency_task_id` int(11) NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `task_documents`
+-- --------------------------------------------------------
+
+CREATE TABLE `task_documents` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `task_assignment_id` int(11) NOT NULL,
+  `document_name` varchar(255) NOT NULL,
+  `document_path` varchar(500) NOT NULL,
+  `document_type` varchar(255) DEFAULT NULL,
+  `document_size` int(11) DEFAULT NULL,
+  `version` varchar(10) DEFAULT 'V1',
+  `status` enum('uploading','uploaded','failed') DEFAULT 'uploading',
+  `review` enum('pending','approved','change_request') DEFAULT 'pending' COMMENT 'Document review status - pending, approved, or change_request',
+  `intimate_client` tinyint(1) DEFAULT 0 COMMENT '0=not shared with client, 1=shared with client for review',
+  `uploaded_at` timestamp NULL DEFAULT current_timestamp()
+,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `task_project_reference`
+-- --------------------------------------------------------
+
+CREATE TABLE `task_project_reference` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `task_id` int(11) NOT NULL,
+  `project_id` int(11) NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `task_review_history`
+-- --------------------------------------------------------
+
+CREATE TABLE `task_review_history` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `task_id` int(11) NOT NULL,
+  `reviewer_id` int(11) NOT NULL,
+  `reviewer_type` enum('manager','project_manager') NOT NULL COMMENT 'manager=creative manager, project_manager=requester',
+  `action` enum('approved','change_request') NOT NULL COMMENT 'Review action taken',
+  `comments` text DEFAULT NULL COMMENT 'Review comments or change request details',
+  `previous_stage` varchar(50) DEFAULT NULL COMMENT 'Previous review stage',
+  `new_stage` varchar(50) DEFAULT NULL COMMENT 'New review stage after action',
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Tracks all task review actions for audit trail';
+
+-- --------------------------------------------------------
+-- Table structure for table `task_type`
+-- --------------------------------------------------------
+
+CREATE TABLE `task_type` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `task_type` varchar(100) NOT NULL,
+  `description` text DEFAULT NULL,
+  `quantification` varchar(100) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `users`
+-- --------------------------------------------------------
+
+CREATE TABLE `users` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) DEFAULT NULL,
+  `email` varchar(100) NOT NULL,
+  `phone` varchar(15) DEFAULT NULL,
+  `password` varchar(255) DEFAULT NULL,
+  `department_id` int(11) DEFAULT NULL,
+  `job_role_id` int(11) DEFAULT NULL,
+  `location_id` int(11) DEFAULT NULL,
+  `designation_id` int(11) DEFAULT NULL,
+  `email_verified_status` tinyint(1) DEFAULT 0,
+  `latest_verification_token` varchar(512) DEFAULT NULL,
+  `account_status` enum('pending','active','inactive','locked','rejected','vacant') DEFAULT 'pending',
+  `last_login` datetime DEFAULT NULL,
+  `login_attempts` int(11) DEFAULT 0,
+  `lock_until` datetime DEFAULT NULL,
+  `password_changed_at` datetime DEFAULT NULL,
+  `password_expires_at` datetime DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `user_divisions`
+-- --------------------------------------------------------
+
+CREATE TABLE `user_divisions` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `division_id` int(11) NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `work_requests`
+-- --------------------------------------------------------
+
+CREATE TABLE `work_requests` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `project_name` varchar(255) NOT NULL,
+  `brand` varchar(100) DEFAULT NULL,
+  `request_type_id` int(11) NOT NULL,
+  `project_id` int(11) DEFAULT NULL,
+  `description` text NOT NULL,
+  `about_project` text DEFAULT NULL,
+  `priority` enum('low','medium','high','critical') DEFAULT 'medium',
+  `status` enum('draft','pending','accepted','assigned','in_progress','completed','rejected') DEFAULT 'pending',
+  `requested_at` datetime DEFAULT NULL,
+  `remarks` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `work_request_documents`
+-- --------------------------------------------------------
+
+CREATE TABLE `work_request_documents` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `work_request_id` int(11) NOT NULL,
+  `document_name` varchar(255) NOT NULL,
+  `document_path` varchar(500) NOT NULL,
+  `document_type` varchar(255) DEFAULT NULL,
+  `document_size` int(11) DEFAULT NULL,
+  `status` enum('uploading','uploaded','failed') DEFAULT 'uploading',
+  `uploaded_at` timestamp NULL DEFAULT current_timestamp()
+,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `work_request_managers`
+-- --------------------------------------------------------
+
+CREATE TABLE `work_request_managers` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `work_request_id` int(11) NOT NULL,
+  `manager_id` int(11) NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+,  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- ========================================================
+-- DATA FROM OLD FILE (Complete Production Data)
+-- ========================================================
+
+-- --------------------------------------------------------
 -- Dumping data for table `about_project`
---
+-- --------------------------------------------------------
 
 INSERT INTO `about_project` (`id`, `type`, `category`, `created_at`, `updated_at`) VALUES
 (1, 'output_devices', 'iPad 9', '2025-12-03 05:52:15', '2025-12-03 05:52:15'),
@@ -52,22 +557,8 @@ INSERT INTO `about_project` (`id`, `type`, `category`, `created_at`, `updated_at
 (10, 'target_audience', 'Others', '2025-12-03 05:52:15', '2025-12-03 05:52:15');
 
 -- --------------------------------------------------------
-
---
--- Table structure for table `change_issue_tasktype`
---
-
-CREATE TABLE `change_issue_tasktype` (
-  `id` int(11) NOT NULL,
-  `task_id` int(11) NOT NULL,
-  `change_issue_id` int(11) NOT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
 -- Dumping data for table `change_issue_tasktype`
---
+-- --------------------------------------------------------
 
 INSERT INTO `change_issue_tasktype` (`id`, `task_id`, `change_issue_id`, `created_at`, `updated_at`) VALUES
 (1, 1, 1, '2025-12-30 08:49:15', '2025-12-30 08:49:15'),
@@ -927,6 +1418,7 @@ INSERT INTO `change_issue_tasktype` (`id`, `task_id`, `change_issue_id`, `create
 (855, 54, 13, '2025-12-30 08:50:15', '2025-12-30 08:50:15'),
 (856, 54, 14, '2025-12-30 08:50:15', '2025-12-30 08:50:15'),
 (857, 54, 15, '2025-12-30 08:50:15', '2025-12-30 08:50:15');
+
 INSERT INTO `change_issue_tasktype` (`id`, `task_id`, `change_issue_id`, `created_at`, `updated_at`) VALUES
 (858, 54, 16, '2025-12-30 08:50:15', '2025-12-30 08:50:15'),
 (859, 54, 17, '2025-12-30 08:50:15', '2025-12-30 08:50:15'),
@@ -1565,23 +2057,8 @@ INSERT INTO `change_issue_tasktype` (`id`, `task_id`, `change_issue_id`, `create
 (1496, 101, 23, '2025-12-30 08:50:32', '2025-12-30 08:50:32');
 
 -- --------------------------------------------------------
-
---
--- Table structure for table `department`
---
-
-CREATE TABLE `department` (
-  `id` int(11) NOT NULL,
-  `department_name` varchar(100) NOT NULL,
-  `description` mediumtext DEFAULT NULL,
-  `state` enum('active','inactive') DEFAULT 'active',
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
 -- Dumping data for table `department`
---
+-- --------------------------------------------------------
 
 INSERT INTO `department` (`id`, `department_name`, `description`, `state`, `created_at`, `updated_at`) VALUES
 (1, 'Marketing', 'All marketing divisions of the company', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
@@ -1595,23 +2072,8 @@ INSERT INTO `department` (`id`, `department_name`, `description`, `state`, `crea
 (9, 'Digilabs', 'All verticals within Digilabs', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52');
 
 -- --------------------------------------------------------
-
---
--- Table structure for table `designation`
---
-
-CREATE TABLE `designation` (
-  `id` int(11) NOT NULL,
-  `designation_name` varchar(100) NOT NULL,
-  `designation_category` varchar(50) NOT NULL,
-  `state` enum('active','inactive') DEFAULT 'active',
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
 -- Dumping data for table `designation`
---
+-- --------------------------------------------------------
 
 INSERT INTO `designation` (`id`, `designation_name`, `designation_category`, `state`, `created_at`, `updated_at`) VALUES
 (1, 'CHRO & Chief Customer Experience Officer', 'Senior Leadership', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
@@ -1638,22 +2100,8 @@ INSERT INTO `designation` (`id`, `designation_name`, `designation_category`, `st
 (22, 'Trainee', 'Others', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52');
 
 -- --------------------------------------------------------
-
---
--- Table structure for table `designation_departments`
---
-
-CREATE TABLE `designation_departments` (
-  `id` int(11) NOT NULL,
-  `designation_id` int(11) NOT NULL,
-  `department_id` int(11) NOT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
 -- Dumping data for table `designation_departments`
---
+-- --------------------------------------------------------
 
 INSERT INTO `designation_departments` (`id`, `designation_id`, `department_id`, `created_at`, `updated_at`) VALUES
 (1, 1, 7, '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
@@ -1728,23 +2176,8 @@ INSERT INTO `designation_departments` (`id`, `designation_id`, `department_id`, 
 (70, 22, 9, '2025-11-12 06:04:52', '2025-11-12 06:04:52');
 
 -- --------------------------------------------------------
-
---
--- Table structure for table `designation_jobroles`
---
-
-CREATE TABLE `designation_jobroles` (
-  `id` int(11) NOT NULL,
-  `designation_id` int(11) NOT NULL,
-  `jobrole_id` int(11) NOT NULL,
-  `department_id` int(11) NOT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
 -- Dumping data for table `designation_jobroles`
---
+-- --------------------------------------------------------
 
 INSERT INTO `designation_jobroles` (`id`, `designation_id`, `jobrole_id`, `department_id`, `created_at`, `updated_at`) VALUES
 (1, 1, 7, 7, '2026-01-09 06:45:01', '2026-01-09 06:45:01'),
@@ -1819,24 +2252,8 @@ INSERT INTO `designation_jobroles` (`id`, `designation_id`, `jobrole_id`, `depar
 (70, 22, 22, 6, '2026-01-09 06:45:01', '2026-01-09 06:45:01');
 
 -- --------------------------------------------------------
-
---
--- Table structure for table `division`
---
-
-CREATE TABLE `division` (
-  `id` int(11) NOT NULL,
-  `title` varchar(100) NOT NULL,
-  `department_id` int(11) NOT NULL,
-  `description` mediumtext DEFAULT NULL,
-  `state` enum('active','inactive') DEFAULT 'active',
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
 -- Dumping data for table `division`
---
+-- --------------------------------------------------------
 
 INSERT INTO `division` (`id`, `title`, `department_id`, `description`, `state`, `created_at`, `updated_at`) VALUES
 (1, 'Graphic', 9, 'Graphic design and visual creation', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
@@ -1881,23 +2298,8 @@ INSERT INTO `division` (`id`, `title`, `department_id`, `description`, `state`, 
 (40, 'Medical Services', 2, 'Medical Services Division', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52');
 
 -- --------------------------------------------------------
-
---
--- Table structure for table `issue_register`
---
-
-CREATE TABLE `issue_register` (
-  `id` int(11) NOT NULL,
-  `change_issue_type` varchar(100) NOT NULL,
-  `description` mediumtext DEFAULT NULL,
-  `quantification` varchar(100) DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
 -- Dumping data for table `issue_register`
---
+-- --------------------------------------------------------
 
 INSERT INTO `issue_register` (`id`, `change_issue_type`, `description`, `quantification`, `created_at`, `updated_at`) VALUES
 (1, 'Resize Layout', 'Graphics + Videos + Web', 'No. of changes requested/issues reported', '2025-12-30 08:43:52', '2025-12-30 08:43:52'),
@@ -1930,25 +2332,8 @@ INSERT INTO `issue_register` (`id`, `change_issue_type`, `description`, `quantif
 (28, 'Link/API Update', 'Web', 'No. of issues reported', '2025-12-30 08:43:52', '2025-12-30 08:43:52');
 
 -- --------------------------------------------------------
-
---
--- Table structure for table `job_role`
---
-
-CREATE TABLE `job_role` (
-  `id` int(11) NOT NULL,
-  `role_title` varchar(100) NOT NULL,
-  `level` varchar(50) DEFAULT NULL,
-  `description` mediumtext DEFAULT NULL,
-  `department_id` int(11) DEFAULT NULL,
-  `state` enum('active','inactive') DEFAULT 'active',
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
 -- Dumping data for table `job_role`
---
+-- --------------------------------------------------------
 
 INSERT INTO `job_role` (`id`, `role_title`, `level`, `description`, `department_id`, `state`, `created_at`, `updated_at`) VALUES
 (1, 'Super Admin', 'Senior', 'System administrators', 9, 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
@@ -1975,24 +2360,8 @@ INSERT INTO `job_role` (`id`, `role_title`, `level`, `description`, `department_
 (22, 'IBU User', 'Low', 'All users of IBU division', 6, 'active', '2025-11-12 00:34:52', '2025-11-12 00:34:52');
 
 -- --------------------------------------------------------
-
---
--- Table structure for table `location`
---
-
-CREATE TABLE `location` (
-  `id` int(11) NOT NULL,
-  `location_name` varchar(100) NOT NULL,
-  `type` enum('HO','HQ','Field','Other') NOT NULL,
-  `description` mediumtext DEFAULT NULL,
-  `state` enum('active','inactive') DEFAULT 'active',
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
 -- Dumping data for table `location`
---
+-- --------------------------------------------------------
 
 INSERT INTO `location` (`id`, `location_name`, `type`, `description`, `state`, `created_at`, `updated_at`) VALUES
 (1, 'Mumbai HO', 'HO', 'Head Office Mumbai', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
@@ -2000,22 +2369,8 @@ INSERT INTO `location` (`id`, `location_name`, `type`, `description`, `state`, `
 (3, 'Vadodara HQ', 'HQ', 'Headquarters Vadodara', 'active', '2025-11-12 06:04:52', '2025-11-12 06:04:52');
 
 -- --------------------------------------------------------
-
---
--- Table structure for table `project_request_reference`
---
-
-CREATE TABLE `project_request_reference` (
-  `id` int(11) NOT NULL,
-  `project_id` int(11) NOT NULL,
-  `request_id` int(11) NOT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
 -- Dumping data for table `project_request_reference`
---
+-- --------------------------------------------------------
 
 INSERT INTO `project_request_reference` (`id`, `project_id`, `request_id`, `created_at`, `updated_at`) VALUES
 (1, 1, 1, '2025-12-30 08:39:40', '2025-12-30 08:39:40'),
@@ -2084,23 +2439,8 @@ INSERT INTO `project_request_reference` (`id`, `project_id`, `request_id`, `crea
 (64, 32, 6, '2025-12-30 08:39:40', '2025-12-30 08:39:40');
 
 -- --------------------------------------------------------
-
---
--- Table structure for table `project_type`
---
-
-CREATE TABLE `project_type` (
-  `id` int(11) NOT NULL,
-  `project_type` varchar(100) NOT NULL,
-  `description` mediumtext DEFAULT NULL,
-  `quantification` varchar(100) DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
 -- Dumping data for table `project_type`
---
+-- --------------------------------------------------------
 
 INSERT INTO `project_type` (`id`, `project_type`, `description`, `quantification`, `created_at`, `updated_at`) VALUES
 (1, 'Pharma/Medical Artwork', 'Pharma-specific assets like VA, LBL, etc', 'No. of graphic collaterals made', '2025-12-30 08:37:52', '2025-12-30 08:37:52'),
@@ -2137,22 +2477,8 @@ INSERT INTO `project_type` (`id`, `project_type`, `description`, `quantification
 (32, 'Audio Recording & Post-Production', 'All types of recording & editing of recorded/raw audio', 'No. of audio collaterals made', '2025-12-30 08:37:52', '2025-12-30 08:37:52');
 
 -- --------------------------------------------------------
-
---
--- Table structure for table `request_division_reference`
---
-
-CREATE TABLE `request_division_reference` (
-  `id` int(11) NOT NULL,
-  `request_id` int(11) NOT NULL,
-  `division_id` int(11) NOT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
 -- Dumping data for table `request_division_reference`
---
+-- --------------------------------------------------------
 
 INSERT INTO `request_division_reference` (`id`, `request_id`, `division_id`, `created_at`, `updated_at`) VALUES
 (1, 1, 1, '2025-12-30 08:34:34', '2025-12-30 08:34:34'),
@@ -2167,22 +2493,8 @@ INSERT INTO `request_division_reference` (`id`, `request_id`, `division_id`, `cr
 (10, 6, 5, '2025-12-30 08:34:34', '2025-12-30 08:34:34');
 
 -- --------------------------------------------------------
-
---
--- Table structure for table `request_type`
---
-
-CREATE TABLE `request_type` (
-  `id` int(11) NOT NULL,
-  `request_type` varchar(100) NOT NULL,
-  `description` mediumtext DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
 -- Dumping data for table `request_type`
---
+-- --------------------------------------------------------
 
 INSERT INTO `request_type` (`id`, `request_type`, `description`, `created_at`, `updated_at`) VALUES
 (1, 'Design & Graphics', 'VA, LBL, Standees, SNS post, Magazine, etc.', '2025-12-30 08:33:26', '2025-12-30 08:33:26'),
@@ -2193,740 +2505,673 @@ INSERT INTO `request_type` (`id`, `request_type`, `description`, `created_at`, `
 (6, 'Consulting & Advisory', 'Preparation/Guidance for outsourced projects', '2025-12-30 08:33:26', '2025-12-30 08:33:26');
 
 -- --------------------------------------------------------
-
---
--- Table structure for table `sales`
---
-
-CREATE TABLE `sales` (
-  `id` int(11) NOT NULL,
-  `emp_code` int(11) NOT NULL,
-  `emp_name` varchar(100) NOT NULL,
-  `level` varchar(50) DEFAULT NULL,
-  `hq` varchar(100) DEFAULT NULL,
-  `region` varchar(100) DEFAULT NULL,
-  `zone` varchar(100) DEFAULT NULL,
-  `division_id` int(11) DEFAULT NULL,
-  `sap_code` int(11) NOT NULL,
-  `mobile_number` varchar(15) DEFAULT NULL,
-  `email_id` varchar(100) NOT NULL,
-  `user_type` enum('sales') DEFAULT 'sales',
-  `email_verified_status` tinyint(1) DEFAULT 0,
-  `password` varchar(255) DEFAULT NULL,
-  `account_status` enum('pending','active','inactive','locked','rejected','vacant') DEFAULT 'pending',
-  `last_login` datetime DEFAULT NULL,
-  `login_attempts` int(11) DEFAULT 0,
-  `lock_until` datetime DEFAULT NULL,
-  `password_changed_at` datetime DEFAULT NULL,
-  `password_expires_at` datetime DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `tasks`
---
-
-CREATE TABLE `tasks` (
-  `id` int(11) NOT NULL,
-  `task_name` varchar(255) NOT NULL,
-  `description` mediumtext DEFAULT NULL,
-  `request_type_id` int(11) NOT NULL,
-  `task_type_id` int(11) NOT NULL,
-  `work_request_id` int(11) NOT NULL,
-  `deadline` date DEFAULT NULL,
-  `status` enum('draft','pending','accepted','assigned','in_progress','completed','rejected','deferred') DEFAULT 'pending',
-  `intimate_team` tinyint(1) DEFAULT 0,
-  `task_count` int(11) DEFAULT 0,
-  `link` varchar(500) DEFAULT NULL,
-  `start_date` date DEFAULT NULL,
-  `end_date` date DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
 -- Dumping data for table `tasks`
---
-
-INSERT INTO `tasks` (`id`, `task_name`, `description`, `request_type_id`, `task_type_id`, `work_request_id`, `deadline`, `status`, `intimate_team`, `task_count`, `link`, `start_date`, `end_date`, `created_at`, `updated_at`) VALUES
-(56, 'Alembic Health First', 'Alembic Health First', 1, 37, 147, '2026-01-13', 'completed', 1, 5, NULL, '2026-01-12', '2026-01-12', '2026-01-12 05:16:05', '2026-01-12 05:21:16'),
-(57, 'Gestofit Prescription Pad', 'Gestofit Prescription Pad', 1, 5, 153, '2026-01-20', 'completed', 1, 2, NULL, '2026-01-16', '2026-01-16', '2026-01-12 05:23:05', '2026-01-16 11:42:17'),
-(58, 'NAC brand reminder', 'NAC brand reminder', 1, 6, 152, '2026-01-14', 'completed', 1, 1, NULL, '2026-01-14', '2026-01-14', '2026-01-12 05:28:21', '2026-01-14 08:38:01'),
-(59, 'NCV-Brand Reminder', 'NCV-Brand Reminder', 1, 8, 151, '2026-01-14', 'completed', 1, 2, NULL, '2026-01-14', '2026-01-14', '2026-01-12 05:29:13', '2026-01-14 11:20:48'),
-(62, 'Nasal Cavity', 'Nasal Cavity', 1, 4, 154, '2026-01-15', 'completed', 1, 4, NULL, '2026-01-15', '2026-01-15', '2026-01-12 07:47:39', '2026-01-15 08:15:39'),
-(63, 'DermaVidya Standee', 'Standee', 1, 9, 143, '2026-01-13', 'completed', 1, 1, NULL, '2026-01-13', '2026-01-13', '2026-01-12 09:27:09', '2026-01-13 05:32:19'),
-(66, 'Livfit Card', 'Livfit Card', 1, 4, 156, '2026-01-19', 'completed', 1, 2, NULL, '2026-01-16', '2026-01-16', '2026-01-13 05:17:16', '2026-01-16 11:38:58'),
-(67, 'Lactonic Launch Card', 'Lactonic Launch Card', 1, 4, 155, '2026-01-19', 'completed', 1, 2, NULL, '2026-01-14', '2026-01-14', '2026-01-13 05:17:56', '2026-01-14 11:22:12'),
-(68, 'Reminder Flyers for PEDICON', 'Reminder ', 1, 41, 146, '2026-01-13', 'completed', 1, 4, NULL, '2026-01-28', '2026-02-12', '2026-01-13 05:19:10', '2026-02-12 07:23:24'),
-(69, 'Pedicon Flyers', 'Pedicon Flyers', 1, 41, 145, '2026-01-15', 'completed', 1, 4, NULL, '2026-01-13', '2026-01-13', '2026-01-13 05:33:26', '2026-01-13 05:46:05'),
-(70, 'Patient Education', 'Patient Education', 1, 4, 157, '2026-01-21', 'completed', 1, 2, NULL, '2026-01-20', '2026-02-09', '2026-01-14 08:07:38', '2026-02-09 06:21:43'),
-(74, 'MahaShivratri Festival flyer', 'Festival flyer', 1, 12, 159, '2026-01-23', 'completed', 1, 2, NULL, '2026-02-09', '2026-02-09', '2026-01-15 06:26:05', '2026-02-09 11:18:19'),
-(75, 'Republic Day', 'Digital Flyer ', 1, 42, 167, '2026-01-22', 'completed', 1, 1, NULL, '2026-01-22', '2026-01-19', '2026-01-19 04:49:02', '2026-01-19 12:02:36'),
-(76, 'Deltone SGPI Outer box', 'Outer Box', 1, 9, 165, '2026-01-22', 'completed', 1, 1, NULL, '2026-01-20', '2026-01-20', '2026-01-19 04:50:55', '2026-01-20 11:27:31'),
-(77, 'Camp LBL', 'LBL', 1, 3, 166, '2026-01-23', 'completed', 1, 2, NULL, '2026-01-23', '2026-01-28', '2026-01-19 04:52:12', '2026-01-28 11:42:43'),
-(78, 'Tellzy Range LBLs', 'LBLS', 1, 3, 163, '2026-01-27', 'completed', 1, 12, NULL, '2026-01-21', '2026-01-23', '2026-01-19 04:53:21', '2026-01-23 05:36:11'),
-(79, 'InSH Guideline CME', 'InSH Guideline CME', 1, 9, 162, '2026-01-23', 'completed', 1, 1, NULL, '2026-01-21', '2026-01-22', '2026-01-19 05:24:59', '2026-01-22 06:46:40'),
-(80, 'Evaraft Consensus QR Code', 'Require a QR Code for his PDF Brand Evaraft ', 5, 81, 170, '2026-01-20', 'completed', 1, 1, 'https://alembicdigilabs.com/alcare/gerd_in_pregnancy/', '2026-01-19', '2026-01-20', '2026-01-19 05:49:50', '2026-01-20 10:19:52'),
-(81, 'Asia Book', 'TV screen', 1, 19, 171, '2026-01-19', 'completed', 1, 3, NULL, '2026-01-19', '2026-01-19', '2026-01-19 05:59:14', '2026-01-19 07:21:00'),
-(82, 'All India Derma Championship Final Round Winners', 'All India Derma Championship Final Round Winners', 1, 16, 168, '2026-01-21', 'completed', 1, 1, NULL, '2026-01-28', '2026-02-09', '2026-01-19 06:17:03', '2026-02-09 06:21:22'),
-(83, 'Chhatrapati Shivaji Maharaj Jayanti Flyer', 'Chhatrapati Shivaji Maharaj Jayanti Flyer', 1, 16, 160, '2026-01-23', 'completed', 1, 2, NULL, '2026-02-16', '2026-02-16', '2026-01-19 06:18:04', '2026-02-16 11:07:45'),
-(84, ' Corazon- Republic Day Video 2026', 'focus brands Rosave, Rosave F, Rosave EZ, Glipy DM & Glipy MET', 2, 57, 173, '2026-01-21', 'completed', 1, 1, NULL, '2026-01-20', '2026-01-21', '2026-01-19 06:52:21', '2026-02-05 10:49:06'),
-(85, 'Gastron - Republic Day Video 2026', 'Bladmir/Bladmir SGeripod/Geripod D/Geripod M', 2, 57, 172, '2026-01-23', 'completed', 1, 1, 'https://we.tl/t-nN4uxgOtg6', '2026-01-29', '2026-01-29', '2026-01-19 06:54:05', '2026-02-05 10:54:38'),
-(86, 'Specia - Republic Day Video 2026', 'SITALEMBIC GROUP and All Division Brands', 2, 57, 174, '2026-01-21', 'completed', 1, 1, 'https://we.tl/t-nN4uxgOtg6', '2026-01-20', '2026-01-21', '2026-01-19 07:16:40', '2026-02-05 10:49:33'),
-(87, 'Specia - Republic Day GIF 2026', 'SITALEMBIC GROUP and All Division Brands', 2, 57, 174, '2026-01-21', 'completed', 1, 1, NULL, '2026-01-19', '2026-01-22', '2026-01-19 07:17:06', '2026-02-05 10:57:28'),
-(88, 'Corium - Republic day Gif 2026', 'Oryza sensitive', 2, 57, 164, '2026-01-21', 'completed', 1, 1, NULL, '2026-01-19', '2026-01-22', '2026-01-19 07:19:39', '2026-02-05 10:56:51'),
-(89, 'Esolembic-D Outerbox artwork', 'Esolembic-D Outerbox artwork', 1, 23, 175, '2026-01-20', 'completed', 1, 1, 'https://we.tl/t-Pn7mbqPMIi', '2026-01-20', '2026-01-20', '2026-01-19 07:22:22', '2026-01-20 11:26:21'),
-(90, 'APD 360 Panorama Wheel Gamification', 'Rekool D, Ulgeraft, Vonofide', 5, 74, 176, '2026-01-29', 'completed', 1, 1, 'https://alembicdigilabs.com/enteron/APD_360_wheel_2026/', '2026-01-28', '2026-01-29', '2026-01-19 09:19:58', '2026-01-29 11:29:54'),
-(91, 'Rosave Scientific Communication', 'Rosave Scientific Communication', 1, 4, 177, '2026-01-23', 'in_progress', 1, 0, NULL, '2026-01-22', NULL, '2026-01-19 09:34:50', '2026-01-21 18:31:00'),
-(92, 'Ouron - Republic Day GIF 2026', 'Bladmir/Bladmir SGeripod/Geripod D/Geripod M', 2, 57, 161, '2026-01-23', 'completed', 1, 1, NULL, '2026-01-23', '2026-01-22', '2026-01-19 11:38:55', '2026-02-05 10:56:22'),
-(93, 'Cardigem- Republic Day Video 2026', 'Cardigem - Republic Day Video 2026', 2, 57, 178, '2026-01-23', 'completed', 1, 1, 'https://we.tl/t-MeBoajjrNg', '2026-01-29', '2026-01-29', '2026-01-19 11:41:04', '2026-01-29 10:54:40'),
-(94, 'Cardigem - Republic Day Video 2026', 'Glisen SM, Glisen MF, Tellzy H, Rosave Gold ', 2, 54, 178, '2026-01-23', 'completed', 1, 1, NULL, '2026-01-23', '2026-01-22', '2026-01-19 11:41:44', '2026-01-22 11:00:27'),
-(95, 'Supply Chain Management Team- Award artwork', 'Supply Chain Management Team- Award artwork', 1, 30, 180, '2026-01-20', 'completed', 1, 1, NULL, '2026-01-20', '2026-01-20', '2026-01-19 13:09:15', '2026-01-20 04:58:53'),
-(96, 'MRs with Highest Productive Calls | Monthly', 'MRs with Highest Productive Calls | Monthly', 1, 16, 184, '2026-01-20', 'completed', 1, 11, NULL, '2026-01-20', '2026-01-20', '2026-01-19 13:10:07', '2026-01-20 02:39:53'),
-(97, 'SCM Advertisement', 'SCM Advertisement', 1, 30, 185, '2026-01-20', 'completed', 1, 2, NULL, '2026-01-20', '2026-01-20', '2026-01-20 05:17:28', '2026-01-20 06:04:39'),
-(98, 'MRs with Highest Productive Calls | Weekly', 'MRs with Highest Productive Calls | Weekly', 1, 19, 182, '2026-01-23', 'completed', 1, 16, NULL, '2026-01-27', '2026-01-28', '2026-01-20 05:22:01', '2026-01-28 06:48:25'),
-(99, 'Subhash Chandra Bose Jayanti', 'Festive Flyer', 1, 12, 190, '2026-01-21', 'completed', 1, 1, NULL, '2026-01-21', '2026-03-11', '2026-01-20 06:52:26', '2026-03-11 09:43:00'),
-(100, 'Vasant Panchami Greeting', 'Festival flyer', 1, 12, 189, '2026-01-22', 'completed', 1, 1, NULL, '2026-01-28', '2026-01-29', '2026-01-20 06:53:11', '2026-01-29 11:33:07'),
-(101, 'Timeline Derma product\'s logos', 'banner', 1, 30, 188, '2026-01-21', 'completed', 1, 3, NULL, '2026-01-27', '2026-01-28', '2026-01-20 06:53:58', '2026-01-28 07:08:56'),
-(102, 'Republic Day Greeting', 'Festival flyer', 1, 12, 192, '2026-01-23', 'completed', 1, 1, NULL, '2026-01-23', '2026-01-23', '2026-01-20 07:23:03', '2026-01-23 09:37:37'),
-(103, 'Lohri Day Celebration Collage Artwork', 'TV Screens', 1, 30, 181, '2026-01-20', 'completed', 1, 2, NULL, '2026-01-28', '2026-01-28', '2026-01-20 07:24:13', '2026-01-28 08:25:41'),
-(104, 'PegTears HP Teaser', 'PegTears HP brand re launch scripts', 3, 16, 198, '2026-01-27', 'completed', 1, 2, NULL, '2026-01-19', '2026-01-22', '2026-01-20 09:04:12', '2026-02-03 10:44:19'),
-(105, 'Gynatrop Rx Pad', 'RX Pad', 1, 5, 199, '2026-01-27', 'completed', 1, 3, NULL, '2026-01-23', '2026-01-22', '2026-01-20 09:21:49', '2026-01-22 11:32:50'),
-(106, 'Valentine\'s day Photo Framer', 'Nepal Busniess Valentine\'s day link', 5, 74, 179, '2026-02-05', 'completed', 1, 12, 'https://alembicdigilabs.in/nepalbusiness/valentinesday/admin,https://alembicdigilabs.in/nepalbusiness/valentinesday/urdiogem,https://alembicdigilabs.in/nepalbusiness/valentinesday/azithral,https://alembicdigilabs.in/nepalbusiness/valentinesday/oryza,', '2026-01-27', '2026-01-28', '2026-01-20 09:22:17', '2026-01-28 08:44:46'),
-(107, 'Retailer Gift Box artwork', 'Bax Design', 1, 30, 197, '2026-01-27', 'completed', 1, 1, NULL, '2026-01-23', '2026-01-22', '2026-01-20 09:23:15', '2026-01-22 08:47:25'),
-(108, 'Dr pad designing', 'RX Pad', 1, 5, 196, '2026-01-23', 'completed', 1, 2, NULL, '2026-01-21', '2026-02-12', '2026-01-20 09:24:37', '2026-02-12 07:24:05'),
-(109, 'Evaraft Consensus Video', 'Evaraft Consensus Edit Video', 2, 58, 200, '2026-01-23', 'completed', 1, 4, 'https://we.tl/t-wEs1PuLP9z', '2026-01-23', '2026-01-23', '2026-01-20 09:39:31', '2026-01-23 03:38:28'),
-(110, 'SITALEMBIC D VIDEO', 'Brand Teaser and concept Video', 3, 67, 202, '2026-01-28', 'completed', 1, 2, NULL, '2026-01-27', '2026-01-28', '2026-01-20 09:49:49', '2026-02-05 09:35:53'),
-(113, 'CLM video for ovigyn Q10', 'ovigyn Q10', 5, 74, 203, '2026-01-23', 'pending', 1, 0, NULL, NULL, NULL, '2026-01-20 10:33:06', '2026-03-11 09:45:39'),
-(116, 'lbl', 'Standee', 1, 23, 191, '2026-01-20', 'pending', 1, 0, NULL, NULL, NULL, '2026-01-20 10:42:32', '2026-01-20 10:42:37'),
-(118, 'Republic day video CETANIL Grp', 'CETANIL Grp', 2, 57, 187, '2026-01-21', 'completed', 1, 1, 'https://we.tl/t-dZkNi6RTgu', '2026-01-23', '2026-01-29', '2026-01-20 11:13:12', '2026-02-05 11:01:49'),
-(119, 'ESTROPLUS VA', 'Visual Aid', 1, 1, 201, '2026-01-30', 'completed', 1, 4, NULL, '2026-01-23', '2026-02-09', '2026-01-20 11:17:36', '2026-02-09 06:20:29'),
-(120, 'ESTROPLUS VA', 'Proof Check', 3, 16, 201, '2026-01-20', 'completed', 1, 1, NULL, '2026-02-20', '2026-01-21', '2026-01-20 11:18:52', '2026-02-03 10:44:43'),
-(128, 'Zivolution Theme Launch Doctor Letter', 'Doctor Letter', 1, 4, 208, '2026-01-27', 'in_progress', 1, 0, NULL, '2026-01-27', NULL, '2026-01-21 09:25:48', '2026-01-26 18:31:00'),
-(129, 'Crina-NCR Megaplex Activity - Indore', 'banner', 1, 19, 209, '2026-01-23', 'completed', 1, 3, NULL, '2026-01-22', '2026-01-22', '2026-01-21 10:54:26', '2026-01-22 06:38:23'),
-(130, 'Geripod-D Gimmick video', 'Detailing video shoot', 3, 92, 183, '2026-01-22', 'pending', 1, 0, NULL, NULL, NULL, '2026-01-22 04:37:59', '2026-01-22 04:38:20'),
-(131, 'Republic Day Greetings, from makers of Azithral Solid, Azithral Liquid, Laveta M Solid, Laveta M Liquid.', 'GIF Video', 2, 54, 210, '2026-01-22', 'completed', 1, 1, NULL, '2026-01-22', '2026-01-22', '2026-01-22 04:54:50', '2026-01-22 07:13:03'),
-(132, 'Enteron FY 2026-27 VA PDF Copy link', 'QR Code', 5, 81, 211, '2026-01-22', 'completed', 1, 1, NULL, '2026-01-22', '2026-01-22', '2026-01-22 04:55:17', '2026-01-22 04:58:14'),
-(133, 'Megacare_Mono vs bilayer 2026', '2d Animation', 2, 50, 206, '2026-01-28', 'completed', 1, 1, NULL, '2026-01-23', '2026-03-16', '2026-01-22 04:56:23', '2026-03-16 04:24:05'),
-(134, 'Oryza Ceramax Study Gimmick LBL', 'LBL', 1, 3, 213, '2026-01-30', 'in_progress', 1, 0, NULL, '2026-02-25', NULL, '2026-01-22 04:58:44', '2026-02-25 09:17:06'),
-(135, 'Medico Marketing Invitation', 'Invite ', 1, 9, 214, '2026-01-27', 'in_progress', 1, 0, NULL, '2026-01-30', NULL, '2026-01-22 05:03:14', '2026-01-29 18:31:00'),
-(137, 'Republic Day Greetings, from makers of Azithral Solid, Azithral Liquid, Laveta M Solid, Laveta M Liquid.', 'Megacare', 2, 57, 210, '2026-03-17', 'completed', 0, 0, NULL, '2026-01-22', '2026-01-22', '2026-01-22 05:15:13', '2026-03-23 07:01:31'),
-(138, 'CLM video for ovigyn Q10', 'ovigyn Q10', 2, 54, 203, '2026-01-27', 'completed', 1, 1, 'https://we.tl/t-hsZyHoaGPR', '2026-01-26', '2026-01-28', '2026-01-22 05:25:41', '2026-03-11 09:45:39'),
-(139, 'Wikoryl AF VA pages FY 26-27', 'VA', 3, 66, 207, '2026-01-27', 'completed', 1, 19, NULL, '2026-01-22', '2026-01-28', '2026-01-22 07:48:12', '2026-02-03 10:45:08'),
-(140, 'CHCF camp Reminder card', 'Reminder card', 1, 8, 217, '2026-01-23', 'completed', 1, 5, NULL, '2026-01-23', '2026-01-22', '2026-01-22 08:00:11', '2026-01-22 12:22:29'),
-(141, 'Lanerwin RX Pad artwork and LBL', 'LBL', 1, 15, 218, '2026-01-28', 'completed', 1, 2, NULL, '2026-01-28', '2026-01-29', '2026-01-22 10:38:04', '2026-01-29 08:58:46'),
-(142, 'Wikoryl Pack shots', 'Packshot', 1, 3, 219, '2026-01-22', 'completed', 1, 1, NULL, '2026-01-22', '2026-01-22', '2026-01-22 11:45:56', '2026-01-22 11:56:42'),
-(143, 'Souvenir for Megacon 2026', 'Flyer', 1, 16, 223, '2026-01-27', 'completed', 1, 1, NULL, '2026-01-23', '2026-01-23', '2026-01-23 04:48:38', '2026-01-23 08:51:22'),
-(144, 'Need appreciation and participation certificates', 'Certificate ', 1, 18, 226, '2026-01-27', 'completed', 1, 22, NULL, '2026-01-23', '2026-01-23', '2026-01-23 05:08:17', '2026-01-23 10:38:46'),
-(145, 'Gastron Republic Day Video', 'Deltone', 2, 57, 230, '2026-01-23', 'completed', 1, 1, 'https://we.tl/t-MeBoajjrNg', '2026-01-23', '2026-01-23', '2026-01-23 05:27:03', '2026-01-23 08:59:37'),
-(146, 'Cardigem - Glisen SM VA 2026', 'Glisen SM VA', 2, 47, 232, '2026-03-12', 'completed', 1, 1, 'https://we.tl/t-OPn9Om8L5z', '2026-01-28', '2026-03-13', '2026-01-23 05:28:49', '2026-03-13 06:37:19'),
-(148, 'Artwork for Tetan Tea Coaster', 'Box', 1, 9, 235, '2026-01-27', 'completed', 1, 1, NULL, '2026-01-28', '2026-01-28', '2026-01-23 07:09:25', '2026-01-28 08:29:03'),
-(149, 'Social Media Post and Interact Mailer for Republic Day', 'Social Post', 1, 16, 236, '2026-01-23', 'completed', 1, 2, NULL, '2026-01-23', '2026-01-23', '2026-01-23 07:28:28', '2026-01-23 08:42:34'),
-(150, 'Hospicare_Republic Day Video_2026', 'Republic Day Video', 2, 57, 237, '2026-01-23', 'completed', 1, 1, NULL, '2026-01-23', '2026-01-23', '2026-01-23 08:51:52', '2026-01-23 10:22:27'),
-(151, 'Republic Day Flyer', 'Flyer', 1, 12, 239, '2026-01-23', 'completed', 1, 1, NULL, '2026-01-23', '2026-01-23', '2026-01-23 09:21:42', '2026-01-23 09:38:38'),
-(152, 'Ouron Loop _Brand Logo Video_2026', 'Bladmir/Bladmir SGeripod/Geripod D/Geripod M', 2, 47, 238, '2026-01-27', 'completed', 1, 1, NULL, '2026-01-23', '2026-01-23', '2026-01-23 09:34:25', '2026-01-23 10:07:11'),
-(153, 'Leaderboards for Top MRs with Highest Productivity Calls', 'HR', 1, 13, 242, '2026-01-23', 'completed', 1, 16, NULL, '2026-01-27', '2026-01-28', '2026-01-23 13:05:22', '2026-01-28 06:45:34'),
-(155, 'New Joinees Reference Guide', 'Content modification ', 1, 31, 246, '2026-01-29', 'completed', 1, 13, NULL, '2026-01-29', '2026-01-29', '2026-01-27 09:33:25', '2026-02-03 10:43:09'),
-(156, 'Crina-NCR Megaplex IVF - BBSR', 'banner', 1, 19, 256, '2026-01-29', 'completed', 1, 1, NULL, '2026-01-28', '2026-01-28', '2026-01-27 09:46:50', '2026-01-28 09:57:58'),
-(157, 'Standees for Apollo - 13th IPSC Conference', 'Standee', 1, 32, 253, '2026-01-27', 'completed', 1, 2, NULL, '2026-01-28', '2026-01-28', '2026-01-27 09:47:48', '2026-01-28 08:31:20'),
-(158, 'Azithral', 'Standee', 1, 40, 251, '2026-01-27', 'completed', 1, 2, NULL, '2026-01-27', '2026-01-28', '2026-01-27 09:51:52', '2026-01-28 06:43:18'),
-(159, 'MR Productive Calls Weekly Leaderboards', 'Weekly Leaderboards', 1, 16, 248, '2026-01-28', 'completed', 1, 16, NULL, '2026-01-28', '2026-01-28', '2026-01-27 09:55:51', '2026-01-28 06:35:51'),
-(160, 'WOS Detailer', 'Detailer ', 1, 4, 247, '2026-01-29', 'completed', 1, 6, NULL, '2026-01-28', '2026-01-29', '2026-01-27 09:58:32', '2026-01-29 11:26:52'),
-(161, 'CHCF camp poster', 'Poster', 1, 20, 244, '2026-01-29', 'in_progress', 1, 0, NULL, '2026-01-28', NULL, '2026-01-27 10:01:17', '2026-02-04 06:23:06'),
-(162, 'Republic Day digital flyer- enteron', ' flyer', 1, 12, 243, '2026-01-27', 'completed', 1, 1, NULL, '2026-01-27', '2026-01-27', '2026-01-27 11:45:57', '2026-01-27 11:48:32'),
-(163, 'Visual Aid Pages', 'Visual Aids', 1, 1, 229, '2026-02-03', 'completed', 1, 5, NULL, '2026-01-28', '2026-02-18', '2026-01-28 04:20:13', '2026-02-18 04:25:25'),
-(167, 'Voage S VA Page Design', 'Visual Aid', 1, 1, 240, '2026-01-30', 'completed', 1, 5, NULL, '2026-02-13', '2026-02-18', '2026-01-28 05:03:06', '2026-03-24 11:06:54'),
-(168, 'Republic Day_Animal Health 2026', 'Festival Video ', 2, 57, 241, '2026-01-28', 'completed', 1, 1, NULL, '2026-01-28', '2026-02-03', '2026-01-28 06:04:40', '2026-02-03 10:34:17'),
-(169, 'Glisen Visual Aid FY26-27', 'Visual Aid', 1, 1, 228, '2026-02-02', 'completed', 1, 11, NULL, '2026-01-28', '2026-02-18', '2026-01-28 06:20:50', '2026-02-18 09:08:59'),
-(171, 'Oryza Acne Clear video copy writing', 'Script', 4, 67, 262, '2026-02-06', 'completed', 1, 2, NULL, '2026-02-06', '2026-01-29', '2026-01-28 06:56:57', '2026-02-04 05:22:18'),
-(173, 'Holi Video_2026_corium ', 'Holi Video', 2, 48, 255, '2026-02-11', 'completed', 1, 1, 'https://we.tl/t-KjXAkThPTv', '2026-02-02', '2026-02-27', '2026-01-28 07:06:05', '2026-02-27 12:14:46'),
-(174, 'Holi Video', 'Corium Scripts', 3, 69, 255, '2026-02-03', 'completed', 1, 1, NULL, NULL, '2026-02-13', '2026-01-28 07:06:33', '2026-02-13 11:52:19'),
-(175, 'Invitation letter_2026', 'Invitation letter', 4, 63, 267, '2026-02-04', 'completed', 1, 1, NULL, '2026-01-29', '2026-01-29', '2026-01-28 07:09:27', '2026-01-29 10:03:16'),
-(176, 'Invitation letter_2026', 'Invitation letter', 4, 63, 267, '2026-02-04', 'completed', 1, 1, NULL, '2026-01-30', '2026-01-30', '2026-01-28 07:09:29', '2026-01-30 04:20:21'),
-(177, 'Oryza Acne Clear video copy writing', ' copy writing', 4, 67, 262, '2026-02-06', 'completed', 1, 3, NULL, '2026-02-06', '2026-02-06', '2026-01-28 07:13:07', '2026-02-06 05:32:17'),
-(178, 'Valentine\'s Day - Digital Frame', 'Valentine\'s Day Photo frame', 1, 44, 254, '2026-02-06', 'accepted', 1, 0, NULL, NULL, NULL, '2026-01-28 07:19:56', '2026-02-13 10:23:23'),
-(179, 'Valentine\'s day link', 'Photo framer', 5, 75, 179, '2026-02-05', 'completed', 1, 6, 'N/A', '2026-01-28', '2026-01-28', '2026-01-28 07:24:05', '2026-01-28 08:43:06'),
-(180, 'Valentine\'s day link', 'Photo framer', 5, 77, 179, '2026-02-05', 'completed', 1, 3, 'N/A', '2026-01-28', '2026-01-28', '2026-01-28 07:24:30', '2026-01-28 08:41:41'),
-(181, 'Oryza Ceramax VA ', 'Visual Aid', 1, 1, 263, '2026-02-03', 'completed', 1, 4, NULL, '2026-02-10', '2026-02-11', '2026-01-28 08:05:13', '2026-02-11 12:14:05'),
-(182, 'Visual Aid Tufehart', 'Visual Aid', 1, 1, 233, '2026-02-04', 'completed', 1, 8, NULL, '2026-01-30', '2026-02-11', '2026-01-28 08:22:08', '2026-02-11 06:56:11'),
-(184, 'SITALEMBIC D VISUAL AID', 'Visual Aid', 1, 1, 216, '2026-02-03', 'completed', 1, 3, NULL, '2026-02-13', '2026-02-13', '2026-01-28 08:36:14', '2026-02-13 06:34:09'),
-(185, 'Glisen SM VA FY 26-27', 'Visual Aid', 1, 1, 224, '2026-02-03', 'completed', 1, 6, NULL, '2026-02-13', '2026-02-18', '2026-01-28 08:43:49', '2026-02-18 09:06:32'),
-(186, 'Wikoryl Liquid VA revamp', 'Visual Aid', 1, 1, 274, '2026-02-06', 'completed', 1, 5, NULL, '2026-01-29', '2026-02-05', '2026-01-28 14:01:54', '2026-02-05 07:20:04'),
-(187, 'Wikoryl Liquid TRUST the 1st Communication Series', 'LBL', 1, 3, 273, '2026-01-29', 'completed', 1, 7, NULL, '2026-01-29', '2026-02-04', '2026-01-28 14:03:13', '2026-02-04 06:07:34'),
-(188, 'glass table top', 'Packaging', 1, 23, 268, '2026-03-24', 'completed', 1, 1, NULL, '2026-02-25', '2026-02-25', '2026-01-28 14:05:15', '2026-03-24 10:10:01'),
-(189, 'Oryza Sensitive FY27 - Revised VA', 'Visual Aid', 1, 1, 252, '2026-02-03', 'completed', 1, 4, NULL, '2026-02-10', '2026-02-25', '2026-01-28 14:06:04', '2026-02-25 03:20:33'),
-(190, 'Exceraft VA Cover Page', 'Visual Aid', 1, 1, 220, '2026-01-28', 'completed', 1, 2, NULL, '2026-01-29', '2026-02-02', '2026-01-28 14:09:42', '2026-02-02 11:28:34'),
-(191, 'Visual Aid', 'Visual Aid', 1, 1, 231, '2026-02-02', 'in_progress', 1, 0, NULL, '2026-02-02', NULL, '2026-01-28 14:26:40', '2026-02-02 11:09:16'),
-(192, 'Aqua FEB 26 CME Banner', 'banner', 1, 38, 266, '2026-02-02', 'completed', 1, 1, NULL, '2026-01-30', '2026-01-29', '2026-01-28 14:27:50', '2026-01-29 11:44:37'),
-(197, 'AWARENESS AND CELEBRATION DAYS ', 'FEBRUARY 2026', 4, 69, 275, '2026-02-25', 'completed', 1, 3, NULL, '2026-02-02', '2026-02-03', '2026-01-29 06:08:17', '2026-02-03 10:23:46'),
-(198, 'Grogain MF Visual Aid Page Fy 27 Qtr 1', 'Visual Aid', 1, 1, 278, '2026-02-03', 'completed', 1, 5, NULL, '2026-01-30', '2026-02-05', '2026-01-29 06:52:10', '2026-02-05 05:47:02'),
-(199, 'Aletol DS Flyer', 'Flyer', 1, 16, 280, '2026-01-30', 'completed', 1, 1, NULL, '2026-02-04', '2026-02-04', '2026-01-29 08:01:50', '2026-02-04 09:39:05'),
-(200, 'CLOSAL LBL', 'LBL', 1, 3, 279, '2026-02-03', 'completed', 1, 2, NULL, '2026-02-10', '2026-02-09', '2026-01-29 08:17:09', '2026-02-09 10:37:50'),
-(201, 'New Joiners Reference Guide', 'E Flipbook ', 5, 74, 246, '2026-01-30', 'completed', 1, 1, 'https://alembicdigilabs.com/hr/newjoineeRefguide/', '2026-01-30', '2026-01-30', '2026-01-29 09:42:41', '2026-01-30 07:52:57'),
-(202, 'AWARENESS AND CELEBRATION DAYS - FEBRUARY 2026', 'Flyer', 1, 12, 286, '2026-02-03', 'completed', 1, 12, NULL, '2026-02-27', '2026-02-16', '2026-01-29 09:43:42', '2026-02-16 05:59:37'),
-(203, 'Sleeve artwork box', 'Packaging', 1, 23, 285, '2026-02-04', 'completed', 1, 2, NULL, '2026-02-03', '2026-02-03', '2026-01-29 09:49:23', '2026-02-03 03:35:06'),
-(204, 'GIEP\'26 Invite Flyer', 'Flyer', 1, 12, 284, '2026-02-06', 'completed', 1, 3, NULL, '2026-02-04', '2026-02-04', '2026-01-29 09:51:18', '2026-02-04 05:52:55'),
-(205, 'Feb Month Festive artwork_Zenovi_2025', 'Zenovi_2025', 4, 69, 264, '2026-02-25', 'completed', 1, 3, NULL, '2026-02-25', '2026-02-10', '2026-01-29 09:54:32', '2026-02-10 08:47:50'),
-(206, 'Feb Month Festive artwork', 'Zenovi_2025', 4, 69, 264, '2026-02-25', 'completed', 1, 3, NULL, '2026-02-02', '2026-02-06', '2026-01-29 09:54:57', '2026-02-06 04:48:04'),
-(207, ' AWARENESS AND CELEBRATION DAYS ', 'FEBRUARY 2026', 4, 69, 287, '2026-02-25', 'completed', 1, 6, NULL, '2026-02-25', '2026-02-16', '2026-01-29 09:55:51', '2026-02-16 03:48:16'),
-(208, ' AWARENESS AND CELEBRATION DAYS ', 'FEBRUARY 2026', 4, 69, 287, '2026-02-25', 'completed', 1, 6, NULL, '2026-02-02', '2026-02-14', '2026-01-29 09:56:18', '2026-02-14 08:41:19'),
-(209, 'Exceraft 26-27 Videos', 'FEBRUARY 2026', 3, 67, 250, '2026-02-04', 'completed', 1, 4, NULL, NULL, '2026-02-17', '2026-01-29 09:57:47', '2026-02-17 04:47:13'),
-(210, 'Exceraft 26-27 Videos', 'Video teaser', 3, 67, 250, '2026-02-06', 'completed', 1, 1, NULL, NULL, '2026-02-20', '2026-01-29 09:59:43', '2026-02-20 06:01:38'),
-(213, 'Visual Aid - Tellzy ', 'Visual Aid', 1, 1, 270, '2026-02-04', 'completed', 1, 4, NULL, '2026-02-06', '2026-02-06', '2026-01-29 11:15:55', '2026-02-06 07:18:21'),
-(214, 'Rekool D Motivation Video', 'Motivational Video ', 3, 67, 293, '2026-02-10', 'completed', 1, 1, NULL, NULL, '2026-02-14', '2026-01-29 11:32:55', '2026-02-14 08:42:32'),
-(215, 'Rekool D 2026 ', 'Motivation Video/teaser video ', 3, 67, 293, '2026-02-10', 'completed', 1, 5, NULL, NULL, '2026-02-06', '2026-01-29 11:33:29', '2026-02-06 05:28:35'),
-(216, 'Cataract Post Operation Care Instructions Leaflet', 'Leaflet', 1, 15, 288, '2026-02-03', 'completed', 1, 2, NULL, '2026-02-03', '2026-02-09', '2026-01-29 13:40:34', '2026-02-09 04:58:32'),
-(217, 'BE Free Campaign', 'Flyer content ', 4, 59, 292, '2026-03-31', 'completed', 1, 1, NULL, '2026-02-02', '2026-03-02', '2026-01-30 02:52:06', '2026-03-02 09:25:29'),
-(218, 'Video editing for HR', 'HR', 2, 58, 295, '2026-01-30', 'completed', 1, 1, 'https://we.tl/t-RHbA8dfrnm', '2026-01-30', '2026-01-30', '2026-01-30 04:02:11', '2026-01-30 04:23:02'),
-(219, 'Brozeet LS - I-pad engagement 26-27', 'Brozeet LS ', 2, 46, 296, '2026-02-18', 'completed', 1, 1, 'https://we.tl/t-VZqWtzdtVi', '2026-02-17', '2026-02-25', '2026-01-30 04:46:18', '2026-02-25 03:05:22'),
-(220, 'Unigolix  200mg pack photo shoot', 'Packshot for modern trade ', 5, 95, 298, NULL, 'completed', 1, 1, NULL, '2026-01-30', '2026-01-30', '2026-01-30 05:13:21', '2026-02-03 10:43:30'),
-(221, 'Gift box artwork', 'Packing ', 1, 23, 294, '2026-01-30', 'completed', 1, 1, NULL, '2026-01-30', '2026-01-30', '2026-01-30 05:17:10', '2026-01-30 06:41:10'),
-(222, 'Gift box artwork', 'Packing ', 1, 23, 294, '2026-01-30', 'pending', 0, 0, NULL, NULL, NULL, '2026-01-30 05:17:21', '2026-01-30 05:17:21'),
-(223, 'World Cancer Day Awareness Greeting', 'Digital Flyer ', 1, 12, 291, '2026-02-04', 'completed', 1, 1, NULL, '2026-02-03', '2026-02-03', '2026-01-30 05:19:21', '2026-02-03 10:01:15'),
-(224, 'World Cancer Day Awareness Greeting', 'Digital Flyer ', 1, 12, 291, '2026-02-04', 'completed', 1, 1, NULL, '2026-02-03', '2026-02-03', '2026-01-30 05:19:22', '2026-02-03 10:01:32'),
-(225, 'VISUAL AID PAGE OF RUMIGEST', 'Visual Aid', 1, 1, 283, '2026-02-02', 'completed', 1, 7, NULL, '2026-01-30', '2026-01-30', '2026-01-30 05:20:41', '2026-01-30 05:38:53'),
-(227, 'VISUAL AID PAGE OF RUMIGEST', 'Visual Aid', 1, 1, 283, '2026-02-02', 'completed', 1, 4, NULL, '2026-02-10', '2026-02-10', '2026-01-30 05:20:45', '2026-02-10 08:54:25'),
-(228, 'Cetanil T VA Specia', 'Visual Aid', 1, 1, 222, '2026-02-04', 'completed', 1, 9, NULL, '2026-01-30', '2026-02-05', '2026-01-30 05:23:43', '2026-02-05 05:51:20'),
-(229, 'Cetanil Trio VA copy', 'Visual Aid', 1, 1, 221, '2026-02-04', 'completed', 1, 2, NULL, '2026-02-02', '2026-02-05', '2026-01-30 05:36:08', '2026-02-05 05:53:45'),
-(230, 'BE WEBINAR TRAINING', 'WEBINAR TRAINING', 5, 58, 301, '2026-01-30', 'completed', 1, 1, 'test', '2026-02-02', '2026-02-02', '2026-01-30 06:34:52', '2026-02-03 10:43:52'),
-(231, 'Esolembic-D New VA Page- GP ', 'Visual Aid', 3, 66, 305, '2026-02-05', 'completed', 1, 3, 'https://docs.google.com/document/d/1nto0YYkAU8Lcr4WRlCq45SuUUdK6ABq_ADXduWC_mhs/edit?tab=t.0', '2026-02-04', '2026-02-04', '2026-01-30 08:24:21', '2026-02-04 10:44:27'),
-(232, 'Esolembic-D New VA Page- GP ', 'Visual Aid', 1, 1, 305, '2026-02-05', 'pending', 1, 0, NULL, NULL, NULL, '2026-01-30 08:25:01', '2026-02-01 14:31:01'),
-(234, 'RUMIGEST LBL', 'LBL', 1, 3, 302, '2026-02-03', 'completed', 1, 4, 'https://sendgb.com/mCrMWXAg3eP', '2026-01-30', '2026-01-30', '2026-01-30 10:04:03', '2026-01-30 11:19:18'),
-(235, 'Tellzy CH V.A 2027', 'Visual Aid', 1, 1, 282, '2026-02-04', 'completed', 1, 3, NULL, '2026-01-30', '2026-01-30', '2026-01-30 10:04:51', '2026-01-30 14:09:26'),
-(236, 'Exceraft VA Cover Page', 'Visual Aid', 3, 66, 220, '2026-02-05', 'completed', 1, 4, 'https://docs.google.com/document/d/1gDhECQN6nGcW-XhIj-nLsA-N1xSqrfz4A-18N-z3hVY/edit?tab=t.0', '2026-02-04', '2026-02-04', '2026-01-30 10:10:20', '2026-02-04 10:43:40'),
-(238, 'GIEP Program Note Pad', 'Invitation', 1, 22, 290, '2026-03-25', 'completed', 1, 2, NULL, '2026-03-25', '2026-03-25', '2026-01-30 12:45:37', '2026-03-25 07:31:53'),
-(239, 'RUMIGEST RX PAD', 'RX PAD', 1, 5, 303, '2026-02-05', 'completed', 1, 4, NULL, '2026-02-12', '2026-02-13', '2026-02-01 07:18:21', '2026-02-13 11:22:46'),
-(240, 'VA re-designing', 'Visual Aid', 1, 1, 281, '2026-02-06', 'completed', 1, 4, NULL, '2026-02-11', '2026-02-11', '2026-02-01 07:20:22', '2026-02-11 12:19:03'),
-(241, 'TELLZY MT VA', 'Visual Aid', 1, 1, 272, '2026-02-06', 'completed', 1, 10, NULL, '2026-02-02', '2026-02-05', '2026-02-01 07:21:39', '2026-02-05 07:23:10'),
-(242, 'Oryza Ceramax Study Flyers', 'Flyer', 1, 16, 212, '2026-02-09', 'completed', 1, 7, NULL, '2026-02-25', '2026-02-27', '2026-02-01 07:23:07', '2026-02-27 05:29:06'),
-(243, 'Oryza Acne Clear VA re-designing', 'Visual Aid', 1, 1, 215, '2026-02-09', 'completed', 1, 4, NULL, '2026-02-10', '2026-02-11', '2026-02-01 07:23:48', '2026-02-11 12:16:24'),
-(244, 'Slab Input Design', 'Leaflet', 1, 15, 304, '2026-02-04', 'completed', 1, 1, NULL, '2026-02-04', '2026-02-03', '2026-02-01 07:26:12', '2026-02-03 06:17:18'),
-(245, 'Esolembic-D New VA Page- GP ', 'Visual Aid', 1, 1, 305, '2026-02-05', 'pending', 1, 0, NULL, NULL, NULL, '2026-02-01 14:30:57', '2026-02-01 14:31:01'),
-(246, 'Kolkata Poultry fair 2026', 'Invitation card ', 1, 22, 309, '2026-02-03', 'completed', 1, 1, NULL, '2026-02-02', '2026-02-03', '2026-02-02 03:18:31', '2026-02-03 04:43:29'),
-(256, 'Visual Aid Q-2 All focus 10 Brand with Non Focus Brand', 'Visual Aid', 1, 1, 276, '2026-02-06', 'completed', 1, 50, NULL, '2026-02-20', '2026-03-16', '2026-02-02 10:33:27', '2026-03-16 11:36:38'),
-(257, 'Visual Aid', 'Visual Aid', 1, 1, 231, '2026-02-04', 'completed', 1, 12, NULL, '2026-02-02', '2026-02-02', '2026-02-02 11:09:13', '2026-02-02 11:30:23'),
-(258, 'Zara Nachke Dikha', 'Flyer', 1, 16, 313, '2026-02-03', 'completed', 1, 11, NULL, '2026-02-03', '2026-03-05', '2026-02-02 11:10:01', '2026-03-05 04:54:53'),
-(259, 'Gastron RCPA Card', 'RCPA Card', 1, 6, 315, '2026-02-05', 'completed', 1, 1, NULL, '2026-02-03', '2026-02-03', '2026-02-02 11:12:39', '2026-02-03 09:07:42'),
-(260, 'Advert for Tripura Conference', 'Leaflet', 1, 15, 312, '2026-02-02', 'completed', 1, 1, NULL, '2026-02-05', '2026-02-05', '2026-02-02 11:18:13', '2026-02-05 05:55:57'),
-(261, 'Donance LBL', 'LBL', 1, 3, 299, '2026-02-03', 'completed', 1, 4, NULL, '2026-02-03', '2026-02-03', '2026-02-02 12:37:45', '2026-02-03 04:21:35'),
-(262, 'HD Photo of a India Book of record certificate', 'Photoshoot and edit', 3, 95, 306, '2026-02-02', 'completed', 1, 1, NULL, '2026-02-02', '2026-02-05', '2026-02-02 12:37:55', '2026-02-05 06:24:26'),
-(264, 'Wikoryl Liquid VA revamp', 'Visual Aid', 1, 1, 274, '2026-02-06', 'completed', 1, 5, NULL, '2026-02-13', '2026-02-18', '2026-02-02 18:45:48', '2026-02-18 09:09:41'),
-(265, 'Uncle G Video Series', 'Geripod Series', 2, 49, 314, '2026-02-06', 'completed', 1, 1, 'https://we.tl/t-Ps5iTT9cKL', '2026-02-05', '2026-02-12', '2026-02-03 04:22:41', '2026-02-12 11:11:04'),
-(270, 'Tufehart - Catching It Early', 'Brand Teaser and concept Video', 2, 49, 326, '2026-02-05', 'completed', 1, 1, 'https://we.tl/t-SRU5VYjVEq', '2026-02-04', '2026-02-04', '2026-02-04 04:47:51', '2026-02-04 05:04:46'),
-(271, 'Grogain Pro VA page design', 'Visual Aid', 1, 1, 321, '2026-02-06', 'completed', 1, 1, NULL, '2026-02-04', '2026-02-06', '2026-02-04 04:47:58', '2026-02-06 11:51:43'),
-(272, 'Grogain Pro VA page design', 'Visual Aid', 1, 1, 321, '2026-02-06', 'completed', 1, 1, NULL, '2026-02-04', '2026-02-06', '2026-02-04 04:47:59', '2026-02-06 11:52:09'),
-(273, 'Tufehart -The Baggage', 'Brand Teaser and concept Video', 2, 49, 326, '2026-02-05', 'completed', 1, 1, 'https://we.tl/t-dZkNi6RTgu', '2026-02-04', '2026-02-04', '2026-02-04 04:49:08', '2026-02-04 07:20:40'),
-(274, 'Tufehart -TufeHart to the Rescue', 'Brand Teaser and concept Video', 2, 49, 326, '2026-02-05', 'completed', 1, 1, 'https://we.tl/t-HybqBBqyzr', '2026-02-04', '2026-02-04', '2026-02-04 04:49:36', '2026-02-04 05:07:00'),
-(275, 'Tufehart-The Floaty', 'Brand Teaser and concept Video', 2, 49, 326, '2026-02-05', 'completed', 1, 1, 'https://we.tl/t-HybqBBqyzr', '2026-02-04', '2026-02-04', '2026-02-04 04:50:10', '2026-02-04 05:07:28'),
-(276, 'PetAL VA 2026 (New Pages)', 'Visual Aid', 1, 1, 277, '2026-02-13', 'completed', 1, 47, NULL, '2026-02-06', '2026-02-16', '2026-02-04 04:55:53', '2026-02-16 05:18:21'),
-(277, 'Oryza Acne Clear Brand Awerness Campgain_Jan_2026 ', 'Brand Awerness Campgain', 2, 48, 262, '2026-02-04', 'completed', 1, 1, NULL, '2026-02-04', '2026-02-05', '2026-02-04 04:56:14', '2026-02-05 10:40:38'),
-(278, 'Oryza Acne Clear_Acne clear – Option 2_2026', 'Brand Teaser and concept Video', 2, 49, 262, '2026-02-05', 'completed', 1, 1, NULL, '2026-02-04', '2026-02-05', '2026-02-04 05:14:35', '2026-02-05 10:41:15'),
-(279, 'Oryza Acne Clear - Jackpot for Sensitized Skin_2026', 'Brand Teaser and concept Video', 2, 49, 262, '2026-02-04', 'completed', 1, 1, 'https://we.tl/t-boK6TSeVF2', '2026-02-04', '2026-02-04', '2026-02-04 05:16:48', '2026-02-04 10:56:14'),
-(280, 'Oryza Acne Clear_Trusted partner in skincare_2026', 'Brand Teaser and concept Video', 2, 46, 262, '2026-02-05', 'completed', 1, 1, 'https://we.tl/t-Mhfn84e1bY', '2026-02-05', '2026-02-12', '2026-02-04 05:18:27', '2026-02-12 05:44:02'),
-(281, 'Oryza Acne Clear video_Orzyza Ceramax- Pop those issues_2026', 'Brand Teaser and concept Video', 2, 49, 262, '2026-02-04', 'completed', 1, 1, 'https://we.tl/t-wstPr4e5qS', '2026-02-04', '2026-02-19', '2026-02-04 05:19:24', '2026-02-19 10:50:21'),
-(282, 'Oryza Acne Clear video_Finding the right Oryza match.', 'Brand Teaser and concept Video', 2, 46, 262, '2026-02-05', 'completed', 1, 1, 'https://we.tl/t-5wtCDlffIz', '2026-02-04', '2026-02-10', '2026-02-04 05:19:57', '2026-02-10 10:28:46'),
-(283, 'Oryza Acne Clear Valentines Day_Feb_2026', 'Brand Teaser and concept Video', 2, 57, 262, '2026-02-06', 'completed', 1, 1, 'https://we.tl/t-rXT1ZvZXFu', '2026-02-04', '2026-02-09', '2026-02-04 05:20:50', '2026-02-09 11:12:31'),
-(284, 'Sample Dispenser Artwork', 'Packaging', 1, 23, 330, '2026-02-06', 'completed', 1, 3, NULL, '2026-02-04', '2026-03-10', '2026-02-04 05:25:21', '2026-03-10 10:16:35'),
-(285, 'Conference Banner Changes Gastron', 'banner', 1, 38, 329, '2026-02-05', 'completed', 1, 3, NULL, '2026-02-04', '2026-02-04', '2026-02-04 05:25:53', '2026-02-04 12:59:19'),
-(286, 'Rosave EZ - VA FY 26-27', 'Visual Aid', 1, 1, 323, '2026-02-10', 'completed', 1, 5, NULL, '2026-02-11', '2026-02-18', '2026-02-04 05:26:26', '2026-02-18 04:28:43'),
-(287, 'TELLZY AM SURVEY LBL', 'LBL', 1, 3, 320, '2026-02-06', 'completed', 1, 1, NULL, '2026-02-06', '2026-02-09', '2026-02-04 05:27:12', '2026-02-09 04:45:21'),
-(288, 'Anemia Awarness day 13th Feb', 'Photo Frame', 1, 44, 327, NULL, 'completed', 1, 1, NULL, NULL, '2026-02-17', '2026-02-04 05:56:32', '2026-02-17 12:46:27'),
-(289, 'PegTears HP Cycle Meeting_2026', 'Cycle Meeting Campgain', 4, 67, 325, '2026-02-26', 'completed', 1, 5, NULL, '2026-02-26', '2026-02-23', '2026-02-04 06:04:56', '2026-02-23 10:15:29'),
-(290, 'PegTears HP Cycle Meeting_2026', 'Brand Teaser and concept Video', 4, 67, 325, '2026-02-26', 'completed', 1, 1, NULL, '2026-02-23', '2026-02-23', '2026-02-04 06:05:15', '2026-02-23 09:13:34'),
-(291, 'CHCF camp poster', 'Poster', 1, 20, 244, '2026-02-04', 'completed', 1, 8, NULL, '2026-02-06', '2026-02-06', '2026-02-04 06:23:03', '2026-02-06 07:15:53'),
-(292, 'Doctor\'s Appreciation Collage', 'TV Screens', 1, 20, 333, '2026-02-04', 'completed', 1, 3, NULL, '2026-02-04', '2026-02-04', '2026-02-04 06:24:34', '2026-02-04 08:42:58'),
-(293, 'Eyecare portfolio banner', 'banner', 1, 38, 336, '2026-02-06', 'completed', 1, 2, NULL, '2026-02-05', '2026-02-09', '2026-02-04 06:31:02', '2026-02-09 04:48:52'),
-(294, 'Ulgeraft LBL 1', 'LBL', 1, 3, 339, '2026-02-06', 'completed', 1, 1, NULL, '2026-02-05', '2026-02-06', '2026-02-04 09:28:20', '2026-02-06 10:52:23'),
-(295, 'Digital Eye strain artwork', 'Label', 1, 23, 331, '2026-02-06', 'completed', 1, 2, NULL, '2026-02-05', '2026-02-09', '2026-02-04 09:50:20', '2026-02-09 04:40:49'),
-(296, 'QR CODE GENERATION', 'QR Code', 5, 89, 341, '2026-02-04', 'completed', 1, 1, NULL, '2026-02-13', '2026-02-13', '2026-02-04 09:57:20', '2026-02-13 10:43:15'),
-(297, 'Animation in Wikoryl Liquid VA', 'VA Pages ', 2, 53, 343, '2026-02-06', 'completed', 1, 1, 'https://we.tl/t-aqmGfOF2PZ', '2026-02-06', '2026-02-27', '2026-02-04 10:29:08', '2026-02-27 07:36:57'),
-(298, 'Social Media Post for World Cancer Day', 'Social Post', 1, 19, 338, '2026-02-04', 'pending', 1, 0, NULL, NULL, NULL, '2026-02-04 10:41:19', '2026-02-04 10:42:02'),
-(299, 'Social Media Post for World Cancer Day', 'TV screen', 1, 13, 338, '2026-02-04', 'completed', 1, 1, NULL, '2026-02-04', '2026-02-04', '2026-02-04 10:42:00', '2026-02-04 10:57:59'),
-(300, 'Lactonic and Livfit Standee', 'Standee', 1, 40, 344, '2026-02-09', 'completed', 1, 2, NULL, '2026-02-06', '2026-02-10', '2026-02-05 04:23:17', '2026-02-10 04:27:55'),
-(301, 'Gestofit VA', 'Visual Aid', 1, 1, 340, '2026-03-13', 'completed', 1, 9, NULL, '2026-03-13', '2026-03-13', '2026-02-05 04:24:49', '2026-03-13 12:28:40'),
-(302, 'Sikkim Plant Certificate TV', 'TV screen', 1, 13, 334, '2026-02-05', 'completed', 1, 1, NULL, '2026-02-05', '2026-02-05', '2026-02-05 04:45:24', '2026-02-05 10:34:14'),
-(303, 'Budget meeting - Diary Artwork', 'Diary', 1, 32, 316, '2026-02-10', 'completed', 1, 34, NULL, '2026-02-05', '2026-02-06', '2026-02-05 04:46:46', '2026-02-06 12:35:32'),
-(304, 'Horizontal A5 size artwork 500 crore celebrations', 'Flyer', 1, 16, 348, '2026-02-05', 'completed', 1, 1, NULL, '2026-02-05', '2026-02-05', '2026-02-05 06:16:53', '2026-02-05 13:12:41'),
-(305, 'TZH KOL Byte FEB 2026', 'TZH KOL ', 2, 58, 347, '2026-02-06', 'completed', 1, 1, 'https://we.tl/t-21IowHom1E', '2026-02-05', '2026-02-05', '2026-02-05 06:31:39', '2026-02-05 09:58:49'),
-(306, 'Rekool D CLM Campgain_2026', 'Rekool D CLM', 3, 67, 342, '2026-02-26', 'completed', 1, 5, NULL, '2026-02-25', '2026-02-25', '2026-02-05 06:32:45', '2026-02-25 04:25:07'),
-(308, 'Rekool D 3d Packshot Creation ', '3d Packshot Creation ', 2, 52, 342, '2026-02-05', 'completed', 1, 1, NULL, '2026-02-05', '2026-02-05', '2026-02-05 06:34:51', '2026-02-05 09:55:33'),
-(309, 'Rekool D CLM Video Campgain_Brand Communication', 'Brand Teaser and concept Video', 2, 49, 342, '2026-02-06', 'completed', 1, 1, 'https://we.tl/t-f1qZLDyioI', '2026-02-09', '2026-02-12', '2026-02-05 06:36:19', '2026-02-12 05:17:18'),
-(311, 'Wikoryl Brand Videos Series 2026', 'manufacturing videos', 2, 49, 345, '2026-02-05', 'completed', 1, 1, 'https://we.tl/t-48sVjYMXvC', '2026-02-05', '2026-02-05', '2026-02-05 07:12:22', '2026-02-05 09:28:24'),
-(312, 'Wikoryl Brand Videos Series 2026', 'Brand Teaser and concept Video', 2, 49, 345, '2026-02-13', 'pending', 1, 0, NULL, NULL, NULL, '2026-02-05 07:12:40', '2026-02-05 07:16:12'),
-(313, 'Wikoryl Brand Videos Series 2026', 'Brand Teaser and concept Video', 2, 49, 345, '2026-02-13', 'completed', 1, 1, 'https://we.tl/t-ALaAcgxynH', '2026-02-06', '2026-02-06', '2026-02-05 07:13:49', '2026-02-06 05:00:10'),
-(314, 'Clostop SRX LBL Issue 1', 'LBL', 1, 3, 350, '2026-02-11', 'completed', 1, 2, NULL, '2026-02-16', '2026-02-16', '2026-02-05 13:24:14', '2026-02-16 05:35:32'),
-(315, 'Clostop SRX LBL Issue 1', 'LBL', 3, 72, 350, '2026-02-09', 'completed', 1, 0, NULL, '2026-02-06', '2026-02-06', '2026-02-05 13:24:52', '2026-02-06 06:09:50'),
-(316, 'Box Artwork', 'Packaging', 1, 23, 351, '2026-02-11', 'completed', 1, 4, NULL, '2026-02-06', '2026-02-18', '2026-02-05 13:25:34', '2026-02-18 04:17:21'),
-(317, 'standee recreation/reformatting', 'Standee ', 1, 40, 353, '2026-02-11', 'completed', 1, 4, NULL, '2026-02-10', '2026-02-11', '2026-02-06 04:10:19', '2026-02-11 06:56:47'),
-(318, 'National Deworming Day Greeting', 'Festive Card', 1, 12, 352, '2026-02-06', 'completed', 1, 1, NULL, '2026-02-06', '2026-02-06', '2026-02-06 04:11:42', '2026-02-06 08:32:12'),
-(319, 'Glisen Reminder Card', 'Reminder Card', 1, 8, 349, '2026-02-09', 'completed', 1, 2, NULL, '2026-02-09', '2026-02-23', '2026-02-06 04:12:32', '2026-02-23 13:48:20'),
-(320, 'GPTW Social Media and TV artwork', 'HO creative ', 1, 13, 335, '2026-02-06', 'completed', 1, 2, NULL, '2026-02-06', '2026-02-06', '2026-02-06 04:15:25', '2026-02-06 08:36:58'),
-(321, 'SCM Award Artwork', 'TV screen ', 1, 13, 332, '2026-02-06', 'completed', 1, 1, NULL, '2026-02-06', '2026-02-06', '2026-02-06 04:16:20', '2026-02-06 08:34:06'),
-(322, 'Zivemp-SM Whatsapp Sticker', 'WhatsApp Sticker ', 1, 13, 322, '2026-02-11', 'completed', 1, 2, NULL, '2026-02-09', '2026-02-09', '2026-02-06 04:17:29', '2026-02-09 08:48:25'),
-(323, 'Visual Aid Pages', 'VA files', 1, 1, 249, '2026-02-06', 'pending', 1, 0, NULL, NULL, NULL, '2026-02-06 04:18:55', '2026-02-06 04:19:00'),
-(324, 'DIVISION LOGO DEVELOPMENT', 'Logo Design ', 1, 25, 317, '2026-02-10', 'completed', 1, 1, NULL, '2026-02-09', '2026-02-18', '2026-02-06 04:23:33', '2026-02-18 09:10:43'),
-(325, 'Valentine\'s day frame', 'Frame', 1, 9, 328, '2026-02-06', 'completed', 1, 1, NULL, '2026-02-06', '2026-02-12', '2026-02-06 05:03:29', '2026-02-12 07:24:38'),
-(326, 'Travisight- PF Brand Anniversary_2026', 'Brand Anniversary', 4, 67, 354, '2026-02-09', 'completed', 1, 1, NULL, '2026-02-06', '2026-02-14', '2026-02-06 05:37:58', '2026-02-14 08:43:52'),
-(328, 'AQI Opener_2026', 'Laveta_video AQI', 3, 68, 205, '2026-02-12', 'completed', 1, 7, NULL, '2026-02-12', '2026-02-10', '2026-02-06 05:46:24', '2026-02-10 08:53:44'),
-(329, 'Uncle G Video Series', 'Brand Teaser and concept Video', 3, 67, 314, '2026-02-06', 'completed', 1, 3, NULL, '2026-02-06', '2026-02-06', '2026-02-06 05:48:38', '2026-02-06 05:54:23'),
-(330, 'Travisight-PF Brand Anniversary Video', '1 years Anniversary Video', 2, 45, 355, '2026-02-10', 'completed', 1, 1, 'https://we.tl/t-2LcFJuPqik', '2026-02-11', '2026-02-11', '2026-02-06 05:52:49', '2026-02-11 05:26:44'),
-(331, 'Megacare_ Feb_ festival_2026', 'Brand Teaser and concept Video', 3, 67, 358, '2026-02-25', 'completed', 1, 7, NULL, '2026-02-09', '2026-02-27', '2026-02-06 06:22:40', '2026-02-27 05:56:11'),
-(332, 'Roxid Inclinic Hand Sanitizer', 'Packaging', 1, 23, 356, '2026-02-10', 'completed', 1, 1, NULL, '2026-02-06', '2026-02-09', '2026-02-06 06:43:05', '2026-02-09 06:43:29'),
-(333, 'RESYNC PLUS LOGO AND PACK SHOT', ' LOGO AND PACK SHOT', 1, 25, 319, '2026-02-09', 'completed', 1, 2, NULL, '2026-02-16', '2026-02-18', '2026-02-06 06:44:20', '2026-02-18 09:31:29'),
-(334, 'Megacare_ Artwork_Feb_ festival_2026', 'Greetings for the upcoming Festives', 1, 12, 358, '2026-03-31', 'completed', 1, 7, NULL, '2026-02-26', '2026-03-24', '2026-02-06 07:02:08', '2026-03-24 04:52:06'),
-(335, 'Box Artwork', 'Packaging', 1, 23, 359, '2026-02-09', 'completed', 1, 2, NULL, '2026-02-09', '2026-02-18', '2026-02-06 10:33:20', '2026-02-18 04:15:34'),
-(338, 'Richar CR HB Camp Thank you Card A5', 'Card', 1, 21, 368, '2026-02-11', 'completed', 1, 1, NULL, '2026-02-11', '2026-02-11', '2026-02-09 04:23:07', '2026-02-11 06:55:20'),
-(339, 'All India Derma Championship Certificates ', 'certificates', 1, 18, 318, '2026-02-09', 'completed', 1, 12, NULL, '2026-02-09', '2026-02-09', '2026-02-09 04:24:37', '2026-02-09 06:41:11'),
-(340, 'RESYNC PLUS LOGO AND PACK SHOT', 'logo', 1, 25, 319, '2026-02-09', 'completed', 1, 6, NULL, '2026-02-09', '2026-02-11', '2026-02-09 04:32:43', '2026-02-11 06:19:28'),
-(341, 'Valentine\'s Day - Digital Frame ', 'Digital Frame ', 4, 89, 254, '2026-02-09', 'completed', 1, 3, 'https://alembicdigilabs.com/corium/valentine_day_2026/index.php', '2026-02-09', '2026-02-09', '2026-02-09 04:57:02', '2026-02-13 10:23:23'),
-(343, 'LBL design required', 'LBL', 1, 3, 373, '2026-02-11', 'completed', 1, 4, NULL, '2026-02-09', '2026-02-16', '2026-02-09 05:52:03', '2026-02-16 12:46:17'),
-(344, 'World Anaemia Awareness Digital Activity', 'Digital Activity HTML', 4, 74, 360, '2026-02-09', 'completed', 1, 3, NULL, '2026-02-09', '2026-02-10', '2026-02-09 06:17:21', '2026-02-10 05:30:04'),
-(345, ' Box Artwork for Cloff', 'Packing ', 1, 23, 376, '2026-02-11', 'completed', 1, 1, NULL, '2026-02-12', '2026-02-18', '2026-02-10 01:26:10', '2026-02-18 09:10:20'),
-(346, 'Vaccine book modification', 'Booklet ', 1, 15, 372, '2026-02-10', 'completed', 1, 4, NULL, '2026-02-12', '2026-02-12', '2026-02-10 01:28:27', '2026-02-12 10:03:37'),
-(347, 'Grogain Pro VA page', 'Visual Aid', 1, 1, 370, '2026-02-11', 'in_progress', 1, 0, NULL, '2026-02-10', NULL, '2026-02-10 01:30:17', '2026-02-13 06:04:18'),
-(348, 'Best Camp - Artwork', 'Flyer ', 1, 16, 367, '2026-02-10', 'completed', 1, 2, NULL, '2026-02-10', '2026-02-10', '2026-02-10 01:33:44', '2026-02-10 13:03:40'),
-(349, 'Lactonic LBL ', 'LBL', 1, 3, 363, '2026-02-12', 'completed', 1, 6, NULL, '2026-02-12', '2026-02-24', '2026-02-10 01:35:38', '2026-02-24 07:37:22'),
-(350, 'visual AID sheet for ASCAL GEL ADVANCE', 'Visual Aid', 1, 1, 371, '2026-02-11', 'completed', 1, 8, NULL, '2026-03-10', '2026-03-10', '2026-02-10 03:50:43', '2026-03-10 07:28:03'),
-(351, 'BOX ARTWORK DESIGN ', 'Packaging ', 1, 23, 362, '2026-02-11', 'completed', 1, 1, NULL, '2026-02-10', '2026-02-11', '2026-02-10 04:15:05', '2026-02-11 03:53:53'),
-(357, 'Lasik and Contact Lens Education Series ', 'Info writeup for field', 3, 66, 364, '2026-02-27', 'completed', 1, 4, NULL, '2026-02-12', '2026-02-14', '2026-02-10 07:24:30', '2026-02-14 08:35:28'),
-(358, 'Need certificate of participation and appreciation ', 'certificates', 1, 18, 399, '2026-02-12', 'completed', 1, 2, NULL, '2026-02-11', '2026-02-11', '2026-02-10 09:32:24', '2026-02-11 10:18:54'),
-(360, 'festive greeting for Mahashivratri  ', 'Festival flyer', 1, 12, 401, '2026-02-12', 'completed', 1, 4, NULL, '2026-02-11', '2026-02-11', '2026-02-10 09:49:44', '2026-02-11 12:30:47'),
-(361, 'Chhatrapati Shivaji Maharaj Jayanti Greeting', 'Festival flyer', 1, 12, 402, '2026-02-12', 'completed', 1, 1, NULL, '2026-02-18', '2026-02-18', '2026-02-10 09:50:17', '2026-02-18 05:08:38'),
-(366, 'Crina-NCR Megaplex - Lucknow Dr Rati', 'banner', 1, 19, 375, '2026-02-12', 'completed', 1, 3, NULL, '2026-02-12', '2026-02-16', '2026-02-11 07:32:28', '2026-02-16 05:18:37'),
-(367, 'Chemist Stationery Kit Artwork - Cardigem Division ', 'Packaging', 1, 23, 412, '2026-02-13', 'completed', 1, 2, NULL, '2026-02-13', '2026-02-18', '2026-02-11 08:01:47', '2026-02-18 04:18:58'),
-(368, 'Visual aid design', 'Visual Aid', 1, 1, 405, '2026-02-16', 'completed', 1, 6, NULL, '2026-03-10', '2026-03-10', '2026-02-11 08:03:07', '2026-03-10 07:30:25'),
-(369, 'Khurak video artwork', 'Visual Aid', 1, 1, 395, '2026-02-13', 'completed', 1, 1, NULL, '2026-02-19', '2026-02-19', '2026-02-11 09:58:52', '2026-02-19 10:28:44'),
-(370, 'Alvite M- Fat Mobilization', 'Brand Teaser and concept Video', 2, 46, 384, '2026-02-16', 'completed', 1, 1, 'https://we.tl/t-jEQdzzxmcY', '2026-02-12', '2026-02-17', '2026-02-12 04:48:08', '2026-02-17 09:52:14'),
-(371, 'Hospicare budget meeting ', 'Video Creation ', 3, 67, 406, '2026-02-16', 'completed', 1, 1, NULL, '2026-02-16', '2026-02-17', '2026-02-12 04:54:02', '2026-02-23 05:23:27'),
-(372, 'Rosave EZ- Expert Opinion Series', 'Video Creation ', 2, 58, 377, '2026-02-12', 'completed', 1, 1, NULL, '2026-02-12', '2026-02-12', '2026-02-12 05:05:07', '2026-02-12 05:34:54'),
-(373, 'APL', 'Brand Teaser and concept Video', 2, 48, 422, '2026-02-12', 'completed', 1, 1, 'https://we.tl/t-nW1tSJu5Va', '2026-02-12', '2026-02-12', '2026-02-12 05:26:07', '2026-02-12 05:42:40'),
-(379, 'IV Fluid ', 'Ad', 1, 15, 427, '2026-02-12', 'completed', 1, 1, NULL, '2026-02-12', '2026-02-12', '2026-02-12 07:36:48', '2026-02-12 11:36:37'),
-(380, 'Cardigem Diabetes and Hypertension Standee', 'Standee', 1, 40, 428, '2026-02-12', 'completed', 1, 2, NULL, '2026-02-12', '2026-02-12', '2026-02-12 07:38:24', '2026-02-12 11:16:56'),
-(381, 'Shivaji Jayanti Flyer', 'Festival flyer', 1, 12, 404, '2026-02-16', 'completed', 1, 1, NULL, '2026-02-17', '2026-02-16', '2026-02-12 07:57:15', '2026-02-16 11:09:20'),
-(382, 'BUDGET MEETING THEME ', 'Fleshing out the theme as a video introduction', 3, 67, 392, '2026-02-18', 'completed', 1, 1, NULL, '2026-02-19', '2026-02-19', '2026-02-12 08:04:40', '2026-02-24 07:09:51'),
-(383, 'AZOS VA ENT', 'Visual Aid', 1, 1, 415, '2026-02-19', 'completed', 1, 15, NULL, '2026-02-13', '2026-02-13', '2026-02-12 08:06:42', '2026-02-13 13:19:22'),
-(384, 'CLOSAL POSTER', 'Poster', 1, 20, 307, '2026-02-13', 'completed', 1, 1, NULL, '2026-02-17', '2026-02-16', '2026-02-12 08:13:42', '2026-02-16 06:58:14'),
-(385, 'Vetamx Visual AId  - 1', 'Visual Aid', 1, 1, 390, '2026-02-19', 'completed', 1, 11, NULL, '2026-02-20', '2026-03-04', '2026-02-12 10:29:32', '2026-03-04 09:48:15'),
-(386, 'Doctor pad designing', 'RX Pad', 1, 5, 421, '2026-02-18', 'completed', 1, 5, NULL, '2026-02-13', '2026-02-27', '2026-02-12 10:30:39', '2026-02-27 10:17:58'),
-(387, 'Fertimax RX Pad', 'RX PAD', 1, 5, 433, '2026-02-18', 'completed', 1, 10, NULL, '2026-02-13', '2026-02-18', '2026-02-12 10:31:15', '2026-02-18 04:20:55'),
-(388, 'Fertimax RX Pad', 'RX Pad', 1, 5, 433, '2026-02-19', 'completed', 1, 10, NULL, '2026-02-18', '2026-02-18', '2026-02-12 10:31:47', '2026-02-18 05:02:43'),
-(389, 'All brand LBL - addition of Mamal LC', 'LBL', 1, 15, 431, '2026-02-19', 'completed', 1, 2, NULL, '2026-02-20', '2026-02-20', '2026-02-12 10:32:42', '2026-02-20 10:46:03'),
-(390, 'Gynatrop Static VA pages', 'Visual Aid', 1, 1, 418, '2026-02-20', 'pending', 1, 0, NULL, NULL, NULL, '2026-02-12 10:33:31', '2026-02-12 10:33:34'),
-(391, 'VA-2', 'Visual Aid', 1, 1, 416, '2026-02-20', 'completed', 1, 9, NULL, '2026-02-20', '2026-03-04', '2026-02-12 10:34:11', '2026-03-04 09:49:46'),
-(392, 'Mahashivratri Greeting', 'Festival flyer', 1, 12, 397, '2026-02-13', 'completed', 1, 1, NULL, '2026-02-13', '2026-02-13', '2026-02-12 10:35:00', '2026-02-13 06:07:28'),
-(393, 'Flyer and teaser ASCAL GEL ADVANCE', 'Flyer', 1, 3, 419, '2026-02-20', 'pending', 1, 0, NULL, NULL, NULL, '2026-02-12 10:35:47', '2026-02-12 10:35:49'),
-(394, 'Vildambic box artwork', 'Packaging', 1, 23, 434, '2026-02-16', 'completed', 1, 1, NULL, '2026-02-17', '2026-02-18', '2026-02-12 10:38:52', '2026-02-18 09:11:35'),
-(395, ' Richar CR Patient education Material', 'QR Code ', 4, 81, 426, '2026-02-13', 'completed', 1, 1, 'https://alembicdigilabs.com/alcare/Nutrition_for_Better_Hemoglobin_Level_QR/', '2026-02-17', '2026-02-17', '2026-02-12 11:01:30', '2026-02-17 10:58:25'),
-(396, 'KHURAK VA VIDEO', 'Brand Teaser and concept Video', 2, 51, 388, '2026-02-18', 'completed', 1, 1, 'https://we.tl/t-pOUJYG34fo', '2026-02-18', '2026-02-18', '2026-02-12 11:02:19', '2026-02-18 11:11:17'),
-(397, 'Certificates', 'Certificates', 1, 18, 436, '2026-03-10', 'completed', 1, 165, NULL, '2026-02-13', '2026-03-11', '2026-02-13 04:21:10', '2026-03-11 05:52:58'),
-(398, 'Cycle meeting certificate', 'Certificate', 1, 18, 430, '2026-02-16', 'in_progress', 1, 0, NULL, '2026-02-17', NULL, '2026-02-13 04:21:43', '2026-02-17 09:47:37');
-INSERT INTO `tasks` (`id`, `task_name`, `description`, `request_type_id`, `task_type_id`, `work_request_id`, `deadline`, `status`, `intimate_team`, `task_count`, `link`, `start_date`, `end_date`, `created_at`, `updated_at`) VALUES
-(399, 'Peel kit packaging design', 'Packaging', 1, 23, 411, '2026-02-13', 'completed', 1, 2, NULL, '2026-02-13', '2026-02-17', '2026-02-13 04:37:36', '2026-02-17 08:36:44'),
-(400, 'Cycloset LBL for April\'26', 'LBL', 1, 3, 310, '2026-03-25', 'pending', 1, 0, NULL, NULL, NULL, '2026-02-13 04:38:36', '2026-03-24 11:04:55'),
-(401, 'Brand photo shoot required', 'Product shoot', 5, 95, 378, '2026-02-12', 'completed', 1, 2, NULL, '2026-02-13', '2026-02-13', '2026-02-13 05:51:43', '2026-02-13 06:24:39'),
-(403, 'Valentine\'s Day  All brand Video ', 'All brand Video ', 2, 57, 254, '2026-02-13', 'completed', 1, 1, 'https://we.tl/t-9FBtRVkpYT', '2026-02-13', '2026-02-13', '2026-02-13 10:23:21', '2026-02-13 10:27:05'),
-(405, 'Cloff Motivational Anthem', 'Motivational Anthem', 3, 67, 448, '2026-02-17', 'completed', 1, 1, NULL, '2026-02-17', '2026-02-17', '2026-02-13 10:48:37', '2026-02-17 05:15:59'),
-(406, 'Almizol WS Spray', 'Gamification ', 3, 67, 396, '2026-02-18', 'completed', 1, 1, NULL, '2026-02-18', '2026-02-23', '2026-02-13 11:12:35', '2026-02-23 10:12:49'),
-(407, 'All brand reminder card', 'Reminder card', 1, 8, 445, '2026-02-17', 'completed', 1, 1, NULL, '2026-02-17', '2026-02-24', '2026-02-13 12:50:40', '2026-02-24 08:08:54'),
-(409, 'World Kidney Day collaterals', 'Danglers', 1, 9, 439, '2026-02-18', 'completed', 1, 3, NULL, '2026-02-16', '2026-03-13', '2026-02-16 04:16:56', '2026-03-13 04:15:22'),
-(410, 'Carb Overload Tent Card ', 'Tent Card', 1, 21, 446, '2026-02-17', 'completed', 1, 2, NULL, '2026-02-16', '2026-02-16', '2026-02-16 04:18:08', '2026-02-16 13:01:06'),
-(411, 'Oryza sensitive A  pages - New', 'banner', 1, 19, 385, '2026-02-16', 'completed', 1, 4, NULL, '2026-02-16', '2026-02-24', '2026-02-16 05:05:16', '2026-02-24 08:06:26'),
-(412, 'Best Wishes Mailer for Board Exams ', 'Mailer', 1, 17, 438, '2026-02-16', 'completed', 1, 2, NULL, '2026-02-16', '2026-02-16', '2026-02-16 05:13:15', '2026-02-16 05:27:02'),
-(413, 'CHRO Communication for the Corporate Film ', 'Mailer', 1, 17, 444, '2026-02-16', 'completed', 1, 2, NULL, '2026-02-16', '2026-02-16', '2026-02-16 05:14:06', '2026-02-16 05:36:40'),
-(414, 'Circle of Champions Certificate', 'certificates', 1, 18, 443, '2026-02-16', 'completed', 1, 1, NULL, '2026-02-16', '2026-02-16', '2026-02-16 05:14:38', '2026-02-16 05:27:41'),
-(415, 'Alembic Timeline Pithampur', 'banner', 1, 19, 442, '2026-02-16', 'completed', 1, 3, NULL, '2026-02-23', '2026-02-23', '2026-02-16 05:15:24', '2026-02-23 07:21:07'),
-(416, 'Happy Lohri Wishes for TV Screen', 'Flyer', 1, 12, 441, '2026-02-16', 'completed', 1, 4, NULL, '2026-02-16', '2026-02-16', '2026-02-16 05:15:56', '2026-02-16 05:28:18'),
-(417, 'Top MR Productivity Calls', 'Flyer', 1, 16, 440, '2026-02-16', 'completed', 1, 16, NULL, '2026-02-16', '2026-02-16', '2026-02-16 05:16:27', '2026-02-16 05:34:23'),
-(420, 'RESYNC - VIDEO SCRIPT FOR CYCLE MEET - DHURANDHAR', 'Motivation video script', 3, 67, 453, '2026-02-27', 'completed', 1, 1, NULL, '2026-02-20', '2026-02-23', '2026-02-17 06:30:06', '2026-03-09 10:20:43'),
-(421, 'Women\'s Day Video', 'Video Script', 3, 67, 454, '2026-02-25', 'completed', 1, 2, NULL, '2026-02-19', '2026-02-23', '2026-02-17 06:31:15', '2026-02-23 10:14:43'),
-(422, 'AQI LMOL VA PAGE COPY', 'Task completed ', 3, 66, 414, '2026-02-12', 'completed', 1, 6, NULL, '2026-02-19', '2026-02-23', '2026-02-17 06:32:51', '2026-02-23 10:11:19'),
-(423, 'PSA camp Poster', 'Poster', 1, 20, 471, '2026-02-18', 'completed', 1, 1, NULL, '2026-02-17', '2026-02-17', '2026-02-17 08:48:51', '2026-02-17 10:00:25'),
-(424, 'Tellzy survey LBL', 'LBL', 1, 3, 469, '2026-02-18', 'completed', 1, 1, NULL, '2026-02-18', '2026-02-18', '2026-02-17 08:49:55', '2026-02-18 06:39:12'),
-(425, 'Requirement of Opener Page – AQI ', 'Visual Aid', 1, 1, 361, '2026-02-17', 'completed', 1, 1, NULL, '2026-02-17', '2026-02-17', '2026-02-17 08:51:25', '2026-02-17 08:55:28'),
-(426, 'Focus Brand reminder card- Corazon', 'Reminder card', 1, 8, 413, '2026-02-18', 'completed', 1, 2, NULL, '2026-02-17', '2026-02-18', '2026-02-17 08:55:10', '2026-02-18 04:20:29'),
-(427, 'Prescribing Information of Tufehart', 'logo', 1, 25, 429, '2026-02-18', 'in_progress', 1, 0, NULL, '2026-02-17', NULL, '2026-02-17 09:52:38', '2026-03-24 09:59:16'),
-(428, 'Milbecidal magazine advertisement artwork', 'RX Pad', 1, 5, 476, '2026-02-19', 'completed', 1, 1, NULL, '2026-02-18', '2026-02-20', '2026-02-17 11:00:31', '2026-02-20 12:06:14'),
-(429, 'CETANIL VA CHANGES', 'Visual Aid', 1, 1, 475, '2026-02-19', 'completed', 1, 16, NULL, '2026-02-17', '2026-02-19', '2026-02-17 11:01:09', '2026-02-19 05:35:55'),
-(430, 'VA - SITALEMBIC MD', 'Visual Aid', 1, 1, 407, '2026-03-12', 'completed', 1, 4, NULL, '2026-03-12', '2026-03-12', '2026-02-17 12:00:26', '2026-03-12 08:28:15'),
-(431, 'Altris HD and Altris 5 Ecom banners and tiles', 'Banner', 1, 19, 374, '2026-02-19', 'completed', 1, 8, NULL, '2026-02-18', '2026-02-27', '2026-02-17 12:01:18', '2026-02-27 05:15:53'),
-(432, 'Rosave EZ - survey LBL', 'LBL', 1, 3, 346, '2026-02-18', 'completed', 1, 1, NULL, '2026-02-18', '2026-02-18', '2026-02-17 12:01:58', '2026-02-18 13:42:51'),
-(433, 'Glipy Group Camp Poster', 'Poster', 1, 20, 461, '2026-02-18', 'completed', 1, 1, NULL, '2026-02-18', '2026-02-18', '2026-02-17 12:03:05', '2026-02-18 13:44:11'),
-(434, 'PegTears HP Visual Aid', 'Visual Aid', 1, 1, 365, '2026-02-24', 'completed', 1, 2, NULL, '2026-02-23', '2026-03-03', '2026-02-17 12:23:08', '2026-03-03 10:57:50'),
-(435, 'UDAAN LOGO', 'logo', 1, 25, 432, '2026-02-18', 'completed', 1, 1, NULL, '2026-02-18', '2026-02-18', '2026-02-17 12:38:09', '2026-02-18 09:13:32'),
-(436, 'Tellzy VA', 'Visual Aid', 1, 1, 459, '2026-02-19', 'completed', 1, 9, NULL, '2026-02-19', '2026-02-24', '2026-02-17 12:40:36', '2026-02-24 06:27:51'),
-(437, 'Rafle Chit Pad Designing', 'Chit pad', 1, 7, 474, '2026-02-19', 'completed', 1, 3, NULL, '2026-02-18', '2026-02-19', '2026-02-17 12:42:33', '2026-02-19 06:43:39'),
-(438, 'Rosacea LBL', 'LBL', 1, 3, 472, '2026-02-19', 'completed', 1, 2, NULL, '2026-02-23', '2026-02-24', '2026-02-17 12:45:47', '2026-02-24 08:07:51'),
-(439, 'Azithral Solid and Liquid VA', 'Visual Aid', 1, 1, 408, '2026-03-18', 'completed', 1, 37, NULL, '2026-03-18', '2026-03-18', '2026-02-17 12:51:17', '2026-03-18 11:35:54'),
-(440, 'Ramadan Greeting', 'Festive Greetings', 1, 12, 398, '2026-02-18', 'pending', 1, 0, NULL, NULL, NULL, '2026-02-18 04:30:28', '2026-02-18 04:30:30'),
-(441, 'Mother\'s day box AW', 'Packing', 1, 23, 462, '2026-02-20', 'completed', 1, 1, NULL, '2026-02-23', '2026-02-25', '2026-02-18 04:31:54', '2026-02-25 03:19:54'),
-(442, 'Animal Health Day Greeting', 'Festive Card', 1, 12, 403, '2026-02-25', 'completed', 1, 1, NULL, '2026-02-19', '2026-02-23', '2026-02-18 04:33:01', '2026-02-23 05:56:03'),
-(443, 'GIF for chelated Ca bioavailability', 'Ca bioavailability', 2, 47, 369, '2026-02-19', 'completed', 1, 1, 'https://we.tl/t-dqRyUevH9K', '2026-02-19', '2026-03-02', '2026-02-18 05:07:30', '2026-03-02 07:41:59'),
-(444, 'Gynatrop video/gifs required', 'Brand Teaser and concept Video', 2, 46, 417, '2026-02-20', 'completed', 1, 1, '1 https://we.tl/t-RbNzGLOnT4', '2026-02-19', '2026-02-23', '2026-02-18 05:21:47', '2026-02-23 07:25:26'),
-(445, 'Festive flyer greetings for the month of February, March and April', 'Festival flyer', 1, 12, 485, '2026-03-31', 'in_progress', 1, 0, NULL, '2026-03-12', NULL, '2026-02-18 06:53:28', '2026-03-12 04:49:14'),
-(446, 'Grogain Pro final VA all pages', 'Visual Aid', 1, 1, 481, '2026-02-19', 'completed', 1, 5, NULL, '2026-02-19', '2026-02-19', '2026-02-18 06:56:07', '2026-02-19 06:33:25'),
-(447, 'Voage MS VA Design', 'Visual Aid', 1, 1, 379, '2026-02-19', 'completed', 1, 7, NULL, '2026-02-18', '2026-02-19', '2026-02-18 07:19:09', '2026-02-19 06:46:54'),
-(448, 'Packshot  and panel design for new brand Reluher', 'Packaging', 1, 23, 357, '2026-02-18', 'completed', 1, 2, NULL, '2026-02-19', '2026-02-19', '2026-02-18 07:19:58', '2026-02-19 06:49:46'),
-(449, 'H1 Certificate Designs', 'certificates', 1, 18, 487, '2026-02-20', 'completed', 1, 6, NULL, '2026-02-23', '2026-02-23', '2026-02-18 09:27:14', '2026-02-23 09:33:46'),
-(450, 'Leaders Budget Meeting Motivational Video', 'Brand Teaser and concept Video', 5, 58, 435, '2026-03-11', 'pending', 1, 0, NULL, NULL, NULL, '2026-02-18 09:27:28', '2026-03-09 10:27:28'),
-(451, 'Video for ASCAL GEL Visual aid', 'Brand Teaser and concept Video', 2, 51, 394, '2026-02-20', 'completed', 1, 1, '1 https://we.tl/t-nPzjq92Cuv', '2026-02-19', '2026-02-20', '2026-02-18 09:28:06', '2026-02-20 06:09:05'),
-(452, 'Exceraft Pacman Video', 'Brand Teaser and concept Video', 2, 48, 383, '2026-02-19', 'completed', 1, 1, NULL, '2026-02-19', '2026-02-20', '2026-02-18 09:29:05', '2026-02-20 06:45:49'),
-(453, 'Exceraft Train Video', 'Brand Teaser and concept Video', 2, 48, 381, '2026-02-18', 'completed', 1, 1, 'https://we.tl/t-1CZmITVZJa', '2026-02-19', '2026-02-19', '2026-02-18 09:29:32', '2026-02-19 10:42:46'),
-(454, 'Exceraft Airport Video ', 'Brand Teaser and concept Video', 2, 47, 381, '2026-02-18', 'completed', 1, 1, 'https://we.tl/t-ymt4adFfvT', '2026-02-19', '2026-02-19', '2026-02-18 09:30:24', '2026-02-19 07:29:26'),
-(455, 'Exceraft Late Night Haunting Video', 'Brand Teaser and concept Video', 2, 46, 382, '2026-02-20', 'completed', 1, 1, '1 https://we.tl/t-dyNz3WHUxg', '2026-02-19', '2026-02-19', '2026-02-18 09:31:00', '2026-02-19 06:01:06'),
-(456, 'Cloff Anthem Video', 'Brand Teaser and concept Video', 2, 49, 464, '2026-03-06', 'completed', 1, 1, 'https://we.tl/t-JmLEusT0Xm', '2026-02-20', '2026-03-09', '2026-02-18 09:36:37', '2026-03-09 10:55:11'),
-(457, 'Festive flyer greetings for the month of February, March and April', 'Festival flyer', 3, 69, 485, '2026-03-11', 'completed', 1, 14, NULL, '2026-02-20', '2026-03-12', '2026-02-18 10:09:46', '2026-03-12 05:16:53'),
-(458, 'EYECARE BUDGET MEETING ', 'Panel', 1, 38, 391, '2026-02-19', 'completed', 1, 1, NULL, '2026-02-18', '2026-02-20', '2026-02-18 13:56:22', '2026-02-20 07:14:59'),
-(459, 'Souvenier artwork for CLOFF ', 'Ad', 1, 10, 492, '2026-02-18', 'completed', 1, 1, NULL, '2026-02-19', '2026-02-19', '2026-02-18 13:57:53', '2026-02-19 06:31:43'),
-(460, 'IV fluid script ', 'Brand Teaser and concept Video', 3, 67, 489, '2026-02-27', 'completed', 1, 1, NULL, '2026-02-25', '2026-02-25', '2026-02-19 05:02:46', '2026-02-25 04:25:30'),
-(461, 'IV FLUID CALCULATOR ACTIVITY ', 'Incentive Calculator', 4, 75, 486, '2026-02-20', 'completed', 1, 1, 'https://alembicdigilabs.com/farmcure/offline_fluid_calculator_activity/offline_fluid_calculator_activity.zip', '2026-03-06', '2026-03-06', '2026-02-19 05:05:06', '2026-03-06 05:22:04'),
-(463, 'AAA TV Version', 'TV screen', 1, 13, 499, '2026-02-19', 'completed', 1, 1, NULL, '2026-02-19', '2026-02-19', '2026-02-19 11:16:20', '2026-02-19 11:30:19'),
-(464, 'Circle of Champions Collage', 'TV screen', 1, 13, 498, '2026-02-19', 'completed', 1, 1, NULL, '2026-02-19', '2026-02-19', '2026-02-19 11:18:27', '2026-02-19 11:28:55'),
-(465, 'APL Thumbnail', 'TV screen', 1, 13, 497, '2026-02-19', 'completed', 1, 1, NULL, '2026-02-19', '2026-02-19', '2026-02-19 11:18:56', '2026-02-19 11:29:33'),
-(466, 'Eyecare Doctors Gift Box', 'Packaging', 1, 23, 494, '2026-02-20', 'completed', 1, 2, NULL, '2026-02-23', '2026-02-24', '2026-02-19 11:20:31', '2026-02-24 05:23:41'),
-(467, 'Danglers', 'Danglers', 1, 41, 496, '2026-02-20', 'completed', 1, 2, NULL, '2026-02-20', '2026-02-23', '2026-02-19 11:25:32', '2026-02-23 12:46:02'),
-(468, 'Ketop LBL A4 size ', 'LBL', 1, 3, 491, '2026-02-23', 'completed', 1, 2, NULL, '2026-02-20', '2026-02-20', '2026-02-19 12:11:58', '2026-02-20 12:04:54'),
-(469, 'Haircare Apr LBL', 'LBL', 1, 3, 490, '2026-02-23', 'completed', 1, 2, NULL, '2026-02-23', '2026-02-24', '2026-02-19 12:15:03', '2026-02-24 03:22:15'),
-(470, 'Closal VA Page', 'Visual Aid', 1, 1, 493, '2026-02-26', 'completed', 1, 2, NULL, '2026-02-27', '2026-03-09', '2026-02-19 12:15:59', '2026-03-09 10:29:58'),
-(471, 'Rosave F Survey LBL', 'LBL', 1, 3, 495, '2026-02-25', 'completed', 1, 1, NULL, '2026-02-23', '2026-02-27', '2026-02-19 12:16:32', '2026-02-27 04:51:09'),
-(472, 'Chemist outer box artwork', 'Packaging', 1, 23, 501, '2026-02-23', 'completed', 1, 2, NULL, '2026-02-20', '2026-02-23', '2026-02-19 12:17:47', '2026-02-23 08:49:47'),
-(473, 'AAA Creatives', 'Creatives', 1, 16, 477, '2026-02-27', 'completed', 1, 1, NULL, '2026-02-20', '2026-02-20', '2026-02-20 05:10:55', '2026-02-20 05:12:04'),
-(474, 'Grogain Pro 1 year celebration feedback booklet', 'Booklet', 1, 31, 393, '2026-02-20', 'completed', 1, 6, NULL, '2026-02-20', '2026-03-04', '2026-02-20 05:37:37', '2026-03-04 09:45:37'),
-(475, 'Gujarati Language Glaucoma Awareness Standee', 'Awareness Standee', 3, 66, 504, '2026-02-23', 'completed', 1, 2, NULL, '2026-02-24', '2026-02-26', '2026-02-20 10:46:44', '2026-02-26 11:36:42'),
-(476, 'Mceft Video', 'Brand Teaser and concept Video', 3, 67, 508, '2026-02-24', 'completed', 1, 1, NULL, '2026-02-23', '2026-02-23', '2026-02-20 10:47:46', '2026-02-23 10:48:13'),
-(477, 'Khurak Pack video', 'Brand Teaser and concept Video', 2, 51, 500, '2026-02-23', 'completed', 1, 1, NULL, '2026-02-24', '2026-02-26', '2026-02-20 10:52:16', '2026-02-26 05:23:17'),
-(478, 'Video Creation for budget meeting', 'Motivational Video ', 2, 49, 406, '2026-02-23', 'completed', 1, 1, 'https://we.tl/t-S3xZQxy1hv', '2026-02-23', '2026-02-23', '2026-02-23 05:23:25', '2026-02-23 05:53:11'),
-(479, 'Tellzy Range LBLs (April\'26)', 'LBL', 1, 3, 521, '2026-02-26', 'completed', 1, 8, NULL, '2026-02-23', '2026-02-27', '2026-02-23 06:38:10', '2026-02-27 10:20:09'),
-(480, 'Bladmir VA designing', 'Visual Aid', 1, 1, 511, '2026-02-26', 'completed', 1, 14, NULL, '2026-02-27', '2026-03-04', '2026-02-23 06:38:55', '2026-03-04 10:27:50'),
-(481, 'Tellzy LN Visual Aid 2027', 'Visual Aid', 1, 1, 510, '2026-02-26', 'completed', 1, 5, NULL, '2026-02-23', '2026-03-04', '2026-02-23 06:39:49', '2026-03-04 11:29:43'),
-(482, 'Estrofit Video For VA', 'VA Animation ', 2, 46, 458, '2026-02-24', 'completed', 1, 1, NULL, '2026-02-23', '2026-03-10', '2026-02-23 07:11:43', '2026-03-10 02:39:25'),
-(483, 'Maxis Holi Video 2026', 'Festival Video ', 2, 49, 526, '2026-02-27', 'completed', 1, 1, '1 https://we.tl/t-nUrjaE6atI', '2026-02-23', '2026-02-25', '2026-02-23 07:13:22', '2026-02-25 09:43:51'),
-(485, 'Holi Video for Doctor_2026', 'Festival Video ', 2, 49, 437, '2026-02-27', 'completed', 1, 1, '1 https://we.tl/t-PHMbbNkRxI', '2026-02-25', '2026-02-25', '2026-02-23 07:14:39', '2026-02-25 10:35:54'),
-(486, 'Women\'s day video', 'Festival Video ', 2, 48, 456, '2026-03-04', 'completed', 1, 1, 'https://we.tl/t-dZkNi6RTgu', '2026-03-06', '2026-03-09', '2026-02-23 07:18:40', '2026-03-09 03:26:24'),
-(487, 'Holika Dahan Greeting', 'Festival Greeting ', 3, 69, 529, '2026-02-25', 'completed', 1, 1, NULL, '2026-02-25', '2026-02-25', '2026-02-23 07:38:25', '2026-02-25 10:52:28'),
-(488, 'Holi Greeting', 'Festival Greeting ', 3, 69, 530, '2026-02-25', 'completed', 1, 1, NULL, '2026-02-25', '2026-02-25', '2026-02-23 07:38:56', '2026-02-25 11:02:11'),
-(489, 'Fertimax LBL,Oredr Book ', 'LBL', 1, 3, 507, '2026-02-26', 'completed', 1, 4, NULL, '2026-02-25', '2026-02-25', '2026-02-23 07:54:50', '2026-02-25 11:05:30'),
-(490, 'Gujarati  Language Glaucoma Awareness Week ', 'Booklet', 1, 31, 503, '2026-02-26', 'completed', 1, 1, NULL, '2026-03-11', '2026-03-11', '2026-02-23 08:25:09', '2026-03-11 05:55:10'),
-(491, 'Geripod-M Visual Aid', 'Visual Aid', 1, 1, 519, '2026-03-04', 'completed', 1, 5, NULL, '2026-02-24', '2026-03-10', '2026-02-23 08:26:09', '2026-03-10 12:19:11'),
-(492, 'TELLZY MT SGPI ART WORK', 'Packaging', 1, 23, 505, '2026-02-25', 'completed', 1, 2, NULL, '2026-02-23', '2026-02-24', '2026-02-23 08:26:52', '2026-02-24 09:49:02'),
-(493, 'Pithampur Branding Activities', 'Wall Panel', 1, 38, 186, '2026-03-24', 'completed', 1, 3, NULL, '2026-03-24', '2026-03-24', '2026-02-23 08:29:27', '2026-03-24 10:18:08'),
-(494, 'TELLZY MT SURVEY LBL', 'LBL', 1, 3, 506, '2026-02-25', 'completed', 1, 1, NULL, '2026-02-23', '2026-02-24', '2026-02-23 08:30:02', '2026-02-24 10:05:14'),
-(495, 'AntiGlaucoma Video Text', 'Brand Teaser and concept Video', 3, 67, 540, '2026-02-27', 'completed', 1, 6, NULL, '2026-02-27', '2026-02-27', '2026-02-23 09:02:48', '2026-02-27 11:30:43'),
-(496, 'Ram Navami Greeting', 'Festival Greeting ', 3, 69, 537, '2026-02-27', 'completed', 1, 1, NULL, '2026-02-27', '2026-02-27', '2026-02-23 09:03:56', '2026-02-27 11:31:45'),
-(497, 'International Women\'s Day', 'writeup', 3, 66, 532, '2026-02-27', 'completed', 1, 1, NULL, '2026-02-27', '2026-02-27', '2026-02-23 09:45:39', '2026-02-27 06:38:10'),
-(498, 'TENT CARD, NOTEPAD ARTWORK , APPRECIATION CERTIFICATE ARTWORK ', 'Diary', 1, 32, 387, '2026-02-23', 'pending', 1, 0, NULL, NULL, NULL, '2026-02-23 09:50:02', '2026-02-23 09:50:05'),
-(499, 'Adjunctive Therapy  Visual Aid', 'Visual Aid', 1, 1, 386, '2026-02-25', 'completed', 1, 4, NULL, '2026-02-24', '2026-02-26', '2026-02-23 09:50:41', '2026-02-26 08:50:25'),
-(500, 'PegTears Weekly Posts ', 'Post', 1, 16, 366, '2026-02-25', 'in_progress', 1, 0, NULL, '2026-03-10', NULL, '2026-02-23 09:51:45', '2026-03-09 18:31:00'),
-(501, 'Thaminal,Mamal LC ,Aldine ', 'RX Pad', 1, 5, 509, '2026-02-26', 'completed', 1, 12, NULL, '2026-02-26', '2026-02-26', '2026-02-23 09:54:41', '2026-02-26 11:09:20'),
-(502, 'Digital flyer for Holi', 'Festival flyer', 1, 12, 541, '2026-02-27', 'completed', 1, 1, NULL, '2026-02-24', '2026-02-24', '2026-02-23 10:21:02', '2026-02-24 04:47:50'),
-(503, 'All Brand Reminder Card', 'Reminder card', 1, 8, 539, '2026-02-25', 'completed', 1, 2, NULL, '2026-02-24', '2026-02-24', '2026-02-23 10:21:44', '2026-02-24 12:00:58'),
-(504, 'Ram Navami Greeting', 'Festival flyer', 1, 12, 538, '2026-03-10', 'completed', 1, 1, NULL, '2026-03-10', '2026-03-17', '2026-02-23 10:22:34', '2026-03-17 05:48:20'),
-(506, 'Exceraft LBL 1 and 2', 'LBL', 1, 3, 512, '2026-03-02', 'completed', 1, 4, NULL, '2026-03-02', '2026-03-02', '2026-02-23 11:07:09', '2026-03-02 04:26:10'),
-(507, 'Holi Greeting', 'Festival flyer', 1, 12, 528, '2026-02-27', 'completed', 1, 2, NULL, '2026-02-26', '2026-02-27', '2026-02-23 11:12:18', '2026-02-27 05:11:48'),
-(508, 'Holika Dahan', 'Festival flyer', 1, 12, 531, '2026-02-27', 'completed', 1, 2, NULL, '2026-02-26', '2026-02-27', '2026-02-23 11:12:50', '2026-02-27 05:12:19'),
-(509, 'Holi Flyer', 'Festival flyer', 1, 12, 513, '2026-02-27', 'completed', 1, 1, NULL, '2026-02-26', '2026-02-27', '2026-02-23 11:13:25', '2026-02-27 04:39:28'),
-(510, 'Ugadi Flyer', 'Festival flyer', 1, 12, 514, '2026-03-11', 'completed', 1, 1, NULL, '2026-03-11', '2026-03-11', '2026-02-23 11:27:11', '2026-03-11 13:29:33'),
-(511, 'Gudi Padwa Flyer', 'Festival flyer', 1, 12, 515, '2026-03-11', 'completed', 1, 1, NULL, '2026-03-11', '2026-03-11', '2026-02-23 11:27:53', '2026-03-11 13:27:20'),
-(513, 'Holi Digital Post', 'Festival flyer', 1, 12, 535, '2026-02-27', 'completed', 1, 1, NULL, '2026-02-26', '2026-02-27', '2026-02-23 11:30:45', '2026-02-27 04:44:25'),
-(514, 'International Women\'s Day Greeting', 'Festival flyer', 1, 12, 533, '2026-03-04', 'completed', 1, 1, NULL, '2026-03-04', '2026-03-06', '2026-02-23 11:31:24', '2026-03-06 09:46:54'),
-(515, 'National Science Day Greeting', 'Festival flyer', 1, 12, 525, '2026-02-26', 'completed', 1, 1, NULL, '2026-02-24', '2026-02-26', '2026-02-23 11:52:57', '2026-02-26 06:31:56'),
-(516, 'VA', 'Visual Aid', 1, 1, 518, '2026-03-04', 'completed', 1, 11, NULL, '2026-03-02', '2026-03-10', '2026-02-23 13:25:17', '2026-03-10 05:48:40'),
-(517, 'Holi Greeting ', 'Festival flyer', 1, 12, 546, '2026-02-27', 'completed', 1, 1, NULL, '2026-02-26', '2026-02-26', '2026-02-23 13:37:24', '2026-02-26 08:40:31'),
-(518, 'Gudi Padwa,Ugadi, Cheti Chand, Eid ul-Fitr Greeting ', 'Festival flyer', 1, 12, 547, '2026-03-31', 'completed', 1, 4, NULL, '2026-03-13', '2026-03-16', '2026-02-23 13:37:54', '2026-03-16 09:45:13'),
-(519, 'World Wildlife Day', 'Festival flyer', 1, 12, 545, '2026-02-27', 'completed', 1, 1, NULL, '2026-02-24', '2026-02-25', '2026-02-23 13:38:42', '2026-02-25 10:42:28'),
-(520, 'Ramzan ID Flyer', 'Festival flyer', 1, 12, 517, '2026-02-13', 'pending', 1, 0, NULL, NULL, NULL, '2026-02-23 13:39:45', '2026-02-23 13:39:47'),
-(521, 'HOLI E-CARD', 'Festival flyer', 1, 12, 523, '2026-02-27', 'completed', 1, 1, NULL, '2026-02-26', '2026-02-27', '2026-02-23 13:40:35', '2026-02-27 04:48:09'),
-(522, 'Kodiceft ', 'Visual Aid', 1, 1, 543, '2026-02-27', 'completed', 1, 36, NULL, '2026-03-03', '2026-03-10', '2026-02-23 13:41:36', '2026-03-10 04:59:36'),
-(523, 'Holika Dahan Celebration Day Greeting', 'Festival flyer', 1, 12, 544, '2026-02-27', 'completed', 1, 1, NULL, '2026-02-26', '2026-02-26', '2026-02-23 13:43:41', '2026-02-26 08:40:55'),
-(524, 'Doctor\'s Appreciation Week', 'Flyer', 1, 16, 337, '2026-02-23', 'completed', 1, 6, NULL, '2026-02-24', '2026-02-24', '2026-02-23 13:47:06', '2026-02-24 10:59:07'),
-(525, 'Deltone LBL April\'26', 'LBL', 1, 3, 524, '2026-02-26', 'completed', 1, 2, NULL, '2026-02-24', '2026-02-26', '2026-02-24 03:28:17', '2026-02-26 06:34:55'),
-(526, 'Aqua VA Focus Brand Updating', 'Visual Aid', 1, 1, 548, '2026-03-05', 'completed', 1, 16, NULL, '2026-03-04', '2026-03-09', '2026-02-24 03:29:50', '2026-03-09 04:56:41'),
-(527, 'Freego unlock the Joy theme LBL 4, 5 ', 'LBL', 1, 3, 536, '2026-03-13', 'in_progress', 1, 0, NULL, '2026-03-12', NULL, '2026-02-24 05:11:43', '2026-03-11 18:31:00'),
-(528, 'Indian Diabates Phenotype Artwork', 'Packaging', 1, 23, 502, '2026-02-27', 'pending', 1, 0, NULL, NULL, NULL, '2026-02-24 05:12:44', '2026-02-24 05:12:48'),
-(529, 'PegTears Weekly Posts ', 'Visual Aid Cover copy', 3, 66, 366, '2026-02-24', 'completed', 1, 6, 'https://docs.google.com/document/d/1v5dDVzV-u2npWCZi6VjnGgCPg9oGByLwSQKYMPpBQ9s/edit?tab=t.0', '2026-02-24', '2026-02-24', '2026-02-24 05:26:44', '2026-02-24 07:26:40'),
-(530, 'Zivemp-SM Detection Camp Poster', 'Poster', 1, 20, 542, '2026-02-25', 'completed', 1, 2, NULL, '2026-02-24', '2026-02-24', '2026-02-24 05:56:09', '2026-02-24 13:24:10'),
-(531, 'Women\'s day digital activity', 'Brand Teaser and concept Video', 4, 74, 550, '2026-03-06', 'completed', 1, 3, 'https://alembicdigilabs.com/corium/womens_day_26_photoframer/index.php', '2026-02-27', '2026-03-05', '2026-02-24 06:42:17', '2026-03-05 07:48:12'),
-(532, 'Women\'s day digital activity', 'Brand Teaser ', 1, 43, 550, '2026-03-02', 'pending', 1, 0, NULL, NULL, NULL, '2026-02-24 06:42:36', '2026-02-24 06:51:43'),
-(533, 'RUMIGEST LAUNCH VIDEO', 'Brand Teaser and concept Video', 2, 48, 449, '2026-03-09', 'completed', 1, 1, 'https://we.tl/t-PNANymkyJ0', '2026-02-27', '2026-03-10', '2026-02-24 06:46:02', '2026-03-10 10:25:57'),
-(534, 'Salembic video', 'Brand Teaser and concept Video', 2, 47, 451, '2026-02-27', 'pending', 1, 0, NULL, NULL, NULL, '2026-02-24 06:48:58', '2026-02-24 06:49:00'),
-(535, 'Freego unlock the Joy theme LBL 4, 5 ', 'LBL (Aditi)', 3, 59, 536, '2026-02-25', 'completed', 1, 6, 'https://docs.google.com/document/d/1gRNnAbPO17rpIE6RdKMdbd0jz4f3x_2ZLm_MMUVY5Gg/edit?tab=t.0', '2026-02-24', '2026-02-24', '2026-02-24 06:56:56', '2026-02-24 07:27:12'),
-(536, 'Voage S Holi Video', 'Brand Teaser and concept Video', 2, 57, 549, '2026-02-27', 'completed', 1, 1, '1 https://we.tl/t-AMe7kLGWoj', '2026-02-25', '2026-03-02', '2026-02-24 06:59:07', '2026-03-02 09:15:37'),
-(537, 'BUDGET MEETING THEME ', 'Motivational Video ', 2, 58, 392, '2026-03-03', 'completed', 1, 1, '1 https://we.tl/t-bkXL46Vhtx', '2026-02-26', '2026-03-02', '2026-02-24 07:09:48', '2026-03-02 07:03:42'),
-(540, 'infertility awareness poster', 'Poster', 1, 20, 527, '2026-03-02', 'completed', 1, 1, NULL, '2026-03-02', '2026-03-04', '2026-02-24 08:04:30', '2026-03-04 11:11:19'),
-(541, 'Alvite M Gold Brand Name Design', 'logo', 1, 25, 575, '2026-02-26', 'completed', 1, 6, NULL, '2026-03-10', '2026-03-11', '2026-02-24 08:06:05', '2026-03-11 04:51:13'),
-(542, 'festive greetings', 'Festival flyer', 1, 12, 573, '2026-03-25', 'in_progress', 1, 0, NULL, '2026-02-27', NULL, '2026-02-24 08:07:49', '2026-02-27 09:58:49'),
-(543, 'Dil Ki Baat Booklet', 'Booklet', 1, 31, 520, '2026-02-25', 'completed', 1, 5, NULL, '2026-03-04', '2026-03-06', '2026-02-24 08:09:09', '2026-03-06 03:16:03'),
-(544, 'Crina-NCR Megaplex - Indore ', 'Banner', 1, 19, 601, '2026-03-02', 'completed', 1, 6, NULL, '2026-02-26', '2026-02-26', '2026-02-25 06:25:46', '2026-02-26 10:58:24'),
-(545, 'Gudi Padwa,Ugadi, Cheti Chand, Eid ul-Fitr Greeting ', 'Festival flyer', 3, 69, 547, '2026-03-17', 'completed', 1, 4, NULL, '2026-02-25', '2026-03-23', '2026-02-25 09:36:10', '2026-03-23 08:52:22'),
-(546, 'Holika Dahan Celebration Day Greeting', 'Festival flyer', 3, 69, 544, '2026-02-27', 'completed', 1, 2, NULL, '2026-02-25', '2026-02-25', '2026-02-25 09:36:42', '2026-02-25 11:15:59'),
-(548, 'Oyrza Skin Camp Logo Designing ', 'Logo', 1, 25, 482, '2026-02-27', 'completed', 1, 4, NULL, '2026-02-27', '2026-03-04', '2026-02-25 09:48:20', '2026-03-04 10:49:47'),
-(549, 'All brand reminder card', 'Reminder card', 1, 8, 598, '2026-02-26', 'completed', 1, 2, NULL, '2026-02-26', '2026-02-26', '2026-02-25 09:49:21', '2026-02-26 11:23:05'),
-(550, 'UCPMP Compliance training module', 'training module', 3, 67, 609, '2026-03-31', 'in_progress', 1, 0, NULL, '2026-03-16', NULL, '2026-02-25 10:06:41', '2026-03-15 18:31:00'),
-(551, 'UCPMP Compliance training module', 'training module', 3, 67, 609, '2026-03-31', 'completed', 1, 3, NULL, '2026-03-02', '2026-03-23', '2026-02-25 10:08:27', '2026-03-23 08:50:24'),
-(552, 'DSP LBL APRIL', 'LBL', 1, 3, 610, '2026-02-27', 'completed', 1, 2, NULL, '2026-02-26', '2026-02-26', '2026-02-25 10:45:33', '2026-02-26 10:13:43'),
-(553, 'TETAN LBL APRIL', 'LBL', 1, 3, 611, '2026-03-05', 'completed', 1, 2, NULL, '2026-03-04', '2026-03-04', '2026-02-25 10:46:25', '2026-03-04 10:55:53'),
-(554, 'Annual Meet Stage artwork', 'Stall', 1, 38, 410, '2026-03-02', 'completed', 1, 3, NULL, '2026-02-27', '2026-03-09', '2026-02-26 04:24:46', '2026-03-09 13:27:16'),
-(555, 'Medal', 'Card', 1, 21, 600, '2026-03-25', 'pending', 1, 0, NULL, NULL, NULL, '2026-02-26 04:26:52', '2026-03-24 10:57:14'),
-(556, 'Rosave F VA', 'Visual Aid', 1, 1, 608, '2026-03-04', 'pending', 1, 0, NULL, NULL, NULL, '2026-02-26 04:31:39', '2026-03-09 10:09:36'),
-(557, 'Design Resync Plus - Brand reminder card as well as Chemist Availability Card', 'Reminder card', 1, 8, 614, '2026-03-05', 'completed', 1, 2, NULL, '2026-03-09', '2026-03-10', '2026-02-26 04:33:07', '2026-03-10 04:50:21'),
-(558, 'GVC Camp Leaflets', 'Leaflet', 1, 15, 604, '2026-03-31', 'in_progress', 1, 0, NULL, '2026-03-24', NULL, '2026-02-26 05:42:05', '2026-03-24 11:50:17'),
-(559, 'Rafle Visual Aid', 'Visual Aid', 1, 1, 571, '2026-03-04', 'completed', 1, 2, NULL, '2026-03-05', '2026-03-06', '2026-02-26 06:35:27', '2026-03-06 03:16:54'),
-(560, 'Zenovi division March Festive content ', 'Festive greetings', 3, 66, 633, '2026-03-27', 'completed', 1, 5, NULL, '2026-03-11', '2026-03-05', '2026-02-26 07:11:59', '2026-03-05 11:02:52'),
-(561, 'Zenovi division March Festive content', 'Festive greetings', 3, 66, 633, '2026-03-27', 'completed', 1, 8, NULL, '2026-02-26', '2026-03-02', '2026-02-26 07:12:34', '2026-03-02 04:58:37'),
-(562, 'Zenovi division March Festive content ', 'Festive greetings', 1, 12, 633, '2026-03-31', 'completed', 1, 15, NULL, '2026-03-25', '2026-03-24', '2026-02-26 07:13:51', '2026-03-24 10:36:53'),
-(563, 'Veldrop iPad video', 'Script', 3, 67, 638, '2026-02-27', 'completed', 1, 1, NULL, '2026-02-26', '2026-02-27', '2026-02-26 08:25:57', '2026-02-27 12:05:24'),
-(564, 'Resync Plus - Launch video teaser content', 'video script', 3, 67, 636, '2026-03-16', 'completed', 1, 2, NULL, '2026-03-09', '2026-03-18', '2026-02-26 08:27:11', '2026-03-18 08:38:01'),
-(565, 'Resync Plus - Launch video teaser content', 'Script', 3, 67, 636, '2026-03-16', 'completed', 1, 3, NULL, '2026-02-27', '2026-03-12', '2026-02-26 08:27:54', '2026-03-16 10:17:50'),
-(566, 'AWARENESS AND CELEBRATION DAYS - MARCH 2026', 'Festive greetings', 3, 66, 642, '2026-03-27', 'completed', 1, 21, 'https://docs.google.com/document/d/1gWhfeD3mikKDRPluiZAXzsqK-N9ucpnoOFvsRiHA6Qo/edit?tab=t.0', '2026-02-27', '2026-03-09', '2026-02-26 11:17:58', '2026-03-09 09:54:05'),
-(567, 'DONANCE LBL - APRIL\'26', 'LBL', 1, 3, 629, '2026-02-27', 'completed', 1, 4, NULL, '2026-02-27', '2026-02-27', '2026-02-26 11:47:04', '2026-02-27 05:53:57'),
-(568, 'AWARENESS AND CELEBRATION DAYS - MARCH 2026', 'Festival flyer', 1, 12, 643, '2026-03-31', 'in_progress', 1, 0, NULL, '2026-03-03', NULL, '2026-02-26 11:47:45', '2026-03-03 10:57:09'),
-(569, 'Gujarati Language Glaucoma Awareness Poster', 'Poster', 1, 20, 641, '2026-03-04', 'completed', 1, 2, NULL, '2026-03-05', '2026-03-05', '2026-02-26 11:49:47', '2026-03-05 12:24:34'),
-(570, 'Bladmir LBL-Apr\'26', 'LBL', 1, 3, 627, '2026-03-04', 'completed', 1, 2, NULL, '2026-03-09', '2026-03-09', '2026-02-26 11:50:33', '2026-03-09 07:40:19'),
-(571, 'International Womens Day Flyer', 'Festival flyer', 1, 12, 621, '2026-03-05', 'completed', 1, 1, NULL, '2026-03-02', '2026-03-05', '2026-02-26 14:06:05', '2026-03-05 12:18:09'),
-(572, 'Mahavir Jayanti Flyer', 'Festival flyer', 1, 12, 622, '2026-03-26', 'in_progress', 1, 0, NULL, '2026-03-23', NULL, '2026-02-26 14:07:43', '2026-03-22 18:31:00'),
-(573, 'Ram Navami Flyer', 'Festival flyer', 1, 12, 626, '2026-03-24', 'completed', 1, 1, NULL, '2026-03-17', '2026-03-24', '2026-02-26 14:08:17', '2026-03-24 06:42:16'),
-(574, 'POULTRY 100 Cr Milestone Post ', 'Flyer', 1, 16, 400, '2026-02-27', 'completed', 1, 2, NULL, '2026-02-27', '2026-02-27', '2026-02-26 14:18:14', '2026-02-27 06:45:10'),
-(577, 'Zivemp-SM Conference Standee', 'Standee', 1, 40, 650, '2026-02-27', 'completed', 1, 1, NULL, '2026-02-27', '2026-03-04', '2026-02-27 06:27:42', '2026-03-04 08:56:00'),
-(578, 'PERUMADI VA THEME PAGE', 'PERUMADI VA', 3, 66, 652, '2026-03-05', 'completed', 1, 1, NULL, '2026-02-27', '2026-03-02', '2026-02-27 07:07:31', '2026-03-02 06:53:05'),
-(579, 'Slab Artwork', 'Leaflet', 1, 15, 646, '2026-02-04', 'completed', 1, 1, NULL, '2026-03-02', '2026-03-02', '2026-02-27 07:53:13', '2026-03-02 04:25:43'),
-(580, 'New Livfit 3 SKU Packshot images', 'Product shoot ', 5, 95, 639, '2026-02-27', 'completed', 1, 9, NULL, '2026-02-27', '2026-02-27', '2026-02-27 09:47:46', '2026-02-27 09:52:25'),
-(581, 'Tent card', 'Graphic Content', 3, 66, 655, '2026-03-20', 'completed', 1, 6, NULL, '2026-03-04', '2026-03-23', '2026-02-27 11:07:13', '2026-03-23 08:49:07'),
-(582, 'Days ', 'Festival Video ', 3, 66, 657, '2026-03-31', 'completed', 1, 15, NULL, '2026-03-02', '2026-03-24', '2026-02-27 11:07:38', '2026-03-24 08:04:12'),
-(583, 'Cloff Holi Video ', 'Festival Video ', 2, 48, 649, '2026-03-02', 'completed', 1, 1, 'https://we.tl/t-jbR1FTzwaT', '2026-03-02', '2026-03-02', '2026-02-27 11:19:19', '2026-03-02 05:12:13'),
-(584, 'Annual Meet Video', 'Brand Teaser and concept Video', 2, 49, 634, '2026-03-11', 'completed', 1, 1, '00000', '2026-03-06', '2026-03-20', '2026-02-27 11:21:38', '2026-03-20 05:50:56'),
-(585, 'Budget Meeting Video - Theme: Rise of Olympus – The Rising Year', 'Motivational Video ', 3, 67, 662, '2026-03-04', 'completed', 1, 1, NULL, '2026-03-02', '2026-03-02', '2026-03-02 06:19:54', '2026-03-09 10:25:38'),
-(586, 'Azithral Good to Great Video', 'Motivational Video ', 3, 67, 658, '2026-03-03', 'completed', 1, 1, NULL, '2026-03-02', '2026-03-04', '2026-03-02 08:22:23', '2026-03-04 08:43:58'),
-(587, 'Divisional Excelaration theme collaterals ', 'Cycle Meet', 1, 38, 599, '2026-03-04', 'completed', 1, 8, NULL, '2026-03-02', '2026-03-06', '2026-03-02 12:06:21', '2026-03-06 12:30:10'),
-(589, 'Azithral Good to Great Video script', 'Motivational Video ', 2, 58, 659, '2026-03-12', 'completed', 1, 1, NULL, '2026-03-06', '2026-03-11', '2026-03-04 06:05:41', '2026-03-11 06:05:58'),
-(590, 'World Glaucoma Week', 'Flyer', 1, 16, 671, '2026-03-06', 'completed', 1, 2, NULL, '2026-03-06', '2026-03-09', '2026-03-04 06:08:03', '2026-03-09 08:27:16'),
-(591, 'AWARENESS AND CELEBRATION DAYS - MARCH 2026', 'Festival flyer', 1, 12, 656, '2026-03-31', 'completed', 1, 16, NULL, '2026-03-06', '2026-03-24', '2026-03-04 06:09:03', '2026-03-24 09:49:01'),
-(592, 'Laveta M va', 'Visual Aid', 1, 1, 666, '2026-03-10', 'completed', 1, 9, NULL, '2026-03-05', '2026-03-11', '2026-03-04 06:28:18', '2026-03-11 10:37:08'),
-(593, 'World Adherence Day Video', 'Brand Teaser and concept Video', 3, 67, 667, '2026-03-04', 'completed', 1, 1, NULL, '2026-03-04', '2026-03-04', '2026-03-04 06:40:36', '2026-03-04 08:46:20'),
-(594, 'World Adherence Day Video', 'Brand Teaser and concept Video', 2, 47, 667, '2026-03-12', 'in_progress', 1, 0, NULL, '2026-03-16', NULL, '2026-03-04 06:41:16', '2026-03-15 18:31:00'),
-(595, 'AZOS VA pages Animation', 'Brand Teaser and concept Video', 2, 53, 660, '2026-03-11', 'completed', 1, 0, NULL, '2026-03-17', '2026-03-18', '2026-03-04 06:44:59', '2026-03-23 06:31:41'),
-(596, 'Rosave Gold VA Animation', 'Brand Teaser and concept Video', 2, 46, 654, '2026-03-10', 'completed', 1, 6, 'https://we.tl/t-tkiGyTMhzq', '2026-03-09', '2026-03-10', '2026-03-04 06:46:53', '2026-03-10 10:34:58'),
-(597, 'Cycle Meet Tellzy-AM Video', 'Motivational Video ', 2, 58, 668, '2026-03-10', 'completed', 1, 1, 'https://we.tl/t-dZkNi6RTgu', '2026-03-09', '2026-03-09', '2026-03-04 06:47:13', '2026-03-09 10:35:35'),
-(598, 'Etrik VA ', 'HTML', 4, 74, 670, '2026-03-06', 'completed', 1, 3, 'https://alembicdigilabs.com/enteron/etrik_va/', '2026-03-06', '2026-03-06', '2026-03-04 06:48:31', '2026-03-17 05:50:09'),
-(599, 'Ulgeraft Video', 'Brand Teaser and concept Video', 2, 47, 663, '2026-03-11', 'completed', 1, 1, '1 https://we.tl/t-7JXAT1aOsE', '2026-03-12', '2026-03-12', '2026-03-04 06:49:17', '2026-03-12 12:25:34'),
-(600, 'Best Camp - Appreciation for MR', 'Photo framer', 4, 74, 603, '2026-03-11', 'completed', 1, 3, 'https://alembicdigilabs.com/enteron/best_camp_of_the_day_poster_2025/', '2026-03-11', '2026-03-16', '2026-03-04 06:50:01', '2026-03-16 10:37:17'),
-(601, 'Estrofit HMTBa Video', 'Brand Teaser and concept Video', 2, 46, 628, '2026-03-12', 'in_progress', 1, 0, NULL, '2026-03-11', NULL, '2026-03-04 06:50:48', '2026-03-11 04:49:15'),
-(603, 'Gif flyer for Holi festival', 'Festival Video ', 2, 48, 613, '2026-03-04', 'completed', 1, 1, NULL, '2026-03-06', '2026-03-06', '2026-03-04 07:24:28', '2026-03-06 04:35:40'),
-(604, 'Wikoryl 325DT VA page', 'Visual Aid', 1, 1, 606, '2026-03-09', 'completed', 1, 1, NULL, '2026-03-10', '2026-03-12', '2026-03-04 09:29:28', '2026-03-12 08:44:20'),
-(606, 'World Hypertension Day 2026 Artwork', 'Dangler', 1, 41, 653, '2026-03-13', 'completed', 1, 3, NULL, '2026-03-10', '2026-03-13', '2026-03-04 10:07:03', '2026-03-13 12:58:58'),
-(607, 'Zivemp-SM CME Welcome Standee ', 'Standee', 1, 40, 675, '2026-03-12', 'completed', 1, 1, NULL, '2026-03-06', '2026-03-09', '2026-03-04 10:08:37', '2026-03-09 03:31:43'),
-(608, 'Geripod-D LBL', 'LBL', 1, 3, 632, '2026-03-06', 'completed', 1, 2, NULL, '2026-03-05', '2026-03-10', '2026-03-04 10:10:09', '2026-03-10 06:07:25'),
-(609, 'Resync Plus Launch teaser video', 'Brand Teaser and concept Video', 2, 46, 637, '2026-03-20', 'completed', 1, 1, 'https://we.tl/t-kxOJYBpbvEsekpO2', '2026-03-16', '2026-03-25', '2026-03-04 10:28:02', '2026-03-25 03:12:32'),
-(610, 'AV Creation for Cardigem CBM Meeting', 'Motivational Video ', 2, 49, 595, '2026-03-09', 'completed', 1, 1, 'https://we.tl/t-apJ9zjsOWZ', '2026-03-09', '2026-03-10', '2026-03-04 10:28:34', '2026-03-10 10:26:28'),
-(612, 'Pharma VA pages animation', 'Visual Aids Pages', 2, 47, 635, '2026-03-09', 'completed', 1, 4, NULL, '2026-03-09', '2026-03-16', '2026-03-04 10:30:31', '2026-03-25 06:40:48'),
-(613, 'Doctor\'s Birthday Wishes Activity', ' Wishes Activity', 4, 74, 265, '2026-03-27', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-04 10:33:31', '2026-03-09 06:58:31'),
-(614, 'Poster, Tent card design', 'Poster', 1, 20, 623, '2026-03-18', 'completed', 1, 3, NULL, '2026-03-18', '2026-03-18', '2026-03-04 13:05:47', '2026-03-18 07:37:29'),
-(615, 'Geripod-M LBL-Apr\'26', 'LBL', 1, 3, 645, '2026-03-06', 'completed', 1, 2, NULL, '2026-03-05', '2026-03-06', '2026-03-04 13:06:28', '2026-03-06 09:43:23'),
-(616, 'Certificate for Acute Cluster', 'Certificates', 1, 18, 681, '2026-03-05', 'completed', 1, 25, NULL, '2026-03-05', '2026-03-05', '2026-03-04 13:36:45', '2026-03-05 08:41:56'),
-(617, 'Tetan ', 'Packaging', 1, 23, 680, '2026-03-06', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-04 13:37:23', '2026-03-04 13:37:25'),
-(618, 'Corium cycle meet certificates', 'Certificate', 1, 18, 673, '2026-03-05', 'completed', 1, 10, NULL, '2026-03-05', '2026-03-05', '2026-03-04 13:41:18', '2026-03-05 09:40:51'),
-(619, 'Rafle_IBS Has A MOOD Too_LBL ', 'LBL', 1, 3, 665, '2026-03-10', 'completed', 1, 2, NULL, '2026-03-12', '2026-03-12', '2026-03-04 13:42:58', '2026-03-12 13:04:54'),
-(620, 'GPD- Nocturia Script', 'Brand Teaser and concept Video', 2, 49, 684, '2026-03-13', 'completed', 1, 1, 'https://we.tl/t-MkN5hUR4rB', '2026-03-11', '2026-03-16', '2026-03-05 10:36:33', '2026-03-16 03:46:26'),
-(621, 'Excelarate 2027 Cardigem Anthem ', 'Motivational Video ', 2, 49, 607, '2026-03-05', 'completed', 1, 1, NULL, '2026-03-05', '2026-03-05', '2026-03-05 10:37:56', '2026-03-05 10:51:08'),
-(623, 'C4ALL GIF VIDEO', 'Brand Teaser and concept Video', 2, 53, 679, '2026-03-06', 'completed', 1, 3, NULL, '2026-03-06', '2026-03-06', '2026-03-05 11:07:02', '2026-03-06 11:31:09'),
-(624, 'Women\'s day digital activity', 'Photo framer', 4, 75, 550, '2026-03-05', 'completed', 1, 3, 'https://alembicdigilabs.com/corium/womens_day_26_photoframer/data.php', '2026-03-05', '2026-03-05', '2026-03-05 11:07:51', '2026-03-06 10:05:24'),
-(625, 'AP26 CYCLE MEETING POST CARD', 'Card', 1, 6, 686, '2026-03-11', 'completed', 1, 7, NULL, '2026-03-11', '2026-03-12', '2026-03-05 11:39:45', '2026-03-12 06:32:48'),
-(626, 'YERA ARTWORK - OSTEOFIT', 'Packaging', 1, 23, 685, '2026-03-06', 'completed', 1, 1, NULL, '2026-03-12', '2026-03-12', '2026-03-05 11:40:13', '2026-03-12 12:29:11'),
-(627, 'Annual top performer medal ', 'Badge', 1, 29, 677, '2026-03-06', 'completed', 1, 1, NULL, '2026-03-05', '2026-03-06', '2026-03-05 12:05:14', '2026-03-06 05:58:44'),
-(628, 'Hall of fame', 'Banner', 1, 38, 683, '2026-03-09', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-05 13:01:27', '2026-03-05 13:01:31'),
-(629, 'Women\'s Day', 'Festival flyer', 1, 12, 478, '2026-03-06', 'completed', 1, 2, NULL, '2026-03-06', '2026-03-06', '2026-03-05 13:03:41', '2026-03-06 07:44:51'),
-(630, 'Banner creative', 'Banner', 1, 19, 672, '2026-03-20', 'completed', 1, 14, NULL, '2026-03-18', '2026-03-20', '2026-03-05 13:04:43', '2026-03-20 09:19:54'),
-(631, 'Osteofit Division Anthem', 'Motivational Video ', 2, 58, 688, '2026-03-10', 'completed', 1, 1, 'https://we.tl/t-60iOluzqOn', '2026-03-09', '2026-03-10', '2026-03-06 03:53:26', '2026-03-10 11:52:21'),
-(632, 'Cycle Meet (L', 'Certificate', 1, 18, 682, '2026-03-06', 'completed', 1, 4, NULL, '2026-03-06', '2026-03-06', '2026-03-06 05:53:14', '2026-03-06 07:34:17'),
-(633, 'TELLZY,TELLZY MT,TELLZY CH,TELLZY AM SURVEY LBL', 'LBL', 1, 3, 689, '2026-03-13', 'completed', 1, 17, NULL, '2026-03-09', '2026-03-17', '2026-03-06 05:56:50', '2026-03-17 04:12:45'),
-(634, 'Cetanil TM/M VA page', 'Visual Aid', 1, 1, 690, '2026-03-10', 'completed', 1, 2, NULL, '2026-03-10', '2026-03-10', '2026-03-06 07:07:13', '2026-03-10 11:46:06'),
-(635, 'Messages for MRs', 'Flyer', 1, 16, 647, '2026-03-31', 'completed', 1, 11, NULL, '2026-03-06', '2026-03-11', '2026-03-06 07:35:29', '2026-03-11 07:04:32'),
-(636, 'RUMIGEST STANDIEE', 'Standee', 1, 40, 693, '2026-03-06', 'completed', 1, 1, NULL, '2026-03-06', '2026-03-06', '2026-03-06 07:59:51', '2026-03-06 09:39:12'),
-(637, 'Availability and Doctor card', 'Card', 1, 21, 572, '2026-03-06', 'completed', 1, 3, NULL, '2026-03-11', '2026-03-11', '2026-03-06 11:04:31', '2026-03-11 07:05:21'),
-(638, 'AZITHROMYCIN CONSENSUS MEETING ARTWORKS ', 'LBL', 1, 3, 696, '2026-03-12', 'in_progress', 1, 0, NULL, '2026-03-09', NULL, '2026-03-09 04:54:34', '2026-03-09 04:55:00'),
-(639, 'Estroplus VA', 'Visual Aid', 1, 1, 694, '2026-03-12', 'completed', 1, 4, NULL, '2026-03-12', '2026-03-13', '2026-03-09 05:27:46', '2026-03-13 12:28:08'),
-(640, 'EWE - Attendees and Speaker details ', 'Attendees and speaker Details ', 4, 74, 700, '2026-03-16', 'completed', 1, 5, 'https://alembicdigilabs.com/enteron/ewe_connect/', '2026-03-16', '2026-03-17', '2026-03-09 06:33:44', '2026-03-17 07:19:01'),
-(641, 'EWE - Attendees and Speaker details ', 'Attendees and speaker Details ', 4, 75, 700, '2026-03-16', 'completed', 1, 4, 'https://alembicdigilabs.com/enteron/ewe_connect/', '2026-03-16', '2026-03-17', '2026-03-09 06:34:12', '2026-03-17 07:19:33'),
-(642, 'MEGACARE | PEDIA TALK CASE STUDY PORTAL CREATION | ', ' CASE STUDY PORTAL CREATION | ', 4, 74, 423, '2026-03-25', 'in_progress', 1, 0, NULL, '2026-03-16', NULL, '2026-03-09 06:34:58', '2026-03-15 18:31:00'),
-(643, 'MEGACARE | PEDIA TALK CASE STUDY PORTAL CREATION | ', ' CASE STUDY PORTAL CREATION | ', 4, 75, 423, '2026-03-25', 'in_progress', 1, 0, NULL, '2026-03-18', NULL, '2026-03-09 06:35:13', '2026-03-17 18:31:00'),
-(644, 'Crina-NCR mastery portal', ' mastery portal', 4, 74, 488, '2026-03-26', 'in_progress', 1, 0, NULL, '2026-03-17', NULL, '2026-03-09 06:36:43', '2026-03-16 18:31:00'),
-(645, 'Crina-NCR mastery portal', ' mastery portal', 4, 75, 488, '2026-03-26', 'in_progress', 1, 0, NULL, '2026-03-19', NULL, '2026-03-09 06:36:55', '2026-03-18 18:31:00'),
-(646, 'Crina-NCR mastery portal', 'mastery portal', 4, 88, 488, '2026-03-12', 'completed', 1, 22, NULL, '2026-03-09', '2026-03-11', '2026-03-09 06:41:18', '2026-03-11 08:20:02'),
-(647, 'Etrik 22Yrs Birthday celebration', 'Birthday celebration Work', 4, 88, 605, '2026-03-18', 'in_progress', 1, 0, NULL, '2026-03-12', NULL, '2026-03-09 06:44:44', '2026-03-11 18:31:00'),
-(648, 'Etrik 22Yrs Birthday celebration', 'Birthday celebration Work', 4, 75, 605, '2026-03-27', 'in_progress', 1, 0, NULL, '2026-03-18', NULL, '2026-03-09 06:45:16', '2026-03-17 18:31:00'),
-(649, 'Etrik 22Yrs Birthday celebration', 'Birthday celebration Work', 4, 74, 605, '2026-03-27', 'in_progress', 1, 0, NULL, '2026-03-19', NULL, '2026-03-09 06:45:34', '2026-03-18 18:31:00'),
-(650, 'Maxis cycle meeting creatives', 'Certificate', 1, 18, 674, '2026-03-12', 'completed', 1, 12, NULL, '2026-03-11', '2026-03-16', '2026-03-09 07:18:52', '2026-03-16 09:21:32'),
-(651, 'Annual meeting standee ', 'Standee', 1, 40, 695, '2026-03-11', 'completed', 1, 3, NULL, '2026-03-11', '2026-03-12', '2026-03-09 07:21:43', '2026-03-12 06:14:16'),
-(652, 'CSM-Certificate Layout', 'Certificate', 1, 18, 702, '2026-03-10', 'completed', 1, 11, NULL, '2026-03-10', '2026-03-10', '2026-03-09 09:13:52', '2026-03-10 12:53:10'),
-(653, 'Standee for CME/RTM/GDM', 'Standee', 1, 40, 701, '2026-03-11', 'completed', 1, 1, NULL, '2026-03-10', '2026-03-12', '2026-03-09 10:02:47', '2026-03-12 11:27:23'),
-(654, 'Rosave F VA', 'Visual Aid', 1, 1, 608, '2026-03-09', 'completed', 1, 3, NULL, '2026-03-09', '2026-03-10', '2026-03-09 10:09:34', '2026-03-10 06:08:03'),
-(655, 'RESYNC - VIDEO SCRIPT FOR CYCLE MEET - DHURANDHAR', 'Motivational Video ', 2, 58, 453, '2026-03-11', 'completed', 1, 1, NULL, '2026-03-12', '2026-03-12', '2026-03-09 10:17:34', '2026-03-12 09:21:06'),
-(656, 'Budget Meeting Video - Theme: Rise of Olympus – The Rising Year', 'Motivational Video ', 2, 58, 662, '2026-03-12', 'completed', 1, 1, 'https://we.tl/t-Wx3VbOuVcY', '2026-03-10', '2026-03-12', '2026-03-09 10:25:35', '2026-03-12 08:40:59'),
-(657, 'Crina-NCR 100 Cr video', 'Motivational Video ', 2, 48, 620, '2026-03-17', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-09 10:28:26', '2026-03-09 10:28:28'),
-(658, 'Eyecare StepUP Video', 'Motivational Video ', 2, 58, 636, '2026-03-10', 'completed', 1, 1, NULL, '2026-03-09', '2026-03-09', '2026-03-09 10:30:26', '2026-03-16 10:17:50'),
-(659, 'Ulgeraft Video-AV script Fire', 'Motivational Video ', 2, 49, 663, '2026-03-13', 'completed', 1, 1, NULL, '2026-03-11', '2026-03-13', '2026-03-09 10:38:51', '2026-03-13 09:58:41'),
-(660, 'Adjunctive Therapy  Concept Page', 'Visual Aid', 1, 1, 644, '2026-03-11', 'completed', 1, 1, NULL, '2026-03-11', '2026-03-11', '2026-03-09 15:16:00', '2026-03-11 12:20:08'),
-(661, 'Resync Plus Gift flyer', 'Flyer', 1, 16, 704, '2026-03-11', 'completed', 1, 1, NULL, '2026-03-11', '2026-03-11', '2026-03-09 15:18:00', '2026-03-11 12:20:25'),
-(662, 'WEIGHING SCALE ARTWORK ', 'Packaging', 1, 23, 703, '2026-03-10', 'completed', 1, 1, NULL, '2026-03-10', '2026-03-10', '2026-03-09 15:19:59', '2026-03-10 11:04:21'),
-(663, 'medal sticker', 'Medal', 1, 29, 709, '2026-03-10', 'completed', 1, 1, NULL, '2026-03-10', '2026-03-11', '2026-03-10 11:32:25', '2026-03-11 05:54:14'),
-(664, 'Ascal Gel Advance Display artwork', 'Table Top Display', 1, 39, 708, '2026-03-13', 'completed', 1, 2, NULL, '2026-03-13', '2026-03-16', '2026-03-10 13:20:09', '2026-03-16 09:22:55'),
-(665, 'Algrow Vetmax and Poultry Evolve Certificate', 'Certificate', 1, 18, 710, '2026-03-13', 'completed', 1, 73, NULL, '2026-03-12', '2026-03-13', '2026-03-10 13:21:42', '2026-03-13 11:22:22'),
-(666, 'Prospective  Study CRF  Booklet Fy 27', 'Booklet', 1, 31, 707, '2026-03-13', 'completed', 1, 7, NULL, '2026-03-13', '2026-03-13', '2026-03-10 13:23:02', '2026-03-13 14:09:31'),
-(667, 'Maxis Cycle meeting winners template ', 'Wall of Fame', 1, 19, 711, '2026-03-17', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-11 06:25:00', '2026-03-11 06:25:03'),
-(668, 'Oryza Sensitive Standee', 'Standee', 1, 40, 697, '2026-03-24', 'in_progress', 1, 0, NULL, '2026-03-23', NULL, '2026-03-11 06:30:59', '2026-03-24 11:15:28'),
-(669, 'Image to CDR, JPG, PNG', 'Gift Input shoot', 5, 95, 669, '2026-03-11', 'completed', 1, 1, NULL, '2026-03-11', '2026-03-11', '2026-03-11 08:16:54', '2026-03-11 08:22:46'),
-(671, 'TEST - CLM video for ovigyn Q10', 'TEST', 4, 85, 203, '2026-03-31', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-11 09:43:27', '2026-03-11 09:45:39'),
-(672, 'TEST - CLM video for ovigyn Q10', 'TEST', 4, 79, 203, '2026-03-18', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-11 09:45:33', '2026-03-11 09:45:39'),
-(673, 'Roxid VA', 'Visual Aid', 1, 1, 716, '2026-03-17', 'completed', 1, 3, NULL, '2026-03-17', '2026-03-18', '2026-03-11 10:05:46', '2026-03-18 04:22:53'),
-(674, 'test start date', 'test', 4, 78, 718, '2026-03-19', 'in_progress', 1, 0, NULL, '2026-03-13', NULL, '2026-03-11 10:30:58', '2026-03-12 18:31:00'),
-(675, 'Need certificate of participation and appreciation ', 'Certificate', 1, 18, 719, '2026-03-13', 'completed', 1, 2, NULL, '2026-03-12', '2026-03-13', '2026-03-11 10:44:55', '2026-03-13 05:58:31'),
-(676, 'Maxis Cycle meet Bag tag ', 'Bag Tag', 1, 21, 712, '2026-03-13', 'completed', 1, 2, NULL, '2026-03-12', '2026-03-13', '2026-03-11 10:47:02', '2026-03-13 04:30:27'),
-(677, 'ROxid LBL', 'LBL', 1, 3, 721, '2026-03-27', 'in_progress', 1, 0, NULL, '2026-03-18', NULL, '2026-03-12 05:25:42', '2026-03-24 11:16:49'),
-(678, 'Veldrop Preamble Video', 'Video Script', 3, 67, 726, '2026-03-16', 'completed', 1, 1, NULL, '2026-03-12', '2026-03-17', '2026-03-12 07:22:16', '2026-03-17 05:10:11'),
-(679, 'Veldrop Preamble Video', 'Motion Graphics', 2, 49, 726, '2026-04-08', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-12 07:23:10', '2026-03-16 10:09:05'),
-(680, 'Khurak theme page video ', 'Khurak nutrition stage video', 2, 47, 692, '2026-03-12', 'completed', 1, 1, NULL, '2026-03-12', '2026-03-12', '2026-03-12 09:04:06', '2026-03-12 09:25:25'),
-(681, 'PetAL VA 2026', 'VA Animation GIF', 2, 53, 717, '2026-03-13', 'completed', 1, 6, 'https://we.tl/t-OPn9Om8L5z', '2026-03-13', '2026-03-13', '2026-03-12 09:07:09', '2026-03-13 06:36:38'),
-(682, 'TELLZY MT VA ANIMATION', 'VA Animation GIF', 2, 53, 713, '2026-03-17', 'completed', 1, 4, NULL, '2026-03-16', '2026-03-17', '2026-03-12 09:08:25', '2026-03-17 05:54:13'),
-(683, 'TELLZY CH V.A ANIMATION', 'VA Animation GIF', 2, 53, 714, '2026-03-17', 'completed', 1, 3, NULL, '2026-03-16', '2026-03-17', '2026-03-12 09:33:36', '2026-03-17 05:53:13'),
-(684, 'Modification in VA', 'Visual Aid', 1, 1, 727, '2026-03-12', 'completed', 1, 4, NULL, '2026-03-12', '2026-03-12', '2026-03-12 09:36:14', '2026-03-12 11:00:17'),
-(685, 'Glisen VA Animation ', 'VA Animation GIF - Pages 01 to 07', 2, 53, 698, '2026-03-18', 'completed', 1, 1, '1 https://we.tl/t-9VharE8d9j', '2026-03-17', '2026-03-18', '2026-03-12 09:38:58', '2026-03-18 04:37:17'),
-(686, 'Glisen VA Animation ', 'VA Animation GIF - Pages 08 to 13', 2, 53, 698, '2026-03-18', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-12 09:39:29', '2026-03-12 09:40:23'),
-(687, 'TZH VA FY 27 Animation', 'VA Animation GIF - Pages 01 to 06', 2, 53, 728, '2026-03-18', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-12 10:00:37', '2026-03-12 10:01:41'),
-(688, 'TZH VA FY 27 Animation', 'VA Animation GIF - Pages 07 to 12', 2, 53, 728, '2026-03-18', 'completed', 1, 1, 'https://we.tl/t-jJT297SDLx', '2026-03-16', '2026-03-18', '2026-03-12 10:01:01', '2026-03-18 07:16:26'),
-(689, 'World Kidney Day SM Post', 'Flyer', 1, 16, 725, '2026-03-13', 'completed', 1, 2, NULL, '2026-03-13', '2026-03-13', '2026-03-13 04:26:29', '2026-03-13 04:34:39'),
-(690, 'FOCUS Leaderboards', 'Flyer', 1, 16, 723, '2026-03-13', 'completed', 1, 2, NULL, '2026-03-13', '2026-03-13', '2026-03-13 04:51:44', '2026-03-13 04:55:51'),
-(691, 'Ouron Logo Mosaic', 'Photoshop work', 1, 42, 720, '2026-03-16', 'completed', 1, 1, NULL, '2026-03-13', '2026-03-13', '2026-03-13 04:55:29', '2026-03-13 13:25:35'),
-(692, 'Women\'s Day Posts', 'Flyer', 1, 16, 722, '2026-03-13', 'completed', 1, 9, NULL, '2026-03-13', '2026-03-13', '2026-03-13 04:56:07', '2026-03-13 05:57:50'),
-(693, 'Vitamin D Camp Slips ', 'Camp Creatives', 1, 20, 733, '2026-03-17', 'completed', 1, 3, NULL, '2026-03-16', '2026-03-16', '2026-03-13 05:22:38', '2026-03-16 11:28:37'),
-(694, 'Docmycin QR + Link', 'Create QR and link with the provided PDF', 4, 74, 729, '2026-03-13', 'completed', 1, 1, 'https://alembicdigilabs.com/petal/docmycin/', '2026-03-13', '2026-03-13', '2026-03-13 06:51:38', '2026-03-13 06:56:24');
-INSERT INTO `tasks` (`id`, `task_name`, `description`, `request_type_id`, `task_type_id`, `work_request_id`, `deadline`, `status`, `intimate_team`, `task_count`, `link`, `start_date`, `end_date`, `created_at`, `updated_at`) VALUES
-(695, 'QR code', 'Create QR code for the link generated', 4, 81, 729, '2026-03-13', 'completed', 1, 1, NULL, '2026-03-13', '2026-03-13', '2026-03-13 06:52:17', '2026-03-13 06:58:07'),
-(696, 'Ascal gel Advance Packshot revealing video', 'Video Script for packshot reveal', 3, 67, 730, '2026-03-18', 'completed', 1, 1, NULL, '2026-03-16', '2026-03-17', '2026-03-13 07:04:54', '2026-03-17 07:13:11'),
-(697, 'Ascal gel advance  coming soon video', 'Video script for coming soon', 3, 67, 731, '2026-03-18', 'completed', 1, 1, NULL, '2026-03-16', '2026-03-17', '2026-03-13 07:05:39', '2026-03-17 07:12:45'),
-(698, 'Gastron Motivational Video', 'Video', 2, 49, 732, '2026-03-13', 'completed', 1, 1, NULL, '2026-03-13', '2026-03-13', '2026-03-13 10:36:55', '2026-03-13 10:55:19'),
-(699, 'Birthday greeting card for Veterinary doctor', 'Card', 1, 21, 737, '2026-03-18', 'completed', 1, 4, NULL, '2026-03-18', '2026-03-20', '2026-03-13 11:16:42', '2026-03-20 06:03:52'),
-(700, 'AAA achiever Standees (Zone wise)', 'Standee', 1, 40, 739, '2026-03-17', 'completed', 1, 2, NULL, '2026-03-17', '2026-03-17', '2026-03-13 11:17:14', '2026-03-17 05:52:59'),
-(701, 'Scratch card new product launch', 'Card', 1, 21, 738, '2026-03-17', 'completed', 1, 3, NULL, '2026-03-16', '2026-03-17', '2026-03-13 12:38:13', '2026-03-17 04:32:23'),
-(702, 'IV Fluid Flyer', 'Flyer', 1, 16, 740, '2026-03-18', 'completed', 1, 1, NULL, '2026-03-17', '2026-03-18', '2026-03-16 03:10:47', '2026-03-18 10:58:22'),
-(703, 'Khurak Flyer', 'Flyer', 1, 16, 741, '2026-03-18', 'completed', 1, 1, NULL, '2026-03-17', '2026-03-23', '2026-03-16 03:11:52', '2026-03-23 06:53:50'),
-(704, 'Sharkoferrol Video', 'Brand Teaser and concept Video', 2, 47, 602, '2026-03-16', 'completed', 1, 1, 'https://we.tl/t-5tMCJrKrcI', '2026-03-16', '2026-03-18', '2026-03-16 04:04:21', '2026-03-18 04:38:37'),
-(705, 'Resync - Budget meeting Video', 'Motivational Video ', 2, 58, 636, '2026-03-16', 'completed', 1, 1, 'https://we.tl/t-5tMCJrKrcI', '2026-03-16', '2026-03-18', '2026-03-16 04:07:04', '2026-03-18 04:38:52'),
-(706, 'PATIENT EDUCATION SHEET ', 'Leaflet', 1, 15, 734, '2026-03-18', 'completed', 1, 4, NULL, '2026-03-17', '2026-03-18', '2026-03-16 05:49:42', '2026-03-18 06:01:01'),
-(707, 'Gudi Padwa | Eid Festive Post', 'Festival flyer', 1, 12, 742, '2026-03-18', 'completed', 1, 3, NULL, '2026-03-17', '2026-03-18', '2026-03-16 05:57:10', '2026-03-18 04:32:17'),
-(708, 'PVR ADVERT - POONA EYE HOSPITAL', 'banner', 1, 19, 743, '2026-03-17', 'completed', 1, 3, NULL, '2026-03-17', '2026-03-17', '2026-03-16 05:59:08', '2026-03-17 07:29:28'),
-(709, 'Award Ceremony Template', 'Stall Panel', 1, 38, 746, '2026-03-20', 'completed', 1, 2, NULL, '2026-03-16', '2026-03-17', '2026-03-16 09:42:05', '2026-03-17 07:25:34'),
-(710, 'Geripod-D VA Gif', 'Brand Teaser and concept Video', 2, 46, 736, '2026-03-20', 'completed', 1, 2, 'https://we.tl/t-lztYEsatNq', '2026-03-18', '2026-03-20', '2026-03-16 09:44:59', '2026-03-20 10:01:38'),
-(712, 'Need to add animation in VA Page', 'Video teaser', 2, 47, 687, '2026-03-24', 'completed', 1, 1, 'https://we.tl/t-kEpBJry00z', '2026-03-20', '2026-03-23', '2026-03-16 09:46:53', '2026-03-23 10:16:01'),
-(713, 'Freego Dose Preparation Video', 'Video teaser', 2, 46, 534, '2026-03-20', 'in_progress', 1, 0, NULL, '2026-03-18', NULL, '2026-03-16 09:54:19', '2026-03-18 04:49:39'),
-(714, 'Bladmir VA Animation', 'Video teaser', 2, 46, 735, '2026-03-20', 'in_progress', 1, 0, NULL, '2026-03-20', NULL, '2026-03-16 09:56:39', '2026-03-20 05:49:58'),
-(715, 'Rosave Gold Cath Lab activity SOP  Video', 'Brand Teaser and concept Video', 2, 46, 676, '2026-03-20', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-16 10:06:21', '2026-03-16 10:06:23'),
-(716, 'IV Fluid video', 'Brand Teaser and concept Video', 3, 67, 748, '2026-03-27', 'in_progress', 1, 0, NULL, '2026-03-20', NULL, '2026-03-16 10:06:42', '2026-03-23 08:53:07'),
-(717, 'Veldrop iPad video', 'Brand Teaser and concept Video', 2, 46, 630, '2026-03-20', 'in_progress', 1, 0, NULL, '2026-03-17', NULL, '2026-03-16 10:09:26', '2026-03-17 09:07:07'),
-(718, 'Resync Plus - Coming soon video teaser', 'Brand Teaser and concept Video', 2, 48, 636, '2026-03-24', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-16 10:17:46', '2026-03-16 10:18:10'),
-(719, 'Resync Plus launch Dr engagement gamification', 'Gamification ', 3, 67, 752, '2026-03-26', 'in_progress', 1, 0, NULL, '2026-03-20', NULL, '2026-03-16 11:13:53', '2026-03-19 18:31:00'),
-(720, 'Artwork for Salembic , Ralembic, Salembic-D LBL', 'LBL', 1, 3, 750, '2026-03-18', 'completed', 1, 4, NULL, '2026-03-17', '2026-03-24', '2026-03-16 16:34:09', '2026-03-24 04:26:51'),
-(721, 'Veldrop  Gift Box', 'Packaging', 1, 23, 753, '2026-03-18', 'completed', 1, 1, NULL, '2026-03-18', '2026-03-18', '2026-03-17 03:57:08', '2026-03-18 06:01:30'),
-(722, 'TEST Etrik VA 01', 'VA Animation GIF', 4, 74, 670, '2026-03-18', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-17 05:49:46', '2026-03-20 05:51:31'),
-(723, 'Promotogram', 'Detailer', 1, 4, 757, '2026-03-17', 'completed', 1, 2, NULL, '2026-03-17', '2026-03-18', '2026-03-17 06:12:51', '2026-03-18 04:21:34'),
-(724, 'CME invite', 'Invite ', 1, 22, 745, '2026-03-20', 'completed', 1, 2, NULL, '2026-03-20', '2026-03-23', '2026-03-17 06:41:22', '2026-03-23 10:21:59'),
-(725, 'TIKOUT DANGLER', 'Dangler', 1, 41, 761, '2026-03-20', 'completed', 1, 2, NULL, '2026-03-18', '2026-03-23', '2026-03-17 07:30:12', '2026-03-23 06:54:49'),
-(726, 'TIKOUT DANGLER', 'Dangler', 1, 41, 761, '2026-03-20', 'completed', 1, 2, NULL, '2026-03-18', '2026-03-23', '2026-03-17 07:30:13', '2026-03-23 06:55:32'),
-(727, 'CLOFFER Infographics', 'Infographics (graphs)', 1, 16, 758, '2026-03-27', 'in_progress', 1, 0, NULL, '2026-03-18', NULL, '2026-03-17 07:39:21', '2026-03-18 05:53:11'),
-(728, 'Almizol Skin Lotion Packshot  Photoshoot', 'Product shoot ', 5, 93, 749, '2026-03-17', 'completed', 1, 2, NULL, '2026-03-17', '2026-03-17', '2026-03-17 08:24:58', '2026-03-17 09:18:37'),
-(729, 'Written content for wishing a birthday to Veterinary Doctor', 'Custom Birthday Greeting', 3, 64, 762, '2026-03-18', 'completed', 1, 4, 'https://docs.google.com/document/d/1ZkGVxIMcQ12L3dSF4_fiHxIT4hoDuCWk5Z7wv_kPTm0/edit?ouid=104752160794647528844&usp=docs_home&ths=true', '2026-03-18', '2026-03-18', '2026-03-17 08:28:04', '2026-03-18 07:15:14'),
-(730, 'Sharkoferrol Aqua AI Video', 'Brand Teaser and concept Video', 3, 67, 760, '2026-03-20', 'completed', 1, 3, NULL, '2026-03-18', '2026-03-23', '2026-03-17 08:48:32', '2026-03-24 08:46:35'),
-(731, 'Tishuheal VA Page Pop up edit', 'Brand Teaser and concept Video', 2, 46, 754, '2026-03-20', 'completed', 1, 1, NULL, '2026-03-17', '2026-03-17', '2026-03-17 09:05:53', '2026-03-17 09:06:42'),
-(732, 'ascal gel advance coming soon video', 'Brand Teaser and concept Video', 2, 46, 420, '2026-03-23', 'completed', 1, 1, NULL, '2026-03-23', '2026-03-23', '2026-03-17 09:07:55', '2026-03-23 06:43:20'),
-(733, 'TRAZTIK packshot shoot', 'Product shoot ', 5, 93, 767, '2026-03-17', 'completed', 1, 2, NULL, '2026-03-17', '2026-03-17', '2026-03-17 10:34:19', '2026-03-17 10:35:27'),
-(734, 'Fertimax Chemist Requisition Book ', 'Packaging', 1, 23, 755, '2026-03-18', 'completed', 1, 4, NULL, '2026-03-18', '2026-03-24', '2026-03-17 12:41:02', '2026-03-24 04:26:24'),
-(735, 'MHAL LBL', 'LBL', 1, 3, 759, '2026-03-20', 'completed', 1, 2, NULL, '2026-03-20', '2026-03-20', '2026-03-17 12:42:02', '2026-03-20 09:21:21'),
-(736, 'MHAL LBL', 'LBL', 1, 3, 759, '2026-03-25', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-17 12:42:30', '2026-03-24 11:16:26'),
-(737, 'Need PinPoint Chitpad artwork', 'Chitpad', 1, 7, 771, '2026-03-23', 'completed', 1, 2, NULL, '2026-03-23', '2026-03-24', '2026-03-18 04:41:44', '2026-03-24 04:37:33'),
-(738, 'Need PinPoint Chitpad artwork', 'Chitpad', 1, 7, 771, '2026-03-23', 'completed', 1, 1, NULL, '2026-03-23', '2026-03-24', '2026-03-18 04:41:44', '2026-03-24 04:37:58'),
-(739, 'Tufehart - Visual AId Animation', 'Visual AId Animation', 2, 47, 770, '2026-03-23', 'in_progress', 1, 0, NULL, '2026-03-18', NULL, '2026-03-18 04:48:34', '2026-03-18 06:02:01'),
-(740, 'Bovine Ephemeral Fever', 'Brand Teaser and concept Video', 2, 46, 764, '2026-03-24', 'completed', 1, 1, 'https://we.tl/t-HybqBBqyzr', '2026-03-20', '2026-03-24', '2026-03-18 04:49:29', '2026-03-24 04:50:33'),
-(741, 'Rosave group VA animation', 'Visual AId Animation', 2, 47, 763, '2026-03-25', 'completed', 1, 5, 'https://we.tl/t-N1jqK3UPYrgeDnWt', '2026-03-20', '2026-03-25', '2026-03-18 04:51:55', '2026-03-25 05:48:42'),
-(742, 'Ralembic video', 'Video teaser', 2, 48, 452, '2026-03-30', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-18 04:52:26', '2026-03-18 04:52:28'),
-(743, 'poster', 'Poster', 1, 20, 768, '2026-03-24', 'in_progress', 1, 0, NULL, '2026-03-23', NULL, '2026-03-18 06:30:04', '2026-03-23 05:27:05'),
-(744, 'Etrik Box Artwork ', 'Packaging', 1, 23, 777, '2026-03-24', 'completed', 1, 1, NULL, '2026-03-24', '2026-03-24', '2026-03-18 06:57:14', '2026-03-24 10:22:38'),
-(745, 'Roll Up Standee Artwork (HTN Panchayat)', 'Standee', 1, 40, 778, '2026-03-24', 'completed', 1, 2, NULL, '2026-03-24', '2026-03-24', '2026-03-18 06:58:29', '2026-03-24 10:07:08'),
-(746, 'Gift box artwork', 'Packaging', 1, 23, 776, '2026-03-18', 'completed', 1, 1, NULL, '2026-03-18', '2026-03-18', '2026-03-18 07:06:33', '2026-03-18 10:55:37'),
-(747, 'Summer Bonanza Campaign Flyer', 'Flyer', 1, 16, 774, '2026-03-20', 'completed', 1, 4, NULL, '2026-03-20', '2026-03-20', '2026-03-18 07:19:28', '2026-03-20 10:43:46'),
-(748, 'Intestinal Image For Estrofit', 'Flyer', 1, 16, 781, '2026-03-24', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-18 07:33:30', '2026-03-18 07:33:36'),
-(749, 'Bovine Ephemeral fever', 'Leaflet', 1, 15, 766, '2026-03-26', 'accepted', 1, 0, NULL, '2026-03-26', NULL, '2026-03-18 07:34:28', '2026-03-25 06:25:36'),
-(750, 'Festival Flyer (Gudi Padwa, Ugadi Etc)', 'Festival Video ', 2, 48, 788, '2026-03-18', 'completed', 1, 1, NULL, '2026-03-18', '2026-03-18', '2026-03-18 09:04:23', '2026-03-18 10:23:15'),
-(751, 'CLOFF OS VA animation', 'Visual Aid Animation', 2, 48, 780, '2026-03-25', 'completed', 1, 5, NULL, '2026-03-25', '2026-03-25', '2026-03-18 09:05:51', '2026-03-25 06:35:23'),
-(752, 'Gudipadwa Greetting', 'Video teaser', 2, 49, 779, '2026-03-18', 'completed', 1, 1, NULL, '2026-03-18', '2026-03-18', '2026-03-18 09:06:24', '2026-03-18 10:25:29'),
-(753, 'Laveta M Anthem Video', 'Motivational Video ', 2, 58, 787, '2026-03-25', 'in_progress', 1, 0, NULL, '2026-03-24', NULL, '2026-03-18 09:07:48', '2026-03-23 18:31:00'),
-(754, 'Laveta M OS Visual Aid Gif', 'VA Animation ', 2, 47, 785, '2026-03-23', 'completed', 1, 6, 'https://we.tl/t-Yv0GR8Nh9m', '2026-03-20', '2026-03-23', '2026-03-18 09:09:05', '2026-03-23 09:28:25'),
-(755, 'VITARESP FX', 'Video teaser', 2, 46, 783, '2026-03-25', 'completed', 1, 5, NULL, '2026-03-25', '2026-03-25', '2026-03-18 09:10:03', '2026-03-25 06:36:07'),
-(756, 'TETAN VA ANIMATION', 'VA Animation ', 2, 47, 782, '2026-03-25', 'in_progress', 1, 0, NULL, '2026-03-23', NULL, '2026-03-18 09:12:16', '2026-03-22 18:31:00'),
-(757, 'Budget Meeting Video Rise of Olympus ', 'Motivational Video ', 2, 49, 661, '2026-03-18', 'completed', 1, 1, 'https://we.tl/t-BHPuSH3Uya', '2026-03-18', '2026-03-18', '2026-03-18 09:19:31', '2026-03-18 09:39:10'),
-(758, 'RUMIGEST LAUNCH GIF', 'Video teaser', 2, 45, 522, '2026-03-20', 'completed', 1, 1, '0000', '2026-03-20', '2026-03-20', '2026-03-18 09:20:43', '2026-03-20 05:51:56'),
-(759, 'Ceramide-backed care for sensitive skin ', 'Brand Teaser and concept Video', 2, 48, 463, '2026-03-25', 'in_progress', 1, 0, NULL, '2026-03-23', NULL, '2026-03-18 09:22:25', '2026-03-22 18:31:00'),
-(760, 'Choose care with intention; not countless choices.', 'Brand Teaser and concept Video', 2, 48, 463, '2026-03-30', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-18 09:29:59', '2026-03-18 09:30:04'),
-(761, 'Standee size artwork for Tick prevention', 'Standee\' ', 1, 40, 790, '2026-03-24', 'completed', 1, 1, NULL, '2026-03-23', '2026-03-24', '2026-03-20 06:21:39', '2026-03-24 11:53:45'),
-(762, 'salembic', 'Packaging ', 1, 23, 789, '2026-03-24', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-20 06:22:36', '2026-03-24 10:11:27'),
-(763, 'Etrik VA ', 'VA Animation GIF', 1, 35, 670, NULL, 'pending', 0, 0, NULL, NULL, NULL, '2026-03-20 08:58:15', '2026-03-20 08:58:15'),
-(764, 'LMOs anthem', 'Storyboard', 3, 68, 804, '2026-03-27', 'in_progress', 1, 0, NULL, '2026-03-23', NULL, '2026-03-20 09:44:53', '2026-03-23 15:28:43'),
-(765, 'QR code generation', 'QR + Link for diabetes management article', 4, 81, 791, '2026-03-23', 'completed', 1, 1, 'https://alembicdigilabs.com//pharma/diabetes_management_physicians/', '2026-03-20', '2026-03-20', '2026-03-20 09:56:57', '2026-03-20 10:05:52'),
-(766, 'Dangler PORON', 'Dangler', 1, 41, 806, '2026-03-25', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-23 04:03:18', '2026-03-23 04:03:20'),
-(767, 'Check Tray Observation Record', 'Detailer', 1, 4, 800, '2026-03-26', 'completed', 1, 3, NULL, '2026-03-24', '2026-03-25', '2026-03-23 04:04:53', '2026-03-25 07:26:25'),
-(768, 'Mahavir Jayanti Greeting', 'Festive Card', 1, 12, 795, '2026-03-26', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-23 04:07:12', '2026-03-23 04:07:14'),
-(769, 'APD wheel Standee for EWE meetings', 'Standee', 1, 40, 808, '2026-03-24', 'completed', 1, 1, NULL, '2026-03-23', '2026-03-23', '2026-03-23 05:16:40', '2026-03-23 10:19:12'),
-(770, 'Enerflow (New Product) Logo', 'logo', 1, 23, 799, '2026-03-27', 'in_progress', 1, 0, NULL, '2026-03-23', NULL, '2026-03-23 05:21:58', '2026-03-23 07:09:21'),
-(771, 'Pohela Baishakh', 'Festival flyer', 1, 12, 819, '2026-03-31', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-23 05:24:04', '2026-03-23 05:24:07'),
-(772, 'Vishu', 'Festival flyer', 1, 12, 817, '2026-03-31', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-23 05:24:55', '2026-03-23 05:24:57'),
-(773, 'Puthandu', 'Festival flyer', 1, 12, 815, '2026-04-01', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-23 05:27:23', '2026-03-23 05:27:26'),
-(774, 'Baisakhi', 'Festival flyer', 1, 12, 812, '2026-04-03', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-23 05:27:49', '2026-03-23 05:27:51'),
-(775, 'World Health Day', 'Festival flyer', 1, 12, 811, '2026-03-31', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-23 05:29:09', '2026-03-23 05:29:11'),
-(776, 'Vehycal XT Inclinic Wipes Artwork', 'Packaging', 1, 23, 797, '2026-03-26', 'accepted', 1, 0, NULL, '2026-03-26', NULL, '2026-03-23 05:30:03', '2026-03-24 04:36:21'),
-(777, 'Roxid VA Changes', 'Visual Aid', 1, 1, 798, '2026-03-25', 'completed', 1, 2, NULL, '2026-03-23', '2026-03-24', '2026-03-23 05:38:04', '2026-03-24 06:40:58'),
-(778, 'Ugadi Gif', 'Festival Video ', 2, 48, 792, '2026-03-23', 'completed', 1, 1, NULL, '2026-03-23', '2026-03-23', '2026-03-23 06:49:59', '2026-03-23 07:00:45'),
-(779, 'Pohela Boishakh', 'Festival Greeting ', 3, 69, 818, '2026-03-31', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-23 08:36:43', '2026-03-23 08:36:46'),
-(780, 'Vishu', 'Festival Greeting ', 3, 69, 816, '2026-03-31', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-23 08:37:14', '2026-03-23 08:37:16'),
-(781, 'Puthandu', 'Festival Greeting ', 3, 69, 814, '2026-03-31', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-23 08:37:43', '2026-03-23 08:37:44'),
-(782, 'Baisakhi', 'Festival Greeting ', 3, 69, 813, '2026-03-31', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-23 08:38:06', '2026-03-23 08:38:08'),
-(783, 'World Health day', 'Festival Greeting ', 3, 69, 810, '2026-03-30', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-23 08:38:47', '2026-03-23 08:38:48'),
-(784, 'Women\'s Day Spotlight', 'Portrait stills', 5, 94, 802, '2026-03-23', 'completed', 1, 25, NULL, '2026-03-23', '2026-03-23', '2026-03-23 10:15:15', '2026-03-23 10:43:10'),
-(785, 'Sharpsell and Pitchwiz platform for field employees', 'Brand Teaser and concept Video', 2, 48, 480, '2026-03-27', 'in_progress', 1, 0, NULL, '2026-03-25', NULL, '2026-03-23 10:40:48', '2026-03-25 04:27:13'),
-(786, 'Celebration Day Greeting', 'Festival flyer', 1, 12, 794, '2026-03-26', 'in_progress', 1, 0, NULL, '2026-03-25', NULL, '2026-03-23 11:20:16', '2026-03-25 04:02:18'),
-(787, 'Vehycal XT LBL Resizing', 'LBL', 1, 3, 786, '2026-03-24', 'completed', 1, 1, NULL, '2026-03-23', '2026-03-24', '2026-03-23 11:21:50', '2026-03-24 04:40:25'),
-(788, 'Gift Sleeve artwork and sticker artwork. ', 'Packaging', 1, 23, 821, '2026-03-25', 'in_progress', 1, 0, NULL, '2026-03-25', NULL, '2026-03-23 11:28:24', '2026-03-24 18:31:00'),
-(789, 'Cardigem Division All Brand reminder Card', 'Reminder card', 1, 8, 820, '2026-03-25', 'completed', 1, 2, NULL, '2026-03-24', '2026-03-24', '2026-03-23 11:41:26', '2026-03-24 10:22:18'),
-(790, 'Tent Card', 'Tent card', 1, 21, 796, '2026-03-27', 'in_progress', 1, 0, NULL, '2026-03-24', NULL, '2026-03-23 12:30:53', '2026-03-24 04:40:40'),
-(791, 'Filtra Veldrop Box artwork', 'Packaging', 1, 23, 822, '2026-03-25', 'in_progress', 1, 0, NULL, '2026-03-25', NULL, '2026-03-24 06:56:44', '2026-03-24 18:31:00'),
-(792, 'Sharkoferrol Aqua AI Video', 'Brand Teaser and concept Video', 2, 49, 760, '2026-03-27', 'in_progress', 1, 0, NULL, '2026-03-25', NULL, '2026-03-24 08:46:31', '2026-03-25 04:36:15'),
-(793, 'Prescribing Information of Tufehart', 'Booklet', 1, 31, 429, '2026-03-24', 'completed', 1, 4, NULL, '2026-03-24', '2026-03-24', '2026-03-24 09:59:12', '2026-03-24 10:17:42'),
-(794, 'Mother\'s Day Digital Frame', 'Digital Frame', 1, 19, 772, '2026-04-10', 'in_progress', 1, 0, NULL, '2026-03-24', NULL, '2026-03-24 10:07:23', '2026-03-24 10:12:05'),
-(795, 'Voage S VA Page Design', 'Visual Aid', 1, 1, 240, '2026-03-25', 'completed', 1, 3, NULL, '2026-03-24', '2026-03-24', '2026-03-24 11:06:50', '2026-03-24 11:08:44'),
-(796, 'Roxid VA animation', 'Visual Aid Animation', 2, 47, 825, '2026-03-27', 'accepted', 1, 0, NULL, '2026-03-27', NULL, '2026-03-25 04:27:16', '2026-03-25 06:58:44'),
-(797, 'Donance S Pro', 'Visual AId Animation', 2, 47, 824, '2026-03-27', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-25 04:28:09', '2026-03-25 04:28:10'),
-(798, 'VA Animation (Tellzy ', 'Visual AId Animation', 2, 47, 793, '2026-03-30', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-25 04:28:52', '2026-03-25 04:28:53'),
-(799, 'AZITHRAL OL VA ANIMATION FOR IPAD UPLOAD', 'Visual AId Animation', 2, 47, 805, '2026-03-27', 'in_progress', 1, 0, NULL, '2026-03-25', NULL, '2026-03-25 04:29:21', '2026-03-25 04:36:20'),
-(800, 'GERISTICKERS - FORMULA 1 THEMED - ', 'DYNAMIC STICKERS ', 2, 54, 823, '2026-03-31', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-25 04:37:14', '2026-03-25 04:37:16'),
-(801, 'WHD - Volume Matters Patient Awareness Videos ', 'Volume Matters Patient Awareness Videos ', 4, 81, 807, '2026-03-31', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-25 04:38:27', '2026-03-25 04:38:50'),
-(802, 'Zenovi  April month artwork', 'Festival flyer', 1, 12, 826, '2026-04-30', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-25 06:25:43', '2026-03-25 06:25:46'),
-(803, 'Pharma VA pages animation', 'Cloff oral Pages', 2, 47, 635, '2026-03-26', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-25 06:40:46', '2026-03-25 06:40:48');
-
 -- --------------------------------------------------------
 
---
--- Table structure for table `task_assignments`
---
+INSERT INTO `tasks` (`id`, `task_name`, `description`, `request_type_id`, `task_type_id`, `work_request_id`, `deadline`, `status`, `intimate_team`, `task_count`, `link`, `start_date`, `end_date`, `created_at`, `updated_at`, `version`, `assignment_type`, `intimate_client`, `review`, `review_stage`, `shared_with_client_at`, `no_of_options_provided`, `no_of_words_written`, `options_submitted`, `concept_work`, `resize_work`, `no_of_concepts`, `duration_minutes`, `duration_seconds`, `product_shoot`, `no_of_products_shot`, `shoot_setup`, `no_of_resize`, `responsive_screen`, `no_of_responsive_screen`, `comments`) VALUES
+(56, 'Alembic Health First', 'Alembic Health First', 1, 37, 147, '2026-01-13', 'completed', 1, 5, NULL, '2026-01-12', '2026-01-12', '2026-01-12 05:16:05', '2026-01-12 05:21:16', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(57, 'Gestofit Prescription Pad', 'Gestofit Prescription Pad', 1, 5, 153, '2026-01-20', 'completed', 1, 2, NULL, '2026-01-16', '2026-01-16', '2026-01-12 05:23:05', '2026-01-16 11:42:17', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(58, 'NAC brand reminder', 'NAC brand reminder', 1, 6, 152, '2026-01-14', 'completed', 1, 1, NULL, '2026-01-14', '2026-01-14', '2026-01-12 05:28:21', '2026-01-14 08:38:01', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(59, 'NCV-Brand Reminder', 'NCV-Brand Reminder', 1, 8, 151, '2026-01-14', 'completed', 1, 2, NULL, '2026-01-14', '2026-01-14', '2026-01-12 05:29:13', '2026-01-14 11:20:48', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(62, 'Nasal Cavity', 'Nasal Cavity', 1, 4, 154, '2026-01-15', 'completed', 1, 4, NULL, '2026-01-15', '2026-01-15', '2026-01-12 07:47:39', '2026-01-15 08:15:39', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(63, 'DermaVidya Standee', 'Standee', 1, 9, 143, '2026-01-13', 'completed', 1, 1, NULL, '2026-01-13', '2026-01-13', '2026-01-12 09:27:09', '2026-01-13 05:32:19', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(66, 'Livfit Card', 'Livfit Card', 1, 4, 156, '2026-01-19', 'completed', 1, 2, NULL, '2026-01-16', '2026-01-16', '2026-01-13 05:17:16', '2026-01-16 11:38:58', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(67, 'Lactonic Launch Card', 'Lactonic Launch Card', 1, 4, 155, '2026-01-19', 'completed', 1, 2, NULL, '2026-01-14', '2026-01-14', '2026-01-13 05:17:56', '2026-01-14 11:22:12', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(68, 'Reminder Flyers for PEDICON', 'Reminder ', 1, 41, 146, '2026-01-13', 'completed', 1, 4, NULL, '2026-01-28', '2026-02-12', '2026-01-13 05:19:10', '2026-02-12 07:23:24', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(69, 'Pedicon Flyers', 'Pedicon Flyers', 1, 41, 145, '2026-01-15', 'completed', 1, 4, NULL, '2026-01-13', '2026-01-13', '2026-01-13 05:33:26', '2026-01-13 05:46:05', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(70, 'Patient Education', 'Patient Education', 1, 4, 157, '2026-01-21', 'completed', 1, 2, NULL, '2026-01-20', '2026-02-09', '2026-01-14 08:07:38', '2026-02-09 06:21:43', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(74, 'MahaShivratri Festival flyer', 'Festival flyer', 1, 12, 159, '2026-01-23', 'completed', 1, 2, NULL, '2026-02-09', '2026-02-09', '2026-01-15 06:26:05', '2026-02-09 11:18:19', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(75, 'Republic Day', 'Digital Flyer ', 1, 42, 167, '2026-01-22', 'completed', 1, 1, NULL, '2026-01-22', '2026-01-19', '2026-01-19 04:49:02', '2026-01-19 12:02:36', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(76, 'Deltone SGPI Outer box', 'Outer Box', 1, 9, 165, '2026-01-22', 'completed', 1, 1, NULL, '2026-01-20', '2026-01-20', '2026-01-19 04:50:55', '2026-01-20 11:27:31', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(77, 'Camp LBL', 'LBL', 1, 3, 166, '2026-01-23', 'completed', 1, 2, NULL, '2026-01-23', '2026-01-28', '2026-01-19 04:52:12', '2026-01-28 11:42:43', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(78, 'Tellzy Range LBLs', 'LBLS', 1, 3, 163, '2026-01-27', 'completed', 1, 12, NULL, '2026-01-21', '2026-01-23', '2026-01-19 04:53:21', '2026-01-23 05:36:11', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(79, 'InSH Guideline CME', 'InSH Guideline CME', 1, 9, 162, '2026-01-23', 'completed', 1, 1, NULL, '2026-01-21', '2026-01-22', '2026-01-19 05:24:59', '2026-01-22 06:46:40', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(80, 'Evaraft Consensus QR Code', 'Require a QR Code for his PDF Brand Evaraft ', 5, 81, 170, '2026-01-20', 'completed', 1, 1, 'https://alembicdigilabs.com/alcare/gerd_in_pregnancy/', '2026-01-19', '2026-01-20', '2026-01-19 05:49:50', '2026-01-20 10:19:52', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(81, 'Asia Book', 'TV screen', 1, 19, 171, '2026-01-19', 'completed', 1, 3, NULL, '2026-01-19', '2026-01-19', '2026-01-19 05:59:14', '2026-01-19 07:21:00', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(82, 'All India Derma Championship Final Round Winners', 'All India Derma Championship Final Round Winners', 1, 16, 168, '2026-01-21', 'completed', 1, 1, NULL, '2026-01-28', '2026-02-09', '2026-01-19 06:17:03', '2026-02-09 06:21:22', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(83, 'Chhatrapati Shivaji Maharaj Jayanti Flyer', 'Chhatrapati Shivaji Maharaj Jayanti Flyer', 1, 16, 160, '2026-01-23', 'completed', 1, 2, NULL, '2026-02-16', '2026-02-16', '2026-01-19 06:18:04', '2026-02-16 11:07:45', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(84, ' Corazon- Republic Day Video 2026', 'focus brands Rosave, Rosave F, Rosave EZ, Glipy DM & Glipy MET', 2, 57, 173, '2026-01-21', 'completed', 1, 1, NULL, '2026-01-20', '2026-01-21', '2026-01-19 06:52:21', '2026-02-05 10:49:06', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(85, 'Gastron - Republic Day Video 2026', 'Bladmir/Bladmir SGeripod/Geripod D/Geripod M', 2, 57, 172, '2026-01-23', 'completed', 1, 1, 'https://we.tl/t-nN4uxgOtg6', '2026-01-29', '2026-01-29', '2026-01-19 06:54:05', '2026-02-05 10:54:38', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(86, 'Specia - Republic Day Video 2026', 'SITALEMBIC GROUP and All Division Brands', 2, 57, 174, '2026-01-21', 'completed', 1, 1, 'https://we.tl/t-nN4uxgOtg6', '2026-01-20', '2026-01-21', '2026-01-19 07:16:40', '2026-02-05 10:49:33', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(87, 'Specia - Republic Day GIF 2026', 'SITALEMBIC GROUP and All Division Brands', 2, 57, 174, '2026-01-21', 'completed', 1, 1, NULL, '2026-01-19', '2026-01-22', '2026-01-19 07:17:06', '2026-02-05 10:57:28', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(88, 'Corium - Republic day Gif 2026', 'Oryza sensitive', 2, 57, 164, '2026-01-21', 'completed', 1, 1, NULL, '2026-01-19', '2026-01-22', '2026-01-19 07:19:39', '2026-02-05 10:56:51', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(89, 'Esolembic-D Outerbox artwork', 'Esolembic-D Outerbox artwork', 1, 23, 175, '2026-01-20', 'completed', 1, 1, 'https://we.tl/t-Pn7mbqPMIi', '2026-01-20', '2026-01-20', '2026-01-19 07:22:22', '2026-01-20 11:26:21', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(90, 'APD 360 Panorama Wheel Gamification', 'Rekool D, Ulgeraft, Vonofide', 5, 74, 176, '2026-01-29', 'completed', 1, 1, 'https://alembicdigilabs.com/enteron/APD_360_wheel_2026/', '2026-01-28', '2026-01-29', '2026-01-19 09:19:58', '2026-01-29 11:29:54', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(91, 'Rosave Scientific Communication', 'Rosave Scientific Communication', 1, 4, 177, '2026-01-23', 'in_progress', 1, 0, NULL, '2026-01-22', NULL, '2026-01-19 09:34:50', '2026-01-21 18:31:00', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(92, 'Ouron - Republic Day GIF 2026', 'Bladmir/Bladmir SGeripod/Geripod D/Geripod M', 2, 57, 161, '2026-01-23', 'completed', 1, 1, NULL, '2026-01-23', '2026-01-22', '2026-01-19 11:38:55', '2026-02-05 10:56:22', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(93, 'Cardigem- Republic Day Video 2026', 'Cardigem - Republic Day Video 2026', 2, 57, 178, '2026-01-23', 'completed', 1, 1, 'https://we.tl/t-MeBoajjrNg', '2026-01-29', '2026-01-29', '2026-01-19 11:41:04', '2026-01-29 10:54:40', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(94, 'Cardigem - Republic Day Video 2026', 'Glisen SM, Glisen MF, Tellzy H, Rosave Gold ', 2, 54, 178, '2026-01-23', 'completed', 1, 1, NULL, '2026-01-23', '2026-01-22', '2026-01-19 11:41:44', '2026-01-22 11:00:27', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(95, 'Supply Chain Management Team- Award artwork', 'Supply Chain Management Team- Award artwork', 1, 30, 180, '2026-01-20', 'completed', 1, 1, NULL, '2026-01-20', '2026-01-20', '2026-01-19 13:09:15', '2026-01-20 04:58:53', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(96, 'MRs with Highest Productive Calls | Monthly', 'MRs with Highest Productive Calls | Monthly', 1, 16, 184, '2026-01-20', 'completed', 1, 11, NULL, '2026-01-20', '2026-01-20', '2026-01-19 13:10:07', '2026-01-20 02:39:53', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(97, 'SCM Advertisement', 'SCM Advertisement', 1, 30, 185, '2026-01-20', 'completed', 1, 2, NULL, '2026-01-20', '2026-01-20', '2026-01-20 05:17:28', '2026-01-20 06:04:39', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(98, 'MRs with Highest Productive Calls | Weekly', 'MRs with Highest Productive Calls | Weekly', 1, 19, 182, '2026-01-23', 'completed', 1, 16, NULL, '2026-01-27', '2026-01-28', '2026-01-20 05:22:01', '2026-01-28 06:48:25', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(99, 'Subhash Chandra Bose Jayanti', 'Festive Flyer', 1, 12, 190, '2026-01-21', 'completed', 1, 1, NULL, '2026-01-21', '2026-03-11', '2026-01-20 06:52:26', '2026-03-11 09:43:00', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(100, 'Vasant Panchami Greeting', 'Festival flyer', 1, 12, 189, '2026-01-22', 'completed', 1, 1, NULL, '2026-01-28', '2026-01-29', '2026-01-20 06:53:11', '2026-01-29 11:33:07', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(101, 'Timeline Derma product\'s logos', 'banner', 1, 30, 188, '2026-01-21', 'completed', 1, 3, NULL, '2026-01-27', '2026-01-28', '2026-01-20 06:53:58', '2026-01-28 07:08:56', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(102, 'Republic Day Greeting', 'Festival flyer', 1, 12, 192, '2026-01-23', 'completed', 1, 1, NULL, '2026-01-23', '2026-01-23', '2026-01-20 07:23:03', '2026-01-23 09:37:37', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(103, 'Lohri Day Celebration Collage Artwork', 'TV Screens', 1, 30, 181, '2026-01-20', 'completed', 1, 2, NULL, '2026-01-28', '2026-01-28', '2026-01-20 07:24:13', '2026-01-28 08:25:41', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(104, 'PegTears HP Teaser', 'PegTears HP brand re launch scripts', 3, 16, 198, '2026-01-27', 'completed', 1, 2, NULL, '2026-01-19', '2026-01-22', '2026-01-20 09:04:12', '2026-02-03 10:44:19', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(105, 'Gynatrop Rx Pad', 'RX Pad', 1, 5, 199, '2026-01-27', 'completed', 1, 3, NULL, '2026-01-23', '2026-01-22', '2026-01-20 09:21:49', '2026-01-22 11:32:50', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(106, 'Valentine\'s day Photo Framer', 'Nepal Busniess Valentine\'s day link', 5, 74, 179, '2026-02-05', 'completed', 1, 12, 'https://alembicdigilabs.in/nepalbusiness/valentinesday/admin,https://alembicdigilabs.in/nepalbusiness/valentinesday/urdiogem,https://alembicdigilabs.in/nepalbusiness/valentinesday/azithral,https://alembicdigilabs.in/nepalbusiness/valentinesday/oryza,', '2026-01-27', '2026-01-28', '2026-01-20 09:22:17', '2026-01-28 08:44:46', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(107, 'Retailer Gift Box artwork', 'Bax Design', 1, 30, 197, '2026-01-27', 'completed', 1, 1, NULL, '2026-01-23', '2026-01-22', '2026-01-20 09:23:15', '2026-01-22 08:47:25', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(108, 'Dr pad designing', 'RX Pad', 1, 5, 196, '2026-01-23', 'completed', 1, 2, NULL, '2026-01-21', '2026-02-12', '2026-01-20 09:24:37', '2026-02-12 07:24:05', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(109, 'Evaraft Consensus Video', 'Evaraft Consensus Edit Video', 2, 58, 200, '2026-01-23', 'completed', 1, 4, 'https://we.tl/t-wEs1PuLP9z', '2026-01-23', '2026-01-23', '2026-01-20 09:39:31', '2026-01-23 03:38:28', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(110, 'SITALEMBIC D VIDEO', 'Brand Teaser and concept Video', 3, 67, 202, '2026-01-28', 'completed', 1, 2, NULL, '2026-01-27', '2026-01-28', '2026-01-20 09:49:49', '2026-02-05 09:35:53', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(113, 'CLM video for ovigyn Q10', 'ovigyn Q10', 5, 74, 203, '2026-01-23', 'pending', 1, 0, NULL, NULL, NULL, '2026-01-20 10:33:06', '2026-03-11 09:45:39', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(116, 'lbl', 'Standee', 1, 23, 191, '2026-01-20', 'pending', 1, 0, NULL, NULL, NULL, '2026-01-20 10:42:32', '2026-01-20 10:42:37', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(118, 'Republic day video CETANIL Grp', 'CETANIL Grp', 2, 57, 187, '2026-01-21', 'completed', 1, 1, 'https://we.tl/t-dZkNi6RTgu', '2026-01-23', '2026-01-29', '2026-01-20 11:13:12', '2026-02-05 11:01:49', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(119, 'ESTROPLUS VA', 'Visual Aid', 1, 1, 201, '2026-01-30', 'completed', 1, 4, NULL, '2026-01-23', '2026-02-09', '2026-01-20 11:17:36', '2026-02-09 06:20:29', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(120, 'ESTROPLUS VA', 'Proof Check', 3, 16, 201, '2026-01-20', 'completed', 1, 1, NULL, '2026-02-20', '2026-01-21', '2026-01-20 11:18:52', '2026-02-03 10:44:43', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(128, 'Zivolution Theme Launch Doctor Letter', 'Doctor Letter', 1, 4, 208, '2026-01-27', 'in_progress', 1, 0, NULL, '2026-01-27', NULL, '2026-01-21 09:25:48', '2026-01-26 18:31:00', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(129, 'Crina-NCR Megaplex Activity - Indore', 'banner', 1, 19, 209, '2026-01-23', 'completed', 1, 3, NULL, '2026-01-22', '2026-01-22', '2026-01-21 10:54:26', '2026-01-22 06:38:23', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(130, 'Geripod-D Gimmick video', 'Detailing video shoot', 3, 92, 183, '2026-01-22', 'pending', 1, 0, NULL, NULL, NULL, '2026-01-22 04:37:59', '2026-01-22 04:38:20', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(131, 'Republic Day Greetings, from makers of Azithral Solid, Azithral Liquid, Laveta M Solid, Laveta M Liquid.', 'GIF Video', 2, 54, 210, '2026-01-22', 'completed', 1, 1, NULL, '2026-01-22', '2026-01-22', '2026-01-22 04:54:50', '2026-01-22 07:13:03', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(132, 'Enteron FY 2026-27 VA PDF Copy link', 'QR Code', 5, 81, 211, '2026-01-22', 'completed', 1, 1, NULL, '2026-01-22', '2026-01-22', '2026-01-22 04:55:17', '2026-01-22 04:58:14', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(133, 'Megacare_Mono vs bilayer 2026', '2d Animation', 2, 50, 206, '2026-01-28', 'completed', 1, 1, NULL, '2026-01-23', '2026-03-16', '2026-01-22 04:56:23', '2026-03-16 04:24:05', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(134, 'Oryza Ceramax Study Gimmick LBL', 'LBL', 1, 3, 213, '2026-01-30', 'in_progress', 1, 0, NULL, '2026-02-25', NULL, '2026-01-22 04:58:44', '2026-02-25 09:17:06', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(135, 'Medico Marketing Invitation', 'Invite ', 1, 9, 214, '2026-01-27', 'in_progress', 1, 0, NULL, '2026-01-30', NULL, '2026-01-22 05:03:14', '2026-01-29 18:31:00', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(137, 'Republic Day Greetings, from makers of Azithral Solid, Azithral Liquid, Laveta M Solid, Laveta M Liquid.', 'Megacare', 2, 57, 210, '2026-03-17', 'completed', 0, 0, NULL, '2026-01-22', '2026-01-22', '2026-01-22 05:15:13', '2026-03-23 07:01:31', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(138, 'CLM video for ovigyn Q10', 'ovigyn Q10', 2, 54, 203, '2026-01-27', 'completed', 1, 1, 'https://we.tl/t-hsZyHoaGPR', '2026-01-26', '2026-01-28', '2026-01-22 05:25:41', '2026-03-11 09:45:39', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(139, 'Wikoryl AF VA pages FY 26-27', 'VA', 3, 66, 207, '2026-01-27', 'completed', 1, 19, NULL, '2026-01-22', '2026-01-28', '2026-01-22 07:48:12', '2026-02-03 10:45:08', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(140, 'CHCF camp Reminder card', 'Reminder card', 1, 8, 217, '2026-01-23', 'completed', 1, 5, NULL, '2026-01-23', '2026-01-22', '2026-01-22 08:00:11', '2026-01-22 12:22:29', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(141, 'Lanerwin RX Pad artwork and LBL', 'LBL', 1, 15, 218, '2026-01-28', 'completed', 1, 2, NULL, '2026-01-28', '2026-01-29', '2026-01-22 10:38:04', '2026-01-29 08:58:46', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(142, 'Wikoryl Pack shots', 'Packshot', 1, 3, 219, '2026-01-22', 'completed', 1, 1, NULL, '2026-01-22', '2026-01-22', '2026-01-22 11:45:56', '2026-01-22 11:56:42', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(143, 'Souvenir for Megacon 2026', 'Flyer', 1, 16, 223, '2026-01-27', 'completed', 1, 1, NULL, '2026-01-23', '2026-01-23', '2026-01-23 04:48:38', '2026-01-23 08:51:22', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(144, 'Need appreciation and participation certificates', 'Certificate ', 1, 18, 226, '2026-01-27', 'completed', 1, 22, NULL, '2026-01-23', '2026-01-23', '2026-01-23 05:08:17', '2026-01-23 10:38:46', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(145, 'Gastron Republic Day Video', 'Deltone', 2, 57, 230, '2026-01-23', 'completed', 1, 1, 'https://we.tl/t-MeBoajjrNg', '2026-01-23', '2026-01-23', '2026-01-23 05:27:03', '2026-01-23 08:59:37', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(146, 'Cardigem - Glisen SM VA 2026', 'Glisen SM VA', 2, 47, 232, '2026-03-12', 'completed', 1, 1, 'https://we.tl/t-OPn9Om8L5z', '2026-01-28', '2026-03-13', '2026-01-23 05:28:49', '2026-03-13 06:37:19', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(148, 'Artwork for Tetan Tea Coaster', 'Box', 1, 9, 235, '2026-01-27', 'completed', 1, 1, NULL, '2026-01-28', '2026-01-28', '2026-01-23 07:09:25', '2026-01-28 08:29:03', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(149, 'Social Media Post and Interact Mailer for Republic Day', 'Social Post', 1, 16, 236, '2026-01-23', 'completed', 1, 2, NULL, '2026-01-23', '2026-01-23', '2026-01-23 07:28:28', '2026-01-23 08:42:34', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(150, 'Hospicare_Republic Day Video_2026', 'Republic Day Video', 2, 57, 237, '2026-01-23', 'completed', 1, 1, NULL, '2026-01-23', '2026-01-23', '2026-01-23 08:51:52', '2026-01-23 10:22:27', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(151, 'Republic Day Flyer', 'Flyer', 1, 12, 239, '2026-01-23', 'completed', 1, 1, NULL, '2026-01-23', '2026-01-23', '2026-01-23 09:21:42', '2026-01-23 09:38:38', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(152, 'Ouron Loop _Brand Logo Video_2026', 'Bladmir/Bladmir SGeripod/Geripod D/Geripod M', 2, 47, 238, '2026-01-27', 'completed', 1, 1, NULL, '2026-01-23', '2026-01-23', '2026-01-23 09:34:25', '2026-01-23 10:07:11', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(153, 'Leaderboards for Top MRs with Highest Productivity Calls', 'HR', 1, 13, 242, '2026-01-23', 'completed', 1, 16, NULL, '2026-01-27', '2026-01-28', '2026-01-23 13:05:22', '2026-01-28 06:45:34', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(155, 'New Joinees Reference Guide', 'Content modification ', 1, 31, 246, '2026-01-29', 'completed', 1, 13, NULL, '2026-01-29', '2026-01-29', '2026-01-27 09:33:25', '2026-02-03 10:43:09', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(156, 'Crina-NCR Megaplex IVF - BBSR', 'banner', 1, 19, 256, '2026-01-29', 'completed', 1, 1, NULL, '2026-01-28', '2026-01-28', '2026-01-27 09:46:50', '2026-01-28 09:57:58', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(157, 'Standees for Apollo - 13th IPSC Conference', 'Standee', 1, 32, 253, '2026-01-27', 'completed', 1, 2, NULL, '2026-01-28', '2026-01-28', '2026-01-27 09:47:48', '2026-01-28 08:31:20', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(158, 'Azithral', 'Standee', 1, 40, 251, '2026-01-27', 'completed', 1, 2, NULL, '2026-01-27', '2026-01-28', '2026-01-27 09:51:52', '2026-01-28 06:43:18', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(159, 'MR Productive Calls Weekly Leaderboards', 'Weekly Leaderboards', 1, 16, 248, '2026-01-28', 'completed', 1, 16, NULL, '2026-01-28', '2026-01-28', '2026-01-27 09:55:51', '2026-01-28 06:35:51', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(160, 'WOS Detailer', 'Detailer ', 1, 4, 247, '2026-01-29', 'completed', 1, 6, NULL, '2026-01-28', '2026-01-29', '2026-01-27 09:58:32', '2026-01-29 11:26:52', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(161, 'CHCF camp poster', 'Poster', 1, 20, 244, '2026-01-29', 'in_progress', 1, 0, NULL, '2026-01-28', NULL, '2026-01-27 10:01:17', '2026-02-04 06:23:06', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(162, 'Republic Day digital flyer- enteron', ' flyer', 1, 12, 243, '2026-01-27', 'completed', 1, 1, NULL, '2026-01-27', '2026-01-27', '2026-01-27 11:45:57', '2026-01-27 11:48:32', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(163, 'Visual Aid Pages', 'Visual Aids', 1, 1, 229, '2026-02-03', 'completed', 1, 5, NULL, '2026-01-28', '2026-02-18', '2026-01-28 04:20:13', '2026-02-18 04:25:25', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(167, 'Voage S VA Page Design', 'Visual Aid', 1, 1, 240, '2026-01-30', 'completed', 1, 5, NULL, '2026-02-13', '2026-02-18', '2026-01-28 05:03:06', '2026-03-24 11:06:54', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(168, 'Republic Day_Animal Health 2026', 'Festival Video ', 2, 57, 241, '2026-01-28', 'completed', 1, 1, NULL, '2026-01-28', '2026-02-03', '2026-01-28 06:04:40', '2026-02-03 10:34:17', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(169, 'Glisen Visual Aid FY26-27', 'Visual Aid', 1, 1, 228, '2026-02-02', 'completed', 1, 11, NULL, '2026-01-28', '2026-02-18', '2026-01-28 06:20:50', '2026-02-18 09:08:59', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(171, 'Oryza Acne Clear video copy writing', 'Script', 4, 67, 262, '2026-02-06', 'completed', 1, 2, NULL, '2026-02-06', '2026-01-29', '2026-01-28 06:56:57', '2026-02-04 05:22:18', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(173, 'Holi Video_2026_corium ', 'Holi Video', 2, 48, 255, '2026-02-11', 'completed', 1, 1, 'https://we.tl/t-KjXAkThPTv', '2026-02-02', '2026-02-27', '2026-01-28 07:06:05', '2026-02-27 12:14:46', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(174, 'Holi Video', 'Corium Scripts', 3, 69, 255, '2026-02-03', 'completed', 1, 1, NULL, NULL, '2026-02-13', '2026-01-28 07:06:33', '2026-02-13 11:52:19', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(175, 'Invitation letter_2026', 'Invitation letter', 4, 63, 267, '2026-02-04', 'completed', 1, 1, NULL, '2026-01-29', '2026-01-29', '2026-01-28 07:09:27', '2026-01-29 10:03:16', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(176, 'Invitation letter_2026', 'Invitation letter', 4, 63, 267, '2026-02-04', 'completed', 1, 1, NULL, '2026-01-30', '2026-01-30', '2026-01-28 07:09:29', '2026-01-30 04:20:21', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(177, 'Oryza Acne Clear video copy writing', ' copy writing', 4, 67, 262, '2026-02-06', 'completed', 1, 3, NULL, '2026-02-06', '2026-02-06', '2026-01-28 07:13:07', '2026-02-06 05:32:17', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(178, 'Valentine\'s Day - Digital Frame', 'Valentine\'s Day Photo frame', 1, 44, 254, '2026-02-06', 'accepted', 1, 0, NULL, NULL, NULL, '2026-01-28 07:19:56', '2026-02-13 10:23:23', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(179, 'Valentine\'s day link', 'Photo framer', 5, 75, 179, '2026-02-05', 'completed', 1, 6, 'N/A', '2026-01-28', '2026-01-28', '2026-01-28 07:24:05', '2026-01-28 08:43:06', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(180, 'Valentine\'s day link', 'Photo framer', 5, 77, 179, '2026-02-05', 'completed', 1, 3, 'N/A', '2026-01-28', '2026-01-28', '2026-01-28 07:24:30', '2026-01-28 08:41:41', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(181, 'Oryza Ceramax VA ', 'Visual Aid', 1, 1, 263, '2026-02-03', 'completed', 1, 4, NULL, '2026-02-10', '2026-02-11', '2026-01-28 08:05:13', '2026-02-11 12:14:05', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(182, 'Visual Aid Tufehart', 'Visual Aid', 1, 1, 233, '2026-02-04', 'completed', 1, 8, NULL, '2026-01-30', '2026-02-11', '2026-01-28 08:22:08', '2026-02-11 06:56:11', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(184, 'SITALEMBIC D VISUAL AID', 'Visual Aid', 1, 1, 216, '2026-02-03', 'completed', 1, 3, NULL, '2026-02-13', '2026-02-13', '2026-01-28 08:36:14', '2026-02-13 06:34:09', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(185, 'Glisen SM VA FY 26-27', 'Visual Aid', 1, 1, 224, '2026-02-03', 'completed', 1, 6, NULL, '2026-02-13', '2026-02-18', '2026-01-28 08:43:49', '2026-02-18 09:06:32', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(186, 'Wikoryl Liquid VA revamp', 'Visual Aid', 1, 1, 274, '2026-02-06', 'completed', 1, 5, NULL, '2026-01-29', '2026-02-05', '2026-01-28 14:01:54', '2026-02-05 07:20:04', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(187, 'Wikoryl Liquid TRUST the 1st Communication Series', 'LBL', 1, 3, 273, '2026-01-29', 'completed', 1, 7, NULL, '2026-01-29', '2026-02-04', '2026-01-28 14:03:13', '2026-02-04 06:07:34', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(188, 'glass table top', 'Packaging', 1, 23, 268, '2026-03-24', 'completed', 1, 1, NULL, '2026-02-25', '2026-02-25', '2026-01-28 14:05:15', '2026-03-24 10:10:01', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(189, 'Oryza Sensitive FY27 - Revised VA', 'Visual Aid', 1, 1, 252, '2026-02-03', 'completed', 1, 4, NULL, '2026-02-10', '2026-02-25', '2026-01-28 14:06:04', '2026-02-25 03:20:33', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(190, 'Exceraft VA Cover Page', 'Visual Aid', 1, 1, 220, '2026-01-28', 'completed', 1, 2, NULL, '2026-01-29', '2026-02-02', '2026-01-28 14:09:42', '2026-02-02 11:28:34', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(191, 'Visual Aid', 'Visual Aid', 1, 1, 231, '2026-02-02', 'in_progress', 1, 0, NULL, '2026-02-02', NULL, '2026-01-28 14:26:40', '2026-02-02 11:09:16', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(192, 'Aqua FEB 26 CME Banner', 'banner', 1, 38, 266, '2026-02-02', 'completed', 1, 1, NULL, '2026-01-30', '2026-01-29', '2026-01-28 14:27:50', '2026-01-29 11:44:37', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(197, 'AWARENESS AND CELEBRATION DAYS ', 'FEBRUARY 2026', 4, 69, 275, '2026-02-25', 'completed', 1, 3, NULL, '2026-02-02', '2026-02-03', '2026-01-29 06:08:17', '2026-02-03 10:23:46', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(198, 'Grogain MF Visual Aid Page Fy 27 Qtr 1', 'Visual Aid', 1, 1, 278, '2026-02-03', 'completed', 1, 5, NULL, '2026-01-30', '2026-02-05', '2026-01-29 06:52:10', '2026-02-05 05:47:02', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(199, 'Aletol DS Flyer', 'Flyer', 1, 16, 280, '2026-01-30', 'completed', 1, 1, NULL, '2026-02-04', '2026-02-04', '2026-01-29 08:01:50', '2026-02-04 09:39:05', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(200, 'CLOSAL LBL', 'LBL', 1, 3, 279, '2026-02-03', 'completed', 1, 2, NULL, '2026-02-10', '2026-02-09', '2026-01-29 08:17:09', '2026-02-09 10:37:50', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(201, 'New Joiners Reference Guide', 'E Flipbook ', 5, 74, 246, '2026-01-30', 'completed', 1, 1, 'https://alembicdigilabs.com/hr/newjoineeRefguide/', '2026-01-30', '2026-01-30', '2026-01-29 09:42:41', '2026-01-30 07:52:57', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(202, 'AWARENESS AND CELEBRATION DAYS - FEBRUARY 2026', 'Flyer', 1, 12, 286, '2026-02-03', 'completed', 1, 12, NULL, '2026-02-27', '2026-02-16', '2026-01-29 09:43:42', '2026-02-16 05:59:37', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(203, 'Sleeve artwork box', 'Packaging', 1, 23, 285, '2026-02-04', 'completed', 1, 2, NULL, '2026-02-03', '2026-02-03', '2026-01-29 09:49:23', '2026-02-03 03:35:06', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(204, 'GIEP\'26 Invite Flyer', 'Flyer', 1, 12, 284, '2026-02-06', 'completed', 1, 3, NULL, '2026-02-04', '2026-02-04', '2026-01-29 09:51:18', '2026-02-04 05:52:55', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(205, 'Feb Month Festive artwork_Zenovi_2025', 'Zenovi_2025', 4, 69, 264, '2026-02-25', 'completed', 1, 3, NULL, '2026-02-25', '2026-02-10', '2026-01-29 09:54:32', '2026-02-10 08:47:50', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(206, 'Feb Month Festive artwork', 'Zenovi_2025', 4, 69, 264, '2026-02-25', 'completed', 1, 3, NULL, '2026-02-02', '2026-02-06', '2026-01-29 09:54:57', '2026-02-06 04:48:04', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(207, ' AWARENESS AND CELEBRATION DAYS ', 'FEBRUARY 2026', 4, 69, 287, '2026-02-25', 'completed', 1, 6, NULL, '2026-02-25', '2026-02-16', '2026-01-29 09:55:51', '2026-02-16 03:48:16', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(208, ' AWARENESS AND CELEBRATION DAYS ', 'FEBRUARY 2026', 4, 69, 287, '2026-02-25', 'completed', 1, 6, NULL, '2026-02-02', '2026-02-14', '2026-01-29 09:56:18', '2026-02-14 08:41:19', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(209, 'Exceraft 26-27 Videos', 'FEBRUARY 2026', 3, 67, 250, '2026-02-04', 'completed', 1, 4, NULL, NULL, '2026-02-17', '2026-01-29 09:57:47', '2026-02-17 04:47:13', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(210, 'Exceraft 26-27 Videos', 'Video teaser', 3, 67, 250, '2026-02-06', 'completed', 1, 1, NULL, NULL, '2026-02-20', '2026-01-29 09:59:43', '2026-02-20 06:01:38', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(213, 'Visual Aid - Tellzy ', 'Visual Aid', 1, 1, 270, '2026-02-04', 'completed', 1, 4, NULL, '2026-02-06', '2026-02-06', '2026-01-29 11:15:55', '2026-02-06 07:18:21', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(214, 'Rekool D Motivation Video', 'Motivational Video ', 3, 67, 293, '2026-02-10', 'completed', 1, 1, NULL, NULL, '2026-02-14', '2026-01-29 11:32:55', '2026-02-14 08:42:32', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(215, 'Rekool D 2026 ', 'Motivation Video/teaser video ', 3, 67, 293, '2026-02-10', 'completed', 1, 5, NULL, NULL, '2026-02-06', '2026-01-29 11:33:29', '2026-02-06 05:28:35', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(216, 'Cataract Post Operation Care Instructions Leaflet', 'Leaflet', 1, 15, 288, '2026-02-03', 'completed', 1, 2, NULL, '2026-02-03', '2026-02-09', '2026-01-29 13:40:34', '2026-02-09 04:58:32', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(217, 'BE Free Campaign', 'Flyer content ', 4, 59, 292, '2026-03-31', 'completed', 1, 1, NULL, '2026-02-02', '2026-03-02', '2026-01-30 02:52:06', '2026-03-02 09:25:29', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(218, 'Video editing for HR', 'HR', 2, 58, 295, '2026-01-30', 'completed', 1, 1, 'https://we.tl/t-RHbA8dfrnm', '2026-01-30', '2026-01-30', '2026-01-30 04:02:11', '2026-01-30 04:23:02', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(219, 'Brozeet LS - I-pad engagement 26-27', 'Brozeet LS ', 2, 46, 296, '2026-02-18', 'completed', 1, 1, 'https://we.tl/t-VZqWtzdtVi', '2026-02-17', '2026-02-25', '2026-01-30 04:46:18', '2026-02-25 03:05:22', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(220, 'Unigolix  200mg pack photo shoot', 'Packshot for modern trade ', 5, 95, 298, NULL, 'completed', 1, 1, NULL, '2026-01-30', '2026-01-30', '2026-01-30 05:13:21', '2026-02-03 10:43:30', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(221, 'Gift box artwork', 'Packing ', 1, 23, 294, '2026-01-30', 'completed', 1, 1, NULL, '2026-01-30', '2026-01-30', '2026-01-30 05:17:10', '2026-01-30 06:41:10', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(222, 'Gift box artwork', 'Packing ', 1, 23, 294, '2026-01-30', 'pending', 0, 0, NULL, NULL, NULL, '2026-01-30 05:17:21', '2026-01-30 05:17:21', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(223, 'World Cancer Day Awareness Greeting', 'Digital Flyer ', 1, 12, 291, '2026-02-04', 'completed', 1, 1, NULL, '2026-02-03', '2026-02-03', '2026-01-30 05:19:21', '2026-02-03 10:01:15', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(224, 'World Cancer Day Awareness Greeting', 'Digital Flyer ', 1, 12, 291, '2026-02-04', 'completed', 1, 1, NULL, '2026-02-03', '2026-02-03', '2026-01-30 05:19:22', '2026-02-03 10:01:32', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(225, 'VISUAL AID PAGE OF RUMIGEST', 'Visual Aid', 1, 1, 283, '2026-02-02', 'completed', 1, 7, NULL, '2026-01-30', '2026-01-30', '2026-01-30 05:20:41', '2026-01-30 05:38:53', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(227, 'VISUAL AID PAGE OF RUMIGEST', 'Visual Aid', 1, 1, 283, '2026-02-02', 'completed', 1, 4, NULL, '2026-02-10', '2026-02-10', '2026-01-30 05:20:45', '2026-02-10 08:54:25', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(228, 'Cetanil T VA Specia', 'Visual Aid', 1, 1, 222, '2026-02-04', 'completed', 1, 9, NULL, '2026-01-30', '2026-02-05', '2026-01-30 05:23:43', '2026-02-05 05:51:20', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(229, 'Cetanil Trio VA copy', 'Visual Aid', 1, 1, 221, '2026-02-04', 'completed', 1, 2, NULL, '2026-02-02', '2026-02-05', '2026-01-30 05:36:08', '2026-02-05 05:53:45', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(230, 'BE WEBINAR TRAINING', 'WEBINAR TRAINING', 5, 58, 301, '2026-01-30', 'completed', 1, 1, 'test', '2026-02-02', '2026-02-02', '2026-01-30 06:34:52', '2026-02-03 10:43:52', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(231, 'Esolembic-D New VA Page- GP ', 'Visual Aid', 3, 66, 305, '2026-02-05', 'completed', 1, 3, 'https://docs.google.com/document/d/1nto0YYkAU8Lcr4WRlCq45SuUUdK6ABq_ADXduWC_mhs/edit?tab=t.0', '2026-02-04', '2026-02-04', '2026-01-30 08:24:21', '2026-02-04 10:44:27', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(232, 'Esolembic-D New VA Page- GP ', 'Visual Aid', 1, 1, 305, '2026-02-05', 'pending', 1, 0, NULL, NULL, NULL, '2026-01-30 08:25:01', '2026-02-01 14:31:01', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(234, 'RUMIGEST LBL', 'LBL', 1, 3, 302, '2026-02-03', 'completed', 1, 4, 'https://sendgb.com/mCrMWXAg3eP', '2026-01-30', '2026-01-30', '2026-01-30 10:04:03', '2026-01-30 11:19:18', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(235, 'Tellzy CH V.A 2027', 'Visual Aid', 1, 1, 282, '2026-02-04', 'completed', 1, 3, NULL, '2026-01-30', '2026-01-30', '2026-01-30 10:04:51', '2026-01-30 14:09:26', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(236, 'Exceraft VA Cover Page', 'Visual Aid', 3, 66, 220, '2026-02-05', 'completed', 1, 4, 'https://docs.google.com/document/d/1gDhECQN6nGcW-XhIj-nLsA-N1xSqrfz4A-18N-z3hVY/edit?tab=t.0', '2026-02-04', '2026-02-04', '2026-01-30 10:10:20', '2026-02-04 10:43:40', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(238, 'GIEP Program Note Pad', 'Invitation', 1, 22, 290, '2026-03-25', 'completed', 1, 2, NULL, '2026-03-25', '2026-03-25', '2026-01-30 12:45:37', '2026-03-25 07:31:53', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(239, 'RUMIGEST RX PAD', 'RX PAD', 1, 5, 303, '2026-02-05', 'completed', 1, 4, NULL, '2026-02-12', '2026-02-13', '2026-02-01 07:18:21', '2026-02-13 11:22:46', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(240, 'VA re-designing', 'Visual Aid', 1, 1, 281, '2026-02-06', 'completed', 1, 4, NULL, '2026-02-11', '2026-02-11', '2026-02-01 07:20:22', '2026-02-11 12:19:03', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(241, 'TELLZY MT VA', 'Visual Aid', 1, 1, 272, '2026-02-06', 'completed', 1, 10, NULL, '2026-02-02', '2026-02-05', '2026-02-01 07:21:39', '2026-02-05 07:23:10', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(242, 'Oryza Ceramax Study Flyers', 'Flyer', 1, 16, 212, '2026-02-09', 'completed', 1, 7, NULL, '2026-02-25', '2026-02-27', '2026-02-01 07:23:07', '2026-02-27 05:29:06', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(243, 'Oryza Acne Clear VA re-designing', 'Visual Aid', 1, 1, 215, '2026-02-09', 'completed', 1, 4, NULL, '2026-02-10', '2026-02-11', '2026-02-01 07:23:48', '2026-02-11 12:16:24', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(244, 'Slab Input Design', 'Leaflet', 1, 15, 304, '2026-02-04', 'completed', 1, 1, NULL, '2026-02-04', '2026-02-03', '2026-02-01 07:26:12', '2026-02-03 06:17:18', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(245, 'Esolembic-D New VA Page- GP ', 'Visual Aid', 1, 1, 305, '2026-02-05', 'pending', 1, 0, NULL, NULL, NULL, '2026-02-01 14:30:57', '2026-02-01 14:31:01', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(246, 'Kolkata Poultry fair 2026', 'Invitation card ', 1, 22, 309, '2026-02-03', 'completed', 1, 1, NULL, '2026-02-02', '2026-02-03', '2026-02-02 03:18:31', '2026-02-03 04:43:29', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(256, 'Visual Aid Q-2 All focus 10 Brand with Non Focus Brand', 'Visual Aid', 1, 1, 276, '2026-02-06', 'completed', 1, 50, NULL, '2026-02-20', '2026-03-16', '2026-02-02 10:33:27', '2026-03-16 11:36:38', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(257, 'Visual Aid', 'Visual Aid', 1, 1, 231, '2026-02-04', 'completed', 1, 12, NULL, '2026-02-02', '2026-02-02', '2026-02-02 11:09:13', '2026-02-02 11:30:23', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(258, 'Zara Nachke Dikha', 'Flyer', 1, 16, 313, '2026-02-03', 'completed', 1, 11, NULL, '2026-02-03', '2026-03-05', '2026-02-02 11:10:01', '2026-03-05 04:54:53', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(259, 'Gastron RCPA Card', 'RCPA Card', 1, 6, 315, '2026-02-05', 'completed', 1, 1, NULL, '2026-02-03', '2026-02-03', '2026-02-02 11:12:39', '2026-02-03 09:07:42', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(260, 'Advert for Tripura Conference', 'Leaflet', 1, 15, 312, '2026-02-02', 'completed', 1, 1, NULL, '2026-02-05', '2026-02-05', '2026-02-02 11:18:13', '2026-02-05 05:55:57', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(261, 'Donance LBL', 'LBL', 1, 3, 299, '2026-02-03', 'completed', 1, 4, NULL, '2026-02-03', '2026-02-03', '2026-02-02 12:37:45', '2026-02-03 04:21:35', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(262, 'HD Photo of a India Book of record certificate', 'Photoshoot and edit', 3, 95, 306, '2026-02-02', 'completed', 1, 1, NULL, '2026-02-02', '2026-02-05', '2026-02-02 12:37:55', '2026-02-05 06:24:26', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(264, 'Wikoryl Liquid VA revamp', 'Visual Aid', 1, 1, 274, '2026-02-06', 'completed', 1, 5, NULL, '2026-02-13', '2026-02-18', '2026-02-02 18:45:48', '2026-02-18 09:09:41', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(265, 'Uncle G Video Series', 'Geripod Series', 2, 49, 314, '2026-02-06', 'completed', 1, 1, 'https://we.tl/t-Ps5iTT9cKL', '2026-02-05', '2026-02-12', '2026-02-03 04:22:41', '2026-02-12 11:11:04', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(270, 'Tufehart - Catching It Early', 'Brand Teaser and concept Video', 2, 49, 326, '2026-02-05', 'completed', 1, 1, 'https://we.tl/t-SRU5VYjVEq', '2026-02-04', '2026-02-04', '2026-02-04 04:47:51', '2026-02-04 05:04:46', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(271, 'Grogain Pro VA page design', 'Visual Aid', 1, 1, 321, '2026-02-06', 'completed', 1, 1, NULL, '2026-02-04', '2026-02-06', '2026-02-04 04:47:58', '2026-02-06 11:51:43', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(272, 'Grogain Pro VA page design', 'Visual Aid', 1, 1, 321, '2026-02-06', 'completed', 1, 1, NULL, '2026-02-04', '2026-02-06', '2026-02-04 04:47:59', '2026-02-06 11:52:09', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(273, 'Tufehart -The Baggage', 'Brand Teaser and concept Video', 2, 49, 326, '2026-02-05', 'completed', 1, 1, 'https://we.tl/t-dZkNi6RTgu', '2026-02-04', '2026-02-04', '2026-02-04 04:49:08', '2026-02-04 07:20:40', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(274, 'Tufehart -TufeHart to the Rescue', 'Brand Teaser and concept Video', 2, 49, 326, '2026-02-05', 'completed', 1, 1, 'https://we.tl/t-HybqBBqyzr', '2026-02-04', '2026-02-04', '2026-02-04 04:49:36', '2026-02-04 05:07:00', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(275, 'Tufehart-The Floaty', 'Brand Teaser and concept Video', 2, 49, 326, '2026-02-05', 'completed', 1, 1, 'https://we.tl/t-HybqBBqyzr', '2026-02-04', '2026-02-04', '2026-02-04 04:50:10', '2026-02-04 05:07:28', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(276, 'PetAL VA 2026 (New Pages)', 'Visual Aid', 1, 1, 277, '2026-02-13', 'completed', 1, 47, NULL, '2026-02-06', '2026-02-16', '2026-02-04 04:55:53', '2026-02-16 05:18:21', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(277, 'Oryza Acne Clear Brand Awerness Campgain_Jan_2026 ', 'Brand Awerness Campgain', 2, 48, 262, '2026-02-04', 'completed', 1, 1, NULL, '2026-02-04', '2026-02-05', '2026-02-04 04:56:14', '2026-02-05 10:40:38', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(278, 'Oryza Acne Clear_Acne clear – Option 2_2026', 'Brand Teaser and concept Video', 2, 49, 262, '2026-02-05', 'completed', 1, 1, NULL, '2026-02-04', '2026-02-05', '2026-02-04 05:14:35', '2026-02-05 10:41:15', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(279, 'Oryza Acne Clear - Jackpot for Sensitized Skin_2026', 'Brand Teaser and concept Video', 2, 49, 262, '2026-02-04', 'completed', 1, 1, 'https://we.tl/t-boK6TSeVF2', '2026-02-04', '2026-02-04', '2026-02-04 05:16:48', '2026-02-04 10:56:14', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(280, 'Oryza Acne Clear_Trusted partner in skincare_2026', 'Brand Teaser and concept Video', 2, 46, 262, '2026-02-05', 'completed', 1, 1, 'https://we.tl/t-Mhfn84e1bY', '2026-02-05', '2026-02-12', '2026-02-04 05:18:27', '2026-02-12 05:44:02', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(281, 'Oryza Acne Clear video_Orzyza Ceramax- Pop those issues_2026', 'Brand Teaser and concept Video', 2, 49, 262, '2026-02-04', 'completed', 1, 1, 'https://we.tl/t-wstPr4e5qS', '2026-02-04', '2026-02-19', '2026-02-04 05:19:24', '2026-02-19 10:50:21', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(282, 'Oryza Acne Clear video_Finding the right Oryza match.', 'Brand Teaser and concept Video', 2, 46, 262, '2026-02-05', 'completed', 1, 1, 'https://we.tl/t-5wtCDlffIz', '2026-02-04', '2026-02-10', '2026-02-04 05:19:57', '2026-02-10 10:28:46', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(283, 'Oryza Acne Clear Valentines Day_Feb_2026', 'Brand Teaser and concept Video', 2, 57, 262, '2026-02-06', 'completed', 1, 1, 'https://we.tl/t-rXT1ZvZXFu', '2026-02-04', '2026-02-09', '2026-02-04 05:20:50', '2026-02-09 11:12:31', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(284, 'Sample Dispenser Artwork', 'Packaging', 1, 23, 330, '2026-02-06', 'completed', 1, 3, NULL, '2026-02-04', '2026-03-10', '2026-02-04 05:25:21', '2026-03-10 10:16:35', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(285, 'Conference Banner Changes Gastron', 'banner', 1, 38, 329, '2026-02-05', 'completed', 1, 3, NULL, '2026-02-04', '2026-02-04', '2026-02-04 05:25:53', '2026-02-04 12:59:19', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(286, 'Rosave EZ - VA FY 26-27', 'Visual Aid', 1, 1, 323, '2026-02-10', 'completed', 1, 5, NULL, '2026-02-11', '2026-02-18', '2026-02-04 05:26:26', '2026-02-18 04:28:43', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(287, 'TELLZY AM SURVEY LBL', 'LBL', 1, 3, 320, '2026-02-06', 'completed', 1, 1, NULL, '2026-02-06', '2026-02-09', '2026-02-04 05:27:12', '2026-02-09 04:45:21', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(288, 'Anemia Awarness day 13th Feb', 'Photo Frame', 1, 44, 327, NULL, 'completed', 1, 1, NULL, NULL, '2026-02-17', '2026-02-04 05:56:32', '2026-02-17 12:46:27', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(289, 'PegTears HP Cycle Meeting_2026', 'Cycle Meeting Campgain', 4, 67, 325, '2026-02-26', 'completed', 1, 5, NULL, '2026-02-26', '2026-02-23', '2026-02-04 06:04:56', '2026-02-23 10:15:29', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(290, 'PegTears HP Cycle Meeting_2026', 'Brand Teaser and concept Video', 4, 67, 325, '2026-02-26', 'completed', 1, 1, NULL, '2026-02-23', '2026-02-23', '2026-02-04 06:05:15', '2026-02-23 09:13:34', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(291, 'CHCF camp poster', 'Poster', 1, 20, 244, '2026-02-04', 'completed', 1, 8, NULL, '2026-02-06', '2026-02-06', '2026-02-04 06:23:03', '2026-02-06 07:15:53', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(292, 'Doctor\'s Appreciation Collage', 'TV Screens', 1, 20, 333, '2026-02-04', 'completed', 1, 3, NULL, '2026-02-04', '2026-02-04', '2026-02-04 06:24:34', '2026-02-04 08:42:58', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(293, 'Eyecare portfolio banner', 'banner', 1, 38, 336, '2026-02-06', 'completed', 1, 2, NULL, '2026-02-05', '2026-02-09', '2026-02-04 06:31:02', '2026-02-09 04:48:52', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(294, 'Ulgeraft LBL 1', 'LBL', 1, 3, 339, '2026-02-06', 'completed', 1, 1, NULL, '2026-02-05', '2026-02-06', '2026-02-04 09:28:20', '2026-02-06 10:52:23', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(295, 'Digital Eye strain artwork', 'Label', 1, 23, 331, '2026-02-06', 'completed', 1, 2, NULL, '2026-02-05', '2026-02-09', '2026-02-04 09:50:20', '2026-02-09 04:40:49', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(296, 'QR CODE GENERATION', 'QR Code', 5, 89, 341, '2026-02-04', 'completed', 1, 1, NULL, '2026-02-13', '2026-02-13', '2026-02-04 09:57:20', '2026-02-13 10:43:15', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(297, 'Animation in Wikoryl Liquid VA', 'VA Pages ', 2, 53, 343, '2026-02-06', 'completed', 1, 1, 'https://we.tl/t-aqmGfOF2PZ', '2026-02-06', '2026-02-27', '2026-02-04 10:29:08', '2026-02-27 07:36:57', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(298, 'Social Media Post for World Cancer Day', 'Social Post', 1, 19, 338, '2026-02-04', 'pending', 1, 0, NULL, NULL, NULL, '2026-02-04 10:41:19', '2026-02-04 10:42:02', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(299, 'Social Media Post for World Cancer Day', 'TV screen', 1, 13, 338, '2026-02-04', 'completed', 1, 1, NULL, '2026-02-04', '2026-02-04', '2026-02-04 10:42:00', '2026-02-04 10:57:59', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(300, 'Lactonic and Livfit Standee', 'Standee', 1, 40, 344, '2026-02-09', 'completed', 1, 2, NULL, '2026-02-06', '2026-02-10', '2026-02-05 04:23:17', '2026-02-10 04:27:55', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(301, 'Gestofit VA', 'Visual Aid', 1, 1, 340, '2026-03-13', 'completed', 1, 9, NULL, '2026-03-13', '2026-03-13', '2026-02-05 04:24:49', '2026-03-13 12:28:40', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(302, 'Sikkim Plant Certificate TV', 'TV screen', 1, 13, 334, '2026-02-05', 'completed', 1, 1, NULL, '2026-02-05', '2026-02-05', '2026-02-05 04:45:24', '2026-02-05 10:34:14', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(303, 'Budget meeting - Diary Artwork', 'Diary', 1, 32, 316, '2026-02-10', 'completed', 1, 34, NULL, '2026-02-05', '2026-02-06', '2026-02-05 04:46:46', '2026-02-06 12:35:32', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(304, 'Horizontal A5 size artwork 500 crore celebrations', 'Flyer', 1, 16, 348, '2026-02-05', 'completed', 1, 1, NULL, '2026-02-05', '2026-02-05', '2026-02-05 06:16:53', '2026-02-05 13:12:41', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(305, 'TZH KOL Byte FEB 2026', 'TZH KOL ', 2, 58, 347, '2026-02-06', 'completed', 1, 1, 'https://we.tl/t-21IowHom1E', '2026-02-05', '2026-02-05', '2026-02-05 06:31:39', '2026-02-05 09:58:49', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(306, 'Rekool D CLM Campgain_2026', 'Rekool D CLM', 3, 67, 342, '2026-02-26', 'completed', 1, 5, NULL, '2026-02-25', '2026-02-25', '2026-02-05 06:32:45', '2026-02-25 04:25:07', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(308, 'Rekool D 3d Packshot Creation ', '3d Packshot Creation ', 2, 52, 342, '2026-02-05', 'completed', 1, 1, NULL, '2026-02-05', '2026-02-05', '2026-02-05 06:34:51', '2026-02-05 09:55:33', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(309, 'Rekool D CLM Video Campgain_Brand Communication', 'Brand Teaser and concept Video', 2, 49, 342, '2026-02-06', 'completed', 1, 1, 'https://we.tl/t-f1qZLDyioI', '2026-02-09', '2026-02-12', '2026-02-05 06:36:19', '2026-02-12 05:17:18', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(311, 'Wikoryl Brand Videos Series 2026', 'manufacturing videos', 2, 49, 345, '2026-02-05', 'completed', 1, 1, 'https://we.tl/t-48sVjYMXvC', '2026-02-05', '2026-02-05', '2026-02-05 07:12:22', '2026-02-05 09:28:24', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(312, 'Wikoryl Brand Videos Series 2026', 'Brand Teaser and concept Video', 2, 49, 345, '2026-02-13', 'pending', 1, 0, NULL, NULL, NULL, '2026-02-05 07:12:40', '2026-02-05 07:16:12', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(313, 'Wikoryl Brand Videos Series 2026', 'Brand Teaser and concept Video', 2, 49, 345, '2026-02-13', 'completed', 1, 1, 'https://we.tl/t-ALaAcgxynH', '2026-02-06', '2026-02-06', '2026-02-05 07:13:49', '2026-02-06 05:00:10', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(314, 'Clostop SRX LBL Issue 1', 'LBL', 1, 3, 350, '2026-02-11', 'completed', 1, 2, NULL, '2026-02-16', '2026-02-16', '2026-02-05 13:24:14', '2026-02-16 05:35:32', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(315, 'Clostop SRX LBL Issue 1', 'LBL', 3, 72, 350, '2026-02-09', 'completed', 1, 0, NULL, '2026-02-06', '2026-02-06', '2026-02-05 13:24:52', '2026-02-06 06:09:50', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(316, 'Box Artwork', 'Packaging', 1, 23, 351, '2026-02-11', 'completed', 1, 4, NULL, '2026-02-06', '2026-02-18', '2026-02-05 13:25:34', '2026-02-18 04:17:21', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(317, 'standee recreation/reformatting', 'Standee ', 1, 40, 353, '2026-02-11', 'completed', 1, 4, NULL, '2026-02-10', '2026-02-11', '2026-02-06 04:10:19', '2026-02-11 06:56:47', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(318, 'National Deworming Day Greeting', 'Festive Card', 1, 12, 352, '2026-02-06', 'completed', 1, 1, NULL, '2026-02-06', '2026-02-06', '2026-02-06 04:11:42', '2026-02-06 08:32:12', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(319, 'Glisen Reminder Card', 'Reminder Card', 1, 8, 349, '2026-02-09', 'completed', 1, 2, NULL, '2026-02-09', '2026-02-23', '2026-02-06 04:12:32', '2026-02-23 13:48:20', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(320, 'GPTW Social Media and TV artwork', 'HO creative ', 1, 13, 335, '2026-02-06', 'completed', 1, 2, NULL, '2026-02-06', '2026-02-06', '2026-02-06 04:15:25', '2026-02-06 08:36:58', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(321, 'SCM Award Artwork', 'TV screen ', 1, 13, 332, '2026-02-06', 'completed', 1, 1, NULL, '2026-02-06', '2026-02-06', '2026-02-06 04:16:20', '2026-02-06 08:34:06', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(322, 'Zivemp-SM Whatsapp Sticker', 'WhatsApp Sticker ', 1, 13, 322, '2026-02-11', 'completed', 1, 2, NULL, '2026-02-09', '2026-02-09', '2026-02-06 04:17:29', '2026-02-09 08:48:25', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(323, 'Visual Aid Pages', 'VA files', 1, 1, 249, '2026-02-06', 'pending', 1, 0, NULL, NULL, NULL, '2026-02-06 04:18:55', '2026-02-06 04:19:00', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(324, 'DIVISION LOGO DEVELOPMENT', 'Logo Design ', 1, 25, 317, '2026-02-10', 'completed', 1, 1, NULL, '2026-02-09', '2026-02-18', '2026-02-06 04:23:33', '2026-02-18 09:10:43', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(325, 'Valentine\'s day frame', 'Frame', 1, 9, 328, '2026-02-06', 'completed', 1, 1, NULL, '2026-02-06', '2026-02-12', '2026-02-06 05:03:29', '2026-02-12 07:24:38', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(326, 'Travisight- PF Brand Anniversary_2026', 'Brand Anniversary', 4, 67, 354, '2026-02-09', 'completed', 1, 1, NULL, '2026-02-06', '2026-02-14', '2026-02-06 05:37:58', '2026-02-14 08:43:52', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(328, 'AQI Opener_2026', 'Laveta_video AQI', 3, 68, 205, '2026-02-12', 'completed', 1, 7, NULL, '2026-02-12', '2026-02-10', '2026-02-06 05:46:24', '2026-02-10 08:53:44', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(329, 'Uncle G Video Series', 'Brand Teaser and concept Video', 3, 67, 314, '2026-02-06', 'completed', 1, 3, NULL, '2026-02-06', '2026-02-06', '2026-02-06 05:48:38', '2026-02-06 05:54:23', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(330, 'Travisight-PF Brand Anniversary Video', '1 years Anniversary Video', 2, 45, 355, '2026-02-10', 'completed', 1, 1, 'https://we.tl/t-2LcFJuPqik', '2026-02-11', '2026-02-11', '2026-02-06 05:52:49', '2026-02-11 05:26:44', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(331, 'Megacare_ Feb_ festival_2026', 'Brand Teaser and concept Video', 3, 67, 358, '2026-02-25', 'completed', 1, 7, NULL, '2026-02-09', '2026-02-27', '2026-02-06 06:22:40', '2026-02-27 05:56:11', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(332, 'Roxid Inclinic Hand Sanitizer', 'Packaging', 1, 23, 356, '2026-02-10', 'completed', 1, 1, NULL, '2026-02-06', '2026-02-09', '2026-02-06 06:43:05', '2026-02-09 06:43:29', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(333, 'RESYNC PLUS LOGO AND PACK SHOT', ' LOGO AND PACK SHOT', 1, 25, 319, '2026-02-09', 'completed', 1, 2, NULL, '2026-02-16', '2026-02-18', '2026-02-06 06:44:20', '2026-02-18 09:31:29', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(334, 'Megacare_ Artwork_Feb_ festival_2026', 'Greetings for the upcoming Festives', 1, 12, 358, '2026-03-31', 'completed', 1, 7, NULL, '2026-02-26', '2026-03-24', '2026-02-06 07:02:08', '2026-03-24 04:52:06', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(335, 'Box Artwork', 'Packaging', 1, 23, 359, '2026-02-09', 'completed', 1, 2, NULL, '2026-02-09', '2026-02-18', '2026-02-06 10:33:20', '2026-02-18 04:15:34', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(338, 'Richar CR HB Camp Thank you Card A5', 'Card', 1, 21, 368, '2026-02-11', 'completed', 1, 1, NULL, '2026-02-11', '2026-02-11', '2026-02-09 04:23:07', '2026-02-11 06:55:20', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(339, 'All India Derma Championship Certificates ', 'certificates', 1, 18, 318, '2026-02-09', 'completed', 1, 12, NULL, '2026-02-09', '2026-02-09', '2026-02-09 04:24:37', '2026-02-09 06:41:11', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(340, 'RESYNC PLUS LOGO AND PACK SHOT', 'logo', 1, 25, 319, '2026-02-09', 'completed', 1, 6, NULL, '2026-02-09', '2026-02-11', '2026-02-09 04:32:43', '2026-02-11 06:19:28', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(341, 'Valentine\'s Day - Digital Frame ', 'Digital Frame ', 4, 89, 254, '2026-02-09', 'completed', 1, 3, 'https://alembicdigilabs.com/corium/valentine_day_2026/index.php', '2026-02-09', '2026-02-09', '2026-02-09 04:57:02', '2026-02-13 10:23:23', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(343, 'LBL design required', 'LBL', 1, 3, 373, '2026-02-11', 'completed', 1, 4, NULL, '2026-02-09', '2026-02-16', '2026-02-09 05:52:03', '2026-02-16 12:46:17', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(344, 'World Anaemia Awareness Digital Activity', 'Digital Activity HTML', 4, 74, 360, '2026-02-09', 'completed', 1, 3, NULL, '2026-02-09', '2026-02-10', '2026-02-09 06:17:21', '2026-02-10 05:30:04', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(345, ' Box Artwork for Cloff', 'Packing ', 1, 23, 376, '2026-02-11', 'completed', 1, 1, NULL, '2026-02-12', '2026-02-18', '2026-02-10 01:26:10', '2026-02-18 09:10:20', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(346, 'Vaccine book modification', 'Booklet ', 1, 15, 372, '2026-02-10', 'completed', 1, 4, NULL, '2026-02-12', '2026-02-12', '2026-02-10 01:28:27', '2026-02-12 10:03:37', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(347, 'Grogain Pro VA page', 'Visual Aid', 1, 1, 370, '2026-02-11', 'in_progress', 1, 0, NULL, '2026-02-10', NULL, '2026-02-10 01:30:17', '2026-02-13 06:04:18', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(348, 'Best Camp - Artwork', 'Flyer ', 1, 16, 367, '2026-02-10', 'completed', 1, 2, NULL, '2026-02-10', '2026-02-10', '2026-02-10 01:33:44', '2026-02-10 13:03:40', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(349, 'Lactonic LBL ', 'LBL', 1, 3, 363, '2026-02-12', 'completed', 1, 6, NULL, '2026-02-12', '2026-02-24', '2026-02-10 01:35:38', '2026-02-24 07:37:22', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(350, 'visual AID sheet for ASCAL GEL ADVANCE', 'Visual Aid', 1, 1, 371, '2026-02-11', 'completed', 1, 8, NULL, '2026-03-10', '2026-03-10', '2026-02-10 03:50:43', '2026-03-10 07:28:03', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(351, 'BOX ARTWORK DESIGN ', 'Packaging ', 1, 23, 362, '2026-02-11', 'completed', 1, 1, NULL, '2026-02-10', '2026-02-11', '2026-02-10 04:15:05', '2026-02-11 03:53:53', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(357, 'Lasik and Contact Lens Education Series ', 'Info writeup for field', 3, 66, 364, '2026-02-27', 'completed', 1, 4, NULL, '2026-02-12', '2026-02-14', '2026-02-10 07:24:30', '2026-02-14 08:35:28', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(358, 'Need certificate of participation and appreciation ', 'certificates', 1, 18, 399, '2026-02-12', 'completed', 1, 2, NULL, '2026-02-11', '2026-02-11', '2026-02-10 09:32:24', '2026-02-11 10:18:54', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(360, 'festive greeting for Mahashivratri  ', 'Festival flyer', 1, 12, 401, '2026-02-12', 'completed', 1, 4, NULL, '2026-02-11', '2026-02-11', '2026-02-10 09:49:44', '2026-02-11 12:30:47', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(361, 'Chhatrapati Shivaji Maharaj Jayanti Greeting', 'Festival flyer', 1, 12, 402, '2026-02-12', 'completed', 1, 1, NULL, '2026-02-18', '2026-02-18', '2026-02-10 09:50:17', '2026-02-18 05:08:38', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(366, 'Crina-NCR Megaplex - Lucknow Dr Rati', 'banner', 1, 19, 375, '2026-02-12', 'completed', 1, 3, NULL, '2026-02-12', '2026-02-16', '2026-02-11 07:32:28', '2026-02-16 05:18:37', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(367, 'Chemist Stationery Kit Artwork - Cardigem Division ', 'Packaging', 1, 23, 412, '2026-02-13', 'completed', 1, 2, NULL, '2026-02-13', '2026-02-18', '2026-02-11 08:01:47', '2026-02-18 04:18:58', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(368, 'Visual aid design', 'Visual Aid', 1, 1, 405, '2026-02-16', 'completed', 1, 6, NULL, '2026-03-10', '2026-03-10', '2026-02-11 08:03:07', '2026-03-10 07:30:25', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(369, 'Khurak video artwork', 'Visual Aid', 1, 1, 395, '2026-02-13', 'completed', 1, 1, NULL, '2026-02-19', '2026-02-19', '2026-02-11 09:58:52', '2026-02-19 10:28:44', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(370, 'Alvite M- Fat Mobilization', 'Brand Teaser and concept Video', 2, 46, 384, '2026-02-16', 'completed', 1, 1, 'https://we.tl/t-jEQdzzxmcY', '2026-02-12', '2026-02-17', '2026-02-12 04:48:08', '2026-02-17 09:52:14', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(371, 'Hospicare budget meeting ', 'Video Creation ', 3, 67, 406, '2026-02-16', 'completed', 1, 1, NULL, '2026-02-16', '2026-02-17', '2026-02-12 04:54:02', '2026-02-23 05:23:27', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(372, 'Rosave EZ- Expert Opinion Series', 'Video Creation ', 2, 58, 377, '2026-02-12', 'completed', 1, 1, NULL, '2026-02-12', '2026-02-12', '2026-02-12 05:05:07', '2026-02-12 05:34:54', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(373, 'APL', 'Brand Teaser and concept Video', 2, 48, 422, '2026-02-12', 'completed', 1, 1, 'https://we.tl/t-nW1tSJu5Va', '2026-02-12', '2026-02-12', '2026-02-12 05:26:07', '2026-02-12 05:42:40', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(379, 'IV Fluid ', 'Ad', 1, 15, 427, '2026-02-12', 'completed', 1, 1, NULL, '2026-02-12', '2026-02-12', '2026-02-12 07:36:48', '2026-02-12 11:36:37', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(380, 'Cardigem Diabetes and Hypertension Standee', 'Standee', 1, 40, 428, '2026-02-12', 'completed', 1, 2, NULL, '2026-02-12', '2026-02-12', '2026-02-12 07:38:24', '2026-02-12 11:16:56', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(381, 'Shivaji Jayanti Flyer', 'Festival flyer', 1, 12, 404, '2026-02-16', 'completed', 1, 1, NULL, '2026-02-17', '2026-02-16', '2026-02-12 07:57:15', '2026-02-16 11:09:20', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(382, 'BUDGET MEETING THEME ', 'Fleshing out the theme as a video introduction', 3, 67, 392, '2026-02-18', 'completed', 1, 1, NULL, '2026-02-19', '2026-02-19', '2026-02-12 08:04:40', '2026-02-24 07:09:51', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(383, 'AZOS VA ENT', 'Visual Aid', 1, 1, 415, '2026-02-19', 'completed', 1, 15, NULL, '2026-02-13', '2026-02-13', '2026-02-12 08:06:42', '2026-02-13 13:19:22', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(384, 'CLOSAL POSTER', 'Poster', 1, 20, 307, '2026-02-13', 'completed', 1, 1, NULL, '2026-02-17', '2026-02-16', '2026-02-12 08:13:42', '2026-02-16 06:58:14', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(385, 'Vetamx Visual AId  - 1', 'Visual Aid', 1, 1, 390, '2026-02-19', 'completed', 1, 11, NULL, '2026-02-20', '2026-03-04', '2026-02-12 10:29:32', '2026-03-04 09:48:15', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(386, 'Doctor pad designing', 'RX Pad', 1, 5, 421, '2026-02-18', 'completed', 1, 5, NULL, '2026-02-13', '2026-02-27', '2026-02-12 10:30:39', '2026-02-27 10:17:58', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(387, 'Fertimax RX Pad', 'RX PAD', 1, 5, 433, '2026-02-18', 'completed', 1, 10, NULL, '2026-02-13', '2026-02-18', '2026-02-12 10:31:15', '2026-02-18 04:20:55', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(388, 'Fertimax RX Pad', 'RX Pad', 1, 5, 433, '2026-02-19', 'completed', 1, 10, NULL, '2026-02-18', '2026-02-18', '2026-02-12 10:31:47', '2026-02-18 05:02:43', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(389, 'All brand LBL - addition of Mamal LC', 'LBL', 1, 15, 431, '2026-02-19', 'completed', 1, 2, NULL, '2026-02-20', '2026-02-20', '2026-02-12 10:32:42', '2026-02-20 10:46:03', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(390, 'Gynatrop Static VA pages', 'Visual Aid', 1, 1, 418, '2026-02-20', 'pending', 1, 0, NULL, NULL, NULL, '2026-02-12 10:33:31', '2026-02-12 10:33:34', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(391, 'VA-2', 'Visual Aid', 1, 1, 416, '2026-02-20', 'completed', 1, 9, NULL, '2026-02-20', '2026-03-04', '2026-02-12 10:34:11', '2026-03-04 09:49:46', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(392, 'Mahashivratri Greeting', 'Festival flyer', 1, 12, 397, '2026-02-13', 'completed', 1, 1, NULL, '2026-02-13', '2026-02-13', '2026-02-12 10:35:00', '2026-02-13 06:07:28', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(393, 'Flyer and teaser ASCAL GEL ADVANCE', 'Flyer', 1, 3, 419, '2026-02-20', 'pending', 1, 0, NULL, NULL, NULL, '2026-02-12 10:35:47', '2026-02-12 10:35:49', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(394, 'Vildambic box artwork', 'Packaging', 1, 23, 434, '2026-02-16', 'completed', 1, 1, NULL, '2026-02-17', '2026-02-18', '2026-02-12 10:38:52', '2026-02-18 09:11:35', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(395, ' Richar CR Patient education Material', 'QR Code ', 4, 81, 426, '2026-02-13', 'completed', 1, 1, 'https://alembicdigilabs.com/alcare/Nutrition_for_Better_Hemoglobin_Level_QR/', '2026-02-17', '2026-02-17', '2026-02-12 11:01:30', '2026-02-17 10:58:25', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(396, 'KHURAK VA VIDEO', 'Brand Teaser and concept Video', 2, 51, 388, '2026-02-18', 'completed', 1, 1, 'https://we.tl/t-pOUJYG34fo', '2026-02-18', '2026-02-18', '2026-02-12 11:02:19', '2026-02-18 11:11:17', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(397, 'Certificates', 'Certificates', 1, 18, 436, '2026-03-10', 'completed', 1, 165, NULL, '2026-02-13', '2026-03-11', '2026-02-13 04:21:10', '2026-03-11 05:52:58', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(398, 'Cycle meeting certificate', 'Certificate', 1, 18, 430, '2026-02-16', 'in_progress', 1, 0, NULL, '2026-02-17', NULL, '2026-02-13 04:21:43', '2026-02-17 09:47:37', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL);
 
-CREATE TABLE `task_assignments` (
-  `id` int(11) NOT NULL,
-  `task_id` int(11) NOT NULL,
-  `user_id` int(11) NOT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+INSERT INTO `tasks` (`id`, `task_name`, `description`, `request_type_id`, `task_type_id`, `work_request_id`, `deadline`, `status`, `intimate_team`, `task_count`, `link`, `start_date`, `end_date`, `created_at`, `updated_at`, `version`, `assignment_type`, `intimate_client`, `review`, `review_stage`, `shared_with_client_at`, `no_of_options_provided`, `no_of_words_written`, `options_submitted`, `concept_work`, `resize_work`, `no_of_concepts`, `duration_minutes`, `duration_seconds`, `product_shoot`, `no_of_products_shot`, `shoot_setup`, `no_of_resize`, `responsive_screen`, `no_of_responsive_screen`, `comments`) VALUES
+(399, 'Peel kit packaging design', 'Packaging', 1, 23, 411, '2026-02-13', 'completed', 1, 2, NULL, '2026-02-13', '2026-02-17', '2026-02-13 04:37:36', '2026-02-17 08:36:44', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(400, 'Cycloset LBL for April\'26', 'LBL', 1, 3, 310, '2026-03-25', 'pending', 1, 0, NULL, NULL, NULL, '2026-02-13 04:38:36', '2026-03-24 11:04:55', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(401, 'Brand photo shoot required', 'Product shoot', 5, 95, 378, '2026-02-12', 'completed', 1, 2, NULL, '2026-02-13', '2026-02-13', '2026-02-13 05:51:43', '2026-02-13 06:24:39', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(403, 'Valentine\'s Day  All brand Video ', 'All brand Video ', 2, 57, 254, '2026-02-13', 'completed', 1, 1, 'https://we.tl/t-9FBtRVkpYT', '2026-02-13', '2026-02-13', '2026-02-13 10:23:21', '2026-02-13 10:27:05', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(405, 'Cloff Motivational Anthem', 'Motivational Anthem', 3, 67, 448, '2026-02-17', 'completed', 1, 1, NULL, '2026-02-17', '2026-02-17', '2026-02-13 10:48:37', '2026-02-17 05:15:59', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(406, 'Almizol WS Spray', 'Gamification ', 3, 67, 396, '2026-02-18', 'completed', 1, 1, NULL, '2026-02-18', '2026-02-23', '2026-02-13 11:12:35', '2026-02-23 10:12:49', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(407, 'All brand reminder card', 'Reminder card', 1, 8, 445, '2026-02-17', 'completed', 1, 1, NULL, '2026-02-17', '2026-02-24', '2026-02-13 12:50:40', '2026-02-24 08:08:54', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(409, 'World Kidney Day collaterals', 'Danglers', 1, 9, 439, '2026-02-18', 'completed', 1, 3, NULL, '2026-02-16', '2026-03-13', '2026-02-16 04:16:56', '2026-03-13 04:15:22', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(410, 'Carb Overload Tent Card ', 'Tent Card', 1, 21, 446, '2026-02-17', 'completed', 1, 2, NULL, '2026-02-16', '2026-02-16', '2026-02-16 04:18:08', '2026-02-16 13:01:06', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(411, 'Oryza sensitive A  pages - New', 'banner', 1, 19, 385, '2026-02-16', 'completed', 1, 4, NULL, '2026-02-16', '2026-02-24', '2026-02-16 05:05:16', '2026-02-24 08:06:26', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(412, 'Best Wishes Mailer for Board Exams ', 'Mailer', 1, 17, 438, '2026-02-16', 'completed', 1, 2, NULL, '2026-02-16', '2026-02-16', '2026-02-16 05:13:15', '2026-02-16 05:27:02', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(413, 'CHRO Communication for the Corporate Film ', 'Mailer', 1, 17, 444, '2026-02-16', 'completed', 1, 2, NULL, '2026-02-16', '2026-02-16', '2026-02-16 05:14:06', '2026-02-16 05:36:40', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(414, 'Circle of Champions Certificate', 'certificates', 1, 18, 443, '2026-02-16', 'completed', 1, 1, NULL, '2026-02-16', '2026-02-16', '2026-02-16 05:14:38', '2026-02-16 05:27:41', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(415, 'Alembic Timeline Pithampur', 'banner', 1, 19, 442, '2026-02-16', 'completed', 1, 3, NULL, '2026-02-23', '2026-02-23', '2026-02-16 05:15:24', '2026-02-23 07:21:07', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(416, 'Happy Lohri Wishes for TV Screen', 'Flyer', 1, 12, 441, '2026-02-16', 'completed', 1, 4, NULL, '2026-02-16', '2026-02-16', '2026-02-16 05:15:56', '2026-02-16 05:28:18', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(417, 'Top MR Productivity Calls', 'Flyer', 1, 16, 440, '2026-02-16', 'completed', 1, 16, NULL, '2026-02-16', '2026-02-16', '2026-02-16 05:16:27', '2026-02-16 05:34:23', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(420, 'RESYNC - VIDEO SCRIPT FOR CYCLE MEET - DHURANDHAR', 'Motivation video script', 3, 67, 453, '2026-02-27', 'completed', 1, 1, NULL, '2026-02-20', '2026-02-23', '2026-02-17 06:30:06', '2026-03-09 10:20:43', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(421, 'Women\'s Day Video', 'Video Script', 3, 67, 454, '2026-02-25', 'completed', 1, 2, NULL, '2026-02-19', '2026-02-23', '2026-02-17 06:31:15', '2026-02-23 10:14:43', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(422, 'AQI LMOL VA PAGE COPY', 'Task completed ', 3, 66, 414, '2026-02-12', 'completed', 1, 6, NULL, '2026-02-19', '2026-02-23', '2026-02-17 06:32:51', '2026-02-23 10:11:19', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(423, 'PSA camp Poster', 'Poster', 1, 20, 471, '2026-02-18', 'completed', 1, 1, NULL, '2026-02-17', '2026-02-17', '2026-02-17 08:48:51', '2026-02-17 10:00:25', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(424, 'Tellzy survey LBL', 'LBL', 1, 3, 469, '2026-02-18', 'completed', 1, 1, NULL, '2026-02-18', '2026-02-18', '2026-02-17 08:49:55', '2026-02-18 06:39:12', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(425, 'Requirement of Opener Page – AQI ', 'Visual Aid', 1, 1, 361, '2026-02-17', 'completed', 1, 1, NULL, '2026-02-17', '2026-02-17', '2026-02-17 08:51:25', '2026-02-17 08:55:28', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(426, 'Focus Brand reminder card- Corazon', 'Reminder card', 1, 8, 413, '2026-02-18', 'completed', 1, 2, NULL, '2026-02-17', '2026-02-18', '2026-02-17 08:55:10', '2026-02-18 04:20:29', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(427, 'Prescribing Information of Tufehart', 'logo', 1, 25, 429, '2026-02-18', 'in_progress', 1, 0, NULL, '2026-02-17', NULL, '2026-02-17 09:52:38', '2026-03-24 09:59:16', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(428, 'Milbecidal magazine advertisement artwork', 'RX Pad', 1, 5, 476, '2026-02-19', 'completed', 1, 1, NULL, '2026-02-18', '2026-02-20', '2026-02-17 11:00:31', '2026-02-20 12:06:14', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(429, 'CETANIL VA CHANGES', 'Visual Aid', 1, 1, 475, '2026-02-19', 'completed', 1, 16, NULL, '2026-02-17', '2026-02-19', '2026-02-17 11:01:09', '2026-02-19 05:35:55', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(430, 'VA - SITALEMBIC MD', 'Visual Aid', 1, 1, 407, '2026-03-12', 'completed', 1, 4, NULL, '2026-03-12', '2026-03-12', '2026-02-17 12:00:26', '2026-03-12 08:28:15', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(431, 'Altris HD and Altris 5 Ecom banners and tiles', 'Banner', 1, 19, 374, '2026-02-19', 'completed', 1, 8, NULL, '2026-02-18', '2026-02-27', '2026-02-17 12:01:18', '2026-02-27 05:15:53', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(432, 'Rosave EZ - survey LBL', 'LBL', 1, 3, 346, '2026-02-18', 'completed', 1, 1, NULL, '2026-02-18', '2026-02-18', '2026-02-17 12:01:58', '2026-02-18 13:42:51', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(433, 'Glipy Group Camp Poster', 'Poster', 1, 20, 461, '2026-02-18', 'completed', 1, 1, NULL, '2026-02-18', '2026-02-18', '2026-02-17 12:03:05', '2026-02-18 13:44:11', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(434, 'PegTears HP Visual Aid', 'Visual Aid', 1, 1, 365, '2026-02-24', 'completed', 1, 2, NULL, '2026-02-23', '2026-03-03', '2026-02-17 12:23:08', '2026-03-03 10:57:50', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(435, 'UDAAN LOGO', 'logo', 1, 25, 432, '2026-02-18', 'completed', 1, 1, NULL, '2026-02-18', '2026-02-18', '2026-02-17 12:38:09', '2026-02-18 09:13:32', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(436, 'Tellzy VA', 'Visual Aid', 1, 1, 459, '2026-02-19', 'completed', 1, 9, NULL, '2026-02-19', '2026-02-24', '2026-02-17 12:40:36', '2026-02-24 06:27:51', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(437, 'Rafle Chit Pad Designing', 'Chit pad', 1, 7, 474, '2026-02-19', 'completed', 1, 3, NULL, '2026-02-18', '2026-02-19', '2026-02-17 12:42:33', '2026-02-19 06:43:39', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(438, 'Rosacea LBL', 'LBL', 1, 3, 472, '2026-02-19', 'completed', 1, 2, NULL, '2026-02-23', '2026-02-24', '2026-02-17 12:45:47', '2026-02-24 08:07:51', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(439, 'Azithral Solid and Liquid VA', 'Visual Aid', 1, 1, 408, '2026-03-18', 'completed', 1, 37, NULL, '2026-03-18', '2026-03-18', '2026-02-17 12:51:17', '2026-03-18 11:35:54', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(440, 'Ramadan Greeting', 'Festive Greetings', 1, 12, 398, '2026-02-18', 'pending', 1, 0, NULL, NULL, NULL, '2026-02-18 04:30:28', '2026-02-18 04:30:30', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(441, 'Mother\'s day box AW', 'Packing', 1, 23, 462, '2026-02-20', 'completed', 1, 1, NULL, '2026-02-23', '2026-02-25', '2026-02-18 04:31:54', '2026-02-25 03:19:54', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(442, 'Animal Health Day Greeting', 'Festive Card', 1, 12, 403, '2026-02-25', 'completed', 1, 1, NULL, '2026-02-19', '2026-02-23', '2026-02-18 04:33:01', '2026-02-23 05:56:03', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(443, 'GIF for chelated Ca bioavailability', 'Ca bioavailability', 2, 47, 369, '2026-02-19', 'completed', 1, 1, 'https://we.tl/t-dqRyUevH9K', '2026-02-19', '2026-03-02', '2026-02-18 05:07:30', '2026-03-02 07:41:59', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(444, 'Gynatrop video/gifs required', 'Brand Teaser and concept Video', 2, 46, 417, '2026-02-20', 'completed', 1, 1, '1 https://we.tl/t-RbNzGLOnT4', '2026-02-19', '2026-02-23', '2026-02-18 05:21:47', '2026-02-23 07:25:26', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(445, 'Festive flyer greetings for the month of February, March and April', 'Festival flyer', 1, 12, 485, '2026-03-31', 'in_progress', 1, 0, NULL, '2026-03-12', NULL, '2026-02-18 06:53:28', '2026-03-12 04:49:14', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(446, 'Grogain Pro final VA all pages', 'Visual Aid', 1, 1, 481, '2026-02-19', 'completed', 1, 5, NULL, '2026-02-19', '2026-02-19', '2026-02-18 06:56:07', '2026-02-19 06:33:25', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(447, 'Voage MS VA Design', 'Visual Aid', 1, 1, 379, '2026-02-19', 'completed', 1, 7, NULL, '2026-02-18', '2026-02-19', '2026-02-18 07:19:09', '2026-02-19 06:46:54', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(448, 'Packshot  and panel design for new brand Reluher', 'Packaging', 1, 23, 357, '2026-02-18', 'completed', 1, 2, NULL, '2026-02-19', '2026-02-19', '2026-02-18 07:19:58', '2026-02-19 06:49:46', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(449, 'H1 Certificate Designs', 'certificates', 1, 18, 487, '2026-02-20', 'completed', 1, 6, NULL, '2026-02-23', '2026-02-23', '2026-02-18 09:27:14', '2026-02-23 09:33:46', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(450, 'Leaders Budget Meeting Motivational Video', 'Brand Teaser and concept Video', 5, 58, 435, '2026-03-11', 'pending', 1, 0, NULL, NULL, NULL, '2026-02-18 09:27:28', '2026-03-09 10:27:28', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(451, 'Video for ASCAL GEL Visual aid', 'Brand Teaser and concept Video', 2, 51, 394, '2026-02-20', 'completed', 1, 1, '1 https://we.tl/t-nPzjq92Cuv', '2026-02-19', '2026-02-20', '2026-02-18 09:28:06', '2026-02-20 06:09:05', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(452, 'Exceraft Pacman Video', 'Brand Teaser and concept Video', 2, 48, 383, '2026-02-19', 'completed', 1, 1, NULL, '2026-02-19', '2026-02-20', '2026-02-18 09:29:05', '2026-02-20 06:45:49', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(453, 'Exceraft Train Video', 'Brand Teaser and concept Video', 2, 48, 381, '2026-02-18', 'completed', 1, 1, 'https://we.tl/t-1CZmITVZJa', '2026-02-19', '2026-02-19', '2026-02-18 09:29:32', '2026-02-19 10:42:46', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(454, 'Exceraft Airport Video ', 'Brand Teaser and concept Video', 2, 47, 381, '2026-02-18', 'completed', 1, 1, 'https://we.tl/t-ymt4adFfvT', '2026-02-19', '2026-02-19', '2026-02-18 09:30:24', '2026-02-19 07:29:26', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(455, 'Exceraft Late Night Haunting Video', 'Brand Teaser and concept Video', 2, 46, 382, '2026-02-20', 'completed', 1, 1, '1 https://we.tl/t-dyNz3WHUxg', '2026-02-19', '2026-02-19', '2026-02-18 09:31:00', '2026-02-19 06:01:06', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(456, 'Cloff Anthem Video', 'Brand Teaser and concept Video', 2, 49, 464, '2026-03-06', 'completed', 1, 1, 'https://we.tl/t-JmLEusT0Xm', '2026-02-20', '2026-03-09', '2026-02-18 09:36:37', '2026-03-09 10:55:11', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(457, 'Festive flyer greetings for the month of February, March and April', 'Festival flyer', 3, 69, 485, '2026-03-11', 'completed', 1, 14, NULL, '2026-02-20', '2026-03-12', '2026-02-18 10:09:46', '2026-03-12 05:16:53', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(458, 'EYECARE BUDGET MEETING ', 'Panel', 1, 38, 391, '2026-02-19', 'completed', 1, 1, NULL, '2026-02-18', '2026-02-20', '2026-02-18 13:56:22', '2026-02-20 07:14:59', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(459, 'Souvenier artwork for CLOFF ', 'Ad', 1, 10, 492, '2026-02-18', 'completed', 1, 1, NULL, '2026-02-19', '2026-02-19', '2026-02-18 13:57:53', '2026-02-19 06:31:43', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(460, 'IV fluid script ', 'Brand Teaser and concept Video', 3, 67, 489, '2026-02-27', 'completed', 1, 1, NULL, '2026-02-25', '2026-02-25', '2026-02-19 05:02:46', '2026-02-25 04:25:30', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(461, 'IV FLUID CALCULATOR ACTIVITY ', 'Incentive Calculator', 4, 75, 486, '2026-02-20', 'completed', 1, 1, 'https://alembicdigilabs.com/farmcure/offline_fluid_calculator_activity/offline_fluid_calculator_activity.zip', '2026-03-06', '2026-03-06', '2026-02-19 05:05:06', '2026-03-06 05:22:04', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(463, 'AAA TV Version', 'TV screen', 1, 13, 499, '2026-02-19', 'completed', 1, 1, NULL, '2026-02-19', '2026-02-19', '2026-02-19 11:16:20', '2026-02-19 11:30:19', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(464, 'Circle of Champions Collage', 'TV screen', 1, 13, 498, '2026-02-19', 'completed', 1, 1, NULL, '2026-02-19', '2026-02-19', '2026-02-19 11:18:27', '2026-02-19 11:28:55', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(465, 'APL Thumbnail', 'TV screen', 1, 13, 497, '2026-02-19', 'completed', 1, 1, NULL, '2026-02-19', '2026-02-19', '2026-02-19 11:18:56', '2026-02-19 11:29:33', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(466, 'Eyecare Doctors Gift Box', 'Packaging', 1, 23, 494, '2026-02-20', 'completed', 1, 2, NULL, '2026-02-23', '2026-02-24', '2026-02-19 11:20:31', '2026-02-24 05:23:41', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(467, 'Danglers', 'Danglers', 1, 41, 496, '2026-02-20', 'completed', 1, 2, NULL, '2026-02-20', '2026-02-23', '2026-02-19 11:25:32', '2026-02-23 12:46:02', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(468, 'Ketop LBL A4 size ', 'LBL', 1, 3, 491, '2026-02-23', 'completed', 1, 2, NULL, '2026-02-20', '2026-02-20', '2026-02-19 12:11:58', '2026-02-20 12:04:54', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(469, 'Haircare Apr LBL', 'LBL', 1, 3, 490, '2026-02-23', 'completed', 1, 2, NULL, '2026-02-23', '2026-02-24', '2026-02-19 12:15:03', '2026-02-24 03:22:15', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(470, 'Closal VA Page', 'Visual Aid', 1, 1, 493, '2026-02-26', 'completed', 1, 2, NULL, '2026-02-27', '2026-03-09', '2026-02-19 12:15:59', '2026-03-09 10:29:58', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(471, 'Rosave F Survey LBL', 'LBL', 1, 3, 495, '2026-02-25', 'completed', 1, 1, NULL, '2026-02-23', '2026-02-27', '2026-02-19 12:16:32', '2026-02-27 04:51:09', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(472, 'Chemist outer box artwork', 'Packaging', 1, 23, 501, '2026-02-23', 'completed', 1, 2, NULL, '2026-02-20', '2026-02-23', '2026-02-19 12:17:47', '2026-02-23 08:49:47', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(473, 'AAA Creatives', 'Creatives', 1, 16, 477, '2026-02-27', 'completed', 1, 1, NULL, '2026-02-20', '2026-02-20', '2026-02-20 05:10:55', '2026-02-20 05:12:04', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(474, 'Grogain Pro 1 year celebration feedback booklet', 'Booklet', 1, 31, 393, '2026-02-20', 'completed', 1, 6, NULL, '2026-02-20', '2026-03-04', '2026-02-20 05:37:37', '2026-03-04 09:45:37', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(475, 'Gujarati Language Glaucoma Awareness Standee', 'Awareness Standee', 3, 66, 504, '2026-02-23', 'completed', 1, 2, NULL, '2026-02-24', '2026-02-26', '2026-02-20 10:46:44', '2026-02-26 11:36:42', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(476, 'Mceft Video', 'Brand Teaser and concept Video', 3, 67, 508, '2026-02-24', 'completed', 1, 1, NULL, '2026-02-23', '2026-02-23', '2026-02-20 10:47:46', '2026-02-23 10:48:13', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(477, 'Khurak Pack video', 'Brand Teaser and concept Video', 2, 51, 500, '2026-02-23', 'completed', 1, 1, NULL, '2026-02-24', '2026-02-26', '2026-02-20 10:52:16', '2026-02-26 05:23:17', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(478, 'Video Creation for budget meeting', 'Motivational Video ', 2, 49, 406, '2026-02-23', 'completed', 1, 1, 'https://we.tl/t-S3xZQxy1hv', '2026-02-23', '2026-02-23', '2026-02-23 05:23:25', '2026-02-23 05:53:11', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(479, 'Tellzy Range LBLs (April\'26)', 'LBL', 1, 3, 521, '2026-02-26', 'completed', 1, 8, NULL, '2026-02-23', '2026-02-27', '2026-02-23 06:38:10', '2026-02-27 10:20:09', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(480, 'Bladmir VA designing', 'Visual Aid', 1, 1, 511, '2026-02-26', 'completed', 1, 14, NULL, '2026-02-27', '2026-03-04', '2026-02-23 06:38:55', '2026-03-04 10:27:50', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(481, 'Tellzy LN Visual Aid 2027', 'Visual Aid', 1, 1, 510, '2026-02-26', 'completed', 1, 5, NULL, '2026-02-23', '2026-03-04', '2026-02-23 06:39:49', '2026-03-04 11:29:43', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(482, 'Estrofit Video For VA', 'VA Animation ', 2, 46, 458, '2026-02-24', 'completed', 1, 1, NULL, '2026-02-23', '2026-03-10', '2026-02-23 07:11:43', '2026-03-10 02:39:25', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(483, 'Maxis Holi Video 2026', 'Festival Video ', 2, 49, 526, '2026-02-27', 'completed', 1, 1, '1 https://we.tl/t-nUrjaE6atI', '2026-02-23', '2026-02-25', '2026-02-23 07:13:22', '2026-02-25 09:43:51', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(485, 'Holi Video for Doctor_2026', 'Festival Video ', 2, 49, 437, '2026-02-27', 'completed', 1, 1, '1 https://we.tl/t-PHMbbNkRxI', '2026-02-25', '2026-02-25', '2026-02-23 07:14:39', '2026-02-25 10:35:54', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(486, 'Women\'s day video', 'Festival Video ', 2, 48, 456, '2026-03-04', 'completed', 1, 1, 'https://we.tl/t-dZkNi6RTgu', '2026-03-06', '2026-03-09', '2026-02-23 07:18:40', '2026-03-09 03:26:24', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(487, 'Holika Dahan Greeting', 'Festival Greeting ', 3, 69, 529, '2026-02-25', 'completed', 1, 1, NULL, '2026-02-25', '2026-02-25', '2026-02-23 07:38:25', '2026-02-25 10:52:28', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(488, 'Holi Greeting', 'Festival Greeting ', 3, 69, 530, '2026-02-25', 'completed', 1, 1, NULL, '2026-02-25', '2026-02-25', '2026-02-23 07:38:56', '2026-02-25 11:02:11', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(489, 'Fertimax LBL,Oredr Book ', 'LBL', 1, 3, 507, '2026-02-26', 'completed', 1, 4, NULL, '2026-02-25', '2026-02-25', '2026-02-23 07:54:50', '2026-02-25 11:05:30', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(490, 'Gujarati  Language Glaucoma Awareness Week ', 'Booklet', 1, 31, 503, '2026-02-26', 'completed', 1, 1, NULL, '2026-03-11', '2026-03-11', '2026-02-23 08:25:09', '2026-03-11 05:55:10', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(491, 'Geripod-M Visual Aid', 'Visual Aid', 1, 1, 519, '2026-03-04', 'completed', 1, 5, NULL, '2026-02-24', '2026-03-10', '2026-02-23 08:26:09', '2026-03-10 12:19:11', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(492, 'TELLZY MT SGPI ART WORK', 'Packaging', 1, 23, 505, '2026-02-25', 'completed', 1, 2, NULL, '2026-02-23', '2026-02-24', '2026-02-23 08:26:52', '2026-02-24 09:49:02', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(493, 'Pithampur Branding Activities', 'Wall Panel', 1, 38, 186, '2026-03-24', 'completed', 1, 3, NULL, '2026-03-24', '2026-03-24', '2026-02-23 08:29:27', '2026-03-24 10:18:08', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(494, 'TELLZY MT SURVEY LBL', 'LBL', 1, 3, 506, '2026-02-25', 'completed', 1, 1, NULL, '2026-02-23', '2026-02-24', '2026-02-23 08:30:02', '2026-02-24 10:05:14', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(495, 'AntiGlaucoma Video Text', 'Brand Teaser and concept Video', 3, 67, 540, '2026-02-27', 'completed', 1, 6, NULL, '2026-02-27', '2026-02-27', '2026-02-23 09:02:48', '2026-02-27 11:30:43', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(496, 'Ram Navami Greeting', 'Festival Greeting ', 3, 69, 537, '2026-02-27', 'completed', 1, 1, NULL, '2026-02-27', '2026-02-27', '2026-02-23 09:03:56', '2026-02-27 11:31:45', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(497, 'International Women\'s Day', 'writeup', 3, 66, 532, '2026-02-27', 'completed', 1, 1, NULL, '2026-02-27', '2026-02-27', '2026-02-23 09:45:39', '2026-02-27 06:38:10', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(498, 'TENT CARD, NOTEPAD ARTWORK , APPRECIATION CERTIFICATE ARTWORK ', 'Diary', 1, 32, 387, '2026-02-23', 'pending', 1, 0, NULL, NULL, NULL, '2026-02-23 09:50:02', '2026-02-23 09:50:05', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(499, 'Adjunctive Therapy  Visual Aid', 'Visual Aid', 1, 1, 386, '2026-02-25', 'completed', 1, 4, NULL, '2026-02-24', '2026-02-26', '2026-02-23 09:50:41', '2026-02-26 08:50:25', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(500, 'PegTears Weekly Posts ', 'Post', 1, 16, 366, '2026-02-25', 'in_progress', 1, 0, NULL, '2026-03-10', NULL, '2026-02-23 09:51:45', '2026-03-09 18:31:00', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(501, 'Thaminal,Mamal LC ,Aldine ', 'RX Pad', 1, 5, 509, '2026-02-26', 'completed', 1, 12, NULL, '2026-02-26', '2026-02-26', '2026-02-23 09:54:41', '2026-02-26 11:09:20', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(502, 'Digital flyer for Holi', 'Festival flyer', 1, 12, 541, '2026-02-27', 'completed', 1, 1, NULL, '2026-02-24', '2026-02-24', '2026-02-23 10:21:02', '2026-02-24 04:47:50', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(503, 'All Brand Reminder Card', 'Reminder card', 1, 8, 539, '2026-02-25', 'completed', 1, 2, NULL, '2026-02-24', '2026-02-24', '2026-02-23 10:21:44', '2026-02-24 12:00:58', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(504, 'Ram Navami Greeting', 'Festival flyer', 1, 12, 538, '2026-03-10', 'completed', 1, 1, NULL, '2026-03-10', '2026-03-17', '2026-02-23 10:22:34', '2026-03-17 05:48:20', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(506, 'Exceraft LBL 1 and 2', 'LBL', 1, 3, 512, '2026-03-02', 'completed', 1, 4, NULL, '2026-03-02', '2026-03-02', '2026-02-23 11:07:09', '2026-03-02 04:26:10', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(507, 'Holi Greeting', 'Festival flyer', 1, 12, 528, '2026-02-27', 'completed', 1, 2, NULL, '2026-02-26', '2026-02-27', '2026-02-23 11:12:18', '2026-02-27 05:11:48', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(508, 'Holika Dahan', 'Festival flyer', 1, 12, 531, '2026-02-27', 'completed', 1, 2, NULL, '2026-02-26', '2026-02-27', '2026-02-23 11:12:50', '2026-02-27 05:12:19', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(509, 'Holi Flyer', 'Festival flyer', 1, 12, 513, '2026-02-27', 'completed', 1, 1, NULL, '2026-02-26', '2026-02-27', '2026-02-23 11:13:25', '2026-02-27 04:39:28', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(510, 'Ugadi Flyer', 'Festival flyer', 1, 12, 514, '2026-03-11', 'completed', 1, 1, NULL, '2026-03-11', '2026-03-11', '2026-02-23 11:27:11', '2026-03-11 13:29:33', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(511, 'Gudi Padwa Flyer', 'Festival flyer', 1, 12, 515, '2026-03-11', 'completed', 1, 1, NULL, '2026-03-11', '2026-03-11', '2026-02-23 11:27:53', '2026-03-11 13:27:20', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(513, 'Holi Digital Post', 'Festival flyer', 1, 12, 535, '2026-02-27', 'completed', 1, 1, NULL, '2026-02-26', '2026-02-27', '2026-02-23 11:30:45', '2026-02-27 04:44:25', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(514, 'International Women\'s Day Greeting', 'Festival flyer', 1, 12, 533, '2026-03-04', 'completed', 1, 1, NULL, '2026-03-04', '2026-03-06', '2026-02-23 11:31:24', '2026-03-06 09:46:54', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(515, 'National Science Day Greeting', 'Festival flyer', 1, 12, 525, '2026-02-26', 'completed', 1, 1, NULL, '2026-02-24', '2026-02-26', '2026-02-23 11:52:57', '2026-02-26 06:31:56', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(516, 'VA', 'Visual Aid', 1, 1, 518, '2026-03-04', 'completed', 1, 11, NULL, '2026-03-02', '2026-03-10', '2026-02-23 13:25:17', '2026-03-10 05:48:40', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(517, 'Holi Greeting ', 'Festival flyer', 1, 12, 546, '2026-02-27', 'completed', 1, 1, NULL, '2026-02-26', '2026-02-26', '2026-02-23 13:37:24', '2026-02-26 08:40:31', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(518, 'Gudi Padwa,Ugadi, Cheti Chand, Eid ul-Fitr Greeting ', 'Festival flyer', 1, 12, 547, '2026-03-31', 'completed', 1, 4, NULL, '2026-03-13', '2026-03-16', '2026-02-23 13:37:54', '2026-03-16 09:45:13', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(519, 'World Wildlife Day', 'Festival flyer', 1, 12, 545, '2026-02-27', 'completed', 1, 1, NULL, '2026-02-24', '2026-02-25', '2026-02-23 13:38:42', '2026-02-25 10:42:28', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(520, 'Ramzan ID Flyer', 'Festival flyer', 1, 12, 517, '2026-02-13', 'pending', 1, 0, NULL, NULL, NULL, '2026-02-23 13:39:45', '2026-02-23 13:39:47', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(521, 'HOLI E-CARD', 'Festival flyer', 1, 12, 523, '2026-02-27', 'completed', 1, 1, NULL, '2026-02-26', '2026-02-27', '2026-02-23 13:40:35', '2026-02-27 04:48:09', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(522, 'Kodiceft ', 'Visual Aid', 1, 1, 543, '2026-02-27', 'completed', 1, 36, NULL, '2026-03-03', '2026-03-10', '2026-02-23 13:41:36', '2026-03-10 04:59:36', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(523, 'Holika Dahan Celebration Day Greeting', 'Festival flyer', 1, 12, 544, '2026-02-27', 'completed', 1, 1, NULL, '2026-02-26', '2026-02-26', '2026-02-23 13:43:41', '2026-02-26 08:40:55', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(524, 'Doctor\'s Appreciation Week', 'Flyer', 1, 16, 337, '2026-02-23', 'completed', 1, 6, NULL, '2026-02-24', '2026-02-24', '2026-02-23 13:47:06', '2026-02-24 10:59:07', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(525, 'Deltone LBL April\'26', 'LBL', 1, 3, 524, '2026-02-26', 'completed', 1, 2, NULL, '2026-02-24', '2026-02-26', '2026-02-24 03:28:17', '2026-02-26 06:34:55', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(526, 'Aqua VA Focus Brand Updating', 'Visual Aid', 1, 1, 548, '2026-03-05', 'completed', 1, 16, NULL, '2026-03-04', '2026-03-09', '2026-02-24 03:29:50', '2026-03-09 04:56:41', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(527, 'Freego unlock the Joy theme LBL 4, 5 ', 'LBL', 1, 3, 536, '2026-03-13', 'in_progress', 1, 0, NULL, '2026-03-12', NULL, '2026-02-24 05:11:43', '2026-03-11 18:31:00', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(528, 'Indian Diabates Phenotype Artwork', 'Packaging', 1, 23, 502, '2026-02-27', 'pending', 1, 0, NULL, NULL, NULL, '2026-02-24 05:12:44', '2026-02-24 05:12:48', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(529, 'PegTears Weekly Posts ', 'Visual Aid Cover copy', 3, 66, 366, '2026-02-24', 'completed', 1, 6, 'https://docs.google.com/document/d/1v5dDVzV-u2npWCZi6VjnGgCPg9oGByLwSQKYMPpBQ9s/edit?tab=t.0', '2026-02-24', '2026-02-24', '2026-02-24 05:26:44', '2026-02-24 07:26:40', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(530, 'Zivemp-SM Detection Camp Poster', 'Poster', 1, 20, 542, '2026-02-25', 'completed', 1, 2, NULL, '2026-02-24', '2026-02-24', '2026-02-24 05:56:09', '2026-02-24 13:24:10', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(531, 'Women\'s day digital activity', 'Brand Teaser and concept Video', 4, 74, 550, '2026-03-06', 'completed', 1, 3, 'https://alembicdigilabs.com/corium/womens_day_26_photoframer/index.php', '2026-02-27', '2026-03-05', '2026-02-24 06:42:17', '2026-03-05 07:48:12', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(532, 'Women\'s day digital activity', 'Brand Teaser ', 1, 43, 550, '2026-03-02', 'pending', 1, 0, NULL, NULL, NULL, '2026-02-24 06:42:36', '2026-02-24 06:51:43', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(533, 'RUMIGEST LAUNCH VIDEO', 'Brand Teaser and concept Video', 2, 48, 449, '2026-03-09', 'completed', 1, 1, 'https://we.tl/t-PNANymkyJ0', '2026-02-27', '2026-03-10', '2026-02-24 06:46:02', '2026-03-10 10:25:57', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(534, 'Salembic video', 'Brand Teaser and concept Video', 2, 47, 451, '2026-02-27', 'pending', 1, 0, NULL, NULL, NULL, '2026-02-24 06:48:58', '2026-02-24 06:49:00', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(535, 'Freego unlock the Joy theme LBL 4, 5 ', 'LBL (Aditi)', 3, 59, 536, '2026-02-25', 'completed', 1, 6, 'https://docs.google.com/document/d/1gRNnAbPO17rpIE6RdKMdbd0jz4f3x_2ZLm_MMUVY5Gg/edit?tab=t.0', '2026-02-24', '2026-02-24', '2026-02-24 06:56:56', '2026-02-24 07:27:12', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(536, 'Voage S Holi Video', 'Brand Teaser and concept Video', 2, 57, 549, '2026-02-27', 'completed', 1, 1, '1 https://we.tl/t-AMe7kLGWoj', '2026-02-25', '2026-03-02', '2026-02-24 06:59:07', '2026-03-02 09:15:37', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(537, 'BUDGET MEETING THEME ', 'Motivational Video ', 2, 58, 392, '2026-03-03', 'completed', 1, 1, '1 https://we.tl/t-bkXL46Vhtx', '2026-02-26', '2026-03-02', '2026-02-24 07:09:48', '2026-03-02 07:03:42', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(540, 'infertility awareness poster', 'Poster', 1, 20, 527, '2026-03-02', 'completed', 1, 1, NULL, '2026-03-02', '2026-03-04', '2026-02-24 08:04:30', '2026-03-04 11:11:19', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(541, 'Alvite M Gold Brand Name Design', 'logo', 1, 25, 575, '2026-02-26', 'completed', 1, 6, NULL, '2026-03-10', '2026-03-11', '2026-02-24 08:06:05', '2026-03-11 04:51:13', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(542, 'festive greetings', 'Festival flyer', 1, 12, 573, '2026-03-25', 'in_progress', 1, 0, NULL, '2026-02-27', NULL, '2026-02-24 08:07:49', '2026-02-27 09:58:49', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(543, 'Dil Ki Baat Booklet', 'Booklet', 1, 31, 520, '2026-02-25', 'completed', 1, 5, NULL, '2026-03-04', '2026-03-06', '2026-02-24 08:09:09', '2026-03-06 03:16:03', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(544, 'Crina-NCR Megaplex - Indore ', 'Banner', 1, 19, 601, '2026-03-02', 'completed', 1, 6, NULL, '2026-02-26', '2026-02-26', '2026-02-25 06:25:46', '2026-02-26 10:58:24', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(545, 'Gudi Padwa,Ugadi, Cheti Chand, Eid ul-Fitr Greeting ', 'Festival flyer', 3, 69, 547, '2026-03-17', 'completed', 1, 4, NULL, '2026-02-25', '2026-03-23', '2026-02-25 09:36:10', '2026-03-23 08:52:22', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(546, 'Holika Dahan Celebration Day Greeting', 'Festival flyer', 3, 69, 544, '2026-02-27', 'completed', 1, 2, NULL, '2026-02-25', '2026-02-25', '2026-02-25 09:36:42', '2026-02-25 11:15:59', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(548, 'Oyrza Skin Camp Logo Designing ', 'Logo', 1, 25, 482, '2026-02-27', 'completed', 1, 4, NULL, '2026-02-27', '2026-03-04', '2026-02-25 09:48:20', '2026-03-04 10:49:47', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(549, 'All brand reminder card', 'Reminder card', 1, 8, 598, '2026-02-26', 'completed', 1, 2, NULL, '2026-02-26', '2026-02-26', '2026-02-25 09:49:21', '2026-02-26 11:23:05', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(550, 'UCPMP Compliance training module', 'training module', 3, 67, 609, '2026-03-31', 'in_progress', 1, 0, NULL, '2026-03-16', NULL, '2026-02-25 10:06:41', '2026-03-15 18:31:00', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(551, 'UCPMP Compliance training module', 'training module', 3, 67, 609, '2026-03-31', 'completed', 1, 3, NULL, '2026-03-02', '2026-03-23', '2026-02-25 10:08:27', '2026-03-23 08:50:24', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(552, 'DSP LBL APRIL', 'LBL', 1, 3, 610, '2026-02-27', 'completed', 1, 2, NULL, '2026-02-26', '2026-02-26', '2026-02-25 10:45:33', '2026-02-26 10:13:43', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(553, 'TETAN LBL APRIL', 'LBL', 1, 3, 611, '2026-03-05', 'completed', 1, 2, NULL, '2026-03-04', '2026-03-04', '2026-02-25 10:46:25', '2026-03-04 10:55:53', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(554, 'Annual Meet Stage artwork', 'Stall', 1, 38, 410, '2026-03-02', 'completed', 1, 3, NULL, '2026-02-27', '2026-03-09', '2026-02-26 04:24:46', '2026-03-09 13:27:16', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(555, 'Medal', 'Card', 1, 21, 600, '2026-03-25', 'pending', 1, 0, NULL, NULL, NULL, '2026-02-26 04:26:52', '2026-03-24 10:57:14', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(556, 'Rosave F VA', 'Visual Aid', 1, 1, 608, '2026-03-04', 'pending', 1, 0, NULL, NULL, NULL, '2026-02-26 04:31:39', '2026-03-09 10:09:36', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(557, 'Design Resync Plus - Brand reminder card as well as Chemist Availability Card', 'Reminder card', 1, 8, 614, '2026-03-05', 'completed', 1, 2, NULL, '2026-03-09', '2026-03-10', '2026-02-26 04:33:07', '2026-03-10 04:50:21', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(558, 'GVC Camp Leaflets', 'Leaflet', 1, 15, 604, '2026-03-31', 'in_progress', 1, 0, NULL, '2026-03-24', NULL, '2026-02-26 05:42:05', '2026-03-24 11:50:17', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(559, 'Rafle Visual Aid', 'Visual Aid', 1, 1, 571, '2026-03-04', 'completed', 1, 2, NULL, '2026-03-05', '2026-03-06', '2026-02-26 06:35:27', '2026-03-06 03:16:54', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(560, 'Zenovi division March Festive content ', 'Festive greetings', 3, 66, 633, '2026-03-27', 'completed', 1, 5, NULL, '2026-03-11', '2026-03-05', '2026-02-26 07:11:59', '2026-03-05 11:02:52', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(561, 'Zenovi division March Festive content', 'Festive greetings', 3, 66, 633, '2026-03-27', 'completed', 1, 8, NULL, '2026-02-26', '2026-03-02', '2026-02-26 07:12:34', '2026-03-02 04:58:37', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(562, 'Zenovi division March Festive content ', 'Festive greetings', 1, 12, 633, '2026-03-31', 'completed', 1, 15, NULL, '2026-03-25', '2026-03-24', '2026-02-26 07:13:51', '2026-03-24 10:36:53', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(563, 'Veldrop iPad video', 'Script', 3, 67, 638, '2026-02-27', 'completed', 1, 1, NULL, '2026-02-26', '2026-02-27', '2026-02-26 08:25:57', '2026-02-27 12:05:24', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(564, 'Resync Plus - Launch video teaser content', 'video script', 3, 67, 636, '2026-03-16', 'completed', 1, 2, NULL, '2026-03-09', '2026-03-18', '2026-02-26 08:27:11', '2026-03-18 08:38:01', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(565, 'Resync Plus - Launch video teaser content', 'Script', 3, 67, 636, '2026-03-16', 'completed', 1, 3, NULL, '2026-02-27', '2026-03-12', '2026-02-26 08:27:54', '2026-03-16 10:17:50', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(566, 'AWARENESS AND CELEBRATION DAYS - MARCH 2026', 'Festive greetings', 3, 66, 642, '2026-03-27', 'completed', 1, 21, 'https://docs.google.com/document/d/1gWhfeD3mikKDRPluiZAXzsqK-N9ucpnoOFvsRiHA6Qo/edit?tab=t.0', '2026-02-27', '2026-03-09', '2026-02-26 11:17:58', '2026-03-09 09:54:05', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(567, 'DONANCE LBL - APRIL\'26', 'LBL', 1, 3, 629, '2026-02-27', 'completed', 1, 4, NULL, '2026-02-27', '2026-02-27', '2026-02-26 11:47:04', '2026-02-27 05:53:57', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(568, 'AWARENESS AND CELEBRATION DAYS - MARCH 2026', 'Festival flyer', 1, 12, 643, '2026-03-31', 'in_progress', 1, 0, NULL, '2026-03-03', NULL, '2026-02-26 11:47:45', '2026-03-03 10:57:09', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(569, 'Gujarati Language Glaucoma Awareness Poster', 'Poster', 1, 20, 641, '2026-03-04', 'completed', 1, 2, NULL, '2026-03-05', '2026-03-05', '2026-02-26 11:49:47', '2026-03-05 12:24:34', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(570, 'Bladmir LBL-Apr\'26', 'LBL', 1, 3, 627, '2026-03-04', 'completed', 1, 2, NULL, '2026-03-09', '2026-03-09', '2026-02-26 11:50:33', '2026-03-09 07:40:19', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(571, 'International Womens Day Flyer', 'Festival flyer', 1, 12, 621, '2026-03-05', 'completed', 1, 1, NULL, '2026-03-02', '2026-03-05', '2026-02-26 14:06:05', '2026-03-05 12:18:09', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(572, 'Mahavir Jayanti Flyer', 'Festival flyer', 1, 12, 622, '2026-03-26', 'in_progress', 1, 0, NULL, '2026-03-23', NULL, '2026-02-26 14:07:43', '2026-03-22 18:31:00', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(573, 'Ram Navami Flyer', 'Festival flyer', 1, 12, 626, '2026-03-24', 'completed', 1, 1, NULL, '2026-03-17', '2026-03-24', '2026-02-26 14:08:17', '2026-03-24 06:42:16', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(574, 'POULTRY 100 Cr Milestone Post ', 'Flyer', 1, 16, 400, '2026-02-27', 'completed', 1, 2, NULL, '2026-02-27', '2026-02-27', '2026-02-26 14:18:14', '2026-02-27 06:45:10', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(577, 'Zivemp-SM Conference Standee', 'Standee', 1, 40, 650, '2026-02-27', 'completed', 1, 1, NULL, '2026-02-27', '2026-03-04', '2026-02-27 06:27:42', '2026-03-04 08:56:00', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(578, 'PERUMADI VA THEME PAGE', 'PERUMADI VA', 3, 66, 652, '2026-03-05', 'completed', 1, 1, NULL, '2026-02-27', '2026-03-02', '2026-02-27 07:07:31', '2026-03-02 06:53:05', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(579, 'Slab Artwork', 'Leaflet', 1, 15, 646, '2026-02-04', 'completed', 1, 1, NULL, '2026-03-02', '2026-03-02', '2026-02-27 07:53:13', '2026-03-02 04:25:43', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(580, 'New Livfit 3 SKU Packshot images', 'Product shoot ', 5, 95, 639, '2026-02-27', 'completed', 1, 9, NULL, '2026-02-27', '2026-02-27', '2026-02-27 09:47:46', '2026-02-27 09:52:25', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(581, 'Tent card', 'Graphic Content', 3, 66, 655, '2026-03-20', 'completed', 1, 6, NULL, '2026-03-04', '2026-03-23', '2026-02-27 11:07:13', '2026-03-23 08:49:07', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(582, 'Days ', 'Festival Video ', 3, 66, 657, '2026-03-31', 'completed', 1, 15, NULL, '2026-03-02', '2026-03-24', '2026-02-27 11:07:38', '2026-03-24 08:04:12', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(583, 'Cloff Holi Video ', 'Festival Video ', 2, 48, 649, '2026-03-02', 'completed', 1, 1, 'https://we.tl/t-jbR1FTzwaT', '2026-03-02', '2026-03-02', '2026-02-27 11:19:19', '2026-03-02 05:12:13', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(584, 'Annual Meet Video', 'Brand Teaser and concept Video', 2, 49, 634, '2026-03-11', 'completed', 1, 1, '00000', '2026-03-06', '2026-03-20', '2026-02-27 11:21:38', '2026-03-20 05:50:56', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(585, 'Budget Meeting Video - Theme: Rise of Olympus – The Rising Year', 'Motivational Video ', 3, 67, 662, '2026-03-04', 'completed', 1, 1, NULL, '2026-03-02', '2026-03-02', '2026-03-02 06:19:54', '2026-03-09 10:25:38', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(586, 'Azithral Good to Great Video', 'Motivational Video ', 3, 67, 658, '2026-03-03', 'completed', 1, 1, NULL, '2026-03-02', '2026-03-04', '2026-03-02 08:22:23', '2026-03-04 08:43:58', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(587, 'Divisional Excelaration theme collaterals ', 'Cycle Meet', 1, 38, 599, '2026-03-04', 'completed', 1, 8, NULL, '2026-03-02', '2026-03-06', '2026-03-02 12:06:21', '2026-03-06 12:30:10', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(589, 'Azithral Good to Great Video script', 'Motivational Video ', 2, 58, 659, '2026-03-12', 'completed', 1, 1, NULL, '2026-03-06', '2026-03-11', '2026-03-04 06:05:41', '2026-03-11 06:05:58', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(590, 'World Glaucoma Week', 'Flyer', 1, 16, 671, '2026-03-06', 'completed', 1, 2, NULL, '2026-03-06', '2026-03-09', '2026-03-04 06:08:03', '2026-03-09 08:27:16', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(591, 'AWARENESS AND CELEBRATION DAYS - MARCH 2026', 'Festival flyer', 1, 12, 656, '2026-03-31', 'completed', 1, 16, NULL, '2026-03-06', '2026-03-24', '2026-03-04 06:09:03', '2026-03-24 09:49:01', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(592, 'Laveta M va', 'Visual Aid', 1, 1, 666, '2026-03-10', 'completed', 1, 9, NULL, '2026-03-05', '2026-03-11', '2026-03-04 06:28:18', '2026-03-11 10:37:08', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(593, 'World Adherence Day Video', 'Brand Teaser and concept Video', 3, 67, 667, '2026-03-04', 'completed', 1, 1, NULL, '2026-03-04', '2026-03-04', '2026-03-04 06:40:36', '2026-03-04 08:46:20', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(594, 'World Adherence Day Video', 'Brand Teaser and concept Video', 2, 47, 667, '2026-03-12', 'in_progress', 1, 0, NULL, '2026-03-16', NULL, '2026-03-04 06:41:16', '2026-03-15 18:31:00', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(595, 'AZOS VA pages Animation', 'Brand Teaser and concept Video', 2, 53, 660, '2026-03-11', 'completed', 1, 0, NULL, '2026-03-17', '2026-03-18', '2026-03-04 06:44:59', '2026-03-23 06:31:41', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(596, 'Rosave Gold VA Animation', 'Brand Teaser and concept Video', 2, 46, 654, '2026-03-10', 'completed', 1, 6, 'https://we.tl/t-tkiGyTMhzq', '2026-03-09', '2026-03-10', '2026-03-04 06:46:53', '2026-03-10 10:34:58', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(597, 'Cycle Meet Tellzy-AM Video', 'Motivational Video ', 2, 58, 668, '2026-03-10', 'completed', 1, 1, 'https://we.tl/t-dZkNi6RTgu', '2026-03-09', '2026-03-09', '2026-03-04 06:47:13', '2026-03-09 10:35:35', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(598, 'Etrik VA ', 'HTML', 4, 74, 670, '2026-03-06', 'completed', 1, 3, 'https://alembicdigilabs.com/enteron/etrik_va/', '2026-03-06', '2026-03-06', '2026-03-04 06:48:31', '2026-03-17 05:50:09', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(599, 'Ulgeraft Video', 'Brand Teaser and concept Video', 2, 47, 663, '2026-03-11', 'completed', 1, 1, '1 https://we.tl/t-7JXAT1aOsE', '2026-03-12', '2026-03-12', '2026-03-04 06:49:17', '2026-03-12 12:25:34', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(600, 'Best Camp - Appreciation for MR', 'Photo framer', 4, 74, 603, '2026-03-11', 'completed', 1, 3, 'https://alembicdigilabs.com/enteron/best_camp_of_the_day_poster_2025/', '2026-03-11', '2026-03-16', '2026-03-04 06:50:01', '2026-03-16 10:37:17', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(601, 'Estrofit HMTBa Video', 'Brand Teaser and concept Video', 2, 46, 628, '2026-03-12', 'in_progress', 1, 0, NULL, '2026-03-11', NULL, '2026-03-04 06:50:48', '2026-03-11 04:49:15', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(603, 'Gif flyer for Holi festival', 'Festival Video ', 2, 48, 613, '2026-03-04', 'completed', 1, 1, NULL, '2026-03-06', '2026-03-06', '2026-03-04 07:24:28', '2026-03-06 04:35:40', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(604, 'Wikoryl 325DT VA page', 'Visual Aid', 1, 1, 606, '2026-03-09', 'completed', 1, 1, NULL, '2026-03-10', '2026-03-12', '2026-03-04 09:29:28', '2026-03-12 08:44:20', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(606, 'World Hypertension Day 2026 Artwork', 'Dangler', 1, 41, 653, '2026-03-13', 'completed', 1, 3, NULL, '2026-03-10', '2026-03-13', '2026-03-04 10:07:03', '2026-03-13 12:58:58', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(607, 'Zivemp-SM CME Welcome Standee ', 'Standee', 1, 40, 675, '2026-03-12', 'completed', 1, 1, NULL, '2026-03-06', '2026-03-09', '2026-03-04 10:08:37', '2026-03-09 03:31:43', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(608, 'Geripod-D LBL', 'LBL', 1, 3, 632, '2026-03-06', 'completed', 1, 2, NULL, '2026-03-05', '2026-03-10', '2026-03-04 10:10:09', '2026-03-10 06:07:25', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(609, 'Resync Plus Launch teaser video', 'Brand Teaser and concept Video', 2, 46, 637, '2026-03-20', 'completed', 1, 1, 'https://we.tl/t-kxOJYBpbvEsekpO2', '2026-03-16', '2026-03-25', '2026-03-04 10:28:02', '2026-03-25 03:12:32', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(610, 'AV Creation for Cardigem CBM Meeting', 'Motivational Video ', 2, 49, 595, '2026-03-09', 'completed', 1, 1, 'https://we.tl/t-apJ9zjsOWZ', '2026-03-09', '2026-03-10', '2026-03-04 10:28:34', '2026-03-10 10:26:28', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(612, 'Pharma VA pages animation', 'Visual Aids Pages', 2, 47, 635, '2026-03-09', 'completed', 1, 4, NULL, '2026-03-09', '2026-03-16', '2026-03-04 10:30:31', '2026-03-25 06:40:48', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(613, 'Doctor\'s Birthday Wishes Activity', ' Wishes Activity', 4, 74, 265, '2026-03-27', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-04 10:33:31', '2026-03-09 06:58:31', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(614, 'Poster, Tent card design', 'Poster', 1, 20, 623, '2026-03-18', 'completed', 1, 3, NULL, '2026-03-18', '2026-03-18', '2026-03-04 13:05:47', '2026-03-18 07:37:29', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(615, 'Geripod-M LBL-Apr\'26', 'LBL', 1, 3, 645, '2026-03-06', 'completed', 1, 2, NULL, '2026-03-05', '2026-03-06', '2026-03-04 13:06:28', '2026-03-06 09:43:23', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(616, 'Certificate for Acute Cluster', 'Certificates', 1, 18, 681, '2026-03-05', 'completed', 1, 25, NULL, '2026-03-05', '2026-03-05', '2026-03-04 13:36:45', '2026-03-05 08:41:56', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(617, 'Tetan ', 'Packaging', 1, 23, 680, '2026-03-06', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-04 13:37:23', '2026-03-04 13:37:25', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(618, 'Corium cycle meet certificates', 'Certificate', 1, 18, 673, '2026-03-05', 'completed', 1, 10, NULL, '2026-03-05', '2026-03-05', '2026-03-04 13:41:18', '2026-03-05 09:40:51', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(619, 'Rafle_IBS Has A MOOD Too_LBL ', 'LBL', 1, 3, 665, '2026-03-10', 'completed', 1, 2, NULL, '2026-03-12', '2026-03-12', '2026-03-04 13:42:58', '2026-03-12 13:04:54', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(620, 'GPD- Nocturia Script', 'Brand Teaser and concept Video', 2, 49, 684, '2026-03-13', 'completed', 1, 1, 'https://we.tl/t-MkN5hUR4rB', '2026-03-11', '2026-03-16', '2026-03-05 10:36:33', '2026-03-16 03:46:26', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(621, 'Excelarate 2027 Cardigem Anthem ', 'Motivational Video ', 2, 49, 607, '2026-03-05', 'completed', 1, 1, NULL, '2026-03-05', '2026-03-05', '2026-03-05 10:37:56', '2026-03-05 10:51:08', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(623, 'C4ALL GIF VIDEO', 'Brand Teaser and concept Video', 2, 53, 679, '2026-03-06', 'completed', 1, 3, NULL, '2026-03-06', '2026-03-06', '2026-03-05 11:07:02', '2026-03-06 11:31:09', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(624, 'Women\'s day digital activity', 'Photo framer', 4, 75, 550, '2026-03-05', 'completed', 1, 3, 'https://alembicdigilabs.com/corium/womens_day_26_photoframer/data.php', '2026-03-05', '2026-03-05', '2026-03-05 11:07:51', '2026-03-06 10:05:24', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(625, 'AP26 CYCLE MEETING POST CARD', 'Card', 1, 6, 686, '2026-03-11', 'completed', 1, 7, NULL, '2026-03-11', '2026-03-12', '2026-03-05 11:39:45', '2026-03-12 06:32:48', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(626, 'YERA ARTWORK - OSTEOFIT', 'Packaging', 1, 23, 685, '2026-03-06', 'completed', 1, 1, NULL, '2026-03-12', '2026-03-12', '2026-03-05 11:40:13', '2026-03-12 12:29:11', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(627, 'Annual top performer medal ', 'Badge', 1, 29, 677, '2026-03-06', 'completed', 1, 1, NULL, '2026-03-05', '2026-03-06', '2026-03-05 12:05:14', '2026-03-06 05:58:44', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(628, 'Hall of fame', 'Banner', 1, 38, 683, '2026-03-09', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-05 13:01:27', '2026-03-05 13:01:31', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(629, 'Women\'s Day', 'Festival flyer', 1, 12, 478, '2026-03-06', 'completed', 1, 2, NULL, '2026-03-06', '2026-03-06', '2026-03-05 13:03:41', '2026-03-06 07:44:51', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(630, 'Banner creative', 'Banner', 1, 19, 672, '2026-03-20', 'completed', 1, 14, NULL, '2026-03-18', '2026-03-20', '2026-03-05 13:04:43', '2026-03-20 09:19:54', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(631, 'Osteofit Division Anthem', 'Motivational Video ', 2, 58, 688, '2026-03-10', 'completed', 1, 1, 'https://we.tl/t-60iOluzqOn', '2026-03-09', '2026-03-10', '2026-03-06 03:53:26', '2026-03-10 11:52:21', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(632, 'Cycle Meet (L', 'Certificate', 1, 18, 682, '2026-03-06', 'completed', 1, 4, NULL, '2026-03-06', '2026-03-06', '2026-03-06 05:53:14', '2026-03-06 07:34:17', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(633, 'TELLZY,TELLZY MT,TELLZY CH,TELLZY AM SURVEY LBL', 'LBL', 1, 3, 689, '2026-03-13', 'completed', 1, 17, NULL, '2026-03-09', '2026-03-17', '2026-03-06 05:56:50', '2026-03-17 04:12:45', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(634, 'Cetanil TM/M VA page', 'Visual Aid', 1, 1, 690, '2026-03-10', 'completed', 1, 2, NULL, '2026-03-10', '2026-03-10', '2026-03-06 07:07:13', '2026-03-10 11:46:06', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(635, 'Messages for MRs', 'Flyer', 1, 16, 647, '2026-03-31', 'completed', 1, 11, NULL, '2026-03-06', '2026-03-11', '2026-03-06 07:35:29', '2026-03-11 07:04:32', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(636, 'RUMIGEST STANDIEE', 'Standee', 1, 40, 693, '2026-03-06', 'completed', 1, 1, NULL, '2026-03-06', '2026-03-06', '2026-03-06 07:59:51', '2026-03-06 09:39:12', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(637, 'Availability and Doctor card', 'Card', 1, 21, 572, '2026-03-06', 'completed', 1, 3, NULL, '2026-03-11', '2026-03-11', '2026-03-06 11:04:31', '2026-03-11 07:05:21', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(638, 'AZITHROMYCIN CONSENSUS MEETING ARTWORKS ', 'LBL', 1, 3, 696, '2026-03-12', 'in_progress', 1, 0, NULL, '2026-03-09', NULL, '2026-03-09 04:54:34', '2026-03-09 04:55:00', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(639, 'Estroplus VA', 'Visual Aid', 1, 1, 694, '2026-03-12', 'completed', 1, 4, NULL, '2026-03-12', '2026-03-13', '2026-03-09 05:27:46', '2026-03-13 12:28:08', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(640, 'EWE - Attendees and Speaker details ', 'Attendees and speaker Details ', 4, 74, 700, '2026-03-16', 'completed', 1, 5, 'https://alembicdigilabs.com/enteron/ewe_connect/', '2026-03-16', '2026-03-17', '2026-03-09 06:33:44', '2026-03-17 07:19:01', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(641, 'EWE - Attendees and Speaker details ', 'Attendees and speaker Details ', 4, 75, 700, '2026-03-16', 'completed', 1, 4, 'https://alembicdigilabs.com/enteron/ewe_connect/', '2026-03-16', '2026-03-17', '2026-03-09 06:34:12', '2026-03-17 07:19:33', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(642, 'MEGACARE | PEDIA TALK CASE STUDY PORTAL CREATION | ', ' CASE STUDY PORTAL CREATION | ', 4, 74, 423, '2026-03-25', 'in_progress', 1, 0, NULL, '2026-03-16', NULL, '2026-03-09 06:34:58', '2026-03-15 18:31:00', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(643, 'MEGACARE | PEDIA TALK CASE STUDY PORTAL CREATION | ', ' CASE STUDY PORTAL CREATION | ', 4, 75, 423, '2026-03-25', 'in_progress', 1, 0, NULL, '2026-03-18', NULL, '2026-03-09 06:35:13', '2026-03-17 18:31:00', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(644, 'Crina-NCR mastery portal', ' mastery portal', 4, 74, 488, '2026-03-26', 'in_progress', 1, 0, NULL, '2026-03-17', NULL, '2026-03-09 06:36:43', '2026-03-16 18:31:00', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(645, 'Crina-NCR mastery portal', ' mastery portal', 4, 75, 488, '2026-03-26', 'in_progress', 1, 0, NULL, '2026-03-19', NULL, '2026-03-09 06:36:55', '2026-03-18 18:31:00', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(646, 'Crina-NCR mastery portal', 'mastery portal', 4, 88, 488, '2026-03-12', 'completed', 1, 22, NULL, '2026-03-09', '2026-03-11', '2026-03-09 06:41:18', '2026-03-11 08:20:02', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(647, 'Etrik 22Yrs Birthday celebration', 'Birthday celebration Work', 4, 88, 605, '2026-03-18', 'in_progress', 1, 0, NULL, '2026-03-12', NULL, '2026-03-09 06:44:44', '2026-03-11 18:31:00', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(648, 'Etrik 22Yrs Birthday celebration', 'Birthday celebration Work', 4, 75, 605, '2026-03-27', 'in_progress', 1, 0, NULL, '2026-03-18', NULL, '2026-03-09 06:45:16', '2026-03-17 18:31:00', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(649, 'Etrik 22Yrs Birthday celebration', 'Birthday celebration Work', 4, 74, 605, '2026-03-27', 'in_progress', 1, 0, NULL, '2026-03-19', NULL, '2026-03-09 06:45:34', '2026-03-18 18:31:00', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(650, 'Maxis cycle meeting creatives', 'Certificate', 1, 18, 674, '2026-03-12', 'completed', 1, 12, NULL, '2026-03-11', '2026-03-16', '2026-03-09 07:18:52', '2026-03-16 09:21:32', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(651, 'Annual meeting standee ', 'Standee', 1, 40, 695, '2026-03-11', 'completed', 1, 3, NULL, '2026-03-11', '2026-03-12', '2026-03-09 07:21:43', '2026-03-12 06:14:16', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(652, 'CSM-Certificate Layout', 'Certificate', 1, 18, 702, '2026-03-10', 'completed', 1, 11, NULL, '2026-03-10', '2026-03-10', '2026-03-09 09:13:52', '2026-03-10 12:53:10', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(653, 'Standee for CME/RTM/GDM', 'Standee', 1, 40, 701, '2026-03-11', 'completed', 1, 1, NULL, '2026-03-10', '2026-03-12', '2026-03-09 10:02:47', '2026-03-12 11:27:23', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(654, 'Rosave F VA', 'Visual Aid', 1, 1, 608, '2026-03-09', 'completed', 1, 3, NULL, '2026-03-09', '2026-03-10', '2026-03-09 10:09:34', '2026-03-10 06:08:03', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(655, 'RESYNC - VIDEO SCRIPT FOR CYCLE MEET - DHURANDHAR', 'Motivational Video ', 2, 58, 453, '2026-03-11', 'completed', 1, 1, NULL, '2026-03-12', '2026-03-12', '2026-03-09 10:17:34', '2026-03-12 09:21:06', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(656, 'Budget Meeting Video - Theme: Rise of Olympus – The Rising Year', 'Motivational Video ', 2, 58, 662, '2026-03-12', 'completed', 1, 1, 'https://we.tl/t-Wx3VbOuVcY', '2026-03-10', '2026-03-12', '2026-03-09 10:25:35', '2026-03-12 08:40:59', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(657, 'Crina-NCR 100 Cr video', 'Motivational Video ', 2, 48, 620, '2026-03-17', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-09 10:28:26', '2026-03-09 10:28:28', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(658, 'Eyecare StepUP Video', 'Motivational Video ', 2, 58, 636, '2026-03-10', 'completed', 1, 1, NULL, '2026-03-09', '2026-03-09', '2026-03-09 10:30:26', '2026-03-16 10:17:50', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(659, 'Ulgeraft Video-AV script Fire', 'Motivational Video ', 2, 49, 663, '2026-03-13', 'completed', 1, 1, NULL, '2026-03-11', '2026-03-13', '2026-03-09 10:38:51', '2026-03-13 09:58:41', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(660, 'Adjunctive Therapy  Concept Page', 'Visual Aid', 1, 1, 644, '2026-03-11', 'completed', 1, 1, NULL, '2026-03-11', '2026-03-11', '2026-03-09 15:16:00', '2026-03-11 12:20:08', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(661, 'Resync Plus Gift flyer', 'Flyer', 1, 16, 704, '2026-03-11', 'completed', 1, 1, NULL, '2026-03-11', '2026-03-11', '2026-03-09 15:18:00', '2026-03-11 12:20:25', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(662, 'WEIGHING SCALE ARTWORK ', 'Packaging', 1, 23, 703, '2026-03-10', 'completed', 1, 1, NULL, '2026-03-10', '2026-03-10', '2026-03-09 15:19:59', '2026-03-10 11:04:21', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(663, 'medal sticker', 'Medal', 1, 29, 709, '2026-03-10', 'completed', 1, 1, NULL, '2026-03-10', '2026-03-11', '2026-03-10 11:32:25', '2026-03-11 05:54:14', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(664, 'Ascal Gel Advance Display artwork', 'Table Top Display', 1, 39, 708, '2026-03-13', 'completed', 1, 2, NULL, '2026-03-13', '2026-03-16', '2026-03-10 13:20:09', '2026-03-16 09:22:55', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(665, 'Algrow Vetmax and Poultry Evolve Certificate', 'Certificate', 1, 18, 710, '2026-03-13', 'completed', 1, 73, NULL, '2026-03-12', '2026-03-13', '2026-03-10 13:21:42', '2026-03-13 11:22:22', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(666, 'Prospective  Study CRF  Booklet Fy 27', 'Booklet', 1, 31, 707, '2026-03-13', 'completed', 1, 7, NULL, '2026-03-13', '2026-03-13', '2026-03-10 13:23:02', '2026-03-13 14:09:31', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(667, 'Maxis Cycle meeting winners template ', 'Wall of Fame', 1, 19, 711, '2026-03-17', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-11 06:25:00', '2026-03-11 06:25:03', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(668, 'Oryza Sensitive Standee', 'Standee', 1, 40, 697, '2026-03-24', 'in_progress', 1, 0, NULL, '2026-03-23', NULL, '2026-03-11 06:30:59', '2026-03-24 11:15:28', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(669, 'Image to CDR, JPG, PNG', 'Gift Input shoot', 5, 95, 669, '2026-03-11', 'completed', 1, 1, NULL, '2026-03-11', '2026-03-11', '2026-03-11 08:16:54', '2026-03-11 08:22:46', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(671, 'TEST - CLM video for ovigyn Q10', 'TEST', 4, 85, 203, '2026-03-31', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-11 09:43:27', '2026-03-11 09:45:39', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(672, 'TEST - CLM video for ovigyn Q10', 'TEST', 4, 79, 203, '2026-03-18', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-11 09:45:33', '2026-03-11 09:45:39', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(673, 'Roxid VA', 'Visual Aid', 1, 1, 716, '2026-03-17', 'completed', 1, 3, NULL, '2026-03-17', '2026-03-18', '2026-03-11 10:05:46', '2026-03-18 04:22:53', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(674, 'test start date', 'test', 4, 78, 718, '2026-03-19', 'in_progress', 1, 0, NULL, '2026-03-13', NULL, '2026-03-11 10:30:58', '2026-03-12 18:31:00', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(675, 'Need certificate of participation and appreciation ', 'Certificate', 1, 18, 719, '2026-03-13', 'completed', 1, 2, NULL, '2026-03-12', '2026-03-13', '2026-03-11 10:44:55', '2026-03-13 05:58:31', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(676, 'Maxis Cycle meet Bag tag ', 'Bag Tag', 1, 21, 712, '2026-03-13', 'completed', 1, 2, NULL, '2026-03-12', '2026-03-13', '2026-03-11 10:47:02', '2026-03-13 04:30:27', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(677, 'ROxid LBL', 'LBL', 1, 3, 721, '2026-03-27', 'in_progress', 1, 0, NULL, '2026-03-18', NULL, '2026-03-12 05:25:42', '2026-03-24 11:16:49', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(678, 'Veldrop Preamble Video', 'Video Script', 3, 67, 726, '2026-03-16', 'completed', 1, 1, NULL, '2026-03-12', '2026-03-17', '2026-03-12 07:22:16', '2026-03-17 05:10:11', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(679, 'Veldrop Preamble Video', 'Motion Graphics', 2, 49, 726, '2026-04-08', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-12 07:23:10', '2026-03-16 10:09:05', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(680, 'Khurak theme page video ', 'Khurak nutrition stage video', 2, 47, 692, '2026-03-12', 'completed', 1, 1, NULL, '2026-03-12', '2026-03-12', '2026-03-12 09:04:06', '2026-03-12 09:25:25', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(681, 'PetAL VA 2026', 'VA Animation GIF', 2, 53, 717, '2026-03-13', 'completed', 1, 6, 'https://we.tl/t-OPn9Om8L5z', '2026-03-13', '2026-03-13', '2026-03-12 09:07:09', '2026-03-13 06:36:38', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(682, 'TELLZY MT VA ANIMATION', 'VA Animation GIF', 2, 53, 713, '2026-03-17', 'completed', 1, 4, NULL, '2026-03-16', '2026-03-17', '2026-03-12 09:08:25', '2026-03-17 05:54:13', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(683, 'TELLZY CH V.A ANIMATION', 'VA Animation GIF', 2, 53, 714, '2026-03-17', 'completed', 1, 3, NULL, '2026-03-16', '2026-03-17', '2026-03-12 09:33:36', '2026-03-17 05:53:13', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(684, 'Modification in VA', 'Visual Aid', 1, 1, 727, '2026-03-12', 'completed', 1, 4, NULL, '2026-03-12', '2026-03-12', '2026-03-12 09:36:14', '2026-03-12 11:00:17', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(685, 'Glisen VA Animation ', 'VA Animation GIF - Pages 01 to 07', 2, 53, 698, '2026-03-18', 'completed', 1, 1, '1 https://we.tl/t-9VharE8d9j', '2026-03-17', '2026-03-18', '2026-03-12 09:38:58', '2026-03-18 04:37:17', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(686, 'Glisen VA Animation ', 'VA Animation GIF - Pages 08 to 13', 2, 53, 698, '2026-03-18', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-12 09:39:29', '2026-03-12 09:40:23', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(687, 'TZH VA FY 27 Animation', 'VA Animation GIF - Pages 01 to 06', 2, 53, 728, '2026-03-18', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-12 10:00:37', '2026-03-12 10:01:41', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(688, 'TZH VA FY 27 Animation', 'VA Animation GIF - Pages 07 to 12', 2, 53, 728, '2026-03-18', 'completed', 1, 1, 'https://we.tl/t-jJT297SDLx', '2026-03-16', '2026-03-18', '2026-03-12 10:01:01', '2026-03-18 07:16:26', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(689, 'World Kidney Day SM Post', 'Flyer', 1, 16, 725, '2026-03-13', 'completed', 1, 2, NULL, '2026-03-13', '2026-03-13', '2026-03-13 04:26:29', '2026-03-13 04:34:39', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(690, 'FOCUS Leaderboards', 'Flyer', 1, 16, 723, '2026-03-13', 'completed', 1, 2, NULL, '2026-03-13', '2026-03-13', '2026-03-13 04:51:44', '2026-03-13 04:55:51', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(691, 'Ouron Logo Mosaic', 'Photoshop work', 1, 42, 720, '2026-03-16', 'completed', 1, 1, NULL, '2026-03-13', '2026-03-13', '2026-03-13 04:55:29', '2026-03-13 13:25:35', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(692, 'Women\'s Day Posts', 'Flyer', 1, 16, 722, '2026-03-13', 'completed', 1, 9, NULL, '2026-03-13', '2026-03-13', '2026-03-13 04:56:07', '2026-03-13 05:57:50', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(693, 'Vitamin D Camp Slips ', 'Camp Creatives', 1, 20, 733, '2026-03-17', 'completed', 1, 3, NULL, '2026-03-16', '2026-03-16', '2026-03-13 05:22:38', '2026-03-16 11:28:37', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(694, 'Docmycin QR + Link', 'Create QR and link with the provided PDF', 4, 74, 729, '2026-03-13', 'completed', 1, 1, 'https://alembicdigilabs.com/petal/docmycin/', '2026-03-13', '2026-03-13', '2026-03-13 06:51:38', '2026-03-13 06:56:24', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL);
 
---
+INSERT INTO `tasks` (`id`, `task_name`, `description`, `request_type_id`, `task_type_id`, `work_request_id`, `deadline`, `status`, `intimate_team`, `task_count`, `link`, `start_date`, `end_date`, `created_at`, `updated_at`, `version`, `assignment_type`, `intimate_client`, `review`, `review_stage`, `shared_with_client_at`, `no_of_options_provided`, `no_of_words_written`, `options_submitted`, `concept_work`, `resize_work`, `no_of_concepts`, `duration_minutes`, `duration_seconds`, `product_shoot`, `no_of_products_shot`, `shoot_setup`, `no_of_resize`, `responsive_screen`, `no_of_responsive_screen`, `comments`) VALUES
+(695, 'QR code', 'Create QR code for the link generated', 4, 81, 729, '2026-03-13', 'completed', 1, 1, NULL, '2026-03-13', '2026-03-13', '2026-03-13 06:52:17', '2026-03-13 06:58:07', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(696, 'Ascal gel Advance Packshot revealing video', 'Video Script for packshot reveal', 3, 67, 730, '2026-03-18', 'completed', 1, 1, NULL, '2026-03-16', '2026-03-17', '2026-03-13 07:04:54', '2026-03-17 07:13:11', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(697, 'Ascal gel advance  coming soon video', 'Video script for coming soon', 3, 67, 731, '2026-03-18', 'completed', 1, 1, NULL, '2026-03-16', '2026-03-17', '2026-03-13 07:05:39', '2026-03-17 07:12:45', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(698, 'Gastron Motivational Video', 'Video', 2, 49, 732, '2026-03-13', 'completed', 1, 1, NULL, '2026-03-13', '2026-03-13', '2026-03-13 10:36:55', '2026-03-13 10:55:19', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(699, 'Birthday greeting card for Veterinary doctor', 'Card', 1, 21, 737, '2026-03-18', 'completed', 1, 4, NULL, '2026-03-18', '2026-03-20', '2026-03-13 11:16:42', '2026-03-20 06:03:52', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(700, 'AAA achiever Standees (Zone wise)', 'Standee', 1, 40, 739, '2026-03-17', 'completed', 1, 2, NULL, '2026-03-17', '2026-03-17', '2026-03-13 11:17:14', '2026-03-17 05:52:59', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(701, 'Scratch card new product launch', 'Card', 1, 21, 738, '2026-03-17', 'completed', 1, 3, NULL, '2026-03-16', '2026-03-17', '2026-03-13 12:38:13', '2026-03-17 04:32:23', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(702, 'IV Fluid Flyer', 'Flyer', 1, 16, 740, '2026-03-18', 'completed', 1, 1, NULL, '2026-03-17', '2026-03-18', '2026-03-16 03:10:47', '2026-03-18 10:58:22', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(703, 'Khurak Flyer', 'Flyer', 1, 16, 741, '2026-03-18', 'completed', 1, 1, NULL, '2026-03-17', '2026-03-23', '2026-03-16 03:11:52', '2026-03-23 06:53:50', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(704, 'Sharkoferrol Video', 'Brand Teaser and concept Video', 2, 47, 602, '2026-03-16', 'completed', 1, 1, 'https://we.tl/t-5tMCJrKrcI', '2026-03-16', '2026-03-18', '2026-03-16 04:04:21', '2026-03-18 04:38:37', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(705, 'Resync - Budget meeting Video', 'Motivational Video ', 2, 58, 636, '2026-03-16', 'completed', 1, 1, 'https://we.tl/t-5tMCJrKrcI', '2026-03-16', '2026-03-18', '2026-03-16 04:07:04', '2026-03-18 04:38:52', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(706, 'PATIENT EDUCATION SHEET ', 'Leaflet', 1, 15, 734, '2026-03-18', 'completed', 1, 4, NULL, '2026-03-17', '2026-03-18', '2026-03-16 05:49:42', '2026-03-18 06:01:01', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(707, 'Gudi Padwa | Eid Festive Post', 'Festival flyer', 1, 12, 742, '2026-03-18', 'completed', 1, 3, NULL, '2026-03-17', '2026-03-18', '2026-03-16 05:57:10', '2026-03-18 04:32:17', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(708, 'PVR ADVERT - POONA EYE HOSPITAL', 'banner', 1, 19, 743, '2026-03-17', 'completed', 1, 3, NULL, '2026-03-17', '2026-03-17', '2026-03-16 05:59:08', '2026-03-17 07:29:28', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(709, 'Award Ceremony Template', 'Stall Panel', 1, 38, 746, '2026-03-20', 'completed', 1, 2, NULL, '2026-03-16', '2026-03-17', '2026-03-16 09:42:05', '2026-03-17 07:25:34', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(710, 'Geripod-D VA Gif', 'Brand Teaser and concept Video', 2, 46, 736, '2026-03-20', 'completed', 1, 2, 'https://we.tl/t-lztYEsatNq', '2026-03-18', '2026-03-20', '2026-03-16 09:44:59', '2026-03-20 10:01:38', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(712, 'Need to add animation in VA Page', 'Video teaser', 2, 47, 687, '2026-03-24', 'completed', 1, 1, 'https://we.tl/t-kEpBJry00z', '2026-03-20', '2026-03-23', '2026-03-16 09:46:53', '2026-03-23 10:16:01', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(713, 'Freego Dose Preparation Video', 'Video teaser', 2, 46, 534, '2026-03-20', 'in_progress', 1, 0, NULL, '2026-03-18', NULL, '2026-03-16 09:54:19', '2026-03-18 04:49:39', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(714, 'Bladmir VA Animation', 'Video teaser', 2, 46, 735, '2026-03-20', 'in_progress', 1, 0, NULL, '2026-03-20', NULL, '2026-03-16 09:56:39', '2026-03-20 05:49:58', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(715, 'Rosave Gold Cath Lab activity SOP  Video', 'Brand Teaser and concept Video', 2, 46, 676, '2026-03-20', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-16 10:06:21', '2026-03-16 10:06:23', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(716, 'IV Fluid video', 'Brand Teaser and concept Video', 3, 67, 748, '2026-03-27', 'in_progress', 1, 0, NULL, '2026-03-20', NULL, '2026-03-16 10:06:42', '2026-03-23 08:53:07', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(717, 'Veldrop iPad video', 'Brand Teaser and concept Video', 2, 46, 630, '2026-03-20', 'in_progress', 1, 0, NULL, '2026-03-17', NULL, '2026-03-16 10:09:26', '2026-03-17 09:07:07', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(718, 'Resync Plus - Coming soon video teaser', 'Brand Teaser and concept Video', 2, 48, 636, '2026-03-24', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-16 10:17:46', '2026-03-16 10:18:10', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(719, 'Resync Plus launch Dr engagement gamification', 'Gamification ', 3, 67, 752, '2026-03-26', 'in_progress', 1, 0, NULL, '2026-03-20', NULL, '2026-03-16 11:13:53', '2026-03-19 18:31:00', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(720, 'Artwork for Salembic , Ralembic, Salembic-D LBL', 'LBL', 1, 3, 750, '2026-03-18', 'completed', 1, 4, NULL, '2026-03-17', '2026-03-24', '2026-03-16 16:34:09', '2026-03-24 04:26:51', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(721, 'Veldrop  Gift Box', 'Packaging', 1, 23, 753, '2026-03-18', 'completed', 1, 1, NULL, '2026-03-18', '2026-03-18', '2026-03-17 03:57:08', '2026-03-18 06:01:30', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(722, 'TEST Etrik VA 01', 'VA Animation GIF', 4, 74, 670, '2026-03-18', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-17 05:49:46', '2026-03-20 05:51:31', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(723, 'Promotogram', 'Detailer', 1, 4, 757, '2026-03-17', 'completed', 1, 2, NULL, '2026-03-17', '2026-03-18', '2026-03-17 06:12:51', '2026-03-18 04:21:34', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(724, 'CME invite', 'Invite ', 1, 22, 745, '2026-03-20', 'completed', 1, 2, NULL, '2026-03-20', '2026-03-23', '2026-03-17 06:41:22', '2026-03-23 10:21:59', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(725, 'TIKOUT DANGLER', 'Dangler', 1, 41, 761, '2026-03-20', 'completed', 1, 2, NULL, '2026-03-18', '2026-03-23', '2026-03-17 07:30:12', '2026-03-23 06:54:49', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(726, 'TIKOUT DANGLER', 'Dangler', 1, 41, 761, '2026-03-20', 'completed', 1, 2, NULL, '2026-03-18', '2026-03-23', '2026-03-17 07:30:13', '2026-03-23 06:55:32', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(727, 'CLOFFER Infographics', 'Infographics (graphs)', 1, 16, 758, '2026-03-27', 'in_progress', 1, 0, NULL, '2026-03-18', NULL, '2026-03-17 07:39:21', '2026-03-18 05:53:11', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(728, 'Almizol Skin Lotion Packshot  Photoshoot', 'Product shoot ', 5, 93, 749, '2026-03-17', 'completed', 1, 2, NULL, '2026-03-17', '2026-03-17', '2026-03-17 08:24:58', '2026-03-17 09:18:37', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(729, 'Written content for wishing a birthday to Veterinary Doctor', 'Custom Birthday Greeting', 3, 64, 762, '2026-03-18', 'completed', 1, 4, 'https://docs.google.com/document/d/1ZkGVxIMcQ12L3dSF4_fiHxIT4hoDuCWk5Z7wv_kPTm0/edit?ouid=104752160794647528844&usp=docs_home&ths=true', '2026-03-18', '2026-03-18', '2026-03-17 08:28:04', '2026-03-18 07:15:14', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(730, 'Sharkoferrol Aqua AI Video', 'Brand Teaser and concept Video', 3, 67, 760, '2026-03-20', 'completed', 1, 3, NULL, '2026-03-18', '2026-03-23', '2026-03-17 08:48:32', '2026-03-24 08:46:35', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(731, 'Tishuheal VA Page Pop up edit', 'Brand Teaser and concept Video', 2, 46, 754, '2026-03-20', 'completed', 1, 1, NULL, '2026-03-17', '2026-03-17', '2026-03-17 09:05:53', '2026-03-17 09:06:42', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(732, 'ascal gel advance coming soon video', 'Brand Teaser and concept Video', 2, 46, 420, '2026-03-23', 'completed', 1, 1, NULL, '2026-03-23', '2026-03-23', '2026-03-17 09:07:55', '2026-03-23 06:43:20', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(733, 'TRAZTIK packshot shoot', 'Product shoot ', 5, 93, 767, '2026-03-17', 'completed', 1, 2, NULL, '2026-03-17', '2026-03-17', '2026-03-17 10:34:19', '2026-03-17 10:35:27', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(734, 'Fertimax Chemist Requisition Book ', 'Packaging', 1, 23, 755, '2026-03-18', 'completed', 1, 4, NULL, '2026-03-18', '2026-03-24', '2026-03-17 12:41:02', '2026-03-24 04:26:24', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(735, 'MHAL LBL', 'LBL', 1, 3, 759, '2026-03-20', 'completed', 1, 2, NULL, '2026-03-20', '2026-03-20', '2026-03-17 12:42:02', '2026-03-20 09:21:21', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(736, 'MHAL LBL', 'LBL', 1, 3, 759, '2026-03-25', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-17 12:42:30', '2026-03-24 11:16:26', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(737, 'Need PinPoint Chitpad artwork', 'Chitpad', 1, 7, 771, '2026-03-23', 'completed', 1, 2, NULL, '2026-03-23', '2026-03-24', '2026-03-18 04:41:44', '2026-03-24 04:37:33', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(738, 'Need PinPoint Chitpad artwork', 'Chitpad', 1, 7, 771, '2026-03-23', 'completed', 1, 1, NULL, '2026-03-23', '2026-03-24', '2026-03-18 04:41:44', '2026-03-24 04:37:58', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(739, 'Tufehart - Visual AId Animation', 'Visual AId Animation', 2, 47, 770, '2026-03-23', 'in_progress', 1, 0, NULL, '2026-03-18', NULL, '2026-03-18 04:48:34', '2026-03-18 06:02:01', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(740, 'Bovine Ephemeral Fever', 'Brand Teaser and concept Video', 2, 46, 764, '2026-03-24', 'completed', 1, 1, 'https://we.tl/t-HybqBBqyzr', '2026-03-20', '2026-03-24', '2026-03-18 04:49:29', '2026-03-24 04:50:33', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(741, 'Rosave group VA animation', 'Visual AId Animation', 2, 47, 763, '2026-03-25', 'completed', 1, 5, 'https://we.tl/t-N1jqK3UPYrgeDnWt', '2026-03-20', '2026-03-25', '2026-03-18 04:51:55', '2026-03-25 05:48:42', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(742, 'Ralembic video', 'Video teaser', 2, 48, 452, '2026-03-30', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-18 04:52:26', '2026-03-18 04:52:28', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(743, 'poster', 'Poster', 1, 20, 768, '2026-03-24', 'in_progress', 1, 0, NULL, '2026-03-23', NULL, '2026-03-18 06:30:04', '2026-03-23 05:27:05', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(744, 'Etrik Box Artwork ', 'Packaging', 1, 23, 777, '2026-03-24', 'completed', 1, 1, NULL, '2026-03-24', '2026-03-24', '2026-03-18 06:57:14', '2026-03-24 10:22:38', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(745, 'Roll Up Standee Artwork (HTN Panchayat)', 'Standee', 1, 40, 778, '2026-03-24', 'completed', 1, 2, NULL, '2026-03-24', '2026-03-24', '2026-03-18 06:58:29', '2026-03-24 10:07:08', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(746, 'Gift box artwork', 'Packaging', 1, 23, 776, '2026-03-18', 'completed', 1, 1, NULL, '2026-03-18', '2026-03-18', '2026-03-18 07:06:33', '2026-03-18 10:55:37', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(747, 'Summer Bonanza Campaign Flyer', 'Flyer', 1, 16, 774, '2026-03-20', 'completed', 1, 4, NULL, '2026-03-20', '2026-03-20', '2026-03-18 07:19:28', '2026-03-20 10:43:46', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(748, 'Intestinal Image For Estrofit', 'Flyer', 1, 16, 781, '2026-03-24', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-18 07:33:30', '2026-03-18 07:33:36', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(749, 'Bovine Ephemeral fever', 'Leaflet', 1, 15, 766, '2026-03-26', 'accepted', 1, 0, NULL, '2026-03-26', NULL, '2026-03-18 07:34:28', '2026-03-25 06:25:36', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(750, 'Festival Flyer (Gudi Padwa, Ugadi Etc)', 'Festival Video ', 2, 48, 788, '2026-03-18', 'completed', 1, 1, NULL, '2026-03-18', '2026-03-18', '2026-03-18 09:04:23', '2026-03-18 10:23:15', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(751, 'CLOFF OS VA animation', 'Visual Aid Animation', 2, 48, 780, '2026-03-25', 'completed', 1, 5, NULL, '2026-03-25', '2026-03-25', '2026-03-18 09:05:51', '2026-03-25 06:35:23', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(752, 'Gudipadwa Greetting', 'Video teaser', 2, 49, 779, '2026-03-18', 'completed', 1, 1, NULL, '2026-03-18', '2026-03-18', '2026-03-18 09:06:24', '2026-03-18 10:25:29', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(753, 'Laveta M Anthem Video', 'Motivational Video ', 2, 58, 787, '2026-03-25', 'in_progress', 1, 0, NULL, '2026-03-24', NULL, '2026-03-18 09:07:48', '2026-03-23 18:31:00', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(754, 'Laveta M OS Visual Aid Gif', 'VA Animation ', 2, 47, 785, '2026-03-23', 'completed', 1, 6, 'https://we.tl/t-Yv0GR8Nh9m', '2026-03-20', '2026-03-23', '2026-03-18 09:09:05', '2026-03-23 09:28:25', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(755, 'VITARESP FX', 'Video teaser', 2, 46, 783, '2026-03-25', 'completed', 1, 5, NULL, '2026-03-25', '2026-03-25', '2026-03-18 09:10:03', '2026-03-25 06:36:07', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(756, 'TETAN VA ANIMATION', 'VA Animation ', 2, 47, 782, '2026-03-25', 'in_progress', 1, 0, NULL, '2026-03-23', NULL, '2026-03-18 09:12:16', '2026-03-22 18:31:00', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(757, 'Budget Meeting Video Rise of Olympus ', 'Motivational Video ', 2, 49, 661, '2026-03-18', 'completed', 1, 1, 'https://we.tl/t-BHPuSH3Uya', '2026-03-18', '2026-03-18', '2026-03-18 09:19:31', '2026-03-18 09:39:10', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(758, 'RUMIGEST LAUNCH GIF', 'Video teaser', 2, 45, 522, '2026-03-20', 'completed', 1, 1, '0000', '2026-03-20', '2026-03-20', '2026-03-18 09:20:43', '2026-03-20 05:51:56', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(759, 'Ceramide-backed care for sensitive skin ', 'Brand Teaser and concept Video', 2, 48, 463, '2026-03-25', 'in_progress', 1, 0, NULL, '2026-03-23', NULL, '2026-03-18 09:22:25', '2026-03-22 18:31:00', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(760, 'Choose care with intention; not countless choices.', 'Brand Teaser and concept Video', 2, 48, 463, '2026-03-30', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-18 09:29:59', '2026-03-18 09:30:04', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(761, 'Standee size artwork for Tick prevention', 'Standee\' ', 1, 40, 790, '2026-03-24', 'completed', 1, 1, NULL, '2026-03-23', '2026-03-24', '2026-03-20 06:21:39', '2026-03-24 11:53:45', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(762, 'salembic', 'Packaging ', 1, 23, 789, '2026-03-24', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-20 06:22:36', '2026-03-24 10:11:27', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(763, 'Etrik VA ', 'VA Animation GIF', 1, 35, 670, NULL, 'pending', 0, 0, NULL, NULL, NULL, '2026-03-20 08:58:15', '2026-03-20 08:58:15', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(764, 'LMOs anthem', 'Storyboard', 3, 68, 804, '2026-03-27', 'in_progress', 1, 0, NULL, '2026-03-23', NULL, '2026-03-20 09:44:53', '2026-03-23 15:28:43', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(765, 'QR code generation', 'QR + Link for diabetes management article', 4, 81, 791, '2026-03-23', 'completed', 1, 1, 'https://alembicdigilabs.com//pharma/diabetes_management_physicians/', '2026-03-20', '2026-03-20', '2026-03-20 09:56:57', '2026-03-20 10:05:52', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(766, 'Dangler PORON', 'Dangler', 1, 41, 806, '2026-03-25', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-23 04:03:18', '2026-03-23 04:03:20', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(767, 'Check Tray Observation Record', 'Detailer', 1, 4, 800, '2026-03-26', 'completed', 1, 3, NULL, '2026-03-24', '2026-03-25', '2026-03-23 04:04:53', '2026-03-25 07:26:25', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(768, 'Mahavir Jayanti Greeting', 'Festive Card', 1, 12, 795, '2026-03-26', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-23 04:07:12', '2026-03-23 04:07:14', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(769, 'APD wheel Standee for EWE meetings', 'Standee', 1, 40, 808, '2026-03-24', 'completed', 1, 1, NULL, '2026-03-23', '2026-03-23', '2026-03-23 05:16:40', '2026-03-23 10:19:12', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(770, 'Enerflow (New Product) Logo', 'logo', 1, 23, 799, '2026-03-27', 'in_progress', 1, 0, NULL, '2026-03-23', NULL, '2026-03-23 05:21:58', '2026-03-23 07:09:21', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(771, 'Pohela Baishakh', 'Festival flyer', 1, 12, 819, '2026-03-31', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-23 05:24:04', '2026-03-23 05:24:07', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(772, 'Vishu', 'Festival flyer', 1, 12, 817, '2026-03-31', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-23 05:24:55', '2026-03-23 05:24:57', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(773, 'Puthandu', 'Festival flyer', 1, 12, 815, '2026-04-01', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-23 05:27:23', '2026-03-23 05:27:26', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(774, 'Baisakhi', 'Festival flyer', 1, 12, 812, '2026-04-03', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-23 05:27:49', '2026-03-23 05:27:51', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(775, 'World Health Day', 'Festival flyer', 1, 12, 811, '2026-03-31', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-23 05:29:09', '2026-03-23 05:29:11', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(776, 'Vehycal XT Inclinic Wipes Artwork', 'Packaging', 1, 23, 797, '2026-03-26', 'accepted', 1, 0, NULL, '2026-03-26', NULL, '2026-03-23 05:30:03', '2026-03-24 04:36:21', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(777, 'Roxid VA Changes', 'Visual Aid', 1, 1, 798, '2026-03-25', 'completed', 1, 2, NULL, '2026-03-23', '2026-03-24', '2026-03-23 05:38:04', '2026-03-24 06:40:58', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(778, 'Ugadi Gif', 'Festival Video ', 2, 48, 792, '2026-03-23', 'completed', 1, 1, NULL, '2026-03-23', '2026-03-23', '2026-03-23 06:49:59', '2026-03-23 07:00:45', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(779, 'Pohela Boishakh', 'Festival Greeting ', 3, 69, 818, '2026-03-31', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-23 08:36:43', '2026-03-23 08:36:46', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(780, 'Vishu', 'Festival Greeting ', 3, 69, 816, '2026-03-31', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-23 08:37:14', '2026-03-23 08:37:16', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(781, 'Puthandu', 'Festival Greeting ', 3, 69, 814, '2026-03-31', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-23 08:37:43', '2026-03-23 08:37:44', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(782, 'Baisakhi', 'Festival Greeting ', 3, 69, 813, '2026-03-31', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-23 08:38:06', '2026-03-23 08:38:08', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(783, 'World Health day', 'Festival Greeting ', 3, 69, 810, '2026-03-30', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-23 08:38:47', '2026-03-23 08:38:48', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(784, 'Women\'s Day Spotlight', 'Portrait stills', 5, 94, 802, '2026-03-23', 'completed', 1, 25, NULL, '2026-03-23', '2026-03-23', '2026-03-23 10:15:15', '2026-03-23 10:43:10', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(785, 'Sharpsell and Pitchwiz platform for field employees', 'Brand Teaser and concept Video', 2, 48, 480, '2026-03-27', 'in_progress', 1, 0, NULL, '2026-03-25', NULL, '2026-03-23 10:40:48', '2026-03-25 04:27:13', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(786, 'Celebration Day Greeting', 'Festival flyer', 1, 12, 794, '2026-03-26', 'in_progress', 1, 0, NULL, '2026-03-25', NULL, '2026-03-23 11:20:16', '2026-03-25 04:02:18', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(787, 'Vehycal XT LBL Resizing', 'LBL', 1, 3, 786, '2026-03-24', 'completed', 1, 1, NULL, '2026-03-23', '2026-03-24', '2026-03-23 11:21:50', '2026-03-24 04:40:25', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(788, 'Gift Sleeve artwork and sticker artwork. ', 'Packaging', 1, 23, 821, '2026-03-25', 'in_progress', 1, 0, NULL, '2026-03-25', NULL, '2026-03-23 11:28:24', '2026-03-24 18:31:00', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(789, 'Cardigem Division All Brand reminder Card', 'Reminder card', 1, 8, 820, '2026-03-25', 'completed', 1, 2, NULL, '2026-03-24', '2026-03-24', '2026-03-23 11:41:26', '2026-03-24 10:22:18', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(790, 'Tent Card', 'Tent card', 1, 21, 796, '2026-03-27', 'in_progress', 1, 0, NULL, '2026-03-24', NULL, '2026-03-23 12:30:53', '2026-03-24 04:40:40', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(791, 'Filtra Veldrop Box artwork', 'Packaging', 1, 23, 822, '2026-03-25', 'in_progress', 1, 0, NULL, '2026-03-25', NULL, '2026-03-24 06:56:44', '2026-03-24 18:31:00', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(792, 'Sharkoferrol Aqua AI Video', 'Brand Teaser and concept Video', 2, 49, 760, '2026-03-27', 'in_progress', 1, 0, NULL, '2026-03-25', NULL, '2026-03-24 08:46:31', '2026-03-25 04:36:15', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(793, 'Prescribing Information of Tufehart', 'Booklet', 1, 31, 429, '2026-03-24', 'completed', 1, 4, NULL, '2026-03-24', '2026-03-24', '2026-03-24 09:59:12', '2026-03-24 10:17:42', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(794, 'Mother\'s Day Digital Frame', 'Digital Frame', 1, 19, 772, '2026-04-10', 'in_progress', 1, 0, NULL, '2026-03-24', NULL, '2026-03-24 10:07:23', '2026-03-24 10:12:05', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(795, 'Voage S VA Page Design', 'Visual Aid', 1, 1, 240, '2026-03-25', 'completed', 1, 3, NULL, '2026-03-24', '2026-03-24', '2026-03-24 11:06:50', '2026-03-24 11:08:44', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(796, 'Roxid VA animation', 'Visual Aid Animation', 2, 47, 825, '2026-03-27', 'accepted', 1, 0, NULL, '2026-03-27', NULL, '2026-03-25 04:27:16', '2026-03-25 06:58:44', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(797, 'Donance S Pro', 'Visual AId Animation', 2, 47, 824, '2026-03-27', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-25 04:28:09', '2026-03-25 04:28:10', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(798, 'VA Animation (Tellzy ', 'Visual AId Animation', 2, 47, 793, '2026-03-30', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-25 04:28:52', '2026-03-25 04:28:53', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(799, 'AZITHRAL OL VA ANIMATION FOR IPAD UPLOAD', 'Visual AId Animation', 2, 47, 805, '2026-03-27', 'in_progress', 1, 0, NULL, '2026-03-25', NULL, '2026-03-25 04:29:21', '2026-03-25 04:36:20', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(800, 'GERISTICKERS - FORMULA 1 THEMED - ', 'DYNAMIC STICKERS ', 2, 54, 823, '2026-03-31', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-25 04:37:14', '2026-03-25 04:37:16', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(801, 'WHD - Volume Matters Patient Awareness Videos ', 'Volume Matters Patient Awareness Videos ', 4, 81, 807, '2026-03-31', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-25 04:38:27', '2026-03-25 04:38:50', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(802, 'Zenovi  April month artwork', 'Festival flyer', 1, 12, 826, '2026-04-30', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-25 06:25:43', '2026-03-25 06:25:46', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(803, 'Pharma VA pages animation', 'Cloff oral Pages', 2, 47, 635, '2026-03-26', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-25 06:40:46', '2026-03-25 06:40:48', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL);
+
+-- --------------------------------------------------------
 -- Dumping data for table `task_assignments`
---
+-- --------------------------------------------------------
 
 INSERT INTO `task_assignments` (`id`, `task_id`, `user_id`, `created_at`, `updated_at`) VALUES
 (62, 56, 50, '2026-01-12 05:16:05', '2026-01-12 05:16:05'),
@@ -3586,22 +3831,8 @@ INSERT INTO `task_assignments` (`id`, `task_id`, `user_id`, `created_at`, `updat
 (1002, 803, 92, '2026-03-25 06:40:46', '2026-03-25 06:40:46');
 
 -- --------------------------------------------------------
-
---
--- Table structure for table `task_dependencies`
---
-
-CREATE TABLE `task_dependencies` (
-  `id` int(11) NOT NULL,
-  `task_id` int(11) NOT NULL,
-  `dependency_task_id` int(11) NOT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
 -- Dumping data for table `task_dependencies`
---
+-- --------------------------------------------------------
 
 INSERT INTO `task_dependencies` (`id`, `task_id`, `dependency_task_id`, `created_at`, `updated_at`) VALUES
 (19, 201, 155, '2026-01-29 09:42:41', '2026-01-29 09:42:41'),
@@ -3610,827 +3841,799 @@ INSERT INTO `task_dependencies` (`id`, `task_id`, `dependency_task_id`, `created
 (22, 679, 678, '2026-03-12 07:23:10', '2026-03-12 07:23:10');
 
 -- --------------------------------------------------------
-
---
--- Table structure for table `task_documents`
---
-
-CREATE TABLE `task_documents` (
-  `id` int(11) NOT NULL,
-  `task_assignment_id` int(11) NOT NULL,
-  `document_name` varchar(255) NOT NULL,
-  `document_path` varchar(500) NOT NULL,
-  `document_type` varchar(255) DEFAULT NULL,
-  `document_size` int(11) DEFAULT NULL,
-  `version` varchar(10) DEFAULT 'V1',
-  `status` enum('uploading','uploaded','failed') DEFAULT 'uploading',
-  `uploaded_at` timestamp NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
 -- Dumping data for table `task_documents`
---
-
-INSERT INTO `task_documents` (`id`, `task_assignment_id`, `document_name`, `document_path`, `document_type`, `document_size`, `version`, `status`, `uploaded_at`) VALUES
-(6, 62, 'Day-of-Reminder.jpg', '/digilabs/dmap/api/uploads/Alembic_Health_First_New_Design/Alembic Health First/Sanket Chandrakanat  Patade/V1/Day_of_Reminder.jpg-1768195276122-346048697.jpg', 'image/jpeg', 673704, 'V1', 'uploaded', '2026-01-12 05:21:16'),
-(7, 62, 'Event-Announcement-&-Highlights.jpg', '/digilabs/dmap/api/uploads/Alembic_Health_First_New_Design/Alembic Health First/Sanket Chandrakanat  Patade/V1/Event_Announcement___Highlights.jpg-1768195276138-42888751.jpg', 'image/jpeg', 503191, 'V1', 'uploaded', '2026-01-12 05:21:16'),
-(8, 62, 'Myths-vs-Truths.jpg', '/digilabs/dmap/api/uploads/Alembic_Health_First_New_Design/Alembic Health First/Sanket Chandrakanat  Patade/V1/Myths_vs_Truths.jpg-1768195276142-158268032.jpg', 'image/jpeg', 323495, 'V1', 'uploaded', '2026-01-12 05:21:16'),
-(9, 62, 'Post-Event-Highlights.jpg', '/digilabs/dmap/api/uploads/Alembic_Health_First_New_Design/Alembic Health First/Sanket Chandrakanat  Patade/V1/Post_Event_Highlights.jpg-1768195276147-946760990.jpg', 'image/jpeg', 361207, 'V1', 'uploaded', '2026-01-12 05:21:16'),
-(10, 62, 'Pre-Buzz-Tease1250_X_1250_pxl_3.jpg', '/digilabs/dmap/api/uploads/Alembic_Health_First_New_Design/Alembic Health First/Sanket Chandrakanat  Patade/V1/Pre_Buzz_Tease1250_X_1250_pxl_3.jpg-1768195276153-506262583.jpg', 'image/jpeg', 681050, 'V1', 'uploaded', '2026-01-12 05:21:16'),
-(12, 69, 'Dermavidya Standee_C2C.pdf', '/digilabs/dmap/api/uploads/DermaVidya_Standee/DermaVidya Standee/Angana Prakash Patil/V1/Dermavidya_Standee_C2C.pdf-1768282339111-227574400.pdf', 'application/pdf', 12781735, 'V1', 'uploaded', '2026-01-13 05:32:19'),
-(13, 75, 'Teaser 1-01.jpg', '/digilabs/dmap/api/uploads/PEDICON_FLYERS/Pedicon Flyers/Gaurav Karnik/V1/Teaser_1_01.jpg-1768283165997-811654483.jpg', 'image/jpeg', 1496437, 'V1', 'uploaded', '2026-01-13 05:46:06'),
-(14, 75, 'Teaser 1-04.jpg', '/digilabs/dmap/api/uploads/PEDICON_FLYERS/Pedicon Flyers/Gaurav Karnik/V1/Teaser_1_04.jpg-1768283166016-721331974.jpg', 'image/jpeg', 1573414, 'V1', 'uploaded', '2026-01-13 05:46:06'),
-(15, 75, 'Teaser 1-06.jpg', '/digilabs/dmap/api/uploads/PEDICON_FLYERS/Pedicon Flyers/Gaurav Karnik/V1/Teaser_1_06.jpg-1768283166041-349297187.jpg', 'image/jpeg', 1309413, 'V1', 'uploaded', '2026-01-13 05:46:06'),
-(16, 75, 'Teaser 1-11.jpg', '/digilabs/dmap/api/uploads/PEDICON_FLYERS/Pedicon Flyers/Gaurav Karnik/V1/Teaser_1_11.jpg-1768283166090-994361415.jpg', 'image/jpeg', 1497482, 'V1', 'uploaded', '2026-01-13 05:46:06'),
-(17, 64, 'Reminder card_Jan.jpg', '/digilabs/dmap/api/uploads/NAC_brand_reminder/NAC brand reminder/Angana Prakash Patil/V1/Reminder_card_Jan.jpg-1768379881324-669889032.jpg', 'image/jpeg', 1002028, 'V1', 'uploaded', '2026-01-14 08:38:01'),
-(20, 65, 'Reminder card_Jan.pdf', '/digilabs/dmap/api/uploads/NCV_Brand_Reminder_/NCV-Brand Reminder/Angana Prakash Patil/V1/Reminder_card_Jan.pdf-1768389648312-857452752.pdf', 'application/pdf', 2764804, 'V1', 'uploaded', '2026-01-14 11:20:48'),
-(21, 73, 'Lactonic_Launch_Card_2.pdf', '/digilabs/dmap/api/uploads/Lactonic_Launch_Card_/Lactonic Launch Card/Angana Prakash Patil/V1/Lactonic_Launch_Card_2.pdf-1768389732619-240312233.pdf', 'application/pdf', 3751199, 'V1', 'uploaded', '2026-01-14 11:22:12'),
-(22, 68, 'Pelvic bladder anatomy.pdf', '/digilabs/dmap/api/uploads/NASAL_CAVITY_AND_UTERUS_MODEL/Nasal Cavity/Angana Prakash Patil/V1/Pelvic_bladder_anatomy.pdf-1768464939589-888545127.pdf', 'application/pdf', 7149496, 'V1', 'uploaded', '2026-01-15 08:15:39'),
-(23, 72, 'Livfit_Launch_Card_Final.pdf', '/digilabs/dmap/api/uploads/New_livfit_Launch_card/Livfit Card/Angana Prakash Patil/V1/Livfit_Launch_Card_Final.pdf-1768563538914-192550339.pdf', 'application/pdf', 2450240, 'V1', 'uploaded', '2026-01-16 11:38:58'),
-(24, 63, 'Gestofit Presciption Pad AW Artwork 2 Final_Nepali.pdf', '/digilabs/dmap/api/uploads/Gestofit_Prescription_Pad/Gestofit Prescription Pad/Angana Prakash Patil/V1/Gestofit_Presciption_Pad_AW_Artwork_2_Final_Nepali.pdf-1768563737683-664948488.pdf', 'application/pdf', 3279948, 'V1', 'uploaded', '2026-01-16 11:42:17'),
-(25, 87, 'HO-TV-artwork---Asia-Book-of-Records_1.jpg', '/digilabs/dmap/api/uploads/HO_TV_artwork___Asia_Book_of_Records/Asia Book/Sanket Chandrakanat  Patade/V1/HO_TV_artwork___Asia_Book_of_Records_1.jpg-1768807260292-543177715.jpg', 'image/jpeg', 200615, 'V1', 'uploaded', '2026-01-19 07:21:00'),
-(26, 87, 'HO-TV-artwork---Asia-Book-of-Records_2.jpg', '/digilabs/dmap/api/uploads/HO_TV_artwork___Asia_Book_of_Records/Asia Book/Sanket Chandrakanat  Patade/V1/HO_TV_artwork___Asia_Book_of_Records_2.jpg-1768807260302-848720494.jpg', 'image/jpeg', 362512, 'V1', 'uploaded', '2026-01-19 07:21:00'),
-(27, 87, 'HO-TV-artwork---Asia-Book-of-Records_3.jpg', '/digilabs/dmap/api/uploads/HO_TV_artwork___Asia_Book_of_Records/Asia Book/Sanket Chandrakanat  Patade/V1/HO_TV_artwork___Asia_Book_of_Records_3.jpg-1768807260308-277392397.jpg', 'image/jpeg', 288682, 'V1', 'uploaded', '2026-01-19 07:21:00'),
-(28, 81, 'Happy-Republic-Day.jpg', '/digilabs/dmap/api/uploads/Republic_Day__Digital_Flyer/Republic Day/Sanket Chandrakanat  Patade/V1/Happy_Republic_Day.jpg-1768824156165-250005815.jpg', 'image/jpeg', 118153, 'V1', 'uploaded', '2026-01-19 12:02:36'),
-(29, 102, 'Top-Medical-Representatives_Monthly_Dec-2025_Elena.jpg', '/digilabs/dmap/api/uploads/MRs_with_Highest_Productive_Calls___Monthly/MRs with Highest Productive Calls | Monthly/Sanket Chandrakanat  Patade/V1/Top_Medical_Representatives_Monthly_Dec_2025_Elena.jpg-1768876793388-213025892.jpg', 'image/jpeg', 144079, 'V1', 'uploaded', '2026-01-20 02:39:53'),
-(30, 101, 'SCM-Award-Artwork.jpg', '/digilabs/dmap/api/uploads/Supply_Chain_Management_Team__Award_artwork/Supply Chain Management Team- Award artwork/Sanket Chandrakanat  Patade/V1/SCM_Award_Artwork.jpg-1768885133731-472767948.jpg', 'image/jpeg', 1023661, 'V1', 'uploaded', '2026-01-20 04:58:53'),
-(31, 103, 'SKCDA-PROJECT-PROPOSAL_A4_Horizontal.jpg', '/digilabs/dmap/api/uploads/SCM_Advertisement/SCM Advertisement/Sanket Chandrakanat  Patade/V1/SKCDA_PROJECT_PROPOSAL_A4_Horizontal.jpg-1768889079484-46140349.jpg', 'image/jpeg', 197932, 'V1', 'uploaded', '2026-01-20 06:04:39'),
-(32, 103, 'SKCDA-PROJECT-PROPOSAL_A4_Vertical.jpg', '/digilabs/dmap/api/uploads/SCM_Advertisement/SCM Advertisement/Sanket Chandrakanat  Patade/V1/SKCDA_PROJECT_PROPOSAL_A4_Vertical.jpg-1768889079491-377282111.jpg', 'image/jpeg', 192209, 'V1', 'uploaded', '2026-01-20 06:04:39'),
-(33, 86, 'qr-code.png', '/digilabs/dmap/api/uploads/Evaraft_Consensus_QR_Code/Evaraft Consensus QR Code/Gautam Baranwal/V1/qr_code.png-1768904392398-699485131.png', 'image/png', 9011, 'V1', 'uploaded', '2026-01-20 10:19:52'),
-(34, 82, 'Mouth Guard_Delton Sticker.jpg', '/digilabs/dmap/api/uploads/Deltone_SGPI_Outer_box_Artwork/Deltone SGPI Outer box/Nilesh Khedekar/V1/Mouth_Guard_Delton_Sticker.jpg-1768908451270-943528153.jpg', 'image/jpeg', 284185, 'V1', 'uploaded', '2026-01-20 11:27:31'),
-(35, 135, 'Medical_changes___Estroplus_VA.pptx-1768901399254-980879241.pptx', '/digilabs/dmap/api/uploads/ESTROPLUS_VA/ESTROPLUS VA/Vinisha Chadala/V1/Medical_changes___Estroplus_VA.pptx_1768901399254_980879241.pptx-1768973422101-561185570.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 1542001, 'V1', 'uploaded', '2026-01-21 05:30:22'),
-(36, 90, 'Republic Day - 2026_Corazone.mp4', '/digilabs/dmap/api/uploads/Republic_Day_Greetings/ Corazon- Republic Day Video 2026/Prashant Khade/V1/Republic_Day___2026_Corazone.mp4-1768987945466-285128052.mp4', 'video/mp4', 89863304, 'V1', 'uploaded', '2026-01-21 09:32:27'),
-(37, 152, 'enteron_va_qr.png', '/digilabs/dmap/api/uploads/Enteron_FY_2026_27_VA_PDF_Copy_link/Enteron FY 2026-27 VA PDF Copy link/Gautam Baranwal/V1/enteron_va_qr.png-1769057894103-810988225.png', 'image/png', 9052, 'V1', 'uploaded', '2026-01-22 04:58:14'),
-(38, 149, 'Crina-NCR Megaplex Template GYNE_Manila Jain Kaushal-01.jpg', '/digilabs/dmap/api/uploads/Crina_NCR_Megaplex_Activity___Indore/Crina-NCR Megaplex Activity - Indore/Reshma Bastav/V1/Crina_NCR_Megaplex_Template_GYNE_Manila_Jain_Kaushal_01.jpg-1769063903398-829173434.jpg', 'image/jpeg', 4314321, 'V1', 'uploaded', '2026-01-22 06:38:23'),
-(39, 149, 'Crina-NCR Megaplex Template GYNE_Manila Jain Kaushal-02.jpg', '/digilabs/dmap/api/uploads/Crina_NCR_Megaplex_Activity___Indore/Crina-NCR Megaplex Activity - Indore/Reshma Bastav/V1/Crina_NCR_Megaplex_Template_GYNE_Manila_Jain_Kaushal_02.jpg-1769063903412-573107063.jpg', 'image/jpeg', 2717529, 'V1', 'uploaded', '2026-01-22 06:38:23'),
-(40, 149, 'Crina-NCR Megaplex Template GYNE_Manila Jain Kaushal-03.jpg', '/digilabs/dmap/api/uploads/Crina_NCR_Megaplex_Activity___Indore/Crina-NCR Megaplex Activity - Indore/Reshma Bastav/V1/Crina_NCR_Megaplex_Template_GYNE_Manila_Jain_Kaushal_03.jpg-1769063903418-457390809.jpg', 'image/jpeg', 5608148, 'V1', 'uploaded', '2026-01-22 06:38:23'),
-(41, 112, 'Pegtears reintroduction.docx', '/digilabs/dmap/api/uploads/PegTears_HP_Teaser/PegTears HP Teaser/Vinisha Chadala/V1/Pegtears_reintroduction.docx-1769064256551-436949497.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 16730, 'V1', 'uploaded', '2026-01-22 06:44:16'),
-(42, 112, 'Pegtears script Healing Partner.docx', '/digilabs/dmap/api/uploads/PegTears_HP_Teaser/PegTears HP Teaser/Vinisha Chadala/V1/Pegtears_script_Healing_Partner.docx-1769064256560-706508904.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 14639, 'V1', 'uploaded', '2026-01-22 06:44:16'),
-(43, 85, 'Summit LBLs (Mar\'26) & CME Invitation CTC.jpg', '/digilabs/dmap/api/uploads/InSH_Guideline_CME__Pune__Invitation_Card/InSH Guideline CME/Tanmay Santosh Chorghe/V1/Summit_LBLs__Mar_26____CME_Invitation_CTC.jpg-1769064400458-925871444.jpg', 'image/jpeg', 601683, 'V1', 'uploaded', '2026-01-22 06:46:40'),
-(44, 93, 'Republic Day GIF 02.mp4', '/digilabs/dmap/api/uploads/Republic_Day_Video_and_GIF_from_Digilabs/Specia - Republic Day GIF 2026/Prathamesh Shengale/V1/Republic_Day_GIF_02.mp4-1769065438459-45849371.mp4', 'video/mp4', 7225017, 'V1', 'uploaded', '2026-01-22 07:03:58'),
-(45, 94, 'Republic Day GIF 03.mp4', '/digilabs/dmap/api/uploads/Republic_day_Gif_Oryza_sensitive/Corium - Republic day Gif 2026/Prathamesh Shengale/V1/Republic_Day_GIF_03.mp4-1769065466809-492029395.mp4', 'video/mp4', 7228945, 'V1', 'uploaded', '2026-01-22 07:04:26'),
-(46, 151, 'Republic Day GIF 04.mp4', '/digilabs/dmap/api/uploads/Republic_Day_Greetings__from_makers_of_Azithral_Solid__Azithral_Liquid__Laveta_M_Solid__Laveta_M_Liquid_/Republic Day Greetings, from makers of Azithral Solid, Azithral Liquid, Laveta M Solid, Laveta M Liquid./Prathamesh Shengale/V1/Republic_Day_GIF_04.mp4-1769065983536-295102790.mp4', 'video/mp4', 10344391, 'V1', 'uploaded', '2026-01-22 07:13:03'),
-(47, 115, 'Gift Box.jpg', '/digilabs/dmap/api/uploads/Retailer_Gift_Box_artwork/Retailer Gift Box artwork/Nilesh Khedekar/V1/Gift_Box.jpg-1769071645107-37700543.jpg', 'image/jpeg', 3217939, 'V1', 'uploaded', '2026-01-22 08:47:25'),
-(48, 100, 'Republic Day GIF 05.mp4', '/digilabs/dmap/api/uploads/Republic_Day_Video/Cardigem - Republic Day Video 2026/Prathamesh Shengale/V1/Republic_Day_GIF_05.mp4-1769079627968-148087748.mp4', 'video/mp4', 7246378, 'V1', 'uploaded', '2026-01-22 11:00:27'),
-(49, 98, 'Republic Day GIF 06.mp4', '/digilabs/dmap/api/uploads/Republic_day_video/Ouron - Republic Day GIF 2026/Prathamesh Shengale/V1/Republic_Day_GIF_06.mp4-1769081268285-349383675.mp4', 'video/mp4', 7251127, 'V1', 'uploaded', '2026-01-22 11:27:48'),
-(50, 113, 'Gynatrop_Rx Pad 1.jpg', '/digilabs/dmap/api/uploads/Gynatrop_Rx_Pad/Gynatrop Rx Pad/Nilesh Khedekar/V1/Gynatrop_Rx_Pad_1.jpg-1769081570417-595779940.jpg', 'image/jpeg', 1873265, 'V1', 'uploaded', '2026-01-22 11:32:50'),
-(51, 113, 'Gynatrop_Rx Pad 2.jpg', '/digilabs/dmap/api/uploads/Gynatrop_Rx_Pad/Gynatrop Rx Pad/Nilesh Khedekar/V1/Gynatrop_Rx_Pad_2.jpg-1769081570432-219625375.jpg', 'image/jpeg', 1749838, 'V1', 'uploaded', '2026-01-22 11:32:50'),
-(52, 113, 'Gynatrop_Rx Pad 3.jpg', '/digilabs/dmap/api/uploads/Gynatrop_Rx_Pad/Gynatrop Rx Pad/Nilesh Khedekar/V1/Gynatrop_Rx_Pad_3.jpg-1769081570437-761560009.jpg', 'image/jpeg', 1556788, 'V1', 'uploaded', '2026-01-22 11:32:50'),
-(53, 163, 'Wikoryl Liquid Packshots.pdf', '/digilabs/dmap/api/uploads/Wikoryl_Pack_shots/Wikoryl Pack shots/Navneet Pathak/V1/Wikoryl_Liquid_Packshots.pdf-1769083002581-482760709.pdf', 'application/pdf', 11667408, 'V1', 'uploaded', '2026-01-22 11:56:42'),
-(54, 161, 'CHCF Camp Reminder Cards_V2.pdf', '/digilabs/dmap/api/uploads/CHCF_camp_Reminder_card/CHCF camp Reminder card/Navneet Pathak/V1/CHCF_Camp_Reminder_Cards_V2.pdf-1769084549645-393712305.pdf', 'application/pdf', 3482636, 'V1', 'uploaded', '2026-01-22 12:22:29'),
-(55, 84, 'Tellzy_LBL_March 2026.pdf', '/digilabs/dmap/api/uploads/Tellzy_Range_LBLs__Feb_25_/Tellzy Range LBLs/Angana Prakash Patil/V1/Tellzy_LBL_March_2026.pdf-1769146571863-232195263.pdf', 'application/pdf', 2018065, 'V1', 'uploaded', '2026-01-23 05:36:11'),
-(56, 84, 'Tellzy-AM_LBL_March 2026.pdf', '/digilabs/dmap/api/uploads/Tellzy_Range_LBLs__Feb_25_/Tellzy Range LBLs/Angana Prakash Patil/V1/Tellzy_AM_LBL_March_2026.pdf-1769146571870-642737897.pdf', 'application/pdf', 2155711, 'V1', 'uploaded', '2026-01-23 05:36:11'),
-(57, 84, 'Tellzy-LN_LBL_March 2026.pdf', '/digilabs/dmap/api/uploads/Tellzy_Range_LBLs__Feb_25_/Tellzy Range LBLs/Angana Prakash Patil/V1/Tellzy_LN_LBL_March_2026.pdf-1769146571875-789250652.pdf', 'application/pdf', 4337888, 'V1', 'uploaded', '2026-01-23 05:36:11'),
-(58, 84, 'Tellzy-MT_LBL_March 2026.pdf', '/digilabs/dmap/api/uploads/Tellzy_Range_LBLs__Feb_25_/Tellzy Range LBLs/Angana Prakash Patil/V1/Tellzy_MT_LBL_March_2026.pdf-1769146571880-478982100.pdf', 'application/pdf', 3236189, 'V1', 'uploaded', '2026-01-23 05:36:11'),
-(59, 84, 'Tellzy-Ach_LBL_March 2026.pdf', '/digilabs/dmap/api/uploads/Tellzy_Range_LBLs__Feb_25_/Tellzy Range LBLs/Angana Prakash Patil/V1/Tellzy_Ach_LBL_March_2026.pdf-1769146571885-200278582.pdf', 'application/pdf', 21536536, 'V1', 'uploaded', '2026-01-23 05:36:11'),
-(60, 84, 'Tellzy-CH_LBL_March 2026.pdf', '/digilabs/dmap/api/uploads/Tellzy_Range_LBLs__Feb_25_/Tellzy Range LBLs/Angana Prakash Patil/V1/Tellzy_CH_LBL_March_2026.pdf-1769146571903-473029875.pdf', 'application/pdf', 4515516, 'V1', 'uploaded', '2026-01-23 05:36:11'),
-(61, 172, 'Happy 77th Republic Day-02.jpg', '/digilabs/dmap/api/uploads/Social_Media_Post_and_Interact_Mailer_for_Republic_Day/Social Media Post and Interact Mailer for Republic Day/Tanmay Santosh Chorghe/V1/Happy_77th_Republic_Day_02.jpg-1769157754283-137513901.jpg', 'image/jpeg', 184043, 'V1', 'uploaded', '2026-01-23 08:42:34'),
-(62, 164, 'Souvenir For Megacon Medical conference.jpg', '/digilabs/dmap/api/uploads/Souvenir_for_Megacon_2026/Souvenir for Megacon 2026/Nilesh Khedekar/V1/Souvenir_For_Megacon_Medical_conference.jpg-1769158282215-146289716.jpg', 'image/jpeg', 1256275, 'V1', 'uploaded', '2026-01-23 08:51:22'),
-(63, 108, 'Republic Day.jpg', '/digilabs/dmap/api/uploads/Republic_Day_Greeting_/Republic Day Greeting/Nilesh Khedekar/V1/Republic_Day.jpg-1769161057266-554616254.jpg', 'image/jpeg', 605263, 'V1', 'uploaded', '2026-01-23 09:37:37'),
-(64, 108, 'Republic Day.jpg', '/digilabs/dmap/api/uploads/Republic_Day_Greeting_/Republic Day Greeting/Nilesh Khedekar/V1/Republic_Day.jpg-1769161057272-270351445.jpg', 'image/jpeg', 605263, 'V1', 'uploaded', '2026-01-23 09:37:37'),
-(65, 174, 'Republic Day.jpg', '/digilabs/dmap/api/uploads/Republic_Day_Flyer/Republic Day Flyer/Nilesh Khedekar/V1/Republic_Day.jpg-1769161118640-485413587.jpg', 'image/jpeg', 1430149, 'V1', 'uploaded', '2026-01-23 09:38:38'),
-(66, 175, 'Brand Logo Video.mp4', '/digilabs/dmap/api/uploads/Brand_Logo_Video/Ouron Loop _Brand Logo Video_2026/Prathamesh Shengale/V1/Brand_Logo_Video.mp4-1769162831516-973115652.mp4', 'video/mp4', 9038645, 'V1', 'uploaded', '2026-01-23 10:07:11'),
-(67, 173, 'Republic Day GIF 08.mp4', '/digilabs/dmap/api/uploads/Republic_Day_Video/Hospicare_Republic Day Video_2026/Prathamesh Shengale/V1/Republic_Day_GIF_08.mp4-1769163747817-509941253.mp4', 'video/mp4', 10309951, 'V1', 'uploaded', '2026-01-23 10:22:27'),
-(68, 165, 'Certificate of Appriciation.pdf', '/digilabs/dmap/api/uploads/Need_appreciation_and_participation_certificates/Need appreciation and participation certificates/Nilesh Khedekar/V1/Certificate_of_Appriciation.pdf-1769164726726-949680705.pdf', 'application/pdf', 2777265, 'V1', 'uploaded', '2026-01-23 10:38:46'),
-(69, 165, 'Certificate of Participation.pdf', '/digilabs/dmap/api/uploads/Need_appreciation_and_participation_certificates/Need appreciation and participation certificates/Nilesh Khedekar/V1/Certificate_of_Participation.pdf-1769164726752-737201107.pdf', 'application/pdf', 2798327, 'V1', 'uploaded', '2026-01-23 10:38:46'),
-(70, 185, 'Republic Day.jpg', '/digilabs/dmap/api/uploads/Republic_Day_digital_flyer__enteron/Republic Day digital flyer- enteron/Nilesh Khedekar/V1/Republic_Day.jpg-1769514512125-161718950.jpg', 'image/jpeg', 664377, 'V1', 'uploaded', '2026-01-27 11:48:32'),
-(71, 182, 'MR PRODUCTIVITY CALLS_WEEKLY_TOP_MR 01-19-2026.pdf', '/digilabs/dmap/api/uploads/MR_Productive_Calls_Weekly_Leaderboards/MR Productive Calls Weekly Leaderboards/Milind Balkrushna Shelar/V1/MR_PRODUCTIVITY_CALLS_WEEKLY_TOP_MR_01_19_2026.pdf-1769582151484-969584391.pdf', 'application/pdf', 24532662, 'V1', 'uploaded', '2026-01-28 06:35:52'),
-(72, 170, 'Wikoryl AF Copies.docx', '/digilabs/dmap/api/uploads/Wikoryl_AF_VA_pages_FY_26_27/Wikoryl AF VA pages FY 26-27/Vinisha Chadala/V1/Wikoryl_AF_Copies.docx-1769582432785-817153419.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13749, 'V1', 'uploaded', '2026-01-28 06:40:33'),
-(73, 170, 'Wikoryl AF Copies.docx', '/digilabs/dmap/api/uploads/Wikoryl_AF_VA_pages_FY_26_27/Wikoryl AF VA pages FY 26-27/Vinisha Chadala/V1/Wikoryl_AF_Copies.docx-1769582436985-345389953.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13749, 'V1', 'uploaded', '2026-01-28 06:40:41'),
-(74, 170, 'Wikoryl AF Copies.docx', '/digilabs/dmap/api/uploads/Wikoryl_AF_VA_pages_FY_26_27/Wikoryl AF VA pages FY 26-27/Vinisha Chadala/V1/Wikoryl_AF_Copies.docx-1769582443685-804577197.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13749, 'V1', 'uploaded', '2026-01-28 06:40:45'),
-(75, 170, 'Wikoryl AF Copies.docx', '/digilabs/dmap/api/uploads/Wikoryl_AF_VA_pages_FY_26_27/Wikoryl AF VA pages FY 26-27/Vinisha Chadala/V1/Wikoryl_AF_Copies.docx-1769582447589-38878959.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13749, 'V1', 'uploaded', '2026-01-28 06:40:49'),
-(76, 170, 'Wikoryl AF Copies.docx', '/digilabs/dmap/api/uploads/Wikoryl_AF_VA_pages_FY_26_27/Wikoryl AF VA pages FY 26-27/Vinisha Chadala/V1/Wikoryl_AF_Copies.docx-1769582452287-369475939.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13749, 'V1', 'uploaded', '2026-01-28 06:40:52'),
-(77, 170, 'Wikoryl AF Copies.docx', '/digilabs/dmap/api/uploads/Wikoryl_AF_VA_pages_FY_26_27/Wikoryl AF VA pages FY 26-27/Vinisha Chadala/V1/Wikoryl_AF_Copies.docx-1769582455086-340638122.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13749, 'V1', 'uploaded', '2026-01-28 06:40:55'),
-(78, 170, 'Wikoryl AF Copies.docx', '/digilabs/dmap/api/uploads/Wikoryl_AF_VA_pages_FY_26_27/Wikoryl AF VA pages FY 26-27/Vinisha Chadala/V1/Wikoryl_AF_Copies.docx-1769582455891-770284629.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13749, 'V1', 'uploaded', '2026-01-28 06:40:56'),
-(79, 181, 'Acute cluster Brand Standee-1.jpg', '/digilabs/dmap/api/uploads/Azithral/Azithral/Milind Balkrushna Shelar/V1/Acute_cluster_Brand_Standee_1.jpg-1769582598687-765657332.jpg', 'image/jpeg', 2929278, 'V1', 'uploaded', '2026-01-28 06:43:18'),
-(80, 181, 'Acute cluster Brand Standee-2.jpg', '/digilabs/dmap/api/uploads/Azithral/Azithral/Milind Balkrushna Shelar/V1/Acute_cluster_Brand_Standee_2.jpg-1769582598788-292449656.jpg', 'image/jpeg', 2983485, 'V1', 'uploaded', '2026-01-28 06:43:18'),
-(81, 176, 'MR PRODUCTIVITY CALLS_WEEKLY_TOP_MR 01-19-2026_compressed.pdf', '/digilabs/dmap/api/uploads/Leaderboards_for_Top_MRs_with_Highest_Productivity_Calls/Leaderboards for Top MRs with Highest Productivity Calls/Milind Balkrushna Shelar/V1/MR_PRODUCTIVITY_CALLS_WEEKLY_TOP_MR_01_19_2026_compressed.pdf-1769582734988-821044355.pdf', 'application/pdf', 1966316, 'V1', 'uploaded', '2026-01-28 06:45:35'),
-(82, 104, 'MR PRODUCTIVE CALLS_WEEKLY_TOP_MR_01-26-2026.pdf', '/digilabs/dmap/api/uploads/MRs_with_Highest_Productive_Calls___Weekly/MRs with Highest Productive Calls | Weekly/Milind Balkrushna Shelar/V1/MR_PRODUCTIVE_CALLS_WEEKLY_TOP_MR_01_26_2026.pdf-1769582905185-39316407.pdf', 'application/pdf', 2001026, 'V1', 'uploaded', '2026-01-28 06:48:25'),
-(83, 107, 'All size logos-01.jpg', '/digilabs/dmap/api/uploads/Timeline_Derma_product_s_logos/Timeline Derma product\'s logos/Milind Balkrushna Shelar/V1/All_size_logos_01.jpg-1769584136888-682197184.jpg', 'image/jpeg', 512148, 'V1', 'uploaded', '2026-01-28 07:08:56'),
-(84, 107, 'All size logos-02.jpg', '/digilabs/dmap/api/uploads/Timeline_Derma_product_s_logos/Timeline Derma product\'s logos/Milind Balkrushna Shelar/V1/All_size_logos_02.jpg-1769584136893-867733592.jpg', 'image/jpeg', 376423, 'V1', 'uploaded', '2026-01-28 07:08:56'),
-(85, 107, 'All size logos-03.jpg', '/digilabs/dmap/api/uploads/Timeline_Derma_product_s_logos/Timeline Derma product\'s logos/Milind Balkrushna Shelar/V1/All_size_logos_03.jpg-1769584136988-121014766.jpg', 'image/jpeg', 569437, 'V1', 'uploaded', '2026-01-28 07:08:56'),
-(86, 109, 'Celebrating-Lohri-Carousel_1.jpg', '/digilabs/dmap/api/uploads/Lohri_Day_Celebration_Collage_Artwork/Lohri Day Celebration Collage Artwork/Sanket Chandrakanat  Patade/V1/Celebrating_Lohri_Carousel_1.jpg-1769588732482-688761640.jpg', 'image/jpeg', 1223265, 'V1', 'uploaded', '2026-01-28 08:25:35'),
-(87, 109, 'Celebrating-Lohri-Carousel_2.jpg', '/digilabs/dmap/api/uploads/Lohri_Day_Celebration_Collage_Artwork/Lohri Day Celebration Collage Artwork/Sanket Chandrakanat  Patade/V1/Celebrating_Lohri_Carousel_2.jpg-1769588738194-605148929.jpg', 'image/jpeg', 1088421, 'V1', 'uploaded', '2026-01-28 08:25:39'),
-(88, 109, 'Celebrating-Lohri-Carousel_1.jpg', '/digilabs/dmap/api/uploads/Lohri_Day_Celebration_Collage_Artwork/Lohri Day Celebration Collage Artwork/Sanket Chandrakanat  Patade/V1/Celebrating_Lohri_Carousel_1.jpg-1769588741588-225369009.jpg', 'image/jpeg', 1223265, 'V1', 'uploaded', '2026-01-28 08:25:42'),
-(89, 109, 'Celebrating-Lohri-Carousel_2.jpg', '/digilabs/dmap/api/uploads/Lohri_Day_Celebration_Collage_Artwork/Lohri Day Celebration Collage Artwork/Sanket Chandrakanat  Patade/V1/Celebrating_Lohri_Carousel_2.jpg-1769588743085-449445767.jpg', 'image/jpeg', 1088421, 'V1', 'uploaded', '2026-01-28 08:25:43'),
-(90, 109, 'Celebrating-Lohri-Carousel_1.jpg', '/digilabs/dmap/api/uploads/Lohri_Day_Celebration_Collage_Artwork/Lohri Day Celebration Collage Artwork/Sanket Chandrakanat  Patade/V1/Celebrating_Lohri_Carousel_1.jpg-1769588743184-999737177.jpg', 'image/jpeg', 1223265, 'V1', 'uploaded', '2026-01-28 08:25:43'),
-(91, 109, 'Celebrating-Lohri-Carousel_2.jpg', '/digilabs/dmap/api/uploads/Lohri_Day_Celebration_Collage_Artwork/Lohri Day Celebration Collage Artwork/Sanket Chandrakanat  Patade/V1/Celebrating_Lohri_Carousel_2.jpg-1769588744181-793072828.jpg', 'image/jpeg', 1088421, 'V1', 'uploaded', '2026-01-28 08:25:44'),
-(92, 109, 'Celebrating-Lohri-Carousel_1.jpg', '/digilabs/dmap/api/uploads/Lohri_Day_Celebration_Collage_Artwork/Lohri Day Celebration Collage Artwork/Sanket Chandrakanat  Patade/V1/Celebrating_Lohri_Carousel_1.jpg-1769588745187-522072952.jpg', 'image/jpeg', 1223265, 'V1', 'uploaded', '2026-01-28 08:25:45'),
-(93, 109, 'Celebrating-Lohri-Carousel_2.jpg', '/digilabs/dmap/api/uploads/Lohri_Day_Celebration_Collage_Artwork/Lohri Day Celebration Collage Artwork/Sanket Chandrakanat  Patade/V1/Celebrating_Lohri_Carousel_2.jpg-1769588746591-530409054.jpg', 'image/jpeg', 1088421, 'V1', 'uploaded', '2026-01-28 08:25:47'),
-(94, 109, 'Celebrating-Lohri-Carousel_1.jpg', '/digilabs/dmap/api/uploads/Lohri_Day_Celebration_Collage_Artwork/Lohri Day Celebration Collage Artwork/Sanket Chandrakanat  Patade/V1/Celebrating_Lohri_Carousel_1.jpg-1769588748783-197886496.jpg', 'image/jpeg', 1223265, 'V1', 'uploaded', '2026-01-28 08:25:49'),
-(95, 109, 'Celebrating-Lohri-Carousel_2.jpg', '/digilabs/dmap/api/uploads/Lohri_Day_Celebration_Collage_Artwork/Lohri Day Celebration Collage Artwork/Sanket Chandrakanat  Patade/V1/Celebrating_Lohri_Carousel_2.jpg-1769588750183-895563423.jpg', 'image/jpeg', 1088421, 'V1', 'uploaded', '2026-01-28 08:25:51'),
-(96, 109, 'Celebrating-Lohri-Carousel_1.jpg', '/digilabs/dmap/api/uploads/Lohri_Day_Celebration_Collage_Artwork/Lohri Day Celebration Collage Artwork/Sanket Chandrakanat  Patade/V1/Celebrating_Lohri_Carousel_1.jpg-1769588754083-52787991.jpg', 'image/jpeg', 1223265, 'V1', 'uploaded', '2026-01-28 08:25:55'),
-(97, 109, 'Celebrating-Lohri-Carousel_2.jpg', '/digilabs/dmap/api/uploads/Lohri_Day_Celebration_Collage_Artwork/Lohri Day Celebration Collage Artwork/Sanket Chandrakanat  Patade/V1/Celebrating_Lohri_Carousel_2.jpg-1769588757083-154617127.jpg', 'image/jpeg', 1088421, 'V1', 'uploaded', '2026-01-28 08:25:59'),
-(98, 171, 'Tetan tea Coaster_C2C.jpg', '/digilabs/dmap/api/uploads/Artwork_for_Tetan_Tea_Coaster/Artwork for Tetan Tea Coaster/Angana Prakash Patil/V1/Tetan_tea_Coaster_C2C.jpg-1769588944287-761380691.jpg', 'image/jpeg', 518531, 'V1', 'uploaded', '2026-01-28 08:29:05'),
-(99, 180, 'standee-01.jpg', '/digilabs/dmap/api/uploads/Standees_for_Apollo___13th_IPSC_Conference/Standees for Apollo - 13th IPSC Conference/Angana Prakash Patil/V1/standee_01.jpg-1769589080285-944701768.jpg', 'image/jpeg', 5856892, 'V1', 'uploaded', '2026-01-28 08:31:20'),
-(100, 180, 'standee-02.jpg', '/digilabs/dmap/api/uploads/Standees_for_Apollo___13th_IPSC_Conference/Standees for Apollo - 13th IPSC Conference/Angana Prakash Patil/V1/standee_02.jpg-1769589080383-559811244.jpg', 'image/jpeg', 5932274, 'V1', 'uploaded', '2026-01-28 08:31:20'),
-(101, 179, 'Crina-NCR Megaplex Template IVF_Saudamini Mohapatra-01.jpg', '/digilabs/dmap/api/uploads/Crina_NCR_Megaplex_IVF___BBSR/Crina-NCR Megaplex IVF - BBSR/Reshma Bastav/V1/Crina_NCR_Megaplex_Template_IVF_Saudamini_Mohapatra_01.jpg-1769594278990-682934666.jpg', 'image/jpeg', 3395967, 'V1', 'uploaded', '2026-01-28 09:57:59'),
-(102, 179, 'Crina-NCR Megaplex Template IVF_Saudamini Mohapatra-02.jpg', '/digilabs/dmap/api/uploads/Crina_NCR_Megaplex_IVF___BBSR/Crina-NCR Megaplex IVF - BBSR/Reshma Bastav/V1/Crina_NCR_Megaplex_Template_IVF_Saudamini_Mohapatra_02.jpg-1769594279185-510358150.jpg', 'image/jpeg', 4337353, 'V1', 'uploaded', '2026-01-28 09:57:59'),
-(103, 179, 'Crina-NCR Megaplex Template IVF_Saudamini Mohapatra-03.jpg', '/digilabs/dmap/api/uploads/Crina_NCR_Megaplex_IVF___BBSR/Crina-NCR Megaplex IVF - BBSR/Reshma Bastav/V1/Crina_NCR_Megaplex_Template_IVF_Saudamini_Mohapatra_03.jpg-1769594279282-151763444.jpg', 'image/jpeg', 4208593, 'V1', 'uploaded', '2026-01-28 09:57:59'),
-(104, 83, 'Camp_RC-01.jpg', '/digilabs/dmap/api/uploads/Camp_LBL_/Camp LBL/Nilesh Khedekar/V1/Camp_RC_01.jpg-1769600564087-736318116.jpg', 'image/jpeg', 319107, 'V1', 'uploaded', '2026-01-28 11:42:44'),
-(105, 83, 'Camp_RC-02.jpg', '/digilabs/dmap/api/uploads/Camp_LBL_/Camp LBL/Nilesh Khedekar/V1/Camp_RC_02.jpg-1769600564285-355061905.jpg', 'image/jpeg', 257370, 'V1', 'uploaded', '2026-01-28 11:42:44'),
-(106, 120, 'Sitalembic D_Short Video.pptx', '/digilabs/dmap/api/uploads/SITALEMBIC_D_VIDEO/SITALEMBIC D VIDEO/Divya Raval/V1/Sitalembic_D_Short_Video.pptx-1769601169084-821468972.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 1425326, 'V1', 'uploaded', '2026-01-28 11:52:50'),
-(107, 120, 'Sitalembic_Storytelling video_Storyboard_Draft 1.pptx', '/digilabs/dmap/api/uploads/SITALEMBIC_D_VIDEO/SITALEMBIC D VIDEO/Divya Raval/V1/Sitalembic_Storytelling_video_Storyboard_Draft_1.pptx-1769601171881-366652636.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 4081065, 'V1', 'uploaded', '2026-01-28 11:52:52'),
-(108, 162, 'Lanerwin LBL.pdf', '/digilabs/dmap/api/uploads/Lanerwin_RX_Pad_artwork_and_LBL/Lanerwin RX Pad artwork and LBL/Reshma Bastav/V1/Lanerwin_LBL.pdf-1769677126496-132868457.pdf', 'application/pdf', 3418247, 'V1', 'uploaded', '2026-01-29 08:58:46'),
-(109, 162, 'Lanerwin Rx pad.pdf', '/digilabs/dmap/api/uploads/Lanerwin_RX_Pad_artwork_and_LBL/Lanerwin RX Pad artwork and LBL/Reshma Bastav/V1/Lanerwin_Rx_pad.pdf-1769677126511-788861883.pdf', 'application/pdf', 2158556, 'V1', 'uploaded', '2026-01-29 08:58:46'),
-(110, 200, 'Kolkatta_Invite_Content.pptx', '/digilabs/dmap/api/uploads/Invitation_letter_/Invitation letter_2026/Divya Raval/V1/Kolkatta_Invite_Content.pptx-1769680996729-626947612.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 1681579, 'V1', 'uploaded', '2026-01-29 10:03:16'),
-(111, 183, 'WOS- detailer 3d-2.jpg', '/digilabs/dmap/api/uploads/WOS_Detailer/WOS Detailer/Milind Balkrushna Shelar/V1/WOS__detailer_3d_2.jpg-1769686012634-808044321.jpg', 'image/jpeg', 1830598, 'V1', 'uploaded', '2026-01-29 11:26:52'),
-(112, 183, 'WOS- detailer 3d-4.jpg', '/digilabs/dmap/api/uploads/WOS_Detailer/WOS Detailer/Milind Balkrushna Shelar/V1/WOS__detailer_3d_4.jpg-1769686012641-295821286.jpg', 'image/jpeg', 2879392, 'V1', 'uploaded', '2026-01-29 11:26:52'),
-(113, 106, 'Estrofit Bhogi festival Greeting.jpg', '/digilabs/dmap/api/uploads/Vasant_Panchami_Greeting/Vasant Panchami Greeting/Milind Balkrushna Shelar/V1/Estrofit_Bhogi_festival_Greeting.jpg-1769686387290-469129461.jpg', 'image/jpeg', 4995941, 'V1', 'uploaded', '2026-01-29 11:33:07'),
-(114, 194, 'Oryza Acne Clear.docx', '/digilabs/dmap/api/uploads/Oryza_Acne_Clear_video_copy_writing/Oryza Acne Clear video copy writing/Vinisha Chadala/V1/Oryza_Acne_Clear.docx-1769686873195-226011823.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13347, 'V1', 'uploaded', '2026-01-29 11:41:13'),
-(115, 194, 'Oryza Acne Clear.docx', '/digilabs/dmap/api/uploads/Oryza_Acne_Clear_video_copy_writing/Oryza Acne Clear video copy writing/Vinisha Chadala/V1/Oryza_Acne_Clear.docx-1769686873199-989664524.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13347, 'V1', 'uploaded', '2026-01-29 11:41:13'),
-(116, 218, 'Aqua CME_Banner_Feb.jpg', '/digilabs/dmap/api/uploads/Aqua_FEB_26_CME_Banner/Aqua FEB 26 CME Banner/Reshma Bastav/V1/Aqua_CME_Banner_Feb.jpg-1769687077590-770406924.jpg', 'image/jpeg', 7066242, 'V1', 'uploaded', '2026-01-29 11:44:37'),
-(117, 229, 'New Joinee Reference Guide 2026.pdf', '/digilabs/dmap/api/uploads/Creation_of__Reference_guide_for_new_Joinees_E_book___Link/New Joinees Reference Guide/Sanket Chandrakanat  Patade/V1/New_Joinee_Reference_Guide_2026.pdf-1769690948795-560683576.pdf', 'application/pdf', 3810946, 'V1', 'uploaded', '2026-01-29 12:49:08'),
-(118, 201, 'Kolkata_Invite_Content_Revised.pptx', '/digilabs/dmap/api/uploads/Invitation_letter_/Invitation letter_2026/Divya Raval/V1/Kolkata_Invite_Content_Revised.pptx-1769746821356-739847493.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 1682277, 'V1', 'uploaded', '2026-01-30 04:20:21'),
-(119, 263, 'Unigolix 200MG Strip back.jpg', '/digilabs/dmap/api/uploads/Unigolix__200mg_pack_photo_shoot/Unigolix  200mg pack photo shoot/Vikram Rai/V1/Unigolix_200MG_Strip_back.jpg-1769750188729-219291864.jpg', 'image/jpeg', 1810248, 'V1', 'uploaded', '2026-01-30 05:16:28'),
-(120, 263, 'Unigolix 200mg Strip front.jpg', '/digilabs/dmap/api/uploads/Unigolix__200mg_pack_photo_shoot/Unigolix  200mg pack photo shoot/Vikram Rai/V1/Unigolix_200mg_Strip_front.jpg-1769750188743-528834434.jpg', 'image/jpeg', 1263186, 'V1', 'uploaded', '2026-01-30 05:16:28'),
-(121, 268, 'RUMIGEST VA_7.pdf', '/digilabs/dmap/api/uploads/VISUAL_AID_PAGE_OF_RUMIGEST/VISUAL AID PAGE OF RUMIGEST/Sanket Chandrakanat  Patade/V1/RUMIGEST_VA_7.pdf-1769751533238-806837736.pdf', 'application/pdf', 1087091, 'V1', 'uploaded', '2026-01-30 05:38:53'),
-(122, 264, 'Alembic (Stellar 5) IB_c2c.pdf', '/digilabs/dmap/api/uploads/Gift_box_artwork/Gift box artwork/Nilesh Khedekar/V1/Alembic__Stellar_5__IB_c2c.pdf-1769755270342-86636778.pdf', 'application/pdf', 2374424, 'V1', 'uploaded', '2026-01-30 06:41:10'),
-(123, 281, 'Tellzy_CH_for_designing-SATYAM-01.jpg', '/digilabs/dmap/api/uploads/Tellzy_CH_V_A_2027/Tellzy CH V.A 2027/Tanmay Santosh Chorghe/V1/Tellzy_CH_for_designing_SATYAM_01.jpg-1769782166227-766820233.jpg', 'image/jpeg', 1063807, 'V1', 'uploaded', '2026-01-30 14:09:26'),
-(124, 281, 'Tellzy_CH_for_designing-SATYAM-02.jpg', '/digilabs/dmap/api/uploads/Tellzy_CH_V_A_2027/Tellzy CH V.A 2027/Tanmay Santosh Chorghe/V1/Tellzy_CH_for_designing_SATYAM_02.jpg-1769782166243-470767621.jpg', 'image/jpeg', 1232034, 'V1', 'uploaded', '2026-01-30 14:09:26'),
-(125, 281, 'Tellzy_CH_for_designing-SATYAM-03.jpg', '/digilabs/dmap/api/uploads/Tellzy_CH_V_A_2027/Tellzy CH V.A 2027/Tanmay Santosh Chorghe/V1/Tellzy_CH_for_designing_SATYAM_03.jpg-1769782166248-597139463.jpg', 'image/jpeg', 1225788, 'V1', 'uploaded', '2026-01-30 14:09:26'),
-(127, 216, 'Exceraft-VA-Cover-Page_1.jpg', '/digilabs/dmap/api/uploads/Exceraft_VA_Cover_Page/Exceraft VA Cover Page/Gaurav Karnik/V1/Exceraft_VA_Cover_Page_1.jpg-1770031714720-50443172.jpg', 'image/jpeg', 1914890, 'V1', 'uploaded', '2026-02-02 11:28:34'),
-(128, 216, 'Exceraft-VA-Cover-Page_1_2.jpg', '/digilabs/dmap/api/uploads/Exceraft_VA_Cover_Page/Exceraft VA Cover Page/Gaurav Karnik/V1/Exceraft_VA_Cover_Page_1_2.jpg-1770031714729-207814841.jpg', 'image/jpeg', 1968691, 'V1', 'uploaded', '2026-02-02 11:28:34'),
-(129, 216, 'Exceraft-VA-Cover-Page_2.jpg', '/digilabs/dmap/api/uploads/Exceraft_VA_Cover_Page/Exceraft VA Cover Page/Gaurav Karnik/V1/Exceraft_VA_Cover_Page_2.jpg-1770031714737-353393840.jpg', 'image/jpeg', 1317611, 'V1', 'uploaded', '2026-02-02 11:28:34'),
-(130, 216, 'Exceraft-VA-Cover-Page_2_1.jpg', '/digilabs/dmap/api/uploads/Exceraft_VA_Cover_Page/Exceraft VA Cover Page/Gaurav Karnik/V1/Exceraft_VA_Cover_Page_2_1.jpg-1770031714743-763113460.jpg', 'image/jpeg', 1313249, 'V1', 'uploaded', '2026-02-02 11:28:34'),
-(131, 311, 'TELLZY VA Submit R1.pdf', '/digilabs/dmap/api/uploads/Visual_Aid/Visual Aid/Gaurav Karnik/V1/TELLZY_VA_Submit_R1.pdf-1770031823621-658216088.pdf', 'application/pdf', 11137492, 'V1', 'uploaded', '2026-02-02 11:30:23'),
-(132, 232, 'Sleeve 1.jpg', '/digilabs/dmap/api/uploads/Sleeve_artwork_box/Sleeve artwork box/Nilesh Khedekar/V1/Sleeve_1.jpg-1770089706141-827642645.jpg', 'image/jpeg', 634924, 'V1', 'uploaded', '2026-02-03 03:35:06'),
-(133, 232, 'Sleeve 2.jpg', '/digilabs/dmap/api/uploads/Sleeve_artwork_box/Sleeve artwork box/Nilesh Khedekar/V1/Sleeve_2.jpg-1770089706151-269190454.jpg', 'image/jpeg', 585276, 'V1', 'uploaded', '2026-02-03 03:35:06'),
-(134, 315, 'Donance M LBL_FEB 2026 C2C.pdf', '/digilabs/dmap/api/uploads/Donance_LBL/Donance LBL/Gaurav Karnik/V1/Donance_M_LBL_FEB_2026_C2C.pdf-1770092495942-232538962.pdf', 'application/pdf', 10972404, 'V1', 'uploaded', '2026-02-03 04:21:35'),
-(136, 293, 'Kolkata-Poultry-fair-2026.jpg', '/digilabs/dmap/api/uploads/Kolkata_Poultry_fair_2026_/Kolkata Poultry fair 2026/Tanmay Santosh Chorghe/V1/Kolkata_Poultry_fair_2026.jpg-1770093809762-843145626.jpg', 'image/jpeg', 154995, 'V1', 'uploaded', '2026-02-03 04:43:29'),
-(148, 291, 'Feb, 2026 Slab Input.jpg', '/digilabs/dmap/api/uploads/Slab_Input_Design/Slab Input Design/Nilesh Khedekar/V1/Feb__2026_Slab_Input.jpg-1770099438495-324784194.jpg', 'image/jpeg', 2001645, 'V1', 'uploaded', '2026-02-03 06:17:18'),
-(149, 313, 'RCPA Card (Feb_26).pdf', '/digilabs/dmap/api/uploads/Gastron_RCPA_Card/Gastron RCPA Card/Nilesh Khedekar/V1/RCPA_Card__Feb_26_.pdf-1770109662458-501870823.pdf', 'application/pdf', 2651360, 'V1', 'uploaded', '2026-02-03 09:07:42'),
-(150, 266, 'World Cancer Day.jpg', '/digilabs/dmap/api/uploads/World_Cancer_Day_Awareness_Greeting/World Cancer Day Awareness Greeting/Nilesh Khedekar/V1/World_Cancer_Day.jpg-1770112875792-897919324.jpg', 'image/jpeg', 323997, 'V1', 'uploaded', '2026-02-03 10:01:15'),
-(151, 267, 'World Cancer Day.jpg', '/digilabs/dmap/api/uploads/World_Cancer_Day_Awareness_Greeting/World Cancer Day Awareness Greeting/Nilesh Khedekar/V1/World_Cancer_Day.jpg-1770112892970-471547504.jpg', 'image/jpeg', 323997, 'V1', 'uploaded', '2026-02-03 10:01:32'),
-(152, 225, 'Feb Festive Posts_Divya.txt', '/digilabs/dmap/api/uploads/AWARENESS_AND_CELEBRATION_DAYS___FEBRUARY_2026/AWARENESS AND CELEBRATION DAYS /Divya Raval/V1/Feb_Festive_Posts_Divya.txt-1770114226734-309540596.txt', 'text/plain', 626, 'V1', 'uploaded', '2026-02-03 10:23:46'),
-(153, 191, 'Republic Day GIF 07.mp4', '/digilabs/dmap/api/uploads/Republic_Day_/Republic Day_Animal Health 2026/Prathamesh Shengale/V1/Republic_Day_GIF_07.mp4-1770114857402-895918166.mp4', 'video/mp4', 10293257, 'V1', 'uploaded', '2026-02-03 10:34:17'),
-(154, 233, 'GIEP Invite 1 -1.jpg', '/digilabs/dmap/api/uploads/GIEP_26_Invite_Flyer/GIEP\'26 Invite Flyer/Reshma Bastav/V1/GIEP_Invite_1__1.jpg-1770184375375-510196663.jpg', 'image/jpeg', 3656123, 'V1', 'uploaded', '2026-02-04 05:52:55'),
-(155, 233, 'GIEP Invite 2-2.jpg', '/digilabs/dmap/api/uploads/GIEP_26_Invite_Flyer/GIEP\'26 Invite Flyer/Reshma Bastav/V1/GIEP_Invite_2_2.jpg-1770184375389-682311148.jpg', 'image/jpeg', 3394754, 'V1', 'uploaded', '2026-02-04 05:52:55'),
-(156, 233, 'GIEP Invite 3-3.jpg', '/digilabs/dmap/api/uploads/GIEP_26_Invite_Flyer/GIEP\'26 Invite Flyer/Reshma Bastav/V1/GIEP_Invite_3_3.jpg-1770184375396-544760901.jpg', 'image/jpeg', 3684327, 'V1', 'uploaded', '2026-02-04 05:52:55'),
-(157, 213, 'Wikoryl-Liquid-TRUST-the-1st-Communication-Series.zip', '/digilabs/dmap/api/uploads/Wikoryl_Liquid_TRUST_the_1st_Communication_Series_/Wikoryl Liquid TRUST the 1st Communication Series/Sanket Chandrakanat  Patade/V1/Wikoryl_Liquid_TRUST_the_1st_Communication_Series.zip-1770185254036-408430162.zip', 'application/x-zip-compressed', 5847810, 'V1', 'uploaded', '2026-02-04 06:07:34'),
-(158, 355, 'Doctor-Appreciation-Week---3.jpg', '/digilabs/dmap/api/uploads/Doctor_s_Appreciation_Collage/Doctor\'s Appreciation Collage/Gaurav Karnik/V1/Doctor_Appreciation_Week___3.jpg-1770194578328-909071895.jpg', 'image/jpeg', 2703237, 'V1', 'uploaded', '2026-02-04 08:42:58'),
-(159, 355, 'Doctor-Appreciation-Week.jpg', '/digilabs/dmap/api/uploads/Doctor_s_Appreciation_Collage/Doctor\'s Appreciation Collage/Gaurav Karnik/V1/Doctor_Appreciation_Week.jpg-1770194578348-222159946.jpg', 'image/jpeg', 2652105, 'V1', 'uploaded', '2026-02-04 08:42:58'),
-(160, 355, 'Doctor-Appreciation-Week---1.jpg', '/digilabs/dmap/api/uploads/Doctor_s_Appreciation_Collage/Doctor\'s Appreciation Collage/Gaurav Karnik/V1/Doctor_Appreciation_Week___1.jpg-1770194578353-418843237.jpg', 'image/jpeg', 2553152, 'V1', 'uploaded', '2026-02-04 08:42:58'),
-(161, 227, 'Aletol DS_Flyer.jpg', '/digilabs/dmap/api/uploads/Aletol_DS_Flyer/Aletol DS Flyer/Nilesh Khedekar/V1/Aletol_DS_Flyer.jpg-1770197945639-881923809.jpg', 'image/jpeg', 580814, 'V1', 'uploaded', '2026-02-04 09:39:05'),
-(162, 364, 'Cancer-Post_TV.jpg', '/digilabs/dmap/api/uploads/Social_Media_Post_for_World_Cancer_Day/Social Media Post for World Cancer Day/Sanket Chandrakanat  Patade/V1/Cancer_Post_TV.jpg-1770202679675-303591097.jpg', 'image/jpeg', 260089, 'V1', 'uploaded', '2026-02-04 10:57:59'),
-(163, 343, 'Conference Banner Updated Deltone Exceraft Freego Monovono 4 3 Pannel and Alembic with R Logo Changes-02.jpg', '/digilabs/dmap/api/uploads/Conference_Banner_Changes_Gastron/Conference Banner Changes Gastron/Tanmay Santosh Chorghe/V1/Conference_Banner_Updated_Deltone_Exceraft_Freego_Monovono_4_3_Pannel_and_Alembic_with_R_Logo_Changes_02.jpg-1770209959625-243385954.jpg', 'image/jpeg', 820241, 'V1', 'uploaded', '2026-02-04 12:59:19'),
-(164, 343, 'Conference Banner Updated Deltone Exceraft Freego Monovono 4 3 Pannel and Alembic with R Logo Changes-03.jpg', '/digilabs/dmap/api/uploads/Conference_Banner_Changes_Gastron/Conference Banner Changes Gastron/Tanmay Santosh Chorghe/V1/Conference_Banner_Updated_Deltone_Exceraft_Freego_Monovono_4_3_Pannel_and_Alembic_with_R_Logo_Changes_03.jpg-1770209959641-155415461.jpg', 'image/jpeg', 810055, 'V1', 'uploaded', '2026-02-04 12:59:19'),
-(165, 226, 'Gragain MF VA.pdf', '/digilabs/dmap/api/uploads/Grogain_MF_Visual_Aid_Page_Fy_27_Qtr_1/Grogain MF Visual Aid Page Fy 27 Qtr 1/Reshma Bastav/V1/Gragain_MF_VA.pdf-1770270422824-702121363.pdf', 'application/pdf', 11216730, 'V1', 'uploaded', '2026-02-05 05:47:02'),
-(166, 271, 'Citanil-T_VA.pdf', '/digilabs/dmap/api/uploads/Cetanil_T_VA_Specia/Cetanil T VA Specia/Reshma Bastav/V1/Citanil_T_VA.pdf-1770270680445-672702159.pdf', 'application/pdf', 4359157, 'V1', 'uploaded', '2026-02-05 05:51:20'),
-(167, 272, 'Citanil TRIO VA.pdf', '/digilabs/dmap/api/uploads/Cetanil_Trio_VA_copy/Cetanil Trio VA copy/Reshma Bastav/V1/Citanil_TRIO_VA.pdf-1770270825387-400397455.pdf', 'application/pdf', 2207042, 'V1', 'uploaded', '2026-02-05 05:53:45'),
-(168, 314, 'Advert for Leaflet_ctc.pdf', '/digilabs/dmap/api/uploads/Advert_for_Tripura_Conference_/Advert for Tripura Conference/Reshma Bastav/V1/Advert_for_Leaflet_ctc.pdf-1770270957166-328922534.pdf', 'application/pdf', 1580343, 'V1', 'uploaded', '2026-02-05 05:55:57'),
-(169, 316, 'Certificate India book of records.jpg', '/digilabs/dmap/api/uploads/HD_Photo_of_a_India_Book_of_record_certificate/HD Photo of a India Book of record certificate/Vikram Rai/V1/Certificate_India_book_of_records.jpg-1770272666862-301760929.jpg', 'image/jpeg', 10695255, 'V1', 'uploaded', '2026-02-05 06:24:26'),
-(170, 212, 'Wikoryl Solids VA.pdf', '/digilabs/dmap/api/uploads/Wikoryl_Liquid_VA_revamp_/Wikoryl Liquid VA revamp/Milind Balkrushna Shelar/V1/Wikoryl_Solids_VA.pdf-1770276004880-696505589.pdf', 'application/pdf', 780993, 'V1', 'uploaded', '2026-02-05 07:20:04'),
-(172, 288, 'Tellzy Tellzy AM VA.pdf', '/digilabs/dmap/api/uploads/TELLZY_MT_VA/TELLZY MT VA/Milind Balkrushna Shelar/V1/Tellzy_Tellzy_AM_VA.pdf-1770276190427-213607811.pdf', 'application/pdf', 1686820, 'V1', 'uploaded', '2026-02-05 07:23:10'),
-(173, 377, 'Brand Film Packshots_1.png', '/digilabs/dmap/api/uploads/Rekool_D_CLM_Video_Campgain_/Rekool D 3d Packshot Creation /Prathamesh Shengale/V1/Brand_Film_Packshots_1.png-1770285333929-514893011.png', 'image/png', 2868323, 'V1', 'uploaded', '2026-02-05 09:55:33'),
-(174, 377, 'Brand Film Packshots_Front.png', '/digilabs/dmap/api/uploads/Rekool_D_CLM_Video_Campgain_/Rekool D 3d Packshot Creation /Prathamesh Shengale/V1/Brand_Film_Packshots_Front.png-1770285333949-178598643.png', 'image/png', 2865301, 'V1', 'uploaded', '2026-02-05 09:55:33'),
-(175, 377, 'Brand Film Packshots_Side.png', '/digilabs/dmap/api/uploads/Rekool_D_CLM_Video_Campgain_/Rekool D 3d Packshot Creation /Prathamesh Shengale/V1/Brand_Film_Packshots_Side.png-1770285333955-179420056.png', 'image/png', 2901762, 'V1', 'uploaded', '2026-02-05 09:55:33'),
-(176, 367, 'Sikkim-Plant-Felicitated-by-Sikkim-Government-TV-1.jpg', '/digilabs/dmap/api/uploads/Sikkim_Plant_Certificate_TV/Sikkim Plant Certificate TV/Gaurav Karnik/V1/Sikkim_Plant_Felicitated_by_Sikkim_Government_TV_1.jpg-1770287654926-139499156.jpg', 'image/jpeg', 1336450, 'V1', 'uploaded', '2026-02-05 10:34:14'),
-(177, 334, 'Oryza Acne Clear Video_01.mp4', '/digilabs/dmap/api/uploads/Oryza_Acne_Clear_video_copy_writing/Oryza Acne Clear Brand Awerness Campgain_Jan_2026 /Prathamesh Shengale/V1/Oryza_Acne_Clear_Video_01.mp4-1770288038058-445146900.mp4', 'video/mp4', 13997566, 'V1', 'uploaded', '2026-02-05 10:40:38'),
-(178, 341, 'Oryza Acne Clear Video_02.mp4', '/digilabs/dmap/api/uploads/Oryza_Acne_Clear_video_copy_writing/Oryza Acne Clear_Acne clear – Option 2_2026/Prathamesh Shengale/V1/Oryza_Acne_Clear_Video_02.mp4-1770288075225-233446619.mp4', 'video/mp4', 12771897, 'V1', 'uploaded', '2026-02-05 10:41:15'),
-(179, 369, '500-CR-A5-Low-res.jpg', '/digilabs/dmap/api/uploads/Horizontal_A5_size_artwork_500_crore_celebrations/Horizontal A5 size artwork 500 crore celebrations/Gaurav Karnik/V1/500_CR_A5_Low_res.jpg-1770297161825-328136256.jpg', 'image/jpeg', 525338, 'V1', 'uploaded', '2026-02-05 13:12:41'),
-(180, 235, 'Festive Greetings_February 2026_Divya.txt', '/digilabs/dmap/api/uploads/Feb_Month_Festive_artwork_Zenovi_2025/Feb Month Festive artwork/Divya Raval/V1/Festive_Greetings_February_2026_Divya.txt-1770353284223-183986459.txt', 'text/plain', 504, 'V1', 'uploaded', '2026-02-06 04:48:04'),
-(181, 256, 'Rekool D.docx', '/digilabs/dmap/api/uploads/Rekool_D_Motivation_Video_/Rekool D 2026 /Vinisha Chadala/V1/Rekool_D.docx-1770355715357-874610513.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 15004, 'V1', 'uploaded', '2026-02-06 05:28:35'),
-(182, 256, 'Rekool D.docx', '/digilabs/dmap/api/uploads/Rekool_D_Motivation_Video_/Rekool D 2026 /Vinisha Chadala/V1/Rekool_D.docx-1770355715363-266003017.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 15004, 'V1', 'uploaded', '2026-02-06 05:28:35'),
-(183, 202, 'Oryza Acne Clear.docx', '/digilabs/dmap/api/uploads/Oryza_Acne_Clear_video_copy_writing/Oryza Acne Clear video copy writing/Vinisha Chadala/V1/Oryza_Acne_Clear.docx-1770355937020-146751452.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13977, 'V1', 'uploaded', '2026-02-06 05:32:17'),
-(184, 407, 'Uncle G goes to Zoo.docx', '/digilabs/dmap/api/uploads/Uncle_G_Video_Series/Uncle G Video Series/Vinisha Chadala/V1/Uncle_G_goes_to_Zoo.docx-1770357263626-720993490.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12145, 'V1', 'uploaded', '2026-02-06 05:54:23'),
-(185, 407, 'Uncle G tries meditation.docx', '/digilabs/dmap/api/uploads/Uncle_G_Video_Series/Uncle G Video Series/Vinisha Chadala/V1/Uncle_G_tries_meditation.docx-1770357263633-806770764.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13415, 'V1', 'uploaded', '2026-02-06 05:54:23'),
-(186, 407, 'Uncle G.docx', '/digilabs/dmap/api/uploads/Uncle_G_Video_Series/Uncle G Video Series/Vinisha Chadala/V1/Uncle_G.docx-1770357263637-867809493.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12289, 'V1', 'uploaded', '2026-02-06 05:54:23'),
-(187, 399, 'Clostop_april_use_LBL.pptx-1770274295066-219612524.pptx', '/digilabs/dmap/api/uploads/Clostop_SRX_LBL_Issue_1/Clostop SRX LBL Issue 1/Aditi Varunkar/V1/Clostop_april_use_LBL.pptx_1770274295066_219612524.pptx-1770358190640-934743084.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 35981, 'V1', 'uploaded', '2026-02-06 06:09:50'),
-(188, 354, 'Camp_creative V4 FINAL.pdf', '/digilabs/dmap/api/uploads/CHCF_camp_poster/CHCF camp poster/Milind Balkrushna Shelar/V1/Camp_creative_V4_FINAL.pdf-1770362153809-148336249.pdf', 'application/pdf', 736375, 'V1', 'uploaded', '2026-02-06 07:15:53'),
-(189, 354, 'poster final n.pdf', '/digilabs/dmap/api/uploads/CHCF_camp_poster/CHCF camp poster/Milind Balkrushna Shelar/V1/poster_final_n.pdf-1770362153820-87982497.pdf', 'application/pdf', 1040595, 'V1', 'uploaded', '2026-02-06 07:15:53'),
-(190, 250, 'Tellzy Tellzy MT VA.pdf', '/digilabs/dmap/api/uploads/Visual_Aid___Tellzy___Tellzy_AM/Visual Aid - Tellzy /Milind Balkrushna Shelar/V1/Tellzy_Tellzy_MT_VA.pdf-1770362301577-849103748.pdf', 'application/pdf', 1254181, 'V1', 'uploaded', '2026-02-06 07:18:21'),
-(191, 390, 'National-Deworming-Day.jpg', '/digilabs/dmap/api/uploads/National_Deworming_Day_Greeting/National Deworming Day Greeting/Sanket Chandrakanat  Patade/V1/National_Deworming_Day.jpg-1770366732124-350618329.jpg', 'image/jpeg', 374881, 'V1', 'uploaded', '2026-02-06 08:32:12'),
-(192, 393, 'SCM-Award-Artwork---R1_2.jpg', '/digilabs/dmap/api/uploads/SCM_Award_Artwork/SCM Award Artwork/Gaurav Karnik/V1/SCM_Award_Artwork___R1_2.jpg-1770366846974-307866979.jpg', 'image/jpeg', 1635358, 'V1', 'uploaded', '2026-02-06 08:34:06'),
-(193, 392, 'Great-Place-To-Work.jpg', '/digilabs/dmap/api/uploads/GPTW_Social_Media_and_TV_artwork/GPTW Social Media and TV artwork/Gaurav Karnik/V1/Great_Place_To_Work.jpg-1770367018032-977315127.jpg', 'image/jpeg', 305450, 'V1', 'uploaded', '2026-02-06 08:36:58'),
-(194, 392, 'Great-Place-To-Work-TV.jpg', '/digilabs/dmap/api/uploads/GPTW_Social_Media_and_TV_artwork/GPTW Social Media and TV artwork/Gaurav Karnik/V1/Great_Place_To_Work_TV.jpg-1770367018037-753350454.jpg', 'image/jpeg', 928611, 'V1', 'uploaded', '2026-02-06 08:36:58'),
-(195, 357, 'Ulgeraft LBL - Die cut.png', '/digilabs/dmap/api/uploads/Ulgeraft_LBL_1/Ulgeraft LBL 1/Tanmay Santosh Chorghe/V1/Ulgeraft_LBL___Die_cut.png-1770375143059-172028492.png', 'image/png', 1927569, 'V1', 'uploaded', '2026-02-06 10:52:23'),
-(196, 327, 'Grogain-Pro-VA_Ipad_Dec-2025_V4-1.jpg', '/digilabs/dmap/api/uploads/Grogain_Pro_VA_page_design/Grogain Pro VA page design/Gaurav Karnik/V1/Grogain_Pro_VA_Ipad_Dec_2025_V4_1.jpg-1770378703357-165847327.jpg', 'image/jpeg', 511601, 'V1', 'uploaded', '2026-02-06 11:51:43'),
-(197, 328, 'Grogain-Pro-VA_Ipad_Dec-2025_V4-1.jpg', '/digilabs/dmap/api/uploads/Grogain_Pro_VA_page_design/Grogain Pro VA page design/Gaurav Karnik/V1/Grogain_Pro_VA_Ipad_Dec_2025_V4_1.jpg-1770378729611-745578183.jpg', 'image/jpeg', 511601, 'V1', 'uploaded', '2026-02-06 11:52:09'),
-(198, 368, 'Diary 2026 R2-Low Res.pdf', '/digilabs/dmap/api/uploads/Budget_meeting___Diary_Artwork/Budget meeting - Diary Artwork/Gaurav Karnik/V1/Diary_2026_R2_Low_Res.pdf-1770381332154-991502675.pdf', 'application/pdf', 7278618, 'V1', 'uploaded', '2026-02-06 12:35:32'),
-(199, 358, 'The-20-20-20-Rule-2.jpg', '/digilabs/dmap/api/uploads/Digital_Eye_strain_artwork/Digital Eye strain artwork/Tanmay Santosh Chorghe/V1/The_20_20_20_Rule_2.jpg-1770612049393-770934283.jpg', 'image/jpeg', 278028, 'V1', 'uploaded', '2026-02-09 04:40:49');
-INSERT INTO `task_documents` (`id`, `task_assignment_id`, `document_name`, `document_path`, `document_type`, `document_size`, `version`, `status`, `uploaded_at`) VALUES
-(200, 358, 'The-20-20-20-Rule-3.jpg', '/digilabs/dmap/api/uploads/Digital_Eye_strain_artwork/Digital Eye strain artwork/Tanmay Santosh Chorghe/V1/The_20_20_20_Rule_3.jpg-1770612049399-978192906.jpg', 'image/jpeg', 223253, 'V1', 'uploaded', '2026-02-09 04:40:49'),
-(201, 347, 'SurveY_tellzy_AM_LBL_Dec.pdf-1770093801732-420386075.jpg', '/digilabs/dmap/api/uploads/TELLZY_AM_SURVEY_LBL/TELLZY AM SURVEY LBL/Tanmay Santosh Chorghe/V1/SurveY_tellzy_AM_LBL_Dec.pdf_1770093801732_420386075.jpg-1770612321298-841420907.jpg', 'image/jpeg', 231193, 'V1', 'uploaded', '2026-02-09 04:45:21'),
-(202, 356, 'Eyecare-Portfolio-Banner_1.jpg.jpeg', '/digilabs/dmap/api/uploads/Eyecare_portfolio_banner/Eyecare portfolio banner/Tanmay Santosh Chorghe/V1/Eyecare_Portfolio_Banner_1.jpg.jpeg-1770612532699-863925600.jpeg', 'image/jpeg', 163838, 'V1', 'uploaded', '2026-02-09 04:48:52'),
-(203, 356, 'Eyecare-portfolio-banner.jpg', '/digilabs/dmap/api/uploads/Eyecare_portfolio_banner/Eyecare portfolio banner/Tanmay Santosh Chorghe/V1/Eyecare_portfolio_banner.jpg-1770612532704-178963037.jpg', 'image/jpeg', 808083, 'V1', 'uploaded', '2026-02-09 04:48:52'),
-(204, 258, 'Cataract Post Operation Care Instructions Leaflet.pdf', '/digilabs/dmap/api/uploads/Cataract_Post_Operation_Care_Instructions_Leaflet/Cataract Post Operation Care Instructions Leaflet/Reshma Bastav/V1/Cataract_Post_Operation_Care_Instructions_Leaflet.pdf-1770613112028-335364910.pdf', 'application/pdf', 1967508, 'V1', 'uploaded', '2026-02-09 04:58:32'),
-(205, 132, 'Estroplus_VA_2.pdf', '/digilabs/dmap/api/uploads/ESTROPLUS_VA/ESTROPLUS VA/Angana Prakash Patil/V1/Estroplus_VA_2.pdf-1770618029716-782708821.pdf', 'application/pdf', 2268261, 'V1', 'uploaded', '2026-02-09 06:20:29'),
-(206, 88, 'QUiz Poster_National Winners.jpg', '/digilabs/dmap/api/uploads/All_India_Derma_Championship_Final_Round_Winners/All India Derma Championship Final Round Winners/Angana Prakash Patil/V1/QUiz_Poster_National_Winners.jpg-1770618082995-805516457.jpg', 'image/jpeg', 1412060, 'V1', 'uploaded', '2026-02-09 06:21:23'),
-(207, 76, 'table top.jpg', '/digilabs/dmap/api/uploads/Patient_Education_/Patient Education/Angana Prakash Patil/V1/table_top.jpg-1770618103422-721422588.jpg', 'image/jpeg', 542008, 'V1', 'uploaded', '2026-02-09 06:21:43'),
-(208, 426, 'Dermavidya National certificate.pdf', '/digilabs/dmap/api/uploads/All_India_Derma_Championship_Certificates_/All India Derma Championship Certificates /Angana Prakash Patil/V1/Dermavidya_National_certificate.pdf-1770619271253-130387962.pdf', 'application/pdf', 2011707, 'V1', 'uploaded', '2026-02-09 06:41:11'),
-(209, 426, 'Dermavidya zonal certificate.pdf', '/digilabs/dmap/api/uploads/All_India_Derma_Championship_Certificates_/All India Derma Championship Certificates /Angana Prakash Patil/V1/Dermavidya_zonal_certificate.pdf-1770619271261-478593298.pdf', 'application/pdf', 2003995, 'V1', 'uploaded', '2026-02-09 06:41:11'),
-(210, 412, 'Roxid Inclinic Hand Sanitizer sleeve-2-01.jpg', '/digilabs/dmap/api/uploads/Roxid_Inclinic_Hand_Sanitizer/Roxid Inclinic Hand Sanitizer/Milind Balkrushna Shelar/V1/Roxid_Inclinic_Hand_Sanitizer_sleeve_2_01.jpg-1770619409523-836424244.jpg', 'image/jpeg', 1702127, 'V1', 'uploaded', '2026-02-09 06:43:29'),
-(211, 394, 'Whatsapp sticker-03.png', '/digilabs/dmap/api/uploads/Zivemp_SM_Whatsapp_Sticker/Zivemp-SM Whatsapp Sticker/Gaurav Karnik/V1/Whatsapp_sticker_03.png-1770626905954-750813406.png', 'image/png', 169359, 'V1', 'uploaded', '2026-02-09 08:48:25'),
-(212, 394, 'Whatsapp sticker-04.png', '/digilabs/dmap/api/uploads/Zivemp_SM_Whatsapp_Sticker/Zivemp-SM Whatsapp Sticker/Gaurav Karnik/V1/Whatsapp_sticker_04.png-1770626905959-830823361.png', 'image/png', 208830, 'V1', 'uploaded', '2026-02-09 08:48:25'),
-(213, 228, 'Closal_LBL 1.jpg', '/digilabs/dmap/api/uploads/CLOSAL_LBL/CLOSAL LBL/Nilesh Khedekar/V1/Closal_LBL_1.jpg-1770633470972-409017406.jpg', 'image/jpeg', 2508639, 'V1', 'uploaded', '2026-02-09 10:37:50'),
-(214, 228, 'Closal_LBL 2.jpg', '/digilabs/dmap/api/uploads/CLOSAL_LBL/CLOSAL LBL/Nilesh Khedekar/V1/Closal_LBL_2.jpg-1770633470986-908161137.jpg', 'image/jpeg', 1615070, 'V1', 'uploaded', '2026-02-09 10:37:50'),
-(215, 80, 'Maha Shivratri-01.jpg', '/digilabs/dmap/api/uploads/_Mahashivatri__Festival_Flyer/MahaShivratri Festival flyer/Nilesh Khedekar/V1/Maha_Shivratri_01.jpg-1770635899736-756728138.jpg', 'image/jpeg', 781025, 'V1', 'uploaded', '2026-02-09 11:18:19'),
-(216, 80, 'Maha Shivratri-02.jpg', '/digilabs/dmap/api/uploads/_Mahashivatri__Festival_Flyer/MahaShivratri Festival flyer/Nilesh Khedekar/V1/Maha_Shivratri_02.jpg-1770635899753-412440374.jpg', 'image/jpeg', 455805, 'V1', 'uploaded', '2026-02-09 11:18:19'),
-(217, 365, 'Lactonic-Standee_FInal.jpg', '/digilabs/dmap/api/uploads/Lactonic_and_Livfit_Standee_/Lactonic and Livfit Standee/Sanket Chandrakanat  Patade/V1/Lactonic_Standee_FInal.jpg-1770697675450-174459240.jpg', 'image/jpeg', 2597133, 'V1', 'uploaded', '2026-02-10 04:27:55'),
-(218, 365, 'Livfit-Standee_Final.jpg', '/digilabs/dmap/api/uploads/Lactonic_and_Livfit_Standee_/Lactonic and Livfit Standee/Sanket Chandrakanat  Patade/V1/Livfit_Standee_Final.jpg-1770697675463-795402936.jpg', 'image/jpeg', 2939406, 'V1', 'uploaded', '2026-02-10 04:27:55'),
-(219, 431, 'Richar FCM ipad activity.zip', '/digilabs/dmap/api/uploads/World_Anaemia_Awareness_Digital_Activity/World Anaemia Awareness Digital Activity/Jayesh Mishra/V1/Richar_FCM_ipad_activity.zip-1770701404932-186536235.zip', 'application/x-zip-compressed', 4325103, 'V1', 'uploaded', '2026-02-10 05:30:04'),
-(220, 234, 'Chhatrapati Shivaji Maharaj Jayanti.docx', '/digilabs/dmap/api/uploads/Feb_Month_Festive_artwork_Zenovi_2025/Feb Month Festive artwork_Zenovi_2025/Vinisha Chadala/V1/Chhatrapati_Shivaji_Maharaj_Jayanti.docx-1770713270298-203633929.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12465, 'V1', 'uploaded', '2026-02-10 08:47:50'),
-(221, 234, 'National Science Day.docx', '/digilabs/dmap/api/uploads/Feb_Month_Festive_artwork_Zenovi_2025/Feb Month Festive artwork_Zenovi_2025/Vinisha Chadala/V1/National_Science_Day.docx-1770713270311-997333389.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12248, 'V1', 'uploaded', '2026-02-10 08:47:50'),
-(222, 234, 'Ramadan Greeting.docx', '/digilabs/dmap/api/uploads/Feb_Month_Festive_artwork_Zenovi_2025/Feb Month Festive artwork_Zenovi_2025/Vinisha Chadala/V1/Ramadan_Greeting.docx-1770713270316-901052496.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12022, 'V1', 'uploaded', '2026-02-10 08:47:50'),
-(223, 404, 'Laveta Ad Copies.docx', '/digilabs/dmap/api/uploads/AQI_Opener/AQI Opener_2026/Vinisha Chadala/V1/Laveta_Ad_Copies.docx-1770713624941-680444901.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12941, 'V1', 'uploaded', '2026-02-10 08:53:44'),
-(224, 270, 'RUMIGEST VA_10.pdf', '/digilabs/dmap/api/uploads/VISUAL_AID_PAGE_OF_RUMIGEST/VISUAL AID PAGE OF RUMIGEST/Sanket Chandrakanat  Patade/V1/RUMIGEST_VA_10.pdf-1770713665477-670384476.pdf', 'application/pdf', 1809874, 'V1', 'uploaded', '2026-02-10 08:54:25'),
-(225, 436, 'Best camp of the day-01.jpg', '/digilabs/dmap/api/uploads/Best_Camp___Artwork/Best Camp - Artwork/Milind Balkrushna Shelar/V1/Best_camp_of_the_day_01.jpg-1770728620175-959516272.jpg', 'image/jpeg', 1731635, 'V1', 'uploaded', '2026-02-10 13:03:40'),
-(226, 436, 'Best camp of the day2.jpg', '/digilabs/dmap/api/uploads/Best_Camp___Artwork/Best Camp - Artwork/Milind Balkrushna Shelar/V1/Best_camp_of_the_day2.jpg-1770728620192-805908496.jpg', 'image/jpeg', 1645001, 'V1', 'uploaded', '2026-02-10 13:03:40'),
-(227, 439, 'Yera_Eva_Jar_Set.jpg', '/digilabs/dmap/api/uploads/BOX_ARTWORK_DESIGN_/BOX ARTWORK DESIGN /Nilesh Khedekar/V1/Yera_Eva_Jar_Set.jpg-1770782033277-296567379.jpg', 'image/jpeg', 1914578, 'V1', 'uploaded', '2026-02-11 03:53:53'),
-(228, 427, 'Resync PLUS Logo.pdf', '/digilabs/dmap/api/uploads/RESYNC_PLUS_LOGO_AND_PACK_SHOT/RESYNC PLUS LOGO AND PACK SHOT/Reshma Bastav/V1/Resync_PLUS_Logo.pdf-1770790768395-998158994.pdf', 'application/pdf', 2574212, 'V1', 'uploaded', '2026-02-11 06:19:28'),
-(229, 425, 'Richar-CR-Hb-Camp_Thank-You-card.jpg', '/digilabs/dmap/api/uploads/Richar_CR_HB_Camp_Thank_you_Card_A5_/Richar CR HB Camp Thank you Card A5/Sanket Chandrakanat  Patade/V1/Richar_CR_Hb_Camp_Thank_You_card.jpg-1770792920483-330921844.jpg', 'image/jpeg', 464716, 'V1', 'uploaded', '2026-02-11 06:55:20'),
-(230, 208, 'Tufehart VA Jan 2026_5.pdf', '/digilabs/dmap/api/uploads/Visual_Aid/Visual Aid Tufehart/Sanket Chandrakanat  Patade/V1/Tufehart_VA_Jan_2026_5.pdf-1770792971733-796088111.pdf', 'application/pdf', 6285478, 'V1', 'uploaded', '2026-02-11 06:56:11'),
-(231, 389, 'L&D-Team-Event-A4_1.jpg', '/digilabs/dmap/api/uploads/standee_recreation_reformatting/standee recreation/reformatting/Sanket Chandrakanat  Patade/V1/L_D_Team_Event_A4_1.jpg-1770793007588-415654870.jpg', 'image/jpeg', 152776, 'V1', 'uploaded', '2026-02-11 06:56:47'),
-(232, 389, 'L&D-Team-Event-A4_2.jpg', '/digilabs/dmap/api/uploads/standee_recreation_reformatting/standee recreation/reformatting/Sanket Chandrakanat  Patade/V1/L_D_Team_Event_A4_2.jpg-1770793007596-743290204.jpg', 'image/jpeg', 163821, 'V1', 'uploaded', '2026-02-11 06:56:47'),
-(233, 389, 'L&D-Team-Event-Standee_1.jpg', '/digilabs/dmap/api/uploads/standee_recreation_reformatting/standee recreation/reformatting/Sanket Chandrakanat  Patade/V1/L_D_Team_Event_Standee_1.jpg-1770793007601-247613301.jpg', 'image/jpeg', 1270081, 'V1', 'uploaded', '2026-02-11 06:56:47'),
-(234, 389, 'L&D-Team-Event-Standee_2.jpg', '/digilabs/dmap/api/uploads/standee_recreation_reformatting/standee recreation/reformatting/Sanket Chandrakanat  Patade/V1/L_D_Team_Event_Standee_2.jpg-1770793007606-710461999.jpg', 'image/jpeg', 1573113, 'V1', 'uploaded', '2026-02-11 06:56:47'),
-(235, 451, 'Certificate of Appriciation.pdf', '/digilabs/dmap/api/uploads/Need_certificate_of_participation_and_appreciation_/Need certificate of participation and appreciation /Nilesh Khedekar/V1/Certificate_of_Appriciation.pdf-1770805134181-710742937.pdf', 'application/pdf', 754391, 'V1', 'uploaded', '2026-02-11 10:18:54'),
-(236, 451, 'Certificate of Participation.pdf', '/digilabs/dmap/api/uploads/Need_certificate_of_participation_and_appreciation_/Need certificate of participation and appreciation /Nilesh Khedekar/V1/Certificate_of_Participation.pdf-1770805134193-902367347.pdf', 'application/pdf', 793694, 'V1', 'uploaded', '2026-02-11 10:18:54'),
-(237, 207, 'Ceramax_VA.pdf', '/digilabs/dmap/api/uploads/Oryza___Ceramax_VA_redesigning_/Oryza Ceramax VA /Angana Prakash Patil/V1/Ceramax_VA.pdf-1770812045217-548094733.pdf', 'application/pdf', 8478023, 'V1', 'uploaded', '2026-02-11 12:14:05'),
-(238, 290, 'Oryza Acne clear_VA.pdf', '/digilabs/dmap/api/uploads/Oryza_Acne_Clear_VA_re_designing/Oryza Acne Clear VA re-designing/Angana Prakash Patil/V1/Oryza_Acne_clear_VA.pdf-1770812184510-419241533.pdf', 'application/pdf', 3092433, 'V1', 'uploaded', '2026-02-11 12:16:24'),
-(239, 287, 'oryza cream_VA.pdf', '/digilabs/dmap/api/uploads/VA_re_designing/VA re-designing/Angana Prakash Patil/V1/oryza_cream_VA.pdf-1770812343184-744643003.pdf', 'application/pdf', 3979878, 'V1', 'uploaded', '2026-02-11 12:19:03'),
-(240, 453, 'Mahashivratri_1.jpg', '/digilabs/dmap/api/uploads/festive_greeting_for_Mahashivratri____Shiv_Jayanti_/festive greeting for Mahashivratri  /Sanket Chandrakanat  Patade/V1/Mahashivratri_1.jpg-1770813047294-833586438.jpg', 'image/jpeg', 481428, 'V1', 'uploaded', '2026-02-11 12:30:47'),
-(241, 453, 'Mahashivratri_2.jpg', '/digilabs/dmap/api/uploads/festive_greeting_for_Mahashivratri____Shiv_Jayanti_/festive greeting for Mahashivratri  /Sanket Chandrakanat  Patade/V1/Mahashivratri_2.jpg-1770813047304-496227456.jpg', 'image/jpeg', 487006, 'V1', 'uploaded', '2026-02-11 12:30:47'),
-(242, 453, 'Shiv-Jayanti_1.jpg', '/digilabs/dmap/api/uploads/festive_greeting_for_Mahashivratri____Shiv_Jayanti_/festive greeting for Mahashivratri  /Sanket Chandrakanat  Patade/V1/Shiv_Jayanti_1.jpg-1770813047313-287240492.jpg', 'image/jpeg', 293529, 'V1', 'uploaded', '2026-02-11 12:30:47'),
-(243, 453, 'Shiv-Jayanti_2.jpg', '/digilabs/dmap/api/uploads/festive_greeting_for_Mahashivratri____Shiv_Jayanti_/festive greeting for Mahashivratri  /Sanket Chandrakanat  Patade/V1/Shiv_Jayanti_2.jpg-1770813047322-17263794.jpg', 'image/jpeg', 313855, 'V1', 'uploaded', '2026-02-11 12:30:47'),
-(244, 467, 'Interview 3.mp4', '/digilabs/dmap/api/uploads/Rosave_EZ__Expert_Opinion_Series/Rosave EZ- Expert Opinion Series/Mahesh Morye/V1/Interview_3.mp4-1770874494941-235643197.mp4', 'video/mp4', 31700743, 'V1', 'uploaded', '2026-02-12 05:34:55'),
-(245, 74, 'Enteron.jpg', '/digilabs/dmap/api/uploads/Reminder_Flyers_for_PEDICON/Reminder Flyers for PEDICON/Vivek Vishwakarma/V1/Enteron.jpg-1770881004412-762349835.jpg', 'image/jpeg', 663947, 'V1', 'uploaded', '2026-02-12 07:23:24'),
-(246, 74, 'Maxis.jpg', '/digilabs/dmap/api/uploads/Reminder_Flyers_for_PEDICON/Reminder Flyers for PEDICON/Vivek Vishwakarma/V1/Maxis.jpg-1770881004418-59034423.jpg', 'image/jpeg', 676756, 'V1', 'uploaded', '2026-02-12 07:23:24'),
-(247, 74, 'Megacare.jpg', '/digilabs/dmap/api/uploads/Reminder_Flyers_for_PEDICON/Reminder Flyers for PEDICON/Vivek Vishwakarma/V1/Megacare.jpg-1770881004428-913581389.jpg', 'image/jpeg', 669059, 'V1', 'uploaded', '2026-02-12 07:23:24'),
-(248, 74, 'Pharma.jpg', '/digilabs/dmap/api/uploads/Reminder_Flyers_for_PEDICON/Reminder Flyers for PEDICON/Vivek Vishwakarma/V1/Pharma.jpg-1770881004433-429996435.jpg', 'image/jpeg', 649734, 'V1', 'uploaded', '2026-02-12 07:23:24'),
-(249, 116, 'Ascal Gel Rx Pad - Jan 2026_C2C.pdf', '/digilabs/dmap/api/uploads/Dr_pad_designing/Dr pad designing/Vivek Vishwakarma/V1/Ascal_Gel_Rx_Pad___Jan_2026_C2C.pdf-1770881045700-672580595.pdf', 'application/pdf', 9599555, 'V1', 'uploaded', '2026-02-12 07:24:05'),
-(250, 116, 'Xceft Rx Pad - Jan 2026_C2C.pdf', '/digilabs/dmap/api/uploads/Dr_pad_designing/Dr pad designing/Vivek Vishwakarma/V1/Xceft_Rx_Pad___Jan_2026_C2C.pdf-1770881045718-422940543.pdf', 'application/pdf', 2612741, 'V1', 'uploaded', '2026-02-12 07:24:05'),
-(251, 397, 'Valentines Day Photo Frame - Feb 2026-01.png', '/digilabs/dmap/api/uploads/Valentine_s_day_frame/Valentine\'s day frame/Vivek Vishwakarma/V1/Valentines_Day_Photo_Frame___Feb_2026_01.png-1770881078517-772456821.png', 'image/png', 2138449, 'V1', 'uploaded', '2026-02-12 07:24:38'),
-(252, 434, 'Pet Vaccination Booklet_1_2026_C2C.pdf', '/digilabs/dmap/api/uploads/Vaccine_book_modification/Vaccine book modification/Angana Prakash Patil/V1/Pet_Vaccination_Booklet_1_2026_C2C.pdf-1770890617856-479294089.pdf', 'application/pdf', 3268876, 'V1', 'uploaded', '2026-02-12 10:03:37'),
-(253, 476, 'Cardigem-Standee_Glisen.jpg', '/digilabs/dmap/api/uploads/Cardigem_Diabetes_and_Hypertension_Standee/Cardigem Diabetes and Hypertension Standee/Sanket Chandrakanat  Patade/V1/Cardigem_Standee_Glisen.jpg-1770895016459-224425526.jpg', 'image/jpeg', 1310479, 'V1', 'uploaded', '2026-02-12 11:16:56'),
-(254, 476, 'Cardigem-Standee_Tellzy.jpg', '/digilabs/dmap/api/uploads/Cardigem_Diabetes_and_Hypertension_Standee/Cardigem Diabetes and Hypertension Standee/Sanket Chandrakanat  Patade/V1/Cardigem_Standee_Tellzy.jpg-1770895016467-227321085.jpg', 'image/jpeg', 912623, 'V1', 'uploaded', '2026-02-12 11:16:56'),
-(255, 475, 'IV-Fluid-A5-Leaflet.jpg', '/digilabs/dmap/api/uploads/IV_Fluid_/IV Fluid /Sanket Chandrakanat  Patade/V1/IV_Fluid_A5_Leaflet.jpg-1770896197402-367424064.jpg', 'image/jpeg', 840754, 'V1', 'uploaded', '2026-02-12 11:36:37'),
-(256, 488, 'Mahashivratri.jpg', '/digilabs/dmap/api/uploads/Mahashivratri_Greeting/Mahashivratri Greeting/Sanket Chandrakanat  Patade/V1/Mahashivratri.jpg-1770962848357-875615231.jpg', 'image/jpeg', 442522, 'V1', 'uploaded', '2026-02-13 06:07:28'),
-(259, 499, 'freepik__enhance__49185.png', '/digilabs/dmap/api/uploads/Brand_photo_shoot_required/Brand photo shoot required/Vikram Rai/V1/freepik__enhance__49185.png-1770963879985-656798342.png', 'image/png', 335819, 'V1', 'uploaded', '2026-02-13 06:24:39'),
-(260, 499, 'Ascal gel advance back.jpg', '/digilabs/dmap/api/uploads/Brand_photo_shoot_required/Brand photo shoot required/Vikram Rai/V1/Ascal_gel_advance_back.jpg-1770963879996-587491792.jpg', 'image/jpeg', 4363000, 'V1', 'uploaded', '2026-02-13 06:24:39'),
-(261, 359, 'Hospicare webinar.png', '/digilabs/dmap/api/uploads/QR_CODE_GENERATION/QR CODE GENERATION/Kiran Thekootu/V1/Hospicare_webinar.png-1770979395695-77484557.png', 'image/png', 33501, 'V1', 'uploaded', '2026-02-13 10:43:15'),
-(262, 286, 'Rumigest Rx Pad.pdf', '/digilabs/dmap/api/uploads/RUMIGEST_RX_PAD/RUMIGEST RX PAD/Sanket Chandrakanat  Patade/V1/Rumigest_Rx_Pad.pdf-1770981766593-686049747.pdf', 'application/pdf', 5328158, 'V1', 'uploaded', '2026-02-13 11:22:46'),
-(263, 199, 'Oryza Holi Script.docx', '/digilabs/dmap/api/uploads/Holi_Video_/Holi Video/Vinisha Chadala/V1/Oryza_Holi_Script.docx-1770983539985-668765254.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12984, 'V1', 'uploaded', '2026-02-13 11:52:19'),
-(264, 479, 'Azithral Solid VA ENT.pdf', '/digilabs/dmap/api/uploads/AZOS_VA_ENT/AZOS VA ENT/Gaurav Karnik/V1/Azithral_Solid_VA_ENT.pdf-1770988762404-410328972.pdf', 'application/pdf', 4009024, 'V1', 'uploaded', '2026-02-13 13:19:22'),
-(265, 450, 'PEGT POSTS.pptx', '/digilabs/dmap/api/uploads/Lasik_and_Contact_Lens_Education_Series_/Lasik and Contact Lens Education Series /Divya Raval/V1/PEGT_POSTS.pptx-1771058128709-775465821.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 8297054, 'V1', 'uploaded', '2026-02-14 08:35:28'),
-(266, 237, 'Vetmax_Greetings_Divya.txt', '/digilabs/dmap/api/uploads/_AWARENESS_AND_CELEBRATION_DAYS___FEBRUARY_2026/ AWARENESS AND CELEBRATION DAYS /Divya Raval/V1/Vetmax_Greetings_Divya.txt-1771058479540-287873740.txt', 'text/plain', 1281, 'V1', 'uploaded', '2026-02-14 08:41:19'),
-(267, 255, 'Enteron_Rekool D Anthem_Song 2_Draft 1 (1).pdf', '/digilabs/dmap/api/uploads/Rekool_D_Motivation_Video_/Rekool D Motivation Video/Divya Raval/V1/Enteron_Rekool_D_Anthem_Song_2_Draft_1__1_.pdf-1771058552097-965651387.pdf', 'application/pdf', 706487, 'V1', 'uploaded', '2026-02-14 08:42:32'),
-(268, 398, 'Travisight PF_Video Greeting.txt', '/digilabs/dmap/api/uploads/Travisight__PF_Brand_Anniversary/Travisight- PF Brand Anniversary_2026/Divya Raval/V1/Travisight_PF_Video_Greeting.txt-1771058632438-122394525.txt', 'text/plain', 195, 'V1', 'uploaded', '2026-02-14 08:43:52'),
-(269, 332, 'PeTAL VA 2026 1.pdf', '/digilabs/dmap/api/uploads/PetAL_VA_2026__New_Pages_/PetAL VA 2026 (New Pages)/Reshma Bastav/V1/PeTAL_VA_2026_1.pdf-1771219101092-646239580.pdf', 'application/pdf', 6400775, 'V1', 'uploaded', '2026-02-16 05:18:21'),
-(270, 332, 'PeTAL VA 2026_2.pdf', '/digilabs/dmap/api/uploads/PetAL_VA_2026__New_Pages_/PetAL VA 2026 (New Pages)/Reshma Bastav/V1/PeTAL_VA_2026_2.pdf-1771219101108-544987931.pdf', 'application/pdf', 4773806, 'V1', 'uploaded', '2026-02-16 05:18:21'),
-(271, 332, 'PeTAL VA 2026_3.pdf', '/digilabs/dmap/api/uploads/PetAL_VA_2026__New_Pages_/PetAL VA 2026 (New Pages)/Reshma Bastav/V1/PeTAL_VA_2026_3.pdf-1771219101114-403167044.pdf', 'application/pdf', 6130340, 'V1', 'uploaded', '2026-02-16 05:18:21'),
-(272, 515, 'Best-Wishes-Mailer_Board-Exams_1.jpg', '/digilabs/dmap/api/uploads/Best_Wishes_Mailer_for_Board_Exams_/Best Wishes Mailer for Board Exams /Sanket Chandrakanat  Patade/V1/Best_Wishes_Mailer_Board_Exams_1.jpg-1771219622634-101283798.jpg', 'image/jpeg', 675603, 'V1', 'uploaded', '2026-02-16 05:27:02'),
-(273, 515, 'Best-Wishes-Mailer_Board-Exams_2.jpg', '/digilabs/dmap/api/uploads/Best_Wishes_Mailer_for_Board_Exams_/Best Wishes Mailer for Board Exams /Sanket Chandrakanat  Patade/V1/Best_Wishes_Mailer_Board_Exams_2.jpg-1771219622652-388837922.jpg', 'image/jpeg', 676779, 'V1', 'uploaded', '2026-02-16 05:27:02'),
-(274, 517, 'CIRCLE-OF-CHAMPIONS_Certificate.jpg', '/digilabs/dmap/api/uploads/Circle_of_Champions_Certificate/Circle of Champions Certificate/Sanket Chandrakanat  Patade/V1/CIRCLE_OF_CHAMPIONS_Certificate.jpg-1771219661889-921667949.jpg', 'image/jpeg', 126017, 'V1', 'uploaded', '2026-02-16 05:27:41'),
-(275, 519, 'Celebrating-Lohri_Mailer.jpg', '/digilabs/dmap/api/uploads/Happy_Lohri_Wishes_for_TV_Screen/Happy Lohri Wishes for TV Screen/Sanket Chandrakanat  Patade/V1/Celebrating_Lohri_Mailer.jpg-1771219698920-834272528.jpg', 'image/jpeg', 505138, 'V1', 'uploaded', '2026-02-16 05:28:18'),
-(276, 519, 'Celebrating-Lohri_TV.jpg', '/digilabs/dmap/api/uploads/Happy_Lohri_Wishes_for_TV_Screen/Happy Lohri Wishes for TV Screen/Sanket Chandrakanat  Patade/V1/Celebrating_Lohri_TV.jpg-1771219698927-828652484.jpg', 'image/jpeg', 647716, 'V1', 'uploaded', '2026-02-16 05:28:18'),
-(277, 519, 'Celebrating-Lohri-Carousel_1.jpg', '/digilabs/dmap/api/uploads/Happy_Lohri_Wishes_for_TV_Screen/Happy Lohri Wishes for TV Screen/Sanket Chandrakanat  Patade/V1/Celebrating_Lohri_Carousel_1.jpg-1771219698937-411555101.jpg', 'image/jpeg', 1223265, 'V1', 'uploaded', '2026-02-16 05:28:18'),
-(278, 519, 'Celebrating-Lohri-Carousel_2.jpg', '/digilabs/dmap/api/uploads/Happy_Lohri_Wishes_for_TV_Screen/Happy Lohri Wishes for TV Screen/Sanket Chandrakanat  Patade/V1/Celebrating_Lohri_Carousel_2.jpg-1771219698947-451906301.jpg', 'image/jpeg', 1088421, 'V1', 'uploaded', '2026-02-16 05:28:18'),
-(279, 520, 'MR-PRODUCTIVE-CALLS_WEEKLY_TOP_MR_January-26-31,-2026.zip', '/digilabs/dmap/api/uploads/Top_MR_Productivity_Calls/Top MR Productivity Calls/Sanket Chandrakanat  Patade/V1/MR_PRODUCTIVE_CALLS_WEEKLY_TOP_MR_January_26_31__2026.zip-1771220063469-398865840.zip', 'application/x-zip-compressed', 2708158, 'V1', 'uploaded', '2026-02-16 05:34:23'),
-(280, 522, 'Clostop-SRX-LBL_Back.jpg', '/digilabs/dmap/api/uploads/Clostop_SRX_LBL_Issue_1/Clostop SRX LBL Issue 1/Sanket Chandrakanat  Patade/V1/Clostop_SRX_LBL_Back.jpg-1771220132745-615784948.jpg', 'image/jpeg', 314048, 'V1', 'uploaded', '2026-02-16 05:35:32'),
-(281, 522, 'Clostop-SRX-LBL_Front.jpg', '/digilabs/dmap/api/uploads/Clostop_SRX_LBL_Issue_1/Clostop SRX LBL Issue 1/Sanket Chandrakanat  Patade/V1/Clostop_SRX_LBL_Front.jpg-1771220132752-616239306.jpg', 'image/jpeg', 312155, 'V1', 'uploaded', '2026-02-16 05:35:32'),
-(282, 516, 'CHRO-Communication_Series_New_Feb.jpg', '/digilabs/dmap/api/uploads/CHRO_Communication_for_the_Corporate_Film_/CHRO Communication for the Corporate Film /Sanket Chandrakanat  Patade/V1/CHRO_Communication_Series_New_Feb.jpg-1771220200257-430310746.jpg', 'image/jpeg', 627918, 'V1', 'uploaded', '2026-02-16 05:36:40'),
-(283, 516, 'CHRO-Communication_Series_New_March.jpg', '/digilabs/dmap/api/uploads/CHRO_Communication_for_the_Corporate_Film_/CHRO Communication for the Corporate Film /Sanket Chandrakanat  Patade/V1/CHRO_Communication_Series_New_March.jpg-1771220200260-894754204.jpg', 'image/jpeg', 559371, 'V1', 'uploaded', '2026-02-16 05:36:40'),
-(284, 231, 'Festive post.zip', '/digilabs/dmap/api/uploads/AWARENESS_AND_CELEBRATION_DAYS___FEBRUARY_2026/AWARENESS AND CELEBRATION DAYS - FEBRUARY 2026/Sanket Chandrakanat  Patade/V1/Festive_post.zip-1771221577747-596083660.zip', 'application/x-zip-compressed', 7577250, 'V1', 'uploaded', '2026-02-16 05:59:37'),
-(285, 480, 'Closal_Poster.jpg', '/digilabs/dmap/api/uploads/CLOSAL_POSTER/CLOSAL POSTER/Nilesh Khedekar/V1/Closal_Poster.jpg-1771225094296-969122396.jpg', 'image/jpeg', 4240620, 'V1', 'uploaded', '2026-02-16 06:58:14'),
-(288, 477, 'Chhatrapati Shivaji Maharaj Jayanti-01.jpg', '/digilabs/dmap/api/uploads/Shivaji_Jayanti_Flyer/Shivaji Jayanti Flyer/Nilesh Khedekar/V1/Chhatrapati_Shivaji_Maharaj_Jayanti_01.jpg-1771240160926-797926620.jpg', 'image/jpeg', 4580884, 'V1', 'uploaded', '2026-02-16 11:09:20'),
-(289, 430, 'Ascal gel advance LBL A5 size.pdf', '/digilabs/dmap/api/uploads/LBL_design_required/LBL design required/Milind Balkrushna Shelar/V1/Ascal_gel_advance_LBL_A5_size.pdf-1771245977859-785107348.pdf', 'application/pdf', 6424555, 'V1', 'uploaded', '2026-02-16 12:46:17'),
-(290, 513, 'A3-Size-Tent-Card.jpg', '/digilabs/dmap/api/uploads/Carb_Overload_Tent_Card_/Carb Overload Tent Card /Gaurav Karnik/V1/A3_Size_Tent_Card.jpg-1771246866932-586837456.jpg', 'image/jpeg', 418392, 'V1', 'uploaded', '2026-02-16 13:01:06'),
-(291, 513, 'A5-Size-Tent-card-01-01-01.jpg', '/digilabs/dmap/api/uploads/Carb_Overload_Tent_Card_/Carb Overload Tent Card /Gaurav Karnik/V1/A5_Size_Tent_card_01_01_01.jpg-1771246866939-76476736.jpg', 'image/jpeg', 212067, 'V1', 'uploaded', '2026-02-16 13:01:06'),
-(292, 240, 'Conveyor belt.docx', '/digilabs/dmap/api/uploads/Exceraft_26_27_Videos/Exceraft 26-27 Videos/Vinisha Chadala/V1/Conveyor_belt.docx-1771303633971-9042244.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 14502, 'V1', 'uploaded', '2026-02-17 04:47:13'),
-(293, 240, 'Exceraft Train filler.docx', '/digilabs/dmap/api/uploads/Exceraft_26_27_Videos/Exceraft 26-27 Videos/Vinisha Chadala/V1/Exceraft_Train_filler.docx-1771303633988-33157559.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13202, 'V1', 'uploaded', '2026-02-17 04:47:13'),
-(294, 240, 'Late night haunting.docx', '/digilabs/dmap/api/uploads/Exceraft_26_27_Videos/Exceraft 26-27 Videos/Vinisha Chadala/V1/Late_night_haunting.docx-1771303633994-262750660.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13493, 'V1', 'uploaded', '2026-02-17 04:47:13'),
-(295, 240, 'Pacman.docx', '/digilabs/dmap/api/uploads/Exceraft_26_27_Videos/Exceraft 26-27 Videos/Vinisha Chadala/V1/Pacman.docx-1771303633998-361870300.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12639, 'V1', 'uploaded', '2026-02-17 04:47:13'),
-(296, 506, 'Recreated Lyrics for Cloff_Draft 1.docx', '/digilabs/dmap/api/uploads/Cloff_Motivational_Anthem/Cloff Motivational Anthem/Divya Raval/V1/Recreated_Lyrics_for_Cloff_Draft_1.docx-1771305359179-767042182.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12945, 'V1', 'uploaded', '2026-02-17 05:15:59'),
-(297, 491, 'Motivational Song_Draft 1.docx', '/digilabs/dmap/api/uploads/Video_Creation_for_budget_meeting_for_marketing_/Hospicare budget meeting /Divya Raval/V1/Motivational_Song_Draft_1.docx-1771309331900-338532081.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12413, 'V1', 'uploaded', '2026-02-17 06:22:11'),
-(298, 496, 'Peel-kit-02.jpg', '/digilabs/dmap/api/uploads/Peel_kit_packaging_design/Peel kit packaging design/Angana Prakash Patil/V1/Peel_kit_02.jpg-1771317404473-713918078.jpg', 'image/jpeg', 753090, 'V1', 'uploaded', '2026-02-17 08:36:44'),
-(299, 532, 'Laveta-M-Syrup-VA-Changes-3.jpg', '/digilabs/dmap/api/uploads/Requirement_of_Opener_Page___AQI___Allergic_Rhinitis_Prevalence_for_LMOL_VA/Requirement of Opener Page – AQI /Gaurav Karnik/V1/Laveta_M_Syrup_VA_Changes_3.jpg-1771318528277-710452922.jpg', 'image/jpeg', 2096206, 'V1', 'uploaded', '2026-02-17 08:55:28'),
-(300, 530, 'PSA Camp Pamphlet A5_Amber Gupta_Hindi.pdf', '/digilabs/dmap/api/uploads/PSA_camp_Poster/PSA camp Poster/Gaurav Karnik/V1/PSA_Camp_Pamphlet_A5_Amber_Gupta_Hindi.pdf-1771322425825-694388038.pdf', 'application/pdf', 1969538, 'V1', 'uploaded', '2026-02-17 10:00:25'),
-(301, 492, 'Nutrition_for_Better_Hemoglobin_Level_QR.png', '/digilabs/dmap/api/uploads/QR_Code_for_Richar_CR_Patient_education_Material/ Richar CR Patient education Material/Gautam Baranwal/V1/Nutrition_for_Better_Hemoglobin_Level_QR.png-1771325905421-533172575.png', 'image/png', 10043, 'V1', 'uploaded', '2026-02-17 10:58:25'),
-(302, 351, 'WAA-Day_V3.jpg', '/digilabs/dmap/api/uploads/Photo_Frame_for_Anemia_Awarness_day_13th_Feb/Anemia Awarness day 13th Feb/Bhagwan Parab/V1/WAA_Day_V3.jpg-1771332387075-587813197.jpg', 'image/jpeg', 630893, 'V1', 'uploaded', '2026-02-17 12:46:27'),
-(303, 421, 'Gift Box_Vitaresp FX-01.jpg', '/digilabs/dmap/api/uploads/Box_Artwork/Box Artwork/Tanmay Santosh Chorghe/V1/Gift_Box_Vitaresp_FX_01.jpg-1771388134648-5250626.jpg', 'image/jpeg', 259242, 'V1', 'uploaded', '2026-02-18 04:15:34'),
-(304, 421, 'Gift Box_Vitaresp FX-02.jpg', '/digilabs/dmap/api/uploads/Box_Artwork/Box Artwork/Tanmay Santosh Chorghe/V1/Gift_Box_Vitaresp_FX_02.jpg-1771388134656-950147932.jpg', 'image/jpeg', 241957, 'V1', 'uploaded', '2026-02-18 04:15:34'),
-(305, 388, 'Diana Jar Box Dimension V3 CTC -01.jpg', '/digilabs/dmap/api/uploads/Box_Artwork/Box Artwork/Tanmay Santosh Chorghe/V1/Diana_Jar_Box_Dimension_V3_CTC__01.jpg-1771388241334-311734822.jpg', 'image/jpeg', 570065, 'V1', 'uploaded', '2026-02-18 04:17:21'),
-(306, 388, 'Diana Jar Box Dimension V3 CTC -02.jpg', '/digilabs/dmap/api/uploads/Box_Artwork/Box Artwork/Tanmay Santosh Chorghe/V1/Diana_Jar_Box_Dimension_V3_CTC__02.jpg-1771388241339-677709481.jpg', 'image/jpeg', 566163, 'V1', 'uploaded', '2026-02-18 04:17:21'),
-(307, 388, 'Diana Jar Box Dimension V3 CTC -03.jpg', '/digilabs/dmap/api/uploads/Box_Artwork/Box Artwork/Tanmay Santosh Chorghe/V1/Diana_Jar_Box_Dimension_V3_CTC__03.jpg-1771388241342-32906165.jpg', 'image/jpeg', 565335, 'V1', 'uploaded', '2026-02-18 04:17:21'),
-(308, 388, 'Diana Jar Box Dimension V3 CTC -04.jpg', '/digilabs/dmap/api/uploads/Box_Artwork/Box Artwork/Tanmay Santosh Chorghe/V1/Diana_Jar_Box_Dimension_V3_CTC__04.jpg-1771388241346-635515336.jpg', 'image/jpeg', 575744, 'V1', 'uploaded', '2026-02-18 04:17:21'),
-(309, 460, 'Chemist Stationery Kit Artwork_CTC-03.pdf', '/digilabs/dmap/api/uploads/Chemist_Stationery_Kit_Artwork___Cardigem_Division_/Chemist Stationery Kit Artwork - Cardigem Division /Tanmay Santosh Chorghe/V1/Chemist_Stationery_Kit_Artwork_CTC_03.pdf-1771388338532-591248729.pdf', 'application/pdf', 936463, 'V1', 'uploaded', '2026-02-18 04:18:58'),
-(310, 533, 'Focus-Brand-reminder-card-2.jpg', '/digilabs/dmap/api/uploads/Focus_Brand_reminder_card__Corazon/Focus Brand reminder card- Corazon/Tanmay Santosh Chorghe/V1/Focus_Brand_reminder_card_2.jpg-1771388429703-899238436.jpg', 'image/jpeg', 110967, 'V1', 'uploaded', '2026-02-18 04:20:29'),
-(311, 533, 'Focus-Brand-reminder-card.jpg', '/digilabs/dmap/api/uploads/Focus_Brand_reminder_card__Corazon/Focus Brand reminder card- Corazon/Tanmay Santosh Chorghe/V1/Focus_Brand_reminder_card.jpg-1771388429707-63543730.jpg', 'image/jpeg', 99707, 'V1', 'uploaded', '2026-02-18 04:20:29'),
-(312, 548, 'Sharkoferrol_Rx Pad-01.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Sharkoferrol_Rx_Pad_01.jpg-1771388455031-825984605.jpg', 'image/jpeg', 359398, 'V1', 'uploaded', '2026-02-18 04:20:55'),
-(313, 548, 'Sharkoferrol_Rx Pad-02.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Sharkoferrol_Rx_Pad_02.jpg-1771388455036-377961201.jpg', 'image/jpeg', 291535, 'V1', 'uploaded', '2026-02-18 04:20:55'),
-(314, 548, 'Sharkoferrol_Rx Pad-03.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Sharkoferrol_Rx_Pad_03.jpg-1771388455041-800454557.jpg', 'image/jpeg', 73021, 'V1', 'uploaded', '2026-02-18 04:20:55'),
-(315, 548, 'Sharkoferrol_Rx Pad-04.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Sharkoferrol_Rx_Pad_04.jpg-1771388455044-817330299.jpg', 'image/jpeg', 199323, 'V1', 'uploaded', '2026-02-18 04:20:55'),
-(316, 548, 'Sharkoferrol_Rx Pad-05.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Sharkoferrol_Rx_Pad_05.jpg-1771388455048-477833438.jpg', 'image/jpeg', 55580, 'V1', 'uploaded', '2026-02-18 04:20:55'),
-(317, 548, 'Estrofit_Rx Pad-01.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Estrofit_Rx_Pad_01.jpg-1771388455051-28291544.jpg', 'image/jpeg', 245850, 'V1', 'uploaded', '2026-02-18 04:20:55'),
-(318, 548, 'Estrofit_Rx Pad-02.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Estrofit_Rx_Pad_02.jpg-1771388455057-292452957.jpg', 'image/jpeg', 219117, 'V1', 'uploaded', '2026-02-18 04:20:55'),
-(319, 548, 'Estrofit_Rx Pad-03.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Estrofit_Rx_Pad_03.jpg-1771388455059-917002517.jpg', 'image/jpeg', 103240, 'V1', 'uploaded', '2026-02-18 04:20:55'),
-(320, 548, 'Estrofit_Rx Pad-04.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Estrofit_Rx_Pad_04.jpg-1771388455064-542127629.jpg', 'image/jpeg', 220687, 'V1', 'uploaded', '2026-02-18 04:20:55'),
-(321, 548, 'Estrofit_Rx Pad-05.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Estrofit_Rx_Pad_05.jpg-1771388455068-730005605.jpg', 'image/jpeg', 75099, 'V1', 'uploaded', '2026-02-18 04:20:55'),
-(322, 186, 'Rosave Gold VA Final_Artboard 1 copy 6-01.png', '/digilabs/dmap/api/uploads/Visual_Aid_Pages/Visual Aid Pages/Tanmay Santosh Chorghe/V1/Rosave_Gold_VA_Final_Artboard_1_copy_6_01.png-1771388725147-144857783.png', 'image/png', 4183825, 'V1', 'uploaded', '2026-02-18 04:25:25'),
-(323, 186, 'Rosave Gold VA Final-02.png', '/digilabs/dmap/api/uploads/Visual_Aid_Pages/Visual Aid Pages/Tanmay Santosh Chorghe/V1/Rosave_Gold_VA_Final_02.png-1771388725154-468135540.png', 'image/png', 754071, 'V1', 'uploaded', '2026-02-18 04:25:25'),
-(324, 186, 'Rosave Gold VA Final-03.png', '/digilabs/dmap/api/uploads/Visual_Aid_Pages/Visual Aid Pages/Tanmay Santosh Chorghe/V1/Rosave_Gold_VA_Final_03.png-1771388725157-584714148.png', 'image/png', 853799, 'V1', 'uploaded', '2026-02-18 04:25:25'),
-(325, 186, 'Rosave Gold VA Final-04.png', '/digilabs/dmap/api/uploads/Visual_Aid_Pages/Visual Aid Pages/Tanmay Santosh Chorghe/V1/Rosave_Gold_VA_Final_04.png-1771388725165-72980158.png', 'image/png', 789625, 'V1', 'uploaded', '2026-02-18 04:25:25'),
-(326, 186, 'Rosave Gold VA Final-05.png', '/digilabs/dmap/api/uploads/Visual_Aid_Pages/Visual Aid Pages/Tanmay Santosh Chorghe/V1/Rosave_Gold_VA_Final_05.png-1771388725168-782166399.png', 'image/png', 973237, 'V1', 'uploaded', '2026-02-18 04:25:25'),
-(327, 344, 'Rosave Gold VA Final-02.png', '/digilabs/dmap/api/uploads/Rosave_EZ___VA_FY_26_27/Rosave EZ - VA FY 26-27/Tanmay Santosh Chorghe/V1/Rosave_Gold_VA_Final_02.png-1771388923063-199432843.png', 'image/png', 754071, 'V1', 'uploaded', '2026-02-18 04:28:43'),
-(328, 344, 'Rosave Gold VA Final-03.png', '/digilabs/dmap/api/uploads/Rosave_EZ___VA_FY_26_27/Rosave EZ - VA FY 26-27/Tanmay Santosh Chorghe/V1/Rosave_Gold_VA_Final_03.png-1771388923079-160478185.png', 'image/png', 853799, 'V1', 'uploaded', '2026-02-18 04:28:43'),
-(329, 344, 'Rosave Gold VA Final-04.png', '/digilabs/dmap/api/uploads/Rosave_EZ___VA_FY_26_27/Rosave EZ - VA FY 26-27/Tanmay Santosh Chorghe/V1/Rosave_Gold_VA_Final_04.png-1771388923086-429579075.png', 'image/png', 789625, 'V1', 'uploaded', '2026-02-18 04:28:43'),
-(330, 344, 'Rosave Gold VA Final-05.png', '/digilabs/dmap/api/uploads/Rosave_EZ___VA_FY_26_27/Rosave EZ - VA FY 26-27/Tanmay Santosh Chorghe/V1/Rosave_Gold_VA_Final_05.png-1771388923091-938976253.png', 'image/png', 973237, 'V1', 'uploaded', '2026-02-18 04:28:43'),
-(331, 484, 'Estrofit_Rx Pad-01.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Estrofit_Rx_Pad_01.jpg-1771390963313-447253123.jpg', 'image/jpeg', 245850, 'V1', 'uploaded', '2026-02-18 05:02:43'),
-(332, 484, 'Estrofit_Rx Pad-02.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Estrofit_Rx_Pad_02.jpg-1771390963316-401122729.jpg', 'image/jpeg', 219117, 'V1', 'uploaded', '2026-02-18 05:02:43'),
-(333, 484, 'Estrofit_Rx Pad-03.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Estrofit_Rx_Pad_03.jpg-1771390963319-394593053.jpg', 'image/jpeg', 103240, 'V1', 'uploaded', '2026-02-18 05:02:43'),
-(334, 484, 'Estrofit_Rx Pad-04.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Estrofit_Rx_Pad_04.jpg-1771390963322-565486142.jpg', 'image/jpeg', 220687, 'V1', 'uploaded', '2026-02-18 05:02:43'),
-(335, 484, 'Estrofit_Rx Pad-05.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Estrofit_Rx_Pad_05.jpg-1771390963330-255514467.jpg', 'image/jpeg', 75099, 'V1', 'uploaded', '2026-02-18 05:02:43'),
-(336, 484, 'Sharkoferrol_Rx Pad-01.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Sharkoferrol_Rx_Pad_01.jpg-1771390963333-967431325.jpg', 'image/jpeg', 359398, 'V1', 'uploaded', '2026-02-18 05:02:43'),
-(337, 484, 'Sharkoferrol_Rx Pad-02.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Sharkoferrol_Rx_Pad_02.jpg-1771390963335-516709113.jpg', 'image/jpeg', 291535, 'V1', 'uploaded', '2026-02-18 05:02:43'),
-(338, 484, 'Sharkoferrol_Rx Pad-03.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Sharkoferrol_Rx_Pad_03.jpg-1771390963338-807315080.jpg', 'image/jpeg', 73021, 'V1', 'uploaded', '2026-02-18 05:02:43'),
-(339, 484, 'Sharkoferrol_Rx Pad-04.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Sharkoferrol_Rx_Pad_04.jpg-1771390963340-156486438.jpg', 'image/jpeg', 199323, 'V1', 'uploaded', '2026-02-18 05:02:43'),
-(340, 484, 'Sharkoferrol_Rx Pad-05.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Sharkoferrol_Rx_Pad_05.jpg-1771390963342-931333427.jpg', 'image/jpeg', 55580, 'V1', 'uploaded', '2026-02-18 05:02:43'),
-(341, 454, 'Chhatrapati Shivaji Maharaj Jayanti.jpg', '/digilabs/dmap/api/uploads/Chhatrapati_Shivaji_Maharaj_Jayanti_Greeting/Chhatrapati Shivaji Maharaj Jayanti Greeting/Nilesh Khedekar/V1/Chhatrapati_Shivaji_Maharaj_Jayanti.jpg-1771391318773-563922456.jpg', 'image/jpeg', 1661901, 'V1', 'uploaded', '2026-02-18 05:08:38'),
-(342, 531, 'SurveY_tellzy_AM_LBL_Feb.pdf-1770093801732-420386075.jpg', '/digilabs/dmap/api/uploads/Tellzy_survey_LBL/Tellzy survey LBL/Tanmay Santosh Chorghe/V1/SurveY_tellzy_AM_LBL_Feb.pdf_1770093801732_420386075.jpg-1771396752055-12960732.jpg', 'image/jpeg', 613881, 'V1', 'uploaded', '2026-02-18 06:39:12'),
-(343, 211, 'Glisen SM VA - Jan 2026 - Selected_01.jpg', '/digilabs/dmap/api/uploads/Glisen_SM_VA_FY_26_27/Glisen SM VA FY 26-27/Vivek Vishwakarma/V1/Glisen_SM_VA___Jan_2026___Selected_01.jpg-1771405592660-609084995.jpg', 'image/jpeg', 1407129, 'V1', 'uploaded', '2026-02-18 09:06:32'),
-(344, 211, 'Glisen SM VA - Jan 2026 - Selected_03.jpg', '/digilabs/dmap/api/uploads/Glisen_SM_VA_FY_26_27/Glisen SM VA FY 26-27/Vivek Vishwakarma/V1/Glisen_SM_VA___Jan_2026___Selected_03.jpg-1771405592676-500250377.jpg', 'image/jpeg', 1191198, 'V1', 'uploaded', '2026-02-18 09:06:32'),
-(345, 211, 'Glisen SM VA - Jan 2026 - Selected_04.jpg', '/digilabs/dmap/api/uploads/Glisen_SM_VA_FY_26_27/Glisen SM VA FY 26-27/Vivek Vishwakarma/V1/Glisen_SM_VA___Jan_2026___Selected_04.jpg-1771405592686-352388532.jpg', 'image/jpeg', 1050350, 'V1', 'uploaded', '2026-02-18 09:06:32'),
-(346, 211, 'Glisen SM VA - Jan 2026 - Selected-03.jpg', '/digilabs/dmap/api/uploads/Glisen_SM_VA_FY_26_27/Glisen SM VA FY 26-27/Vivek Vishwakarma/V1/Glisen_SM_VA___Jan_2026___Selected_03.jpg-1771405592692-535260001.jpg', 'image/jpeg', 1175092, 'V1', 'uploaded', '2026-02-18 09:06:32'),
-(347, 211, 'Glisen SM VA - Jan 2026 - Selected-04.jpg', '/digilabs/dmap/api/uploads/Glisen_SM_VA_FY_26_27/Glisen SM VA FY 26-27/Vivek Vishwakarma/V1/Glisen_SM_VA___Jan_2026___Selected_04.jpg-1771405592695-314890565.jpg', 'image/jpeg', 1173081, 'V1', 'uploaded', '2026-02-18 09:06:32'),
-(348, 211, 'Glisen SM VA - Jan 2026 - Selected-05.jpg', '/digilabs/dmap/api/uploads/Glisen_SM_VA_FY_26_27/Glisen SM VA FY 26-27/Vivek Vishwakarma/V1/Glisen_SM_VA___Jan_2026___Selected_05.jpg-1771405592703-373848382.jpg', 'image/jpeg', 1118022, 'V1', 'uploaded', '2026-02-18 09:06:32'),
-(349, 211, 'Glisen SM VA - Jan 2026 - Selected-07.jpg', '/digilabs/dmap/api/uploads/Glisen_SM_VA_FY_26_27/Glisen SM VA FY 26-27/Vivek Vishwakarma/V1/Glisen_SM_VA___Jan_2026___Selected_07.jpg-1771405592712-821593865.jpg', 'image/jpeg', 1061012, 'V1', 'uploaded', '2026-02-18 09:06:32'),
-(356, 192, 'Glisen Group VA - Selected.pdf', '/digilabs/dmap/api/uploads/Glisen_Visual_Aid_FY26_27/Glisen Visual Aid FY26-27/Vivek Vishwakarma/V1/Glisen_Group_VA___Selected.pdf-1771405739842-809825547.pdf', 'application/pdf', 19528723, 'V1', 'uploaded', '2026-02-18 09:08:59'),
-(357, 318, 'Wikoryl VA Pages - Feb 2026-01.jpg', '/digilabs/dmap/api/uploads/Wikoryl_Liquid_VA_revamp_/Wikoryl Liquid VA revamp/Vivek Vishwakarma/V1/Wikoryl_VA_Pages___Feb_2026_01.jpg-1771405781363-680783030.jpg', 'image/jpeg', 3336230, 'V1', 'uploaded', '2026-02-18 09:09:41'),
-(358, 318, 'Wikoryl VA Pages - Feb 2026-02.jpg', '/digilabs/dmap/api/uploads/Wikoryl_Liquid_VA_revamp_/Wikoryl Liquid VA revamp/Vivek Vishwakarma/V1/Wikoryl_VA_Pages___Feb_2026_02.jpg-1771405781369-787655553.jpg', 'image/jpeg', 2974162, 'V1', 'uploaded', '2026-02-18 09:09:41'),
-(359, 318, 'Wikoryl VA Pages - Feb 2026-03.jpg', '/digilabs/dmap/api/uploads/Wikoryl_Liquid_VA_revamp_/Wikoryl Liquid VA revamp/Vivek Vishwakarma/V1/Wikoryl_VA_Pages___Feb_2026_03.jpg-1771405781374-489103926.jpg', 'image/jpeg', 2915734, 'V1', 'uploaded', '2026-02-18 09:09:41'),
-(360, 318, 'Wikoryl VA Pages - Feb 2026-04.jpg', '/digilabs/dmap/api/uploads/Wikoryl_Liquid_VA_revamp_/Wikoryl Liquid VA revamp/Vivek Vishwakarma/V1/Wikoryl_VA_Pages___Feb_2026_04.jpg-1771405781379-551765707.jpg', 'image/jpeg', 2610928, 'V1', 'uploaded', '2026-02-18 09:09:41'),
-(361, 318, 'Wikoryl VA Pages - Feb 2026-05.jpg', '/digilabs/dmap/api/uploads/Wikoryl_Liquid_VA_revamp_/Wikoryl Liquid VA revamp/Vivek Vishwakarma/V1/Wikoryl_VA_Pages___Feb_2026_05.jpg-1771405781384-412013483.jpg', 'image/jpeg', 2930849, 'V1', 'uploaded', '2026-02-18 09:09:41'),
-(362, 318, 'Wikoryl VA Pages - Feb 2026-06.jpg', '/digilabs/dmap/api/uploads/Wikoryl_Liquid_VA_revamp_/Wikoryl Liquid VA revamp/Vivek Vishwakarma/V1/Wikoryl_VA_Pages___Feb_2026_06.jpg-1771405781390-806888123.jpg', 'image/jpeg', 2799517, 'V1', 'uploaded', '2026-02-18 09:09:41'),
-(363, 318, 'Wikoryl VA Pages - Feb 2026-07.jpg', '/digilabs/dmap/api/uploads/Wikoryl_Liquid_VA_revamp_/Wikoryl Liquid VA revamp/Vivek Vishwakarma/V1/Wikoryl_VA_Pages___Feb_2026_07.jpg-1771405781398-302424182.jpg', 'image/jpeg', 2851486, 'V1', 'uploaded', '2026-02-18 09:09:41'),
-(364, 318, 'Wikoryl VA Pages - Feb 2026-08.jpg', '/digilabs/dmap/api/uploads/Wikoryl_Liquid_VA_revamp_/Wikoryl Liquid VA revamp/Vivek Vishwakarma/V1/Wikoryl_VA_Pages___Feb_2026_08.jpg-1771405781404-902095007.jpg', 'image/jpeg', 185458, 'V1', 'uploaded', '2026-02-18 09:09:41'),
-(365, 433, 'Box artwork for Cloff - Feb 2025 - Final_C2C.pdf', '/digilabs/dmap/api/uploads/_Box_Artwork_for_Cloff/ Box Artwork for Cloff/Vivek Vishwakarma/V1/Box_artwork_for_Cloff___Feb_2025___Final_C2C.pdf-1771405820214-19280121.pdf', 'application/pdf', 1441395, 'V1', 'uploaded', '2026-02-18 09:10:20'),
-(366, 396, '1. FERTIMAX Logo - Feb 2026.jpg', '/digilabs/dmap/api/uploads/DIVISION_LOGO_DEVELOPMENT/DIVISION LOGO DEVELOPMENT/Vivek Vishwakarma/V1/1._FERTIMAX_Logo___Feb_2026.jpg-1771405843415-944076907.jpg', 'image/jpeg', 85853, 'V1', 'uploaded', '2026-02-18 09:10:43'),
-(367, 396, '2. FERTIMAX Logo - Feb 2026.jpg', '/digilabs/dmap/api/uploads/DIVISION_LOGO_DEVELOPMENT/DIVISION LOGO DEVELOPMENT/Vivek Vishwakarma/V1/2._FERTIMAX_Logo___Feb_2026.jpg-1771405843419-204943080.jpg', 'image/jpeg', 90167, 'V1', 'uploaded', '2026-02-18 09:10:43'),
-(368, 396, '3. FERTIMAX Logo - Feb 2026.jpg', '/digilabs/dmap/api/uploads/DIVISION_LOGO_DEVELOPMENT/DIVISION LOGO DEVELOPMENT/Vivek Vishwakarma/V1/3._FERTIMAX_Logo___Feb_2026.jpg-1771405843422-884251724.jpg', 'image/jpeg', 84971, 'V1', 'uploaded', '2026-02-18 09:10:43'),
-(369, 396, '4. FERTIMAX Logo - Feb 2026.jpg', '/digilabs/dmap/api/uploads/DIVISION_LOGO_DEVELOPMENT/DIVISION LOGO DEVELOPMENT/Vivek Vishwakarma/V1/4._FERTIMAX_Logo___Feb_2026.jpg-1771405843425-389013852.jpg', 'image/jpeg', 83292, 'V1', 'uploaded', '2026-02-18 09:10:43'),
-(370, 396, '5. FERTIMAX Logo - Feb 2026.jpg', '/digilabs/dmap/api/uploads/DIVISION_LOGO_DEVELOPMENT/DIVISION LOGO DEVELOPMENT/Vivek Vishwakarma/V1/5._FERTIMAX_Logo___Feb_2026.jpg-1771405843427-301817274.jpg', 'image/jpeg', 70356, 'V1', 'uploaded', '2026-02-18 09:10:43'),
-(371, 396, '6. FERTIMAX Logo - Feb 2026.jpg', '/digilabs/dmap/api/uploads/DIVISION_LOGO_DEVELOPMENT/DIVISION LOGO DEVELOPMENT/Vivek Vishwakarma/V1/6._FERTIMAX_Logo___Feb_2026.jpg-1771405843430-753943317.jpg', 'image/jpeg', 65295, 'V1', 'uploaded', '2026-02-18 09:10:43'),
-(372, 502, 'Box artwork for Vildambic - Feb 2026.pdf', '/digilabs/dmap/api/uploads/Vildambic_box_artwork_/Vildambic box artwork/Vivek Vishwakarma/V1/Box_artwork_for_Vildambic___Feb_2026.pdf-1771405895654-59622910.pdf', 'application/pdf', 4231623, 'V1', 'uploaded', '2026-02-18 09:11:35'),
-(373, 542, 'Udaan Logo - Feb 2026.pdf', '/digilabs/dmap/api/uploads/UDAAN_LOGO/UDAAN LOGO/Vivek Vishwakarma/V1/Udaan_Logo___Feb_2026.pdf-1771406012996-944683757.pdf', 'application/pdf', 3192053, 'V1', 'uploaded', '2026-02-18 09:13:33'),
-(374, 498, 'Resync PLUS Logo_Final.jpg', '/digilabs/dmap/api/uploads/RESYNC_PLUS_LOGO_AND_PACK_SHOT/RESYNC PLUS LOGO AND PACK SHOT/Reshma Bastav/V1/Resync_PLUS_Logo_Final.jpg-1771407089301-900954481.jpg', 'image/jpeg', 3743122, 'V1', 'uploaded', '2026-02-18 09:31:29'),
-(375, 498, 'Resync PLUS Pack.pdf', '/digilabs/dmap/api/uploads/RESYNC_PLUS_LOGO_AND_PACK_SHOT/RESYNC PLUS LOGO AND PACK SHOT/Reshma Bastav/V1/Resync_PLUS_Pack.pdf-1771407089310-387739555.pdf', 'application/pdf', 1832940, 'V1', 'uploaded', '2026-02-18 09:31:29'),
-(376, 539, 'Rosave EZ VA page.pdf', '/digilabs/dmap/api/uploads/Rosave_EZ___survey_LBL/Rosave EZ - survey LBL/Gaurav Karnik/V1/Rosave_EZ_VA_page.pdf-1771422171257-573703983.pdf', 'application/pdf', 2177895, 'V1', 'uploaded', '2026-02-18 13:42:51'),
-(377, 540, 'PSA Camp Pamphlet A5_Amber Gupta_Hindi.pdf', '/digilabs/dmap/api/uploads/Glipy_Group_Camp_Poster/Glipy Group Camp Poster/Gaurav Karnik/V1/PSA_Camp_Pamphlet_A5_Amber_Gupta_Hindi.pdf-1771422251250-96672823.pdf', 'application/pdf', 1969538, 'V1', 'uploaded', '2026-02-18 13:44:11'),
-(378, 536, 'Citanil VA_1.pdf', '/digilabs/dmap/api/uploads/CETANIL_VA_CHANGES/CETANIL VA CHANGES/Reshma Bastav/V1/Citanil_VA_1.pdf-1771479355928-107254792.pdf', 'application/pdf', 7839144, 'V1', 'uploaded', '2026-02-19 05:35:55'),
-(379, 569, 'IMA Conference Participation - Souvenir Artwork - Feb 2026_C2C.pdf', '/digilabs/dmap/api/uploads/Souvenier_artwork_for_CLOFF___DSP/Souvenier artwork for CLOFF /Vivek Vishwakarma/V1/IMA_Conference_Participation___Souvenir_Artwork___Feb_2026_C2C.pdf-1771482703395-952177890.pdf', 'application/pdf', 1824327, 'V1', 'uploaded', '2026-02-19 06:31:43'),
-(380, 555, 'GROGAIN PRO VA - Print - Feb 2026.pdf', '/digilabs/dmap/api/uploads/Grogain_Pro_final_VA_all_pages/Grogain Pro final VA all pages/Vivek Vishwakarma/V1/GROGAIN_PRO_VA___Print___Feb_2026.pdf-1771482805773-348368981.pdf', 'application/pdf', 8979631, 'V1', 'uploaded', '2026-02-19 06:33:25'),
-(381, 545, 'rafle Chitpad.pdf', '/digilabs/dmap/api/uploads/Rafle_Chit_Pad_Designing/Rafle Chit Pad Designing/Milind Balkrushna Shelar/V1/rafle_Chitpad.pdf-1771483419443-449388104.pdf', 'application/pdf', 224725, 'V1', 'uploaded', '2026-02-19 06:43:39'),
-(382, 556, 'Voage-MS VA 2026 v4.pdf', '/digilabs/dmap/api/uploads/Voage_MS_VA_Design/Voage MS VA Design/Milind Balkrushna Shelar/V1/Voage_MS_VA_2026_v4.pdf-1771483614073-688257945.pdf', 'application/pdf', 5029203, 'V1', 'uploaded', '2026-02-19 06:46:54'),
-(383, 557, 'Relugolix 40 mg, Estradiol 1 mg & Norethindrone (1x1) PS 194mm BL.pdf', '/digilabs/dmap/api/uploads/Packshot__and_panel_design_for_new_brand_Reluher/Packshot  and panel design for new brand Reluher/Milind Balkrushna Shelar/V1/Relugolix_40_mg__Estradiol_1_mg___Norethindrone__1x1__PS_194mm_BL.pdf-1771483787003-814314828.pdf', 'application/pdf', 1871686, 'V1', 'uploaded', '2026-02-19 06:49:47'),
-(384, 557, 'Relugolix 40 mg, Estradiol 1 mg & Norethindrone (10x10) 154mm final copy.pdf', '/digilabs/dmap/api/uploads/Packshot__and_panel_design_for_new_brand_Reluher/Packshot  and panel design for new brand Reluher/Milind Balkrushna Shelar/V1/Relugolix_40_mg__Estradiol_1_mg___Norethindrone__10x10__154mm_final_copy.pdf-1771483787010-636186529.pdf', 'application/pdf', 1647500, 'V1', 'uploaded', '2026-02-19 06:49:47'),
-(385, 463, 'Khurak-Video-Artwork_4.jpg', '/digilabs/dmap/api/uploads/Khurak_video_artwork/Khurak video artwork/Sanket Chandrakanat  Patade/V1/Khurak_Video_Artwork_4.jpg-1771496924982-21112084.jpg', 'image/jpeg', 579100, 'V1', 'uploaded', '2026-02-19 10:28:44'),
-(386, 575, 'Circle-of-champions-Event-Collage.jpg', '/digilabs/dmap/api/uploads/Circle_of_Champions_Collage/Circle of Champions Collage/Sanket Chandrakanat  Patade/V1/Circle_of_champions_Event_Collage.jpg-1771500535575-197771683.jpg', 'image/jpeg', 743896, 'V1', 'uploaded', '2026-02-19 11:28:55'),
-(387, 576, 'APL-Thumnbail-Final.jpg', '/digilabs/dmap/api/uploads/APL_Thumbnail/APL Thumbnail/Sanket Chandrakanat  Patade/V1/APL_Thumnbail_Final.jpg-1771500573176-375453799.jpg', 'image/jpeg', 1331510, 'V1', 'uploaded', '2026-02-19 11:29:33'),
-(388, 574, 'AAA-Post_TV.jpg', '/digilabs/dmap/api/uploads/AAA_TV_Version/AAA TV Version/Sanket Chandrakanat  Patade/V1/AAA_Post_TV.jpg-1771500619070-458759361.jpg', 'image/jpeg', 500459, 'V1', 'uploaded', '2026-02-19 11:30:19'),
-(389, 478, 'STEP UP_Draft 3_Cricket Theme.docx', '/digilabs/dmap/api/uploads/BUDGET_MEETING_THEME_/BUDGET MEETING THEME /Divya Raval/V1/STEP_UP_Draft_3_Cricket_Theme.docx-1771501077844-387725868.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 14350, 'V1', 'uploaded', '2026-02-19 11:37:57'),
-(390, 584, 'AAA-Post_TV.jpg', '/digilabs/dmap/api/uploads/AAA_Creatives/AAA Creatives/Sanket Chandrakanat  Patade/V1/AAA_Post_TV.jpg-1771564324064-22576708.jpg', 'image/jpeg', 499124, 'V1', 'uploaded', '2026-02-20 05:12:04');
-INSERT INTO `task_documents` (`id`, `task_assignment_id`, `document_name`, `document_path`, `document_type`, `document_size`, `version`, `status`, `uploaded_at`) VALUES
-(391, 243, 'Acidity Monster vs Exceraft_Pitch Deck.pptx', '/digilabs/dmap/api/uploads/Exceraft_26_27_Videos/Exceraft 26-27 Videos/Divya Raval/V1/Acidity_Monster_vs_Exceraft_Pitch_Deck.pptx-1771567298196-908797468.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 7182124, 'V1', 'uploaded', '2026-02-20 06:01:38'),
-(392, 561, 'Pacman Gamification Video.mp4', '/digilabs/dmap/api/uploads/Exceraft_Pacman_Video/Exceraft Pacman Video/Prathamesh Shengale/V1/Pacman_Gamification_Video.mp4-1771569949697-65028061.mp4', 'video/mp4', 16275442, 'V1', 'uploaded', '2026-02-20 06:45:49'),
-(393, 568, 'logo step up.pdf', '/digilabs/dmap/api/uploads/EYECARE_BUDGET_MEETING_/EYECARE BUDGET MEETING /Tanmay Santosh Chorghe/V1/logo_step_up.pdf-1771571699387-452232749.pdf', 'application/pdf', 1842687, 'V1', 'uploaded', '2026-02-20 07:14:59'),
-(394, 586, 'All Brand Reminder Card Feb 2026 LBL_1_CTC.pdf', '/digilabs/dmap/api/uploads/All_brand_LBL___addition_of_Mamal_LC_/All brand LBL - addition of Mamal LC/Sanket Chandrakanat  Patade/V1/All_Brand_Reminder_Card_Feb_2026_LBL_1_CTC.pdf-1771584363502-841236687.pdf', 'application/pdf', 5240564, 'V1', 'uploaded', '2026-02-20 10:46:03'),
-(395, 535, 'Milbecidal magazine Advertisement_ctc.pdf', '/digilabs/dmap/api/uploads/Milbecidal_magazine_advertisement_artwork/Milbecidal magazine advertisement artwork/Reshma Bastav/V1/Milbecidal_magazine_Advertisement_ctc.pdf-1771589174231-699954965.pdf', 'application/pdf', 1754327, 'V1', 'uploaded', '2026-02-20 12:06:14'),
-(396, 551, 'World-Spay-Day.jpg', '/digilabs/dmap/api/uploads/Animal_Health_Day_Greeting/Animal Health Day Greeting/Sanket Chandrakanat  Patade/V1/World_Spay_Day.jpg-1771826163579-410877863.jpg', 'image/jpeg', 724902, 'V1', 'uploaded', '2026-02-23 05:56:03'),
-(397, 518, 'Alembic-Timeline-Pithampur-Admin-Wall_212.5_X_59_Inch.jpg', '/digilabs/dmap/api/uploads/Alembic_Timeline_Pithampur/Alembic Timeline Pithampur/Sanket Chandrakanat  Patade/V1/Alembic_Timeline_Pithampur_Admin_Wall_212.5_X_59_Inch.jpg-1771831267834-293737316.jpg', 'image/jpeg', 6841948, 'V1', 'uploaded', '2026-02-23 07:21:07'),
-(398, 518, 'Alembic-Timeline-Pithampur-Plant-Entry-Lobby_159.5_X_59.jpg', '/digilabs/dmap/api/uploads/Alembic_Timeline_Pithampur/Alembic Timeline Pithampur/Sanket Chandrakanat  Patade/V1/Alembic_Timeline_Pithampur_Plant_Entry_Lobby_159.5_X_59.jpg-1771831267850-621802122.jpg', 'image/jpeg', 5748121, 'V1', 'uploaded', '2026-02-23 07:21:07'),
-(399, 518, 'Alembic-Timeline-Pithampur-Visitor-Waiting-Room_126_X_48.jpg', '/digilabs/dmap/api/uploads/Alembic_Timeline_Pithampur/Alembic Timeline Pithampur/Sanket Chandrakanat  Patade/V1/Alembic_Timeline_Pithampur_Visitor_Waiting_Room_126_X_48.jpg-1771831267868-799324643.jpg', 'image/jpeg', 7332157, 'V1', 'uploaded', '2026-02-23 07:21:07'),
-(400, 583, 'Chemist-outer-box-artwork-4-X-4 A.jpg', '/digilabs/dmap/api/uploads/Chemist_outer_box_artwork/Chemist outer box artwork/Tanmay Santosh Chorghe/V1/Chemist_outer_box_artwork_4_X_4_A.jpg-1771836587357-726298790.jpg', 'image/jpeg', 96958, 'V1', 'uploaded', '2026-02-23 08:49:47'),
-(401, 583, 'Chemist-outer-box-artwork-4-X-4.jpg', '/digilabs/dmap/api/uploads/Chemist_outer_box_artwork/Chemist outer box artwork/Tanmay Santosh Chorghe/V1/Chemist_outer_box_artwork_4_X_4.jpg-1771836587362-559602975.jpg', 'image/jpeg', 109163, 'V1', 'uploaded', '2026-02-23 08:49:47'),
-(402, 527, 'Resync Song_Draft 1.pdf', '/digilabs/dmap/api/uploads/RESYNC___VIDEO_SCRIPT_FOR_CYCLE_MEET___DHURANDHAR/RESYNC - VIDEO SCRIPT FOR CYCLE MEET - DHURANDHAR/Divya Raval/V1/Resync_Song_Draft_1.pdf-1771837537828-179292228.pdf', 'application/pdf', 550622, 'V1', 'uploaded', '2026-02-23 09:05:37'),
-(403, 353, 'Game activity during meeting.pptx', '/digilabs/dmap/api/uploads/PegTears_HP_Cycle_Meeting/PegTears HP Cycle Meeting_2026/Divya Raval/V1/Game_activity_during_meeting.pptx-1771838014137-209732350.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 37889, 'V1', 'uploaded', '2026-02-23 09:13:34'),
-(405, 529, 'Laveta Ad copies 2.docx', '/digilabs/dmap/api/uploads/AQI_LMOL_VA_PAGE_COPY/AQI LMOL VA PAGE COPY/Vinisha Chadala/V1/Laveta_Ad_copies_2.docx-1771841479317-25113514.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 14122, 'V1', 'uploaded', '2026-02-23 10:11:19'),
-(406, 509, 'Almizol Spray Gamification.docx', '/digilabs/dmap/api/uploads/Almizol_WS_Spray/Almizol WS Spray/Vinisha Chadala/V1/Almizol_Spray_Gamification.docx-1771841569867-321658189.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 15921, 'V1', 'uploaded', '2026-02-23 10:12:49'),
-(407, 528, 'Womens Day Oryza Script.docx', '/digilabs/dmap/api/uploads/Women_s_Day_Video/Women\'s Day Video/Vinisha Chadala/V1/Womens_Day_Oryza_Script.docx-1771841683200-285049274.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 16491, 'V1', 'uploaded', '2026-02-23 10:14:43'),
-(408, 352, 'Teasers for PEGTEARS.docx', '/digilabs/dmap/api/uploads/PegTears_HP_Cycle_Meeting/PegTears HP Cycle Meeting_2026/Vinisha Chadala/V1/Teasers_for_PEGTEARS.docx-1771841729944-888226181.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 14282, 'V1', 'uploaded', '2026-02-23 10:15:29'),
-(409, 590, 'Mastitis_MCEFT_Script.docx', '/digilabs/dmap/api/uploads/Mceft_Video/Mceft Video/Divya Raval/V1/Mastitis_MCEFT_Script.docx-1771843693214-526266911.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 11740, 'V1', 'uploaded', '2026-02-23 10:48:13'),
-(410, 578, 'dangler-2-02.jpg', '/digilabs/dmap/api/uploads/Danglers/Danglers/Milind Balkrushna Shelar/V1/dangler_2_02.jpg-1771850762671-632823085.jpg', 'image/jpeg', 1903966, 'V1', 'uploaded', '2026-02-23 12:46:02'),
-(411, 578, 'dangler-2-03.jpg', '/digilabs/dmap/api/uploads/Danglers/Danglers/Milind Balkrushna Shelar/V1/dangler_2_03.jpg-1771850762681-343326706.jpg', 'image/jpeg', 2772416, 'V1', 'uploaded', '2026-02-23 12:46:02'),
-(412, 391, 'GLisen Reminder card.pdf', '/digilabs/dmap/api/uploads/Glisen_Reminder_Card/Glisen Reminder Card/Gaurav Karnik/V1/GLisen_Reminder_card.pdf-1771854500871-215226962.pdf', 'application/pdf', 757510, 'V1', 'uploaded', '2026-02-23 13:48:20'),
-(413, 580, 'LBL.pdf', '/digilabs/dmap/api/uploads/Haircare_Apr_LBL/Haircare Apr LBL/Gaurav Karnik/V1/LBL.pdf-1771903336004-697192172.pdf', 'application/pdf', 1522577, 'V1', 'uploaded', '2026-02-24 03:22:16'),
-(414, 617, 'Happy-Holi.jpg', '/digilabs/dmap/api/uploads/Digital_flyer_for_Holi/Digital flyer for Holi/Sanket Chandrakanat  Patade/V1/Happy_Holi.jpg-1771908470598-700341215.jpg', 'image/jpeg', 105386, 'V1', 'uploaded', '2026-02-24 04:47:50'),
-(415, 577, 'Box Design.pdf', '/digilabs/dmap/api/uploads/Eyecare_Doctors_Gift_Box/Eyecare Doctors Gift Box/Gaurav Karnik/V1/Box_Design.pdf-1771910621131-924563357.pdf', 'application/pdf', 474836, 'V1', 'uploaded', '2026-02-24 05:23:41'),
-(416, 544, 'TELLZY VA.pdf', '/digilabs/dmap/api/uploads/Tellzy_VA_/Tellzy VA/Gaurav Karnik/V1/TELLZY_VA.pdf-1771914471955-198348712.pdf', 'application/pdf', 4274264, 'V1', 'uploaded', '2026-02-24 06:27:51'),
-(417, 437, 'Lactonic LBL_01.pdf', '/digilabs/dmap/api/uploads/Lactonic_LBL_/Lactonic LBL /Angana Prakash Patil/V1/Lactonic_LBL_01.pdf-1771918642602-770334744.pdf', 'application/pdf', 1812277, 'V1', 'uploaded', '2026-02-24 07:37:22'),
-(418, 437, 'Lactonic LBL_02.pdf', '/digilabs/dmap/api/uploads/Lactonic_LBL_/Lactonic LBL /Angana Prakash Patil/V1/Lactonic_LBL_02.pdf-1771918642617-306945004.pdf', 'application/pdf', 1835154, 'V1', 'uploaded', '2026-02-24 07:37:22'),
-(419, 437, 'Lactonic LBL_03.pdf', '/digilabs/dmap/api/uploads/Lactonic_LBL_/Lactonic LBL /Angana Prakash Patil/V1/Lactonic_LBL_03.pdf-1771918642622-422596010.pdf', 'application/pdf', 2093774, 'V1', 'uploaded', '2026-02-24 07:37:22'),
-(420, 514, 'Oryza sensitive_VA_6.pdf', '/digilabs/dmap/api/uploads/Oryza_sensitive_A__pages___New/Oryza sensitive A  pages - New/Angana Prakash Patil/V1/Oryza_sensitive_VA_6.pdf-1771920386907-831193820.pdf', 'application/pdf', 12501925, 'V1', 'uploaded', '2026-02-24 08:06:26'),
-(421, 546, 'Oryza Sensitive_LBL_C2C.pdf', '/digilabs/dmap/api/uploads/Rosacea_LBL/Rosacea LBL/Angana Prakash Patil/V1/Oryza_Sensitive_LBL_C2C.pdf-1771920471306-503937208.pdf', 'application/pdf', 95495562, 'V1', 'uploaded', '2026-02-24 08:07:52'),
-(422, 510, 'Brand Reminder Card_Feb 2016_C2C.pdf', '/digilabs/dmap/api/uploads/All_brand_reminder_card/All brand reminder card/Angana Prakash Patil/V1/Brand_Reminder_Card_Feb_2016_C2C.pdf-1771920534478-85864856.pdf', 'application/pdf', 1775832, 'V1', 'uploaded', '2026-02-24 08:08:54'),
-(423, 606, 'Dettol_Soap_Hand_wash_magic_hand_wash_Antiseptic 1771580301185-6577056.pdf', '/digilabs/dmap/api/uploads/TELLZY_MT_SGPI_ART_WORK/TELLZY MT SGPI ART WORK/Tanmay Santosh Chorghe/V1/Dettol_Soap_Hand_wash_magic_hand_wash_Antiseptic_1771580301185_6577056.pdf-1771926542428-806167208.pdf', 'application/pdf', 1195434, 'V1', 'uploaded', '2026-02-24 09:49:02'),
-(424, 608, 'SurveY_tellzy_AM_LBL_Feb-A 1770093801732-420386075.jpg', '/digilabs/dmap/api/uploads/TELLZY_MT_SURVEY_LBL/TELLZY MT SURVEY LBL/Tanmay Santosh Chorghe/V1/SurveY_tellzy_AM_LBL_Feb_A_1770093801732_420386075.jpg-1771927514168-273156922.jpg', 'image/jpeg', 640317, 'V1', 'uploaded', '2026-02-24 10:05:14'),
-(450, 618, 'All-Brand-Reminder-Card-March-2026-_RC.jpg', '/digilabs/dmap/api/uploads/All_Brand_Reminder_Card/All Brand Reminder Card/Tanmay Santosh Chorghe/V1/All_Brand_Reminder_Card_March_2026__RC.jpg-1771934458038-653138710.jpg', 'image/jpeg', 529549, 'V1', 'uploaded', '2026-02-24 12:00:58'),
-(451, 618, 'All-Brand-Reminder-Card-March-2026-2_RC.jpg', '/digilabs/dmap/api/uploads/All_Brand_Reminder_Card/All Brand Reminder Card/Tanmay Santosh Chorghe/V1/All_Brand_Reminder_Card_March_2026_2_RC.jpg-1771934458045-881899631.jpg', 'image/jpeg', 621385, 'V1', 'uploaded', '2026-02-24 12:00:58'),
-(452, 646, 'Camp-Poster-1.jpg', '/digilabs/dmap/api/uploads/Zivemp_SM_Detection_Camp_Poster/Zivemp-SM Detection Camp Poster/Gaurav Karnik/V1/Camp_Poster_1.jpg-1771939450463-38141336.jpg', 'image/jpeg', 1829378, 'V1', 'uploaded', '2026-02-24 13:24:10'),
-(453, 646, 'Camp-Poster-2.jpg', '/digilabs/dmap/api/uploads/Zivemp_SM_Detection_Camp_Poster/Zivemp-SM Detection Camp Poster/Gaurav Karnik/V1/Camp_Poster_2.jpg-1771939450474-199245805.jpg', 'image/jpeg', 1214854, 'V1', 'uploaded', '2026-02-24 13:24:10'),
-(454, 550, 'Mothers Day packaigng key line (002)-1.jpg', '/digilabs/dmap/api/uploads/Mother_s_day_box_AW/Mother\'s day box AW/Angana Prakash Patil/V1/Mothers_Day_packaigng_key_line__002__1.jpg-1771989594391-825202255.jpg', 'image/jpeg', 4749020, 'V1', 'uploaded', '2026-02-25 03:19:54'),
-(455, 550, 'Mothers Day packaigng key line (002)-2.jpg', '/digilabs/dmap/api/uploads/Mother_s_day_box_AW/Mother\'s day box AW/Angana Prakash Patil/V1/Mothers_Day_packaigng_key_line__002__2.jpg-1771989594410-570391195.jpg', 'image/jpeg', 1724604, 'V1', 'uploaded', '2026-02-25 03:19:54'),
-(456, 215, 'Oryza sensitive_VA_6_Low.pdf', '/digilabs/dmap/api/uploads/Oryza_Sensitive_FY27___Revised_VA/Oryza Sensitive FY27 - Revised VA/Angana Prakash Patil/V1/Oryza_sensitive_VA_6_Low.pdf-1771989633589-882486618.pdf', 'application/pdf', 1027280, 'V1', 'uploaded', '2026-02-25 03:20:33'),
-(457, 379, 'Rekool Teasers.docx', '/digilabs/dmap/api/uploads/Rekool_D_CLM_Video_Campgain_/Rekool D CLM Campgain_2026/Vinisha Chadala/V1/Rekool_Teasers.docx-1771993507109-702446205.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 17575, 'V1', 'uploaded', '2026-02-25 04:25:07'),
-(458, 571, 'Salembic Script.docx', '/digilabs/dmap/api/uploads/IV_fluid_script_/IV fluid script /Vinisha Chadala/V1/Salembic_Script.docx-1771993530843-986223657.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 14127, 'V1', 'uploaded', '2026-02-25 04:25:30'),
-(460, 634, 'World-Spay-Day.jpg', '/digilabs/dmap/api/uploads/World_Wildlife_Day/World Wildlife Day/Sanket Chandrakanat  Patade/V1/World_Spay_Day.jpg-1772016148118-225812808.jpg', 'image/jpeg', 724902, 'V1', 'uploaded', '2026-02-25 10:42:28'),
-(461, 601, 'Holika Dahan.txt', '/digilabs/dmap/api/uploads/Holika_Dahan_Greeting/Holika Dahan Greeting/Divya Raval/V1/Holika_Dahan.txt-1772016748384-986072094.txt', 'text/plain', 165, 'V1', 'uploaded', '2026-02-25 10:52:28'),
-(462, 602, 'Holi.txt', '/digilabs/dmap/api/uploads/Holi_Greeting/Holi Greeting/Divya Raval/V1/Holi.txt-1772017331497-318825619.txt', 'text/plain', 149, 'V1', 'uploaded', '2026-02-25 11:02:11'),
-(463, 603, 'Poster_1.jpg', '/digilabs/dmap/api/uploads/Fertimax_LBL_Oredr_Book___Banner/Fertimax LBL,Oredr Book /Sanket Chandrakanat  Patade/V1/Poster_1.jpg-1772017530275-26126815.jpg', 'image/jpeg', 8657227, 'V1', 'uploaded', '2026-02-25 11:05:30'),
-(464, 603, 'LBL_2.jpg', '/digilabs/dmap/api/uploads/Fertimax_LBL_Oredr_Book___Banner/Fertimax LBL,Oredr Book /Sanket Chandrakanat  Patade/V1/LBL_2.jpg-1772017530287-298576679.jpg', 'image/jpeg', 240400, 'V1', 'uploaded', '2026-02-25 11:05:30'),
-(465, 603, 'Fertimax-Order-Book_1.jpg', '/digilabs/dmap/api/uploads/Fertimax_LBL_Oredr_Book___Banner/Fertimax LBL,Oredr Book /Sanket Chandrakanat  Patade/V1/Fertimax_Order_Book_1.jpg-1772017530290-326447856.jpg', 'image/jpeg', 200787, 'V1', 'uploaded', '2026-02-25 11:05:30'),
-(466, 603, 'Fertimax-Order-Book_2.jpg', '/digilabs/dmap/api/uploads/Fertimax_LBL_Oredr_Book___Banner/Fertimax LBL,Oredr Book /Sanket Chandrakanat  Patade/V1/Fertimax_Order_Book_2.jpg-1772017530293-778780323.jpg', 'image/jpeg', 184607, 'V1', 'uploaded', '2026-02-25 11:05:30'),
-(467, 677, 'Holi Greeting.txt', '/digilabs/dmap/api/uploads/Holika_Dahan_Celebration_Day_Greeting/Holika Dahan Celebration Day Greeting/Divya Raval/V1/Holi_Greeting.txt-1772018159971-130165942.txt', 'text/plain', 248, 'V1', 'uploaded', '2026-02-25 11:15:59'),
-(468, 591, 'Khurak_Video.gif', '/digilabs/dmap/api/uploads/Khurak_Pack_video/Khurak Pack video/Prathamesh Shengale/V1/Khurak_Video.gif-1772083397394-915169682.gif', 'image/gif', 21290993, 'V1', 'uploaded', '2026-02-26 05:23:17'),
-(469, 630, 'National-Science-Day.jpg', '/digilabs/dmap/api/uploads/National_Science_Day_Greeting/National Science Day Greeting/Sanket Chandrakanat  Patade/V1/National_Science_Day.jpg-1772087516421-793235877.jpg', 'image/jpeg', 355370, 'V1', 'uploaded', '2026-02-26 06:31:56'),
-(470, 640, 'Deltone-LBL-April\'26-Back.jpg', '/digilabs/dmap/api/uploads/Deltone_LBL_April_26/Deltone LBL April\'26/Tanmay Santosh Chorghe/V1/Deltone_LBL_April_26_Back.jpg-1772087695211-914832690.jpg', 'image/jpeg', 379670, 'V1', 'uploaded', '2026-02-26 06:34:55'),
-(471, 640, 'Deltone-LBL-April\'26-Front.jpg', '/digilabs/dmap/api/uploads/Deltone_LBL_April_26/Deltone LBL April\'26/Tanmay Santosh Chorghe/V1/Deltone_LBL_April_26_Front.jpg-1772087695230-72131694.jpg', 'image/jpeg', 496670, 'V1', 'uploaded', '2026-02-26 06:34:55'),
-(472, 632, 'Happy-Holi.jpg', '/digilabs/dmap/api/uploads/Holi_Greeting_/Holi Greeting /Sanket Chandrakanat  Patade/V1/Happy_Holi.jpg-1772095231234-519678752.jpg', 'image/jpeg', 918110, 'V1', 'uploaded', '2026-02-26 08:40:31'),
-(473, 638, 'Holika-Dahan.jpg', '/digilabs/dmap/api/uploads/Holika_Dahan_Celebration_Day_Greeting/Holika Dahan Celebration Day Greeting/Sanket Chandrakanat  Patade/V1/Holika_Dahan.jpg-1772095255285-63116607.jpg', 'image/jpeg', 944224, 'V1', 'uploaded', '2026-02-26 08:40:55'),
-(474, 614, 'Travisight+ Brinzemic B VA.pdf', '/digilabs/dmap/api/uploads/Adjunctive_Therapy__Visual_Aid/Adjunctive Therapy  Visual Aid/Reshma Bastav/V1/Travisight__Brinzemic_B_VA.pdf-1772095825964-956422251.pdf', 'application/pdf', 4995950, 'V1', 'uploaded', '2026-02-26 08:50:25'),
-(475, 686, 'Donance S Pro LBL - April 26.pdf', '/digilabs/dmap/api/uploads/DSP_LBL_APRIL/DSP LBL APRIL/Gaurav Karnik/V1/Donance_S_Pro_LBL___April_26.pdf-1772100823955-751492744.pdf', 'application/pdf', 5466240, 'V1', 'uploaded', '2026-02-26 10:13:43'),
-(476, 668, 'Crina-NCR Megaplex Template GYNE_Dr Polami_Indore-01.jpg', '/digilabs/dmap/api/uploads/Crina_NCR_Megaplex___Indore___BBSR/Crina-NCR Megaplex - Indore /Reshma Bastav/V1/Crina_NCR_Megaplex_Template_GYNE_Dr_Polami_Indore_01.jpg-1772103504306-718654035.jpg', 'image/jpeg', 4313783, 'V1', 'uploaded', '2026-02-26 10:58:24'),
-(477, 668, 'Crina-NCR Megaplex Template GYNE_Dr Polami_Indore-02.jpg', '/digilabs/dmap/api/uploads/Crina_NCR_Megaplex___Indore___BBSR/Crina-NCR Megaplex - Indore /Reshma Bastav/V1/Crina_NCR_Megaplex_Template_GYNE_Dr_Polami_Indore_02.jpg-1772103504314-728220985.jpg', 'image/jpeg', 2959589, 'V1', 'uploaded', '2026-02-26 10:58:24'),
-(478, 668, 'Crina-NCR Megaplex Template GYNE_Dr Polami_Indore-03.jpg', '/digilabs/dmap/api/uploads/Crina_NCR_Megaplex___Indore___BBSR/Crina-NCR Megaplex - Indore /Reshma Bastav/V1/Crina_NCR_Megaplex_Template_GYNE_Dr_Polami_Indore_03.jpg-1772103504320-876875750.jpg', 'image/jpeg', 4157744, 'V1', 'uploaded', '2026-02-26 10:58:24'),
-(479, 668, 'Crina-NCR Megaplex Template IVF_Saudamini Mohapatra-01.jpg', '/digilabs/dmap/api/uploads/Crina_NCR_Megaplex___Indore___BBSR/Crina-NCR Megaplex - Indore /Reshma Bastav/V1/Crina_NCR_Megaplex_Template_IVF_Saudamini_Mohapatra_01.jpg-1772103504325-200464417.jpg', 'image/jpeg', 3399359, 'V1', 'uploaded', '2026-02-26 10:58:24'),
-(480, 668, 'Crina-NCR Megaplex Template IVF_Saudamini Mohapatra-02.jpg', '/digilabs/dmap/api/uploads/Crina_NCR_Megaplex___Indore___BBSR/Crina-NCR Megaplex - Indore /Reshma Bastav/V1/Crina_NCR_Megaplex_Template_IVF_Saudamini_Mohapatra_02.jpg-1772103504331-936269356.jpg', 'image/jpeg', 3352376, 'V1', 'uploaded', '2026-02-26 10:58:24'),
-(481, 668, 'Crina-NCR Megaplex Template IVF_Saudamini Mohapatra-03.jpg', '/digilabs/dmap/api/uploads/Crina_NCR_Megaplex___Indore___BBSR/Crina-NCR Megaplex - Indore /Reshma Bastav/V1/Crina_NCR_Megaplex_Template_IVF_Saudamini_Mohapatra_03.jpg-1772103504336-85202540.jpg', 'image/jpeg', 4308915, 'V1', 'uploaded', '2026-02-26 10:58:24'),
-(482, 616, 'Aldine-s Bolus Rx Pad.pdf', '/digilabs/dmap/api/uploads/Thaminal_Mamal_LC__Aldine___almizol_lotion_Rx_Pad/Thaminal,Mamal LC ,Aldine /Sanket Chandrakanat  Patade/V1/Aldine_s_Bolus_Rx_Pad.pdf-1772104160578-24993009.pdf', 'application/pdf', 1055366, 'V1', 'uploaded', '2026-02-26 11:09:20'),
-(483, 616, 'Malal LC Rx Pad.pdf', '/digilabs/dmap/api/uploads/Thaminal_Mamal_LC__Aldine___almizol_lotion_Rx_Pad/Thaminal,Mamal LC ,Aldine /Sanket Chandrakanat  Patade/V1/Malal_LC_Rx_Pad.pdf-1772104160583-830411979.pdf', 'application/pdf', 985935, 'V1', 'uploaded', '2026-02-26 11:09:20'),
-(484, 616, 'Thaminal Rx Pad.pdf', '/digilabs/dmap/api/uploads/Thaminal_Mamal_LC__Aldine___almizol_lotion_Rx_Pad/Thaminal,Mamal LC ,Aldine /Sanket Chandrakanat  Patade/V1/Thaminal_Rx_Pad.pdf-1772104160585-286203576.pdf', 'application/pdf', 2455557, 'V1', 'uploaded', '2026-02-26 11:09:20'),
-(485, 679, 'Reminder Card Jan_2026-01.jpg', '/digilabs/dmap/api/uploads/All_brand_reminder_card/All brand reminder card/Nilesh Khedekar/V1/Reminder_Card_Jan_2026_01.jpg-1772104985553-740979771.jpg', 'image/jpeg', 640342, 'V1', 'uploaded', '2026-02-26 11:23:05'),
-(486, 679, 'Reminder Card Jan_2026-02.jpg', '/digilabs/dmap/api/uploads/All_brand_reminder_card/All brand reminder card/Nilesh Khedekar/V1/Reminder_Card_Jan_2026_02.jpg-1772104985560-308816536.jpg', 'image/jpeg', 691124, 'V1', 'uploaded', '2026-02-26 11:23:05'),
-(487, 587, 'Gujarati Poster content.pptx', '/digilabs/dmap/api/uploads/Gujarati_Language_Glaucoma_Awareness_Standee/Gujarati Language Glaucoma Awareness Standee/Divya Raval/V1/Gujarati_Poster_content.pptx-1772105802166-136787505.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 45852, 'V1', 'uploaded', '2026-02-26 11:36:42'),
-(488, 624, 'Holi-Flyer-3.jpg', '/digilabs/dmap/api/uploads/Holi_Flyer/Holi Flyer/Tanmay Santosh Chorghe/V1/Holi_Flyer_3.jpg-1772167168402-399760133.jpg', 'image/jpeg', 1216238, 'V1', 'uploaded', '2026-02-27 04:39:28'),
-(489, 628, 'Holi.jpg', '/digilabs/dmap/api/uploads/Holi_Digital_Post/Holi Digital Post/Tanmay Santosh Chorghe/V1/Holi.jpg-1772167465730-704079615.jpg', 'image/jpeg', 846467, 'V1', 'uploaded', '2026-02-27 04:44:25'),
-(490, 636, 'HOLI-E-CARD.jpg', '/digilabs/dmap/api/uploads/HOLI_E_CARD/HOLI E-CARD/Tanmay Santosh Chorghe/V1/HOLI_E_CARD.jpg-1772167689515-454476159.jpg', 'image/jpeg', 287354, 'V1', 'uploaded', '2026-02-27 04:48:09'),
-(491, 582, 'Rosave-F-Survey-LBL.jpg', '/digilabs/dmap/api/uploads/Rosave_F_Survey_LBL/Rosave F Survey LBL/Tanmay Santosh Chorghe/V1/Rosave_F_Survey_LBL.jpg-1772167869876-690521686.jpg', 'image/jpeg', 1093443, 'V1', 'uploaded', '2026-02-27 04:51:09'),
-(492, 622, 'holi_1-02.jpg', '/digilabs/dmap/api/uploads/Holi_Greeting/Holi Greeting/Angana Prakash Patil/V1/holi_1_02.jpg-1772169108799-548068776.jpg', 'image/jpeg', 702968, 'V1', 'uploaded', '2026-02-27 05:11:48'),
-(493, 622, 'holi_1-03.jpg', '/digilabs/dmap/api/uploads/Holi_Greeting/Holi Greeting/Angana Prakash Patil/V1/holi_1_03.jpg-1772169108806-469435966.jpg', 'image/jpeg', 587246, 'V1', 'uploaded', '2026-02-27 05:11:48'),
-(494, 623, 'holika dahan-01.jpg', '/digilabs/dmap/api/uploads/Holika_Dahan/Holika Dahan/Angana Prakash Patil/V1/holika_dahan_01.jpg-1772169139395-533739352.jpg', 'image/jpeg', 503815, 'V1', 'uploaded', '2026-02-27 05:12:19'),
-(495, 623, 'holika dahan-02.jpg', '/digilabs/dmap/api/uploads/Holika_Dahan/Holika Dahan/Angana Prakash Patil/V1/holika_dahan_02.jpg-1772169139399-91874387.jpg', 'image/jpeg', 563191, 'V1', 'uploaded', '2026-02-27 05:12:19'),
-(496, 289, 'Ceramax_Whatsapp Flyer.pdf', '/digilabs/dmap/api/uploads/Oryza_Ceramax_Study_Flyers/Oryza Ceramax Study Flyers/Angana Prakash Patil/V1/Ceramax_Whatsapp_Flyer.pdf-1772170146873-799998535.pdf', 'application/pdf', 63333936, 'V1', 'uploaded', '2026-02-27 05:29:07'),
-(497, 701, 'Donance M LBL_April 2026.pdf', '/digilabs/dmap/api/uploads/DONANCE_LBL___APRIL_26/DONANCE LBL - APRIL\'26/Gaurav Karnik/V1/Donance_M_LBL_April_2026.pdf-1772171637999-845327997.pdf', 'application/pdf', 660081, 'V1', 'uploaded', '2026-02-27 05:53:58'),
-(498, 411, 'Festive Texts.txt', '/digilabs/dmap/api/uploads/Greetings_for_the_upcoming_Festives_on_the_mentioned_dates___/Megacare_ Feb_ festival_2026/Divya Raval/V1/Festive_Texts.txt-1772171771344-466404566.txt', 'text/plain', 818, 'V1', 'uploaded', '2026-02-27 05:56:11'),
-(499, 612, 'Women\'s Day.txt', '/digilabs/dmap/api/uploads/International_Women_s_Day/International Women\'s Day/Divya Raval/V1/Women_s_Day.txt-1772174290287-106540780.txt', 'text/plain', 174, 'V1', 'uploaded', '2026-02-27 06:38:10'),
-(500, 708, '100 Cr A5-01.jpg', '/digilabs/dmap/api/uploads/POULTRY_100_Cr_Milestone_Post_/POULTRY 100 Cr Milestone Post /Gaurav Karnik/V1/100_Cr_A5_01.jpg-1772174710680-492798749.jpg', 'image/jpeg', 338971, 'V1', 'uploaded', '2026-02-27 06:45:10'),
-(501, 708, '100 Cr A5-02.jpg', '/digilabs/dmap/api/uploads/POULTRY_100_Cr_Milestone_Post_/POULTRY 100 Cr Milestone Post /Gaurav Karnik/V1/100_Cr_A5_02.jpg-1772174710685-472610924.jpg', 'image/jpeg', 337630, 'V1', 'uploaded', '2026-02-27 06:45:10'),
-(502, 716, 'Livfit 60 bottle front.jpg', '/digilabs/dmap/api/uploads/New_Livfit_3_SKU_Packshot_images/New Livfit 3 SKU Packshot images/Vikram Rai/V1/Livfit_60_bottle_front.jpg-1772185945048-437485926.jpg', 'image/jpeg', 1191675, 'V1', 'uploaded', '2026-02-27 09:52:25'),
-(503, 716, 'livfit 60ml side (2).jpg', '/digilabs/dmap/api/uploads/New_Livfit_3_SKU_Packshot_images/New Livfit 3 SKU Packshot images/Vikram Rai/V1/livfit_60ml_side__2_.jpg-1772185945054-891561757.jpg', 'image/jpeg', 1142872, 'V1', 'uploaded', '2026-02-27 09:52:25'),
-(504, 716, 'Livfit 200ml side.jpg', '/digilabs/dmap/api/uploads/New_Livfit_3_SKU_Packshot_images/New Livfit 3 SKU Packshot images/Vikram Rai/V1/Livfit_200ml_side.jpg-1772185945056-617851268.jpg', 'image/jpeg', 1246334, 'V1', 'uploaded', '2026-02-27 09:52:25'),
-(505, 716, 'Livfit 200ml.jpg', '/digilabs/dmap/api/uploads/New_Livfit_3_SKU_Packshot_images/New Livfit 3 SKU Packshot images/Vikram Rai/V1/Livfit_200ml.jpg-1772185945060-160204092.jpg', 'image/jpeg', 1269693, 'V1', 'uploaded', '2026-02-27 09:52:25'),
-(506, 716, 'Livfit front.jpg', '/digilabs/dmap/api/uploads/New_Livfit_3_SKU_Packshot_images/New Livfit 3 SKU Packshot images/Vikram Rai/V1/Livfit_front.jpg-1772185945063-709778787.jpg', 'image/jpeg', 1933156, 'V1', 'uploaded', '2026-02-27 09:52:25'),
-(507, 716, 'livfit side 2.jpg', '/digilabs/dmap/api/uploads/New_Livfit_3_SKU_Packshot_images/New Livfit 3 SKU Packshot images/Vikram Rai/V1/livfit_side_2.jpg-1772185945067-13238504.jpg', 'image/jpeg', 1363527, 'V1', 'uploaded', '2026-02-27 09:52:25'),
-(508, 716, 'lIVFIT SIDE.jpg', '/digilabs/dmap/api/uploads/New_Livfit_3_SKU_Packshot_images/New Livfit 3 SKU Packshot images/Vikram Rai/V1/lIVFIT_SIDE.jpg-1772185945070-279506319.jpg', 'image/jpeg', 1469099, 'V1', 'uploaded', '2026-02-27 09:52:25'),
-(509, 716, 'livfit strip back copy.jpg', '/digilabs/dmap/api/uploads/New_Livfit_3_SKU_Packshot_images/New Livfit 3 SKU Packshot images/Vikram Rai/V1/livfit_strip_back_copy.jpg-1772185945073-829617806.jpg', 'image/jpeg', 1671195, 'V1', 'uploaded', '2026-02-27 09:52:25'),
-(510, 716, 'Strip.jpg', '/digilabs/dmap/api/uploads/New_Livfit_3_SKU_Packshot_images/New Livfit 3 SKU Packshot images/Vikram Rai/V1/Strip.jpg-1772185945075-255468586.jpg', 'image/jpeg', 1651826, 'V1', 'uploaded', '2026-02-27 09:52:25'),
-(511, 593, 'Tellzy AM  LBL.pdf', '/digilabs/dmap/api/uploads/Tellzy_Range_LBLs__April_26_/Tellzy Range LBLs (April\'26)/Milind Balkrushna Shelar/V1/Tellzy_AM__LBL.pdf-1772187609199-975055542.pdf', 'application/pdf', 926317, 'V1', 'uploaded', '2026-02-27 10:20:09'),
-(512, 593, 'Tellzy LBL.pdf', '/digilabs/dmap/api/uploads/Tellzy_Range_LBLs__April_26_/Tellzy Range LBLs (April\'26)/Milind Balkrushna Shelar/V1/Tellzy_LBL.pdf-1772187609205-474906491.pdf', 'application/pdf', 814614, 'V1', 'uploaded', '2026-02-27 10:20:09'),
-(513, 593, 'Tellzy LN LBL.pdf', '/digilabs/dmap/api/uploads/Tellzy_Range_LBLs__April_26_/Tellzy Range LBLs (April\'26)/Milind Balkrushna Shelar/V1/Tellzy_LN_LBL.pdf-1772187609210-807141221.pdf', 'application/pdf', 361728, 'V1', 'uploaded', '2026-02-27 10:20:09'),
-(514, 593, 'Tellzy MT  LBL.pdf', '/digilabs/dmap/api/uploads/Tellzy_Range_LBLs__April_26_/Tellzy Range LBLs (April\'26)/Milind Balkrushna Shelar/V1/Tellzy_MT__LBL.pdf-1772187609213-298880813.pdf', 'application/pdf', 397761, 'V1', 'uploaded', '2026-02-27 10:20:09'),
-(515, 609, '5 brands for Success.pdf', '/digilabs/dmap/api/uploads/AntiGlaucoma_Video_Text/AntiGlaucoma Video Text/Divya Raval/V1/5_brands_for_Success.pdf-1772191843278-854211858.pdf', 'application/pdf', 466397, 'V1', 'uploaded', '2026-02-27 11:30:43'),
-(516, 611, 'Ram Navami.docx', '/digilabs/dmap/api/uploads/Ram_Navami_Greeting/Ram Navami Greeting/Divya Raval/V1/Ram_Navami.docx-1772191905160-344457364.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 11894, 'V1', 'uploaded', '2026-02-27 11:31:45'),
-(517, 697, 'Veldrop_draft 1_Video script.docx', '/digilabs/dmap/api/uploads/Veldrop_iPad_video/Veldrop iPad video/Divya Raval/V1/Veldrop_draft_1_Video_script.docx-1772193924923-620772417.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12298, 'V1', 'uploaded', '2026-02-27 12:05:24'),
-(518, 715, 'March, 2026 Slab Input.jpg', '/digilabs/dmap/api/uploads/Slab_Artwork/Slab Artwork/Nilesh Khedekar/V1/March__2026_Slab_Input.jpg-1772425543688-783863901.jpg', 'image/jpeg', 2225827, 'V1', 'uploaded', '2026-03-02 04:25:43'),
-(519, 621, 'Exceraft_LBL 1 c2c.pdf', '/digilabs/dmap/api/uploads/Exceraft_LBL_1_and_2/Exceraft LBL 1 and 2/Nilesh Khedekar/V1/Exceraft_LBL_1_c2c.pdf-1772425570909-419931051.pdf', 'application/pdf', 1430975, 'V1', 'uploaded', '2026-03-02 04:26:10'),
-(520, 695, 'World Sleep Day.docx', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content/Vinisha Chadala/V1/World_Sleep_Day.docx-1772427517653-139069312.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12194, 'V1', 'uploaded', '2026-03-02 04:58:37'),
-(521, 695, 'Womens Day.docx', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content/Vinisha Chadala/V1/Womens_Day.docx-1772427517659-159885721.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12262, 'V1', 'uploaded', '2026-03-02 04:58:37'),
-(522, 695, 'Holi.docx', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content/Vinisha Chadala/V1/Holi.docx-1772427517662-439039407.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12069, 'V1', 'uploaded', '2026-03-02 04:58:37'),
-(523, 695, 'Holika Dahan.docx', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content/Vinisha Chadala/V1/Holika_Dahan.docx-1772427517664-903571099.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12254, 'V1', 'uploaded', '2026-03-02 04:58:37'),
-(524, 695, 'Chhatrapati Shivaji Maharaj Jayanti.docx', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content/Vinisha Chadala/V1/Chhatrapati_Shivaji_Maharaj_Jayanti.docx-1772427517667-534973875.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12465, 'V1', 'uploaded', '2026-03-02 04:58:37'),
-(525, 695, 'National Science Day.docx', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content/Vinisha Chadala/V1/National_Science_Day.docx-1772427517669-714505654.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12248, 'V1', 'uploaded', '2026-03-02 04:58:37'),
-(526, 695, 'Ramadan Greeting.docx', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content/Vinisha Chadala/V1/Ramadan_Greeting.docx-1772427517670-319551282.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12022, 'V1', 'uploaded', '2026-03-02 04:58:37'),
-(527, 714, 'Perumadi_Revised Copy.pptx', '/digilabs/dmap/api/uploads/PERUMADI_VA_THEME_PAGE/PERUMADI VA THEME PAGE/Divya Raval/V1/Perumadi_Revised_Copy.pptx-1772434385106-218278131.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 3200705, 'V1', 'uploaded', '2026-03-02 06:53:05'),
-(528, 259, 'Adjunctive Therapy Post.pptx', '/digilabs/dmap/api/uploads/BE_Free_Campaign/BE Free Campaign/Divya Raval/V1/Adjunctive_Therapy_Post.pptx-1772443529096-399381526.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 429048, 'V1', 'uploaded', '2026-03-02 09:25:29'),
-(529, 721, 'Video Script for Theme Olympus.docx', '/digilabs/dmap/api/uploads/Budget_Meeting_Video___Theme__Rise_of_Olympus___The_Rising_Year/Budget Meeting Video - Theme: Rise of Olympus – The Rising Year/Vinisha Chadala/V1/Video_Script_for_Theme_Olympus.docx-1772446747327-483283275.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 14409, 'V1', 'uploaded', '2026-03-02 10:19:07'),
-(530, 541, 'Pegtears HP VA_26.pdf', '/digilabs/dmap/api/uploads/PegTears_HP_Visual_Aid/PegTears HP Visual Aid/Reshma Bastav/V1/Pegtears_HP_VA_26.pdf-1772535470327-582884079.pdf', 'application/pdf', 2852537, 'V1', 'uploaded', '2026-03-03 10:57:50'),
-(531, 725, 'Good to Great_Script Draft 1.pptx', '/digilabs/dmap/api/uploads/Azithral_Good_to_Great_Video/Azithral Good to Great Video/Divya Raval/V1/Good_to_Great_Script_Draft_1.pptx-1772613838102-869708587.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 50127, 'V1', 'uploaded', '2026-03-04 08:43:58'),
-(532, 749, 'World Adherance Day_Revised Script.docx', '/digilabs/dmap/api/uploads/World_Adherence_Day_Video/World Adherence Day Video/Divya Raval/V1/World_Adherance_Day_Revised_Script.docx-1772613980218-128802488.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13662, 'V1', 'uploaded', '2026-03-04 08:46:20'),
-(533, 713, 'Zivemp SM Standee_CTC.pdf', '/digilabs/dmap/api/uploads/Zivemp_SM_Conference_Standee/Zivemp-SM Conference Standee/Sanket Chandrakanat  Patade/V1/Zivemp_SM_Standee_CTC.pdf-1772614560949-597671045.pdf', 'application/pdf', 8900640, 'V1', 'uploaded', '2026-03-04 08:56:00'),
-(534, 585, 'Grogain Booklet_5.pdf', '/digilabs/dmap/api/uploads/Grogain_Pro_1_year_celebration_feedback_booklet/Grogain Pro 1 year celebration feedback booklet/Sanket Chandrakanat  Patade/V1/Grogain_Booklet_5.pdf-1772617537272-836643992.pdf', 'application/pdf', 518473, 'V1', 'uploaded', '2026-03-04 09:45:37'),
-(535, 481, 'Vetmax Division Cycle 1 VA_3-01.jpg', '/digilabs/dmap/api/uploads/Vetamx_Visual_AId____1/Vetamx Visual AId  - 1/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_01.jpg-1772617695753-460076850.jpg', 'image/jpeg', 147446, 'V1', 'uploaded', '2026-03-04 09:48:15'),
-(536, 481, 'Vetmax Division Cycle 1 VA_3-02.jpg', '/digilabs/dmap/api/uploads/Vetamx_Visual_AId____1/Vetamx Visual AId  - 1/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_02.jpg-1772617695758-403808566.jpg', 'image/jpeg', 162556, 'V1', 'uploaded', '2026-03-04 09:48:15'),
-(537, 481, 'Vetmax Division Cycle 1 VA_3-03.jpg', '/digilabs/dmap/api/uploads/Vetamx_Visual_AId____1/Vetamx Visual AId  - 1/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_03.jpg-1772617695761-521049928.jpg', 'image/jpeg', 271463, 'V1', 'uploaded', '2026-03-04 09:48:15'),
-(538, 481, 'Vetmax Division Cycle 1 VA_3-04.jpg', '/digilabs/dmap/api/uploads/Vetamx_Visual_AId____1/Vetamx Visual AId  - 1/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_04.jpg-1772617695764-946530469.jpg', 'image/jpeg', 247042, 'V1', 'uploaded', '2026-03-04 09:48:15'),
-(539, 481, 'Vetmax Division Cycle 1 VA_3-05.jpg', '/digilabs/dmap/api/uploads/Vetamx_Visual_AId____1/Vetamx Visual AId  - 1/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_05.jpg-1772617695767-801899878.jpg', 'image/jpeg', 142304, 'V1', 'uploaded', '2026-03-04 09:48:15'),
-(540, 481, 'Vetmax Division Cycle 1 VA_3-06.jpg', '/digilabs/dmap/api/uploads/Vetamx_Visual_AId____1/Vetamx Visual AId  - 1/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_06.jpg-1772617695770-56711697.jpg', 'image/jpeg', 185527, 'V1', 'uploaded', '2026-03-04 09:48:15'),
-(541, 481, 'Vetmax Division Cycle 1 VA_3-07.jpg', '/digilabs/dmap/api/uploads/Vetamx_Visual_AId____1/Vetamx Visual AId  - 1/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_07.jpg-1772617695773-757833720.jpg', 'image/jpeg', 235825, 'V1', 'uploaded', '2026-03-04 09:48:15'),
-(542, 481, 'Vetmax Division Cycle 1 VA_3-08.jpg', '/digilabs/dmap/api/uploads/Vetamx_Visual_AId____1/Vetamx Visual AId  - 1/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_08.jpg-1772617695775-905392309.jpg', 'image/jpeg', 255947, 'V1', 'uploaded', '2026-03-04 09:48:15'),
-(543, 481, 'Vetmax Division Cycle 1 VA_3-09.jpg', '/digilabs/dmap/api/uploads/Vetamx_Visual_AId____1/Vetamx Visual AId  - 1/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_09.jpg-1772617695777-420370377.jpg', 'image/jpeg', 187965, 'V1', 'uploaded', '2026-03-04 09:48:15'),
-(544, 481, 'Vetmax Division Cycle 1 VA_3-10.jpg', '/digilabs/dmap/api/uploads/Vetamx_Visual_AId____1/Vetamx Visual AId  - 1/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_10.jpg-1772617695781-144283492.jpg', 'image/jpeg', 210799, 'V1', 'uploaded', '2026-03-04 09:48:15'),
-(545, 487, 'Vetmax Division Cycle 1 VA_3_Artboard 2 copy 3.jpg', '/digilabs/dmap/api/uploads/VA_2/VA-2/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_Artboard_2_copy_3.jpg-1772617786713-200619236.jpg', 'image/jpeg', 222904, 'V1', 'uploaded', '2026-03-04 09:49:46'),
-(546, 487, 'Vetmax Division Cycle 1 VA_3_Artboard 2 copy 4.jpg', '/digilabs/dmap/api/uploads/VA_2/VA-2/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_Artboard_2_copy_4.jpg-1772617786719-674390381.jpg', 'image/jpeg', 268177, 'V1', 'uploaded', '2026-03-04 09:49:46'),
-(547, 487, 'Vetmax Division Cycle 1 VA_3_Artboard 2 copy 6-12.jpg', '/digilabs/dmap/api/uploads/VA_2/VA-2/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_Artboard_2_copy_6_12.jpg-1772617786722-352938267.jpg', 'image/jpeg', 250856, 'V1', 'uploaded', '2026-03-04 09:49:46'),
-(548, 487, 'Vetmax Division Cycle 1 VA_3_Artboard 2 copy 7-14.jpg', '/digilabs/dmap/api/uploads/VA_2/VA-2/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_Artboard_2_copy_7_14.jpg-1772617786725-837559477.jpg', 'image/jpeg', 274902, 'V1', 'uploaded', '2026-03-04 09:49:46'),
-(549, 487, 'Vetmax Division Cycle 1 VA_3_Artboard 2 copy 10.jpg', '/digilabs/dmap/api/uploads/VA_2/VA-2/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_Artboard_2_copy_10.jpg-1772617786727-95144460.jpg', 'image/jpeg', 469389, 'V1', 'uploaded', '2026-03-04 09:49:46'),
-(550, 487, 'Vetmax Division Cycle 1 VA_3-16.jpg', '/digilabs/dmap/api/uploads/VA_2/VA-2/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_16.jpg-1772617786732-575202866.jpg', 'image/jpeg', 212940, 'V1', 'uploaded', '2026-03-04 09:49:46'),
-(551, 487, 'Vetmax Division Cycle 1 VA_3-17.jpg', '/digilabs/dmap/api/uploads/VA_2/VA-2/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_17.jpg-1772617786734-83075478.jpg', 'image/jpeg', 223163, 'V1', 'uploaded', '2026-03-04 09:49:46'),
-(552, 487, 'Vetmax Division Cycle 1 VA_3-18.jpg', '/digilabs/dmap/api/uploads/VA_2/VA-2/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_18.jpg-1772617786737-956943446.jpg', 'image/jpeg', 423873, 'V1', 'uploaded', '2026-03-04 09:49:46'),
-(553, 487, 'Vetmax Division Cycle 1 VA_3-19.jpg', '/digilabs/dmap/api/uploads/VA_2/VA-2/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_19.jpg-1772617786739-305972300.jpg', 'image/jpeg', 152008, 'V1', 'uploaded', '2026-03-04 09:49:46'),
-(554, 594, 'Bladmir VA Option 2.pdf', '/digilabs/dmap/api/uploads/Bladmir_VA_designing/Bladmir VA designing/Gaurav Karnik/V1/Bladmir_VA_Option_2.pdf-1772620070210-785032305.pdf', 'application/pdf', 2778406, 'V1', 'uploaded', '2026-03-04 10:27:50'),
-(555, 678, 'logo_Final.png', '/digilabs/dmap/api/uploads/Oyrza_Skin_Camp_Logo_Designing_/Oyrza Skin Camp Logo Designing /Angana Prakash Patil/V1/logo_Final.png-1772621387610-39937506.png', 'image/png', 1120856, 'V1', 'uploaded', '2026-03-04 10:49:47'),
-(556, 678, 'logo-01.jpg', '/digilabs/dmap/api/uploads/Oyrza_Skin_Camp_Logo_Designing_/Oyrza Skin Camp Logo Designing /Angana Prakash Patil/V1/logo_01.jpg-1772621387615-582800201.jpg', 'image/jpeg', 200859, 'V1', 'uploaded', '2026-03-04 10:49:47'),
-(557, 678, 'logo-03.jpg', '/digilabs/dmap/api/uploads/Oyrza_Skin_Camp_Logo_Designing_/Oyrza Skin Camp Logo Designing /Angana Prakash Patil/V1/logo_03.jpg-1772621387617-479096162.jpg', 'image/jpeg', 225201, 'V1', 'uploaded', '2026-03-04 10:49:47'),
-(558, 678, 'logo-04.jpg', '/digilabs/dmap/api/uploads/Oyrza_Skin_Camp_Logo_Designing_/Oyrza Skin Camp Logo Designing /Angana Prakash Patil/V1/logo_04.jpg-1772621387619-361833179.jpg', 'image/jpeg', 194487, 'V1', 'uploaded', '2026-03-04 10:49:47'),
-(559, 687, 'Tetan LBL_April_C2C.pdf', '/digilabs/dmap/api/uploads/TETAN_LBL_APRIL/TETAN LBL APRIL/Angana Prakash Patil/V1/Tetan_LBL_April_C2C.pdf-1772621753772-224956527.pdf', 'application/pdf', 11553625, 'V1', 'uploaded', '2026-03-04 10:55:53'),
-(560, 664, 'Natonal Infertility awareness week_Poster_2.pdf', '/digilabs/dmap/api/uploads/infertility_awareness_poster/infertility awareness poster/Angana Prakash Patil/V1/Natonal_Infertility_awareness_week_Poster_2.pdf-1772622679164-463771108.pdf', 'application/pdf', 4711347, 'V1', 'uploaded', '2026-03-04 11:11:19'),
-(561, 595, 'Tellzy_LN_VA.pdf', '/digilabs/dmap/api/uploads/Tellzy_LN_Visual_Aid_2027/Tellzy LN Visual Aid 2027/Milind Balkrushna Shelar/V1/Tellzy_LN_VA.pdf-1772623783258-897811659.pdf', 'application/pdf', 1394841, 'V1', 'uploaded', '2026-03-04 11:29:43'),
-(562, 312, 'Zara Nach Ke Dikha.zip', '/digilabs/dmap/api/uploads/Zara_Nachke_Dikha/Zara Nachke Dikha/Sanket Chandrakanat  Patade/V1/Zara_Nach_Ke_Dikha.zip-1772686493060-111755199.zip', 'application/x-zip-compressed', 6044223, 'V1', 'uploaded', '2026-03-05 04:54:53'),
-(563, 765, 'Alembic Pharma.pdf', '/digilabs/dmap/api/uploads/Certificate_for_Acute_Cluster/Certificate for Acute Cluster/Sanket Chandrakanat  Patade/V1/Alembic_Pharma.pdf-1772700116452-34341144.pdf', 'application/pdf', 6477918, 'V1', 'uploaded', '2026-03-05 08:41:56'),
-(564, 765, 'Enteron_1.pdf', '/digilabs/dmap/api/uploads/Certificate_for_Acute_Cluster/Certificate for Acute Cluster/Sanket Chandrakanat  Patade/V1/Enteron_1.pdf-1772700116471-588434796.pdf', 'application/pdf', 3900744, 'V1', 'uploaded', '2026-03-05 08:41:56'),
-(565, 765, 'Megacare.pdf', '/digilabs/dmap/api/uploads/Certificate_for_Acute_Cluster/Certificate for Acute Cluster/Sanket Chandrakanat  Patade/V1/Megacare.pdf-1772700116478-742566362.pdf', 'application/pdf', 3770195, 'V1', 'uploaded', '2026-03-05 08:41:56'),
-(566, 765, 'Osteofit.pdf', '/digilabs/dmap/api/uploads/Certificate_for_Acute_Cluster/Certificate for Acute Cluster/Sanket Chandrakanat  Patade/V1/Osteofit.pdf-1772700116483-924383851.pdf', 'application/pdf', 3243766, 'V1', 'uploaded', '2026-03-05 08:41:56'),
-(567, 767, 'Certificate_Corium_March 2026.pdf', '/digilabs/dmap/api/uploads/Corium_cycle_meet_certificates/Corium cycle meet certificates/Angana Prakash Patil/V1/Certificate_Corium_March_2026.pdf-1772703651898-802603680.pdf', 'application/pdf', 2724991, 'V1', 'uploaded', '2026-03-05 09:40:51'),
-(568, 772, 'Excelarate Anthem Video_V02.mp4', '/digilabs/dmap/api/uploads/Excelarate_2027_Cardigem_Anthem_/Excelarate 2027 Cardigem Anthem /Prathamesh Shengale/V1/Excelarate_Anthem_Video_V02.mp4-1772707868158-43273322.mp4', 'video/mp4', 70082612, 'V1', 'uploaded', '2026-03-05 10:51:08'),
-(569, 694, 'Google Keep Document(1).PDF', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content /Divya Raval/V1/Google_Keep_Document_1_.PDF-1772708572454-932288748.PDF', 'application/pdf', 13839, 'V1', 'uploaded', '2026-03-05 11:02:52'),
-(570, 705, 'Women\'s Day Flyer.jpg', '/digilabs/dmap/api/uploads/International_Womens_Day_Flyer/International Womens Day Flyer/Tanmay Santosh Chorghe/V1/Women_s_Day_Flyer.jpg-1772713089459-994225274.jpg', 'image/jpeg', 476562, 'V1', 'uploaded', '2026-03-05 12:18:09'),
-(571, 780, 'Gujarati Poster.pdf', '/digilabs/dmap/api/uploads/Gujarati_Language_Glaucoma_Awareness_Poster_/Gujarati Language Glaucoma Awareness Poster/Shubham Gurav/V1/Gujarati_Poster.pdf-1772713474721-82967848.pdf', 'application/pdf', 3852285, 'V1', 'uploaded', '2026-03-05 12:24:34'),
-(572, 667, 'Dil ki baat Booklet R1.pdf', '/digilabs/dmap/api/uploads/Dil_Ki_Baat_Booklet/Dil Ki Baat Booklet/Gaurav Karnik/V1/Dil_ki_baat_Booklet_R1.pdf-1772766963107-338581875.pdf', 'application/pdf', 3494280, 'V1', 'uploaded', '2026-03-06 03:16:03'),
-(573, 693, 'Rafle VA Pages.pdf', '/digilabs/dmap/api/uploads/Rafle_Visual_Aid/Rafle Visual Aid/Gaurav Karnik/V1/Rafle_VA_Pages.pdf-1772767014940-954499810.pdf', 'application/pdf', 505746, 'V1', 'uploaded', '2026-03-06 03:16:54'),
-(574, 747, 'Holi_2026_For Petal.mp4', '/digilabs/dmap/api/uploads/Gif_flyer_for_Holi_festival/Gif flyer for Holi festival/Poonam Aditya Waman/V1/Holi_2026_For_Petal.mp4-1772771740569-692173658.mp4', 'video/mp4', 32830816, 'V1', 'uploaded', '2026-03-06 04:35:40'),
-(575, 779, 'Annual top performer medal.pdf', '/digilabs/dmap/api/uploads/Annual_top_performer_medal_/Annual top performer medal /Shubham Gurav/V1/Annual_top_performer_medal.pdf-1772776724649-643602580.pdf', 'application/pdf', 1635875, 'V1', 'uploaded', '2026-03-06 05:58:44'),
-(576, 785, 'Cycle Meet (L&D) Certificate.pdf', '/digilabs/dmap/api/uploads/Cycle_Meet__L_D__Certificate/Cycle Meet (L/Shubham Gurav/V1/Cycle_Meet__L_D__Certificate.pdf-1772782457686-995206560.pdf', 'application/pdf', 2932057, 'V1', 'uploaded', '2026-03-06 07:34:17'),
-(577, 782, 'Woemn\'s-Day_2.jpg', '/digilabs/dmap/api/uploads/Women_s_Day/Women\'s Day/Sanket Chandrakanat  Patade/V1/Woemn_s_Day_2.jpg-1772783091787-100271132.jpg', 'image/jpeg', 479430, 'V1', 'uploaded', '2026-03-06 07:44:51'),
-(578, 782, 'Woemn\'s-Day_4.jpg', '/digilabs/dmap/api/uploads/Women_s_Day/Women\'s Day/Sanket Chandrakanat  Patade/V1/Woemn_s_Day_4.jpg-1772783091796-135705522.jpg', 'image/jpeg', 287365, 'V1', 'uploaded', '2026-03-06 07:44:51'),
-(579, 789, 'Rumigest-Standee.jpg', '/digilabs/dmap/api/uploads/RUMIGEST_STANDIEE/RUMIGEST STANDIEE/Sanket Chandrakanat  Patade/V1/Rumigest_Standee.jpg-1772789952244-393847367.jpg', 'image/jpeg', 4288719, 'V1', 'uploaded', '2026-03-06 09:39:12'),
-(580, 764, 'Geripod M LBL APR 26.pdf', '/digilabs/dmap/api/uploads/Geripod_M_LBL_Apr_26/Geripod-M LBL-Apr\'26/Milind Balkrushna Shelar/V1/Geripod_M_LBL_APR_26.pdf-1772790203064-698666421.pdf', 'application/pdf', 5532182, 'V1', 'uploaded', '2026-03-06 09:43:23'),
-(581, 629, 'Womens day-02.jpg', '/digilabs/dmap/api/uploads/International_Women_s_Day_Greeting/International Women\'s Day Greeting/Angana Prakash Patil/V1/Womens_day_02.jpg-1772790414079-18572931.jpg', 'image/jpeg', 218878, 'V1', 'uploaded', '2026-03-06 09:46:54'),
-(582, 775, 'C4All_VA_PG_03.gif', '/digilabs/dmap/api/uploads/C4ALL_GIF_VIDEO/C4ALL GIF VIDEO/Prathamesh Shengale/V1/C4All_VA_PG_03.gif-1772796669168-163584330.gif', 'image/gif', 1775745, 'V1', 'uploaded', '2026-03-06 11:31:09'),
-(583, 775, 'Rumen_C4ALL_VA_Pg_07.gif', '/digilabs/dmap/api/uploads/C4ALL_GIF_VIDEO/C4ALL GIF VIDEO/Prathamesh Shengale/V1/Rumen_C4ALL_VA_Pg_07.gif-1772796669178-499161127.gif', 'image/gif', 35967061, 'V1', 'uploaded', '2026-03-06 11:31:09'),
-(584, 775, 'Rumen_C4ALL_VA_Pg_9.gif', '/digilabs/dmap/api/uploads/C4ALL_GIF_VIDEO/C4ALL GIF VIDEO/Prathamesh Shengale/V1/Rumen_C4ALL_VA_Pg_9.gif-1772796669206-521086076.gif', 'image/gif', 18825571, 'V1', 'uploaded', '2026-03-06 11:31:09'),
-(585, 728, 'bag tag-2-02.jpg', '/digilabs/dmap/api/uploads/Divisional_Excelaration_theme_collaterals_/Divisional Excelaration theme collaterals /Milind Balkrushna Shelar/V1/bag_tag_2_02.jpg-1772800210603-748507401.jpg', 'image/jpeg', 366421, 'V1', 'uploaded', '2026-03-06 12:30:10'),
-(586, 728, 'gate-2.jpg', '/digilabs/dmap/api/uploads/Divisional_Excelaration_theme_collaterals_/Divisional Excelaration theme collaterals /Milind Balkrushna Shelar/V1/gate_2.jpg-1772800210608-238014334.jpg', 'image/jpeg', 3719064, 'V1', 'uploaded', '2026-03-06 12:30:10'),
-(587, 728, 'Stage Setup 18x12.jpg', '/digilabs/dmap/api/uploads/Divisional_Excelaration_theme_collaterals_/Divisional Excelaration theme collaterals /Milind Balkrushna Shelar/V1/Stage_Setup_18x12.jpg-1772800210613-271698448.jpg', 'image/jpeg', 1108899, 'V1', 'uploaded', '2026-03-06 12:30:10'),
-(588, 728, 'Standee 4x8 feet-2-01.jpg', '/digilabs/dmap/api/uploads/Divisional_Excelaration_theme_collaterals_/Divisional Excelaration theme collaterals /Milind Balkrushna Shelar/V1/Standee_4x8_feet_2_01.jpg-1772800210617-500470754.jpg', 'image/jpeg', 1080954, 'V1', 'uploaded', '2026-03-06 12:30:10'),
-(589, 728, 'Standee 4x8 feet-2-02.jpg', '/digilabs/dmap/api/uploads/Divisional_Excelaration_theme_collaterals_/Divisional Excelaration theme collaterals /Milind Balkrushna Shelar/V1/Standee_4x8_feet_2_02.jpg-1772800210625-639572668.jpg', 'image/jpeg', 1010248, 'V1', 'uploaded', '2026-03-06 12:30:10'),
-(590, 728, 'Standee 4x8 feet-2-03.jpg', '/digilabs/dmap/api/uploads/Divisional_Excelaration_theme_collaterals_/Divisional Excelaration theme collaterals /Milind Balkrushna Shelar/V1/Standee_4x8_feet_2_03.jpg-1772800210637-912323450.jpg', 'image/jpeg', 1098708, 'V1', 'uploaded', '2026-03-06 12:30:10'),
-(591, 728, 'Standee 4x8 feet-2-04.jpg', '/digilabs/dmap/api/uploads/Divisional_Excelaration_theme_collaterals_/Divisional Excelaration theme collaterals /Milind Balkrushna Shelar/V1/Standee_4x8_feet_2_04.jpg-1772800210641-579079135.jpg', 'image/jpeg', 1115833, 'V1', 'uploaded', '2026-03-06 12:30:10'),
-(592, 728, 'Wall of Fame 16x8.jpg', '/digilabs/dmap/api/uploads/Divisional_Excelaration_theme_collaterals_/Divisional Excelaration theme collaterals /Milind Balkrushna Shelar/V1/Wall_of_Fame_16x8.jpg-1772800210644-519347307.jpg', 'image/jpeg', 1592150, 'V1', 'uploaded', '2026-03-06 12:30:10'),
-(593, 754, 'Welcome-standee.jpg', '/digilabs/dmap/api/uploads/Zivemp_SM_CME_Welcome_Standee_/Zivemp-SM CME Welcome Standee /Gaurav Karnik/V1/Welcome_standee.jpg-1773027103229-359956782.jpg', 'image/jpeg', 2646716, 'V1', 'uploaded', '2026-03-09 03:31:43'),
-(594, 641, 'Aqua VA March 26.pdf', '/digilabs/dmap/api/uploads/Aqua_VA_Focus_Brand_Updating/Aqua VA Focus Brand Updating/Reshma Bastav/V1/Aqua_VA_March_26.pdf-1773032201708-546776224.pdf', 'application/pdf', 14257880, 'V1', 'uploaded', '2026-03-09 04:56:41'),
-(595, 704, 'Bladmir LBL March 2026 Low Res.pdf', '/digilabs/dmap/api/uploads/Bladmir_LBL_Apr_26/Bladmir LBL-Apr\'26/Gaurav Karnik/V1/Bladmir_LBL_March_2026_Low_Res.pdf-1773042019540-387328510.pdf', 'application/pdf', 951450, 'V1', 'uploaded', '2026-03-09 07:40:19'),
-(596, 732, 'Glaucoma Awareness Week 1.pdf', '/digilabs/dmap/api/uploads/World_Glaucoma_Week/World Glaucoma Week/Reshma Bastav/V1/Glaucoma_Awareness_Week_1.pdf-1773044836788-665579341.pdf', 'application/pdf', 2073031, 'V1', 'uploaded', '2026-03-09 08:27:16'),
-(597, 581, 'NK_FarmCure_Closal_VA 1.jpg', '/digilabs/dmap/api/uploads/Closal_VA_Page/Closal VA Page/Nilesh Khedekar/V1/NK_FarmCure_Closal_VA_1.jpg-1773052198610-211644223.jpg', 'image/jpeg', 1538592, 'V1', 'uploaded', '2026-03-09 10:29:58'),
-(598, 581, 'NK_FarmCure_Closal_VA 2.jpg', '/digilabs/dmap/api/uploads/Closal_VA_Page/Closal VA Page/Nilesh Khedekar/V1/NK_FarmCure_Closal_VA_2.jpg-1773052198616-316811868.jpg', 'image/jpeg', 776456, 'V1', 'uploaded', '2026-03-09 10:29:58'),
-(599, 819, 'STEP UP Motivational Video_V04.mp4', '/digilabs/dmap/api/uploads/Resync_Plus___Launch_video_teaser_content/Eyecare StepUP Video/Prathamesh Shengale/V1/STEP_UP_Motivational_Video_V04.mp4-1773052323229-258929476.mp4', 'video/mp4', 46998405, 'V1', 'uploaded', '2026-03-09 10:32:03');
-INSERT INTO `task_documents` (`id`, `task_assignment_id`, `document_name`, `document_path`, `document_type`, `document_size`, `version`, `status`, `uploaded_at`) VALUES
-(600, 688, 'Gate Standee_Final.pdf', '/digilabs/dmap/api/uploads/Annual_Meet_Stage_artwork/Annual Meet Stage artwork/Tanmay Santosh Chorghe/V1/Gate_Standee_Final.pdf-1773062836515-29260490.pdf', 'application/pdf', 3451404, 'V1', 'uploaded', '2026-03-09 13:27:16'),
-(601, 596, 'Estrofit Video.mp4', '/digilabs/dmap/api/uploads/Estrofit_Video_For_VA/Estrofit Video For VA/Mahesh Morye/V1/Estrofit_Video.mp4-1773110365040-966483240.mp4', 'video/mp4', 17317165, 'V1', 'uploaded', '2026-03-10 02:39:25'),
-(602, 691, 'Resync Plus Availability Card.pdf', '/digilabs/dmap/api/uploads/Design_Resync_Plus___Brand_reminder_card_as_well_as_Chemist_Availability_Card/Design Resync Plus - Brand reminder card as well as Chemist Availability Card/Reshma Bastav/V1/Resync_Plus_Availability_Card.pdf-1773118221206-795387926.pdf', 'application/pdf', 1810311, 'V1', 'uploaded', '2026-03-10 04:50:21'),
-(603, 691, 'Resync Plus Reminder Card.pdf', '/digilabs/dmap/api/uploads/Design_Resync_Plus___Brand_reminder_card_as_well_as_Chemist_Availability_Card/Design Resync Plus - Brand reminder card as well as Chemist Availability Card/Reshma Bastav/V1/Resync_Plus_Reminder_Card.pdf-1773118221222-213085408.pdf', 'application/pdf', 2041725, 'V1', 'uploaded', '2026-03-10 04:50:21'),
-(604, 637, 'Minertox A VA 26.pdf', '/digilabs/dmap/api/uploads/Kodiceft___Minertox_VA_update_/Kodiceft /Reshma Bastav/V1/Minertox_A_VA_26.pdf-1773118776284-605066971.pdf', 'application/pdf', 5280110, 'V1', 'uploaded', '2026-03-10 04:59:36'),
-(605, 637, 'MinerTOX Z_VA 26.pdf', '/digilabs/dmap/api/uploads/Kodiceft___Minertox_VA_update_/Kodiceft /Reshma Bastav/V1/MinerTOX_Z_VA_26.pdf-1773118776295-605463526.pdf', 'application/pdf', 7471121, 'V1', 'uploaded', '2026-03-10 04:59:36'),
-(606, 637, 'NZYMATRIX VA _ Mar 26.pdf', '/digilabs/dmap/api/uploads/Kodiceft___Minertox_VA_update_/Kodiceft /Reshma Bastav/V1/NZYMATRIX_VA___Mar_26.pdf-1773118776304-219674137.pdf', 'application/pdf', 11321168, 'V1', 'uploaded', '2026-03-10 04:59:36'),
-(607, 726, 'Geripod VA.pdf', '/digilabs/dmap/api/uploads/VA_/VA/Tanmay Santosh Chorghe/V1/Geripod_VA.pdf-1773121720501-692143331.pdf', 'application/pdf', 1017238, 'V1', 'uploaded', '2026-03-10 05:48:40'),
-(608, 726, 'Geripod D VA.pdf', '/digilabs/dmap/api/uploads/VA_/VA/Tanmay Santosh Chorghe/V1/Geripod_D_VA.pdf-1773121720508-338438925.pdf', 'application/pdf', 1484083, 'V1', 'uploaded', '2026-03-10 05:48:40'),
-(609, 762, 'Geripod D LBL APR 26.pdf', '/digilabs/dmap/api/uploads/Geripod_D_LBL/Geripod-D LBL/Milind Balkrushna Shelar/V1/Geripod_D_LBL_APR_26.pdf-1773122845535-479333311.pdf', 'application/pdf', 670992, 'V1', 'uploaded', '2026-03-10 06:07:25'),
-(610, 810, 'Rosave-F VA March 2026.pdf', '/digilabs/dmap/api/uploads/Rosave_F_VA/Rosave F VA/Milind Balkrushna Shelar/V1/Rosave_F_VA_March_2026.pdf-1773122883523-264956346.pdf', 'application/pdf', 1268989, 'V1', 'uploaded', '2026-03-10 06:08:03'),
-(611, 438, 'Vetmax_VA_Q1_2026.pdf', '/digilabs/dmap/api/uploads/visual_AID_sheet_for_ASCAL_GEL_ADVANCE/visual AID sheet for ASCAL GEL ADVANCE/Nilesh Khedekar/V1/Vetmax_VA_Q1_2026.pdf-1773127683591-193266074.pdf', 'application/pdf', 7324932, 'V1', 'uploaded', '2026-03-10 07:28:03'),
-(612, 461, 'Vetmax_VA_Q1_2026.pdf', '/digilabs/dmap/api/uploads/Visual_aid_design/Visual aid design/Nilesh Khedekar/V1/Vetmax_VA_Q1_2026.pdf-1773127825201-571559183.pdf', 'application/pdf', 7324932, 'V1', 'uploaded', '2026-03-10 07:30:25'),
-(613, 342, 'Mockup copy.jpg', '/digilabs/dmap/api/uploads/Sample_Dispenser_Artwork/Sample Dispenser Artwork/Tanmay Santosh Chorghe/V1/Mockup_copy.jpg-1773137795315-317346595.jpg', 'image/jpeg', 1040013, 'V1', 'uploaded', '2026-03-10 10:16:35'),
-(614, 342, 'Mockup.jpg', '/digilabs/dmap/api/uploads/Sample_Dispenser_Artwork/Sample Dispenser Artwork/Tanmay Santosh Chorghe/V1/Mockup.jpg-1773137795320-561567293.jpg', 'image/jpeg', 2644816, 'V1', 'uploaded', '2026-03-10 10:16:35'),
-(615, 342, 'Travisight___Albrim_Sample_Dispensor-03.jpg', '/digilabs/dmap/api/uploads/Sample_Dispenser_Artwork/Sample Dispenser Artwork/Tanmay Santosh Chorghe/V1/Travisight___Albrim_Sample_Dispensor_03.jpg-1773137795329-128139853.jpg', 'image/jpeg', 253713, 'V1', 'uploaded', '2026-03-10 10:16:35'),
-(616, 824, 'OSTEOFIT_Weighing_Scale_Packaging.pdf', '/digilabs/dmap/api/uploads/WEIGHING_SCALE_ARTWORK_/WEIGHING SCALE ARTWORK /Shubham Gurav/V1/OSTEOFIT_Weighing_Scale_Packaging.pdf-1773140661500-687724963.pdf', 'application/pdf', 8369783, 'V1', 'uploaded', '2026-03-10 11:04:21'),
-(617, 787, 'Citanil M VA_Feb 26.jpg', '/digilabs/dmap/api/uploads/Cetanil_TM_M_VA_page/Cetanil TM/M VA page/Reshma Bastav/V1/Citanil_M_VA_Feb_26.jpg-1773143166772-904959239.jpg', 'image/jpeg', 2632723, 'V1', 'uploaded', '2026-03-10 11:46:06'),
-(618, 787, 'Citanil TM VA_Feb 26.jpg', '/digilabs/dmap/api/uploads/Cetanil_TM_M_VA_page/Cetanil TM/M VA page/Reshma Bastav/V1/Citanil_TM_VA_Feb_26.jpg-1773143166778-746021828.jpg', 'image/jpeg', 313903, 'V1', 'uploaded', '2026-03-10 11:46:06'),
-(619, 722, 'Geripod M VA.pdf', '/digilabs/dmap/api/uploads/Geripod_M_Visual_Aid/Geripod-M Visual Aid/Tanmay Santosh Chorghe/V1/Geripod_M_VA.pdf-1773145151058-389008005.pdf', 'application/pdf', 707371, 'V1', 'uploaded', '2026-03-10 12:19:11'),
-(620, 806, 'CSM-Certificate_V2.pdf', '/digilabs/dmap/api/uploads/CSM_Certificate_Layout/CSM-Certificate Layout/Shubham Gurav/V1/CSM_Certificate_V2.pdf-1773147190809-976433835.pdf', 'application/pdf', 1579989, 'V1', 'uploaded', '2026-03-10 12:53:10'),
-(621, 665, 'logo_CQ.pdf', '/digilabs/dmap/api/uploads/Alvite_M_Gold_Brand_Name_Design/Alvite M Gold Brand Name Design/Gaurav Karnik/V1/logo_CQ.pdf-1773204673995-441584572.pdf', 'application/pdf', 1000800, 'V1', 'uploaded', '2026-03-11 04:51:13'),
-(622, 825, 'Certificate For Annual Meet_Althrocin.pdf', '/digilabs/dmap/api/uploads/Certificates/Certificates/Reshma Bastav/V1/Certificate_For_Annual_Meet_Althrocin.pdf-1773208378746-664037368.pdf', 'application/pdf', 652096, 'V1', 'uploaded', '2026-03-11 05:52:58'),
-(623, 825, 'Certificate For Annual Meet_Azithral.pdf', '/digilabs/dmap/api/uploads/Certificates/Certificates/Reshma Bastav/V1/Certificate_For_Annual_Meet_Azithral.pdf-1773208378751-678472460.pdf', 'application/pdf', 701472, 'V1', 'uploaded', '2026-03-11 05:52:58'),
-(624, 825, 'Certificate For Annual Meet_Brozeet LS.pdf', '/digilabs/dmap/api/uploads/Certificates/Certificates/Reshma Bastav/V1/Certificate_For_Annual_Meet_Brozeet_LS.pdf-1773208378754-298379455.pdf', 'application/pdf', 606115, 'V1', 'uploaded', '2026-03-11 05:52:58'),
-(625, 825, 'Certificate For Annual Meet_HO.pdf', '/digilabs/dmap/api/uploads/Certificates/Certificates/Reshma Bastav/V1/Certificate_For_Annual_Meet_HO.pdf-1773208378757-532491972.pdf', 'application/pdf', 1684032, 'V1', 'uploaded', '2026-03-11 05:52:58'),
-(626, 825, 'Certificate For Annual Meet_Laveta M.pdf', '/digilabs/dmap/api/uploads/Certificates/Certificates/Reshma Bastav/V1/Certificate_For_Annual_Meet_Laveta_M.pdf-1773208378760-602800413.pdf', 'application/pdf', 607191, 'V1', 'uploaded', '2026-03-11 05:52:58'),
-(627, 825, 'Certificate For Annual Meet_Medal.pdf', '/digilabs/dmap/api/uploads/Certificates/Certificates/Reshma Bastav/V1/Certificate_For_Annual_Meet_Medal.pdf-1773208378763-187249570.pdf', 'application/pdf', 11637140, 'V1', 'uploaded', '2026-03-11 05:52:58'),
-(628, 825, 'Certificate For Annual Meet_Process.pdf', '/digilabs/dmap/api/uploads/Certificates/Certificates/Reshma Bastav/V1/Certificate_For_Annual_Meet_Process.pdf-1773208378775-321716297.pdf', 'application/pdf', 1355277, 'V1', 'uploaded', '2026-03-11 05:52:58'),
-(629, 825, 'Certificate For Annual Meet_Rekool.pdf', '/digilabs/dmap/api/uploads/Certificates/Certificates/Reshma Bastav/V1/Certificate_For_Annual_Meet_Rekool.pdf-1773208378778-119136738.pdf', 'application/pdf', 702100, 'V1', 'uploaded', '2026-03-11 05:52:58'),
-(630, 825, 'Certificate For Annual Meet_Ulgel.pdf', '/digilabs/dmap/api/uploads/Certificates/Certificates/Reshma Bastav/V1/Certificate_For_Annual_Meet_Ulgel.pdf-1773208378782-625586381.pdf', 'application/pdf', 501986, 'V1', 'uploaded', '2026-03-11 05:52:58'),
-(631, 825, 'Certificate For Annual Meet_Wikoryl.pdf', '/digilabs/dmap/api/uploads/Certificates/Certificates/Reshma Bastav/V1/Certificate_For_Annual_Meet_Wikoryl.pdf-1773208378785-724985365.pdf', 'application/pdf', 408451, 'V1', 'uploaded', '2026-03-11 05:52:58'),
-(632, 827, 'Medal Sticker_ctc.pdf', '/digilabs/dmap/api/uploads/medal_sticker/medal sticker/Reshma Bastav/V1/Medal_Sticker_ctc.pdf-1773208454780-54805780.pdf', 'application/pdf', 2126879, 'V1', 'uploaded', '2026-03-11 05:54:14'),
-(633, 604, 'Glaucoma Awareness Week 1.jpg', '/digilabs/dmap/api/uploads/Gujarati__Language_Glaucoma_Awareness_Week_/Gujarati  Language Glaucoma Awareness Week /Reshma Bastav/V1/Glaucoma_Awareness_Week_1.jpg-1773208510041-568001484.jpg', 'image/jpeg', 4157288, 'V1', 'uploaded', '2026-03-11 05:55:10'),
-(634, 751, 'Azithral Good to Great Video.mp4', '/digilabs/dmap/api/uploads/Azithral_Good_to_Great_Video_script_/Azithral Good to Great Video script/Prathamesh Shengale/V1/Azithral_Good_to_Great_Video.mp4-1773209158308-713919637.mp4', 'video/mp4', 63643953, 'V1', 'uploaded', '2026-03-11 06:05:58'),
-(635, 788, 'Messages-to-MRs.zip', '/digilabs/dmap/api/uploads/Messages_for_MRs/Messages for MRs/Sanket Chandrakanat  Patade/V1/Messages_to_MRs.zip-1773212672336-479420755.zip', 'application/x-zip-compressed', 3316340, 'V1', 'uploaded', '2026-03-11 07:04:32'),
-(636, 790, 'Availability Card_2.pdf', '/digilabs/dmap/api/uploads/Availability_and_Doctor_card/Availability and Doctor card/Sanket Chandrakanat  Patade/V1/Availability_Card_2.pdf-1773212721480-330141612.pdf', 'application/pdf', 842756, 'V1', 'uploaded', '2026-03-11 07:05:21'),
-(637, 790, 'Thank You Card_2.pdf', '/digilabs/dmap/api/uploads/Availability_and_Doctor_card/Availability and Doctor card/Sanket Chandrakanat  Patade/V1/Thank_You_Card_2.pdf-1773212721484-501162500.pdf', 'application/pdf', 650371, 'V1', 'uploaded', '2026-03-11 07:05:21'),
-(638, 799, 'iPad Pro 12.9_ - 1.png', '/digilabs/dmap/api/uploads/Crina_NCR_mastery_portal/Crina-NCR mastery portal/Balgovind Shanbhag/V1/iPad_Pro_12.9____1.png-1773217202158-424277595.png', 'image/png', 601247, 'V1', 'uploaded', '2026-03-11 08:20:02'),
-(639, 799, 'iPad Pro 12.9_ - 2.png', '/digilabs/dmap/api/uploads/Crina_NCR_mastery_portal/Crina-NCR mastery portal/Balgovind Shanbhag/V1/iPad_Pro_12.9____2.png-1773217202176-852605720.png', 'image/png', 563960, 'V1', 'uploaded', '2026-03-11 08:20:02'),
-(640, 799, 'Recording 2026-03-11 134720.mp4', '/digilabs/dmap/api/uploads/Crina_NCR_mastery_portal/Crina-NCR mastery portal/Balgovind Shanbhag/V1/Recording_2026_03_11_134720.mp4-1773217202186-899333872.mp4', 'video/mp4', 4965360, 'V1', 'uploaded', '2026-03-11 08:20:02'),
-(641, 834, 'Tufehart Kit.jpg.jpeg', '/digilabs/dmap/api/uploads/Image_to_CDR__JPG__PNG/Image to CDR, JPG, PNG/Vikram Rai/V1/Tufehart_Kit.jpg.jpeg-1773217366508-595154013.jpeg', 'image/jpeg', 15737849, 'V1', 'uploaded', '2026-03-11 08:22:46'),
-(642, 734, 'Laveta M OS VA Nepal Low Res.pdf', '/digilabs/dmap/api/uploads/Laveta_M_va/Laveta M va/Gaurav Karnik/V1/Laveta_M_OS_VA_Nepal_Low_Res.pdf-1773225428449-688215568.pdf', 'application/pdf', 6565632, 'V1', 'uploaded', '2026-03-11 10:37:08'),
-(643, 822, 'Adjunctive Therapy Post.jpg', '/digilabs/dmap/api/uploads/Adjunctive_Therapy__Concept_Page/Adjunctive Therapy  Concept Page/Reshma Bastav/V1/Adjunctive_Therapy_Post.jpg-1773231608048-49660963.jpg', 'image/jpeg', 643954, 'V1', 'uploaded', '2026-03-11 12:20:08'),
-(644, 823, 'Resync Plus Gift flyer.jpg', '/digilabs/dmap/api/uploads/Resync_Plus_Gift_flyer/Resync Plus Gift flyer/Reshma Bastav/V1/Resync_Plus_Gift_flyer.jpg-1773231625216-844814561.jpg', 'image/jpeg', 2525918, 'V1', 'uploaded', '2026-03-11 12:20:25'),
-(645, 626, 'Gudi-padwa.jpg', '/digilabs/dmap/api/uploads/Gudi_Padwa_Flyer/Gudi Padwa Flyer/Tanmay Santosh Chorghe/V1/Gudi_padwa.jpg-1773235640646-863687676.jpg', 'image/jpeg', 355853, 'V1', 'uploaded', '2026-03-11 13:27:20'),
-(646, 625, 'Ugadi-Flyer.jpg', '/digilabs/dmap/api/uploads/Ugadi_Flyer/Ugadi Flyer/Tanmay Santosh Chorghe/V1/Ugadi_Flyer.jpg-1773235773039-319985508.jpg', 'image/jpeg', 411980, 'V1', 'uploaded', '2026-03-11 13:29:33'),
-(647, 699, 'Resync Plus_First 3 teasers.txt', '/digilabs/dmap/api/uploads/Resync_Plus___Launch_video_teaser_content/Resync Plus - Launch video teaser content/Divya Raval/V1/Resync_Plus_First_3_teasers.txt-1773292856618-544939975.txt', 'text/plain', 333, 'V1', 'uploaded', '2026-03-12 05:20:56'),
-(648, 805, '100 Cr_Standee.jpg', '/digilabs/dmap/api/uploads/Annual_meeting_standee_/Annual meeting standee /Nilesh Khedekar/V1/100_Cr_Standee.jpg-1773296056884-679040864.jpg', 'image/jpeg', 626981, 'V1', 'uploaded', '2026-03-12 06:14:16'),
-(649, 805, 'Logos_Standee.jpg', '/digilabs/dmap/api/uploads/Annual_meeting_standee_/Annual meeting standee /Nilesh Khedekar/V1/Logos_Standee.jpg-1773296056889-85114247.jpg', 'image/jpeg', 454764, 'V1', 'uploaded', '2026-03-12 06:14:16'),
-(650, 805, 'THINK BEYOND LIMITS_Standee.jpg', '/digilabs/dmap/api/uploads/Annual_meeting_standee_/Annual meeting standee /Nilesh Khedekar/V1/THINK_BEYOND_LIMITS_Standee.jpg-1773296056892-676519761.jpg', 'image/jpeg', 532432, 'V1', 'uploaded', '2026-03-12 06:14:16'),
-(651, 777, 'AP26 CYCLE MEETING POST CARD.pdf', '/digilabs/dmap/api/uploads/AP26_CYCLE_MEETING_POST_CARD/AP26 CYCLE MEETING POST CARD/Angana Prakash Patil/V1/AP26_CYCLE_MEETING_POST_CARD.pdf-1773297168780-898044831.pdf', 'application/pdf', 12356267, 'V1', 'uploaded', '2026-03-12 06:32:48'),
-(652, 537, 'Sitalembic-MD_VA_3.pdf', '/digilabs/dmap/api/uploads/VA___SITALEMBIC_MD/VA - SITALEMBIC MD/Angana Prakash Patil/V1/Sitalembic_MD_VA_3.pdf-1773304095862-27205603.pdf', 'application/pdf', 11933620, 'V1', 'uploaded', '2026-03-12 08:28:15'),
-(653, 750, 'Wikoryl 325 DT_VA.pdf', '/digilabs/dmap/api/uploads/Wikoryl_325DT_VA_page/Wikoryl 325DT VA page/Angana Prakash Patil/V1/Wikoryl_325_DT_VA.pdf-1773305060314-231363836.pdf', 'application/pdf', 1116187, 'V1', 'uploaded', '2026-03-12 08:44:20'),
-(654, 812, 'Dhurandhar_Resync_Low v.mp4', '/digilabs/dmap/api/uploads/RESYNC___VIDEO_SCRIPT_FOR_CYCLE_MEET___DHURANDHAR/RESYNC - VIDEO SCRIPT FOR CYCLE MEET - DHURANDHAR/Poonam Aditya Waman/V1/Dhurandhar_Resync_Low_v.mp4-1773307266644-907480380.mp4', 'video/mp4', 47868744, 'V1', 'uploaded', '2026-03-12 09:21:06'),
-(655, 849, 'Khurak Nutrition Stages Video.mp4', '/digilabs/dmap/api/uploads/Khurak_theme_page_video_/Khurak theme page video /Prathamesh Shengale/V1/Khurak_Nutrition_Stages_Video.mp4-1773307525198-480279723.mp4', 'video/mp4', 5416994, 'V1', 'uploaded', '2026-03-12 09:25:25'),
-(656, 808, 'Standee 3x6-02.jpg', '/digilabs/dmap/api/uploads/Standee_for_CME_RTM_GDM/Standee for CME/RTM/GDM/Milind Balkrushna Shelar/V1/Standee_3x6_02.jpg-1773314843403-885108641.jpg', 'image/jpeg', 1471716, 'V1', 'uploaded', '2026-03-12 11:27:23'),
-(657, 844, 'DIANA JAR_1.pdf', '/digilabs/dmap/api/uploads/YERA_ARTWORK___OSTEOFIT_/YERA ARTWORK - OSTEOFIT/Shubham Gurav/V1/DIANA_JAR_1.pdf-1773318551028-478380940.pdf', 'application/pdf', 2942958, 'V1', 'uploaded', '2026-03-12 12:29:11'),
-(658, 768, 'Rafle LBL Low Res.pdf', '/digilabs/dmap/api/uploads/Rafle_IBS_Has_A_MOOD_Too_LBL_/Rafle_IBS Has A MOOD Too_LBL /Gaurav Karnik/V1/Rafle_LBL_Low_Res.pdf-1773320694337-929734060.pdf', 'application/pdf', 993695, 'V1', 'uploaded', '2026-03-12 13:04:54'),
-(659, 524, 'World-Kidney-Day-Dangler_B.jpg', '/digilabs/dmap/api/uploads/World_Kidney_Day_collaterals/World Kidney Day collaterals/Sanket Chandrakanat  Patade/V1/World_Kidney_Day_Dangler_B.jpg-1773375322861-733111112.jpg', 'image/jpeg', 297233, 'V1', 'uploaded', '2026-03-13 04:15:22'),
-(660, 524, 'World-Kidney-Day-Dangler_F.jpg', '/digilabs/dmap/api/uploads/World_Kidney_Day_collaterals/World Kidney Day collaterals/Sanket Chandrakanat  Patade/V1/World_Kidney_Day_Dangler_F.jpg-1773375322897-962506536.jpg', 'image/jpeg', 283001, 'V1', 'uploaded', '2026-03-13 04:15:22'),
-(661, 524, 'World-Kidney-Day-Poster.jpg', '/digilabs/dmap/api/uploads/World_Kidney_Day_collaterals/World Kidney Day collaterals/Sanket Chandrakanat  Patade/V1/World_Kidney_Day_Poster.jpg-1773375322907-538987728.jpg', 'image/jpeg', 648567, 'V1', 'uploaded', '2026-03-13 04:15:22'),
-(662, 867, 'World-Kidney-Day-2026_2.jpg', '/digilabs/dmap/api/uploads/World_Kidney_Day_SM_Post/World Kidney Day SM Post/Sanket Chandrakanat  Patade/V1/World_Kidney_Day_2026_2.jpg-1773376479981-282313032.jpg', 'image/jpeg', 305015, 'V1', 'uploaded', '2026-03-13 04:34:39'),
-(663, 867, 'World-Kidney-Day-2026_3.jpg', '/digilabs/dmap/api/uploads/World_Kidney_Day_SM_Post/World Kidney Day SM Post/Sanket Chandrakanat  Patade/V1/World_Kidney_Day_2026_3.jpg-1773376479988-245141752.jpg', 'image/jpeg', 315225, 'V1', 'uploaded', '2026-03-13 04:34:39'),
-(664, 869, 'FOCUS-Leaderboard---February-2026_TV.jpg', '/digilabs/dmap/api/uploads/FOCUS_Leaderboards/FOCUS Leaderboards/Sanket Chandrakanat  Patade/V1/FOCUS_Leaderboard___February_2026_TV.jpg-1773377751885-971147369.jpg', 'image/jpeg', 1614224, 'V1', 'uploaded', '2026-03-13 04:55:51'),
-(665, 869, 'FOCUS-Leaderboard---February-2026_Mailer.jpg', '/digilabs/dmap/api/uploads/FOCUS_Leaderboards/FOCUS Leaderboards/Sanket Chandrakanat  Patade/V1/FOCUS_Leaderboard___February_2026_Mailer.jpg-1773377751890-764085751.jpg', 'image/jpeg', 1312514, 'V1', 'uploaded', '2026-03-13 04:55:51'),
-(666, 871, '1-Day-To-Go.jpg', '/digilabs/dmap/api/uploads/Women_s_Day_Posts/Women\'s Day Posts/Sanket Chandrakanat  Patade/V1/1_Day_To_Go.jpg-1773381470485-107452369.jpg', 'image/jpeg', 411081, 'V1', 'uploaded', '2026-03-13 05:57:50'),
-(667, 871, 'Celebration-+-Session-Reminder.jpg', '/digilabs/dmap/api/uploads/Women_s_Day_Posts/Women\'s Day Posts/Sanket Chandrakanat  Patade/V1/Celebration___Session_Reminder.jpg-1773381470494-362366056.jpg', 'image/jpeg', 441775, 'V1', 'uploaded', '2026-03-13 05:57:50'),
-(668, 871, 'Celebration-Insights.jpg', '/digilabs/dmap/api/uploads/Women_s_Day_Posts/Women\'s Day Posts/Sanket Chandrakanat  Patade/V1/Celebration_Insights.jpg-1773381470496-38257516.jpg', 'image/jpeg', 704535, 'V1', 'uploaded', '2026-03-13 05:57:50'),
-(669, 871, 'FOR-YOU.jpg', '/digilabs/dmap/api/uploads/Women_s_Day_Posts/Women\'s Day Posts/Sanket Chandrakanat  Patade/V1/FOR_YOU.jpg-1773381470499-327038172.jpg', 'image/jpeg', 791436, 'V1', 'uploaded', '2026-03-13 05:57:50'),
-(670, 871, 'Sessions-Invite.jpg', '/digilabs/dmap/api/uploads/Women_s_Day_Posts/Women\'s Day Posts/Sanket Chandrakanat  Patade/V1/Sessions_Invite.jpg-1773381470502-96726568.jpg', 'image/jpeg', 563080, 'V1', 'uploaded', '2026-03-13 05:57:50'),
-(671, 871, 'Sessions-Invite_2.jpg', '/digilabs/dmap/api/uploads/Women_s_Day_Posts/Women\'s Day Posts/Sanket Chandrakanat  Patade/V1/Sessions_Invite_2.jpg-1773381470504-847321460.jpg', 'image/jpeg', 286550, 'V1', 'uploaded', '2026-03-13 05:57:50'),
-(672, 871, 'Sessions-Invite_2_1.jpg', '/digilabs/dmap/api/uploads/Women_s_Day_Posts/Women\'s Day Posts/Sanket Chandrakanat  Patade/V1/Sessions_Invite_2_1.jpg-1773381470506-486437170.jpg', 'image/jpeg', 275650, 'V1', 'uploaded', '2026-03-13 05:57:50'),
-(673, 871, 'Woemn\'s-Day_2.jpg', '/digilabs/dmap/api/uploads/Women_s_Day_Posts/Women\'s Day Posts/Sanket Chandrakanat  Patade/V1/Woemn_s_Day_2.jpg-1773381470508-261255729.jpg', 'image/jpeg', 479430, 'V1', 'uploaded', '2026-03-13 05:57:50'),
-(674, 871, 'Woemn\'s-Day_4.jpg', '/digilabs/dmap/api/uploads/Women_s_Day_Posts/Women\'s Day Posts/Sanket Chandrakanat  Patade/V1/Woemn_s_Day_4.jpg-1773381470513-869805083.jpg', 'image/jpeg', 287365, 'V1', 'uploaded', '2026-03-13 05:57:50'),
-(675, 841, 'Certificate of Appriciation.pdf', '/digilabs/dmap/api/uploads/Need_certificate_of_participation_and_appreciation_/Need certificate of participation and appreciation /Nilesh Khedekar/V1/Certificate_of_Appriciation.pdf-1773381511459-306195827.pdf', 'application/pdf', 1619830, 'V1', 'uploaded', '2026-03-13 05:58:31'),
-(676, 841, 'Certificate of Participation.pdf', '/digilabs/dmap/api/uploads/Need_certificate_of_participation_and_appreciation_/Need certificate of participation and appreciation /Nilesh Khedekar/V1/Certificate_of_Participation.pdf-1773381511464-416806505.pdf', 'application/pdf', 1629568, 'V1', 'uploaded', '2026-03-13 05:58:31'),
-(677, 874, 'Docmycin Article.svg', '/digilabs/dmap/api/uploads/Need_QR_code_for_the_trial_report_PDF/QR code/Kiran Thekootu/V1/Docmycin_Article.svg-1773385087832-661633497.svg', 'image/svg+xml', 36912, 'V1', 'uploaded', '2026-03-13 06:58:07'),
-(678, 821, 'Ulgeraft Motivational Video.mp4', '/digilabs/dmap/api/uploads/Ulgeraft_Video/Ulgeraft Video-AV script Fire/Prathamesh Shengale/V1/Ulgeraft_Motivational_Video.mp4-1773395921630-292456750.mp4', 'video/mp4', 24754007, 'V1', 'uploaded', '2026-03-13 09:58:41'),
-(679, 882, 'Gastron Motivational Video_V02.mp4', '/digilabs/dmap/api/uploads/Gastron_Motivational_Video/Gastron Motivational Video/Prathamesh Shengale/V1/Gastron_Motivational_Video_V02.mp4-1773399319170-600531027.mp4', 'video/mp4', 47714476, 'V1', 'uploaded', '2026-03-13 10:55:19'),
-(680, 838, 'Evolve Algrow Certificate_Mar 26.pdf', '/digilabs/dmap/api/uploads/Algrow_Vetmax_and_Poultry_Evolve_Certificate/Algrow Vetmax and Poultry Evolve Certificate/Reshma Bastav/V1/Evolve_Algrow_Certificate_Mar_26.pdf-1773400942248-410257175.pdf', 'application/pdf', 38105668, 'V1', 'uploaded', '2026-03-13 11:22:22'),
-(681, 838, 'Evolve Aqua Certificate_Mar 26.pdf', '/digilabs/dmap/api/uploads/Algrow_Vetmax_and_Poultry_Evolve_Certificate/Algrow Vetmax and Poultry Evolve Certificate/Reshma Bastav/V1/Evolve_Aqua_Certificate_Mar_26.pdf-1773400942279-67591251.pdf', 'application/pdf', 5707477, 'V1', 'uploaded', '2026-03-13 11:22:22'),
-(682, 838, 'Evolve Fertimax Certificate_Mar 26.pdf', '/digilabs/dmap/api/uploads/Algrow_Vetmax_and_Poultry_Evolve_Certificate/Algrow Vetmax and Poultry Evolve Certificate/Reshma Bastav/V1/Evolve_Fertimax_Certificate_Mar_26.pdf-1773400942287-164841929.pdf', 'application/pdf', 14183560, 'V1', 'uploaded', '2026-03-13 11:22:22'),
-(683, 838, 'Evolve Vetmax Certificate_Mar 26.pdf', '/digilabs/dmap/api/uploads/Algrow_Vetmax_and_Poultry_Evolve_Certificate/Algrow Vetmax and Poultry Evolve Certificate/Reshma Bastav/V1/Evolve_Vetmax_Certificate_Mar_26.pdf-1773400942433-968930812.pdf', 'application/pdf', 32684810, 'V1', 'uploaded', '2026-03-13 11:22:23'),
-(684, 792, 'Estroplus_VA_3.pdf', '/digilabs/dmap/api/uploads/Estroplus_VA/Estroplus VA/Angana Prakash Patil/V1/Estroplus_VA_3.pdf-1773404888170-651732745.pdf', 'application/pdf', 538961, 'V1', 'uploaded', '2026-03-13 12:28:08'),
-(685, 366, 'Gestofit_VA.pdf', '/digilabs/dmap/api/uploads/Gestofit_VA_/Gestofit VA/Angana Prakash Patil/V1/Gestofit_VA.pdf-1773404920244-95872560.pdf', 'application/pdf', 3776999, 'V1', 'uploaded', '2026-03-13 12:28:40'),
-(686, 753, 'Dangler Back-02.png', '/digilabs/dmap/api/uploads/World_Hypertension_Day_2026_Artwork/World Hypertension Day 2026 Artwork/Tanmay Santosh Chorghe/V1/Dangler_Back_02.png-1773406738638-423101038.png', 'image/png', 166955, 'V1', 'uploaded', '2026-03-13 12:58:58'),
-(687, 753, 'Dangler Front-01.png', '/digilabs/dmap/api/uploads/World_Hypertension_Day_2026_Artwork/World Hypertension Day 2026 Artwork/Tanmay Santosh Chorghe/V1/Dangler_Front_01.png-1773406738642-581154446.png', 'image/png', 162725, 'V1', 'uploaded', '2026-03-13 12:58:58'),
-(688, 753, 'Poster-design.jpg', '/digilabs/dmap/api/uploads/World_Hypertension_Day_2026_Artwork/World Hypertension Day 2026 Artwork/Tanmay Santosh Chorghe/V1/Poster_design.jpg-1773406738645-654756829.jpg', 'image/jpeg', 116227, 'V1', 'uploaded', '2026-03-13 12:58:58'),
-(689, 870, 'Ouron Logo Mosaic.pdf', '/digilabs/dmap/api/uploads/Ouron_Logo_Mosaic/Ouron Logo Mosaic/Shubham Gurav/V1/Ouron_Logo_Mosaic.pdf-1773408335900-15963372.pdf', 'application/pdf', 31518299, 'V1', 'uploaded', '2026-03-13 13:25:35'),
-(690, 868, 'Grogain PRO prospective study 2026.pdf', '/digilabs/dmap/api/uploads/Prospective__Study_CRF__Booklet_Fy_27/Prospective  Study CRF  Booklet Fy 27/Milind Balkrushna Shelar/V1/Grogain_PRO_prospective_study_2026.pdf-1773410971469-221810319.pdf', 'application/pdf', 823757, 'V1', 'uploaded', '2026-03-13 14:09:31'),
-(691, 153, 'Laveta M AR Video_01.mp4', '/digilabs/dmap/api/uploads/Mono_vs_bilayer/Megacare_Mono vs bilayer 2026/Poonam Aditya Waman/V1/Laveta_M_AR_Video_01.mp4-1773635045791-527437321.mp4', 'video/mp4', 20172352, 'V1', 'uploaded', '2026-03-16 04:24:05'),
-(692, 759, 'Vildambic_M_VA_Pg_01.gif', '/digilabs/dmap/api/uploads/Pharma_VA_pages_animation/Pharma VA pages animation/Prathamesh Shengale/V1/Vildambic_M_VA_Pg_01.gif-1773639555587-981842960.gif', 'image/gif', 32036639, 'V1', 'uploaded', '2026-03-16 05:39:15'),
-(693, 759, 'Vildambic_M_VA_Pg_02.gif', '/digilabs/dmap/api/uploads/Pharma_VA_pages_animation/Pharma VA pages animation/Prathamesh Shengale/V1/Vildambic_M_VA_Pg_02.gif-1773639555614-265509701.gif', 'image/gif', 6766378, 'V1', 'uploaded', '2026-03-16 05:39:15'),
-(694, 759, 'Vildambic_M_VA_Pg_03.gif', '/digilabs/dmap/api/uploads/Pharma_VA_pages_animation/Pharma VA pages animation/Prathamesh Shengale/V1/Vildambic_M_VA_Pg_03.gif-1773639555621-557941581.gif', 'image/gif', 4294514, 'V1', 'uploaded', '2026-03-16 05:39:15'),
-(695, 759, 'Vildambic_M_VA_Pg_04.gif', '/digilabs/dmap/api/uploads/Pharma_VA_pages_animation/Pharma VA pages animation/Prathamesh Shengale/V1/Vildambic_M_VA_Pg_04.gif-1773639555635-530775343.gif', 'image/gif', 4698286, 'V1', 'uploaded', '2026-03-16 05:39:15'),
-(696, 833, 'Maxis Cycle Meeting Certificate_4.pdf', '/digilabs/dmap/api/uploads/Maxis_cycle_meeting_creatives/Maxis cycle meeting creatives/Sanket Chandrakanat  Patade/V1/Maxis_Cycle_Meeting_Certificate_4.pdf-1773652892680-32129453.pdf', 'application/pdf', 525051, 'V1', 'uploaded', '2026-03-16 09:21:32'),
-(697, 843, 'Ascal-Gel-Advance-Display-artwork_Mockup.jpg', '/digilabs/dmap/api/uploads/Ascal_Gel_Advance_Display_artwork/Ascal Gel Advance Display artwork/Sanket Chandrakanat  Patade/V1/Ascal_Gel_Advance_Display_artwork_Mockup.jpg-1773652975572-989954158.jpg', 'image/jpeg', 1282945, 'V1', 'uploaded', '2026-03-16 09:22:55'),
-(698, 633, 'Eid-Mubarak.jpg', '/digilabs/dmap/api/uploads/Gudi_Padwa_Ugadi__Cheti_Chand__Eid_ul_Fitr_Greeting_/Gudi Padwa,Ugadi, Cheti Chand, Eid ul-Fitr Greeting /Sanket Chandrakanat  Patade/V1/Eid_Mubarak.jpg-1773654313967-585769626.jpg', 'image/jpeg', 531274, 'V1', 'uploaded', '2026-03-16 09:45:13'),
-(699, 633, 'Happy-Cheti-Chand.jpg', '/digilabs/dmap/api/uploads/Gudi_Padwa_Ugadi__Cheti_Chand__Eid_ul_Fitr_Greeting_/Gudi Padwa,Ugadi, Cheti Chand, Eid ul-Fitr Greeting /Sanket Chandrakanat  Patade/V1/Happy_Cheti_Chand.jpg-1773654313971-750121610.jpg', 'image/jpeg', 584265, 'V1', 'uploaded', '2026-03-16 09:45:13'),
-(700, 633, 'Happy-Gudi-Padwa.jpg', '/digilabs/dmap/api/uploads/Gudi_Padwa_Ugadi__Cheti_Chand__Eid_ul_Fitr_Greeting_/Gudi Padwa,Ugadi, Cheti Chand, Eid ul-Fitr Greeting /Sanket Chandrakanat  Patade/V1/Happy_Gudi_Padwa.jpg-1773654313974-443348067.jpg', 'image/jpeg', 442411, 'V1', 'uploaded', '2026-03-16 09:45:13'),
-(701, 633, 'Happy-Ugadi.jpg', '/digilabs/dmap/api/uploads/Gudi_Padwa_Ugadi__Cheti_Chand__Eid_ul_Fitr_Greeting_/Gudi Padwa,Ugadi, Cheti Chand, Eid ul-Fitr Greeting /Sanket Chandrakanat  Patade/V1/Happy_Ugadi.jpg-1773654313977-90536910.jpg', 'image/jpeg', 519366, 'V1', 'uploaded', '2026-03-16 09:45:13'),
-(702, 872, 'BMD_Camp_Sleeve_all_CTC..pdf', '/digilabs/dmap/api/uploads/Vitamin_D_Camp_Slips___Posters/Vitamin D Camp Slips /Shubham Gurav/V1/BMD_Camp_Sleeve_all_CTC..pdf-1773660517492-675519672.pdf', 'application/pdf', 2017889, 'V1', 'uploaded', '2026-03-16 11:28:37'),
-(703, 872, 'BMD_Poster_CTC.pdf', '/digilabs/dmap/api/uploads/Vitamin_D_Camp_Slips___Posters/Vitamin D Camp Slips /Shubham Gurav/V1/BMD_Poster_CTC.pdf-1773660517499-608109572.pdf', 'application/pdf', 4088265, 'V1', 'uploaded', '2026-03-16 11:28:37'),
-(704, 310, 'Non Focus_VA.pdf', '/digilabs/dmap/api/uploads/Visual_Aid_Q_2_All_focus_10_Brand_with_Non_Focus_Brand/Visual Aid Q-2 All focus 10 Brand with Non Focus Brand/Nilesh Khedekar/V1/Non_Focus_VA.pdf-1773660998604-368786462.pdf', 'application/pdf', 5944676, 'V1', 'uploaded', '2026-03-16 11:36:38'),
-(705, 310, 'VA 1 to 10.pdf', '/digilabs/dmap/api/uploads/Visual_Aid_Q_2_All_focus_10_Brand_with_Non_Focus_Brand/Visual Aid Q-2 All focus 10 Brand with Non Focus Brand/Nilesh Khedekar/V1/VA_1_to_10.pdf-1773660998613-231518576.pdf', 'application/pdf', 3494916, 'V1', 'uploaded', '2026-03-16 11:36:38'),
-(706, 310, 'VA 11 to 21.pdf', '/digilabs/dmap/api/uploads/Visual_Aid_Q_2_All_focus_10_Brand_with_Non_Focus_Brand/Visual Aid Q-2 All focus 10 Brand with Non Focus Brand/Nilesh Khedekar/V1/VA_11_to_21.pdf-1773660998618-147552520.pdf', 'application/pdf', 4842551, 'V1', 'uploaded', '2026-03-16 11:36:38'),
-(707, 310, 'VA 22 to 37.pdf', '/digilabs/dmap/api/uploads/Visual_Aid_Q_2_All_focus_10_Brand_with_Non_Focus_Brand/Visual Aid Q-2 All focus 10 Brand with Non Focus Brand/Nilesh Khedekar/V1/VA_22_to_37.pdf-1773660998624-545118521.pdf', 'application/pdf', 1408686, 'V1', 'uploaded', '2026-03-16 11:36:38'),
-(708, 310, 'VA 40 to 46.pdf', '/digilabs/dmap/api/uploads/Visual_Aid_Q_2_All_focus_10_Brand_with_Non_Focus_Brand/Visual Aid Q-2 All focus 10 Brand with Non Focus Brand/Nilesh Khedekar/V1/VA_40_to_46.pdf-1773660998628-156262818.pdf', 'application/pdf', 3817617, 'V1', 'uploaded', '2026-03-16 11:36:38'),
-(709, 786, 'SurveY_tellzy_AM_LBL_March.pdf', '/digilabs/dmap/api/uploads/TELLZY_TELLZY_MT_TELLZY_CH_TELLZY_AM_SURVEY_LBL/TELLZY,TELLZY MT,TELLZY CH,TELLZY AM SURVEY LBL/Tanmay Santosh Chorghe/V1/SurveY_tellzy_AM_LBL_March.pdf-1773720765642-959984396.pdf', 'application/pdf', 834514, 'V1', 'uploaded', '2026-03-17 04:12:45'),
-(710, 911, 'Scratch Card New Product Launch - RUMIGEST Artwork_CTC.pdf', '/digilabs/dmap/api/uploads/Scratch_card_new_product_launch/Scratch card new product launch/Sanket Chandrakanat  Patade/V1/Scratch_Card_New_Product_Launch___RUMIGEST_Artwork_CTC.pdf-1773721943600-473651107.pdf', 'application/pdf', 23095724, 'V1', 'uploaded', '2026-03-17 04:32:23'),
-(711, 911, 'Scratch Card New Product Launch - RUMIGEST Envolope_CTC.pdf', '/digilabs/dmap/api/uploads/Scratch_card_new_product_launch/Scratch card new product launch/Sanket Chandrakanat  Patade/V1/Scratch_Card_New_Product_Launch___RUMIGEST_Envolope_CTC.pdf-1773721943657-26440080.pdf', 'application/pdf', 892295, 'V1', 'uploaded', '2026-03-17 04:32:23'),
-(712, 847, 'Veldrop Preamble Script.docx', '/digilabs/dmap/api/uploads/Veldrop_Preamble_Video/Veldrop Preamble Video/Divya Raval/V1/Veldrop_Preamble_Script.docx-1773724211496-56604365.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 14804, 'V1', 'uploaded', '2026-03-17 05:10:11'),
-(713, 847, 'Veldrop preamble_Draft 2.pptx', '/digilabs/dmap/api/uploads/Veldrop_Preamble_Video/Veldrop Preamble Video/Divya Raval/V1/Veldrop_preamble_Draft_2.pptx-1773724211499-286447414.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 20182929, 'V1', 'uploaded', '2026-03-17 05:10:11'),
-(714, 619, 'Ram Navmi-01.jpg', '/digilabs/dmap/api/uploads/Ram_Navami_Greeting/Ram Navami Greeting/Angana Prakash Patil/V1/Ram_Navmi_01.jpg-1773726500748-452511528.jpg', 'image/jpeg', 269914, 'V1', 'uploaded', '2026-03-17 05:48:20'),
-(715, 619, 'Ram Navmi-02.jpg', '/digilabs/dmap/api/uploads/Ram_Navami_Greeting/Ram Navami Greeting/Angana Prakash Patil/V1/Ram_Navmi_02.jpg-1773726500756-46807248.jpg', 'image/jpeg', 213532, 'V1', 'uploaded', '2026-03-17 05:48:20'),
-(716, 857, 'Tellzy_CH_VA_Pg_01.gif', '/digilabs/dmap/api/uploads/TELLZY_CH_V_A_ANIMATION/TELLZY CH V.A ANIMATION/Prathamesh Shengale/V1/Tellzy_CH_VA_Pg_01.gif-1773726793624-112062592.gif', 'image/gif', 1627520, 'V1', 'uploaded', '2026-03-17 05:53:13'),
-(717, 857, 'Tellzy_CH_VA_Pg_02.gif', '/digilabs/dmap/api/uploads/TELLZY_CH_V_A_ANIMATION/TELLZY CH V.A ANIMATION/Prathamesh Shengale/V1/Tellzy_CH_VA_Pg_02.gif-1773726793630-250210744.gif', 'image/gif', 1978120, 'V1', 'uploaded', '2026-03-17 05:53:13'),
-(718, 857, 'Tellzy_CH_VA_Pg_03.gif', '/digilabs/dmap/api/uploads/TELLZY_CH_V_A_ANIMATION/TELLZY CH V.A ANIMATION/Prathamesh Shengale/V1/Tellzy_CH_VA_Pg_03.gif-1773726793636-966623267.gif', 'image/gif', 1749640, 'V1', 'uploaded', '2026-03-17 05:53:13'),
-(719, 855, 'Tellzy_MT_VA_Pg_01.gif', '/digilabs/dmap/api/uploads/TELLZY_MT_VA_ANIMATION/TELLZY MT VA ANIMATION/Prathamesh Shengale/V1/Tellzy_MT_VA_Pg_01.gif-1773726853993-287647727.gif', 'image/gif', 4650506, 'V1', 'uploaded', '2026-03-17 05:54:13'),
-(720, 855, 'Tellzy_MT_VA_Pg_02.gif', '/digilabs/dmap/api/uploads/TELLZY_MT_VA_ANIMATION/TELLZY MT VA ANIMATION/Prathamesh Shengale/V1/Tellzy_MT_VA_Pg_02.gif-1773726853999-407889567.gif', 'image/gif', 2018237, 'V1', 'uploaded', '2026-03-17 05:54:14'),
-(721, 855, 'Tellzy_MT_VA_Pg_03.gif', '/digilabs/dmap/api/uploads/TELLZY_MT_VA_ANIMATION/TELLZY MT VA ANIMATION/Prathamesh Shengale/V1/Tellzy_MT_VA_Pg_03.gif-1773726854012-213993083.gif', 'image/gif', 2389605, 'V1', 'uploaded', '2026-03-17 05:54:14'),
-(722, 855, 'Tellzy_MT_VA_Pg_04.gif', '/digilabs/dmap/api/uploads/TELLZY_MT_VA_ANIMATION/TELLZY MT VA ANIMATION/Prathamesh Shengale/V1/Tellzy_MT_VA_Pg_04.gif-1773726854019-31514685.gif', 'image/gif', 2280791, 'V1', 'uploaded', '2026-03-17 05:54:14'),
-(723, 880, 'Ascal Gel Advanced_Coming Soon.txt', '/digilabs/dmap/api/uploads/Ascal_gel_advance__coming_soon_video/Ascal gel advance  coming soon video/Divya Raval/V1/Ascal_Gel_Advanced_Coming_Soon.txt-1773731565073-458053377.txt', 'text/plain', 106, 'V1', 'uploaded', '2026-03-17 07:12:45'),
-(724, 879, 'Ascal gel Advanced_Packshot Reveal.txt', '/digilabs/dmap/api/uploads/Ascal_gel_Advance_Packshot_revealing_video/Ascal gel Advance Packshot revealing video/Divya Raval/V1/Ascal_gel_Advanced_Packshot_Reveal.txt-1773731591142-116181902.txt', 'text/plain', 140, 'V1', 'uploaded', '2026-03-17 07:13:11'),
-(725, 894, 'Award Ceremony Template.pdf', '/digilabs/dmap/api/uploads/Award_Ceremony_Template/Award Ceremony Template/Shubham Gurav/V1/Award_Ceremony_Template.pdf-1773732334570-246667812.pdf', 'application/pdf', 3644805, 'V1', 'uploaded', '2026-03-17 07:25:34'),
-(726, 893, 'PVR Advertisement_Poona Eyecare.pdf', '/digilabs/dmap/api/uploads/PVR_ADVERT___POONA_EYE_HOSPITAL/PVR ADVERT - POONA EYE HOSPITAL/Reshma Bastav/V1/PVR_Advertisement_Poona_Eyecare.pdf-1773732568490-111421846.pdf', 'application/pdf', 3308586, 'V1', 'uploaded', '2026-03-17 07:29:28'),
-(727, 923, 'TishuHeal_VA_Pg_01.gif', '/digilabs/dmap/api/uploads/Tishuheal_VA_Page_Pop_up_edit/Tishuheal VA Page Pop up edit/Prathamesh Shengale/V1/TishuHeal_VA_Pg_01.gif-1773738402370-137704367.gif', 'image/gif', 8529424, 'V1', 'uploaded', '2026-03-17 09:06:42'),
-(728, 918, 'Almizol 50ml.jpg', '/digilabs/dmap/api/uploads/Almizol_Skin_Lotion_Packshot__Photoshoot/Almizol Skin Lotion Packshot  Photoshoot/Vikram Rai/V1/Almizol_50ml.jpg-1773739118002-430025045.jpg', 'image/jpeg', 9019502, 'V1', 'uploaded', '2026-03-17 09:18:38'),
-(729, 918, 'Almizol 100ml.jpg', '/digilabs/dmap/api/uploads/Almizol_Skin_Lotion_Packshot__Photoshoot/Almizol Skin Lotion Packshot  Photoshoot/Vikram Rai/V1/Almizol_100ml.jpg-1773739118014-784026446.jpg', 'image/jpeg', 9229262, 'V1', 'uploaded', '2026-03-17 09:18:38'),
-(730, 925, 'DSC09956.JPG', '/digilabs/dmap/api/uploads/TRAZTIK_packshot_shoot/TRAZTIK packshot shoot/Vikram Rai/V1/DSC09956.JPG-1773743727705-127543229.JPG', 'image/jpeg', 7569408, 'V1', 'uploaded', '2026-03-17 10:35:27'),
-(731, 925, 'DSC09957.JPG', '/digilabs/dmap/api/uploads/TRAZTIK_packshot_shoot/TRAZTIK packshot shoot/Vikram Rai/V1/DSC09957.JPG-1773743727716-94256512.JPG', 'image/jpeg', 7471104, 'V1', 'uploaded', '2026-03-17 10:35:27'),
-(732, 913, 'Promatogram - Mar 2026.pdf', '/digilabs/dmap/api/uploads/Promotogram/Promotogram/Angana Prakash Patil/V1/Promatogram___Mar_2026.pdf-1773807694546-977178190.pdf', 'application/pdf', 2982525, 'V1', 'uploaded', '2026-03-18 04:21:34'),
-(733, 839, 'Roxid 150_VA.pdf', '/digilabs/dmap/api/uploads/Roxid_VA/Roxid VA/Angana Prakash Patil/V1/Roxid_150_VA.pdf-1773807773656-518645926.pdf', 'application/pdf', 3705551, 'V1', 'uploaded', '2026-03-18 04:22:53'),
-(734, 892, 'EID-MUBARAK-.jpg', '/digilabs/dmap/api/uploads/Gudi_Padwa___Eid_Festive_Post/Gudi Padwa | Eid Festive Post/Tanmay Santosh Chorghe/V1/EID_MUBARAK_.jpg-1773808337547-18049046.jpg', 'image/jpeg', 149146, 'V1', 'uploaded', '2026-03-18 04:32:17'),
-(735, 892, 'Gudi-padaw.jpg', '/digilabs/dmap/api/uploads/Gudi_Padwa___Eid_Festive_Post/Gudi Padwa | Eid Festive Post/Tanmay Santosh Chorghe/V1/Gudi_padaw.jpg-1773808337551-852468373.jpg', 'image/jpeg', 303347, 'V1', 'uploaded', '2026-03-18 04:32:17'),
-(736, 892, 'Ugadi.jpg', '/digilabs/dmap/api/uploads/Gudi_Padwa___Eid_Festive_Post/Gudi Padwa | Eid Festive Post/Tanmay Santosh Chorghe/V1/Ugadi.jpg-1773808337562-949881217.jpg', 'image/jpeg', 797677, 'V1', 'uploaded', '2026-03-18 04:32:17'),
-(737, 891, 'Patient Education Leaflets_ctc.pdf', '/digilabs/dmap/api/uploads/PATIENT_EDUCATION_SHEET_/PATIENT EDUCATION SHEET /Reshma Bastav/V1/Patient_Education_Leaflets_ctc.pdf-1773813661314-7077372.pdf', 'application/pdf', 4664537, 'V1', 'uploaded', '2026-03-18 06:01:01'),
-(738, 910, 'Veldrop Box Outline_ctc.pdf', '/digilabs/dmap/api/uploads/Veldrop__Gift_Box/Veldrop  Gift Box/Reshma Bastav/V1/Veldrop_Box_Outline_ctc.pdf-1773813690361-335760923.pdf', 'application/pdf', 1500682, 'V1', 'uploaded', '2026-03-18 06:01:30'),
-(739, 845, 'Badge.jpg', '/digilabs/dmap/api/uploads/Poster__Tent_card_design/Poster, Tent card design/Tanmay Santosh Chorghe/V1/Badge.jpg-1773819449172-288654901.jpg', 'image/jpeg', 82473, 'V1', 'uploaded', '2026-03-18 07:37:29'),
-(740, 845, 'IPSS-Poster.jpg', '/digilabs/dmap/api/uploads/Poster__Tent_card_design/Poster, Tent card design/Tanmay Santosh Chorghe/V1/IPSS_Poster.jpg-1773819449177-178891957.jpg', 'image/jpeg', 444080, 'V1', 'uploaded', '2026-03-18 07:37:29'),
-(741, 845, 'Tent-Card-1.jpg', '/digilabs/dmap/api/uploads/Poster__Tent_card_design/Poster, Tent card design/Tanmay Santosh Chorghe/V1/Tent_Card_1.jpg-1773819449180-487535607.jpg', 'image/jpeg', 173271, 'V1', 'uploaded', '2026-03-18 07:37:29'),
-(742, 698, 'resync.docx', '/digilabs/dmap/api/uploads/Resync_Plus___Launch_video_teaser_content/Resync Plus - Launch video teaser content/Vinisha Chadala/V1/resync.docx-1773823081079-794754518.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12494, 'V1', 'uploaded', '2026-03-18 08:38:01'),
-(743, 942, 'Gudi Padwa Video Osteofit.mp4', '/digilabs/dmap/api/uploads/Festival_Flyer__Gudi_Padwa__Ugadi_Etc_/Festival Flyer (Gudi Padwa, Ugadi Etc)/Prathamesh Shengale/V1/Gudi_Padwa_Video_Osteofit.mp4-1773829395647-844612267.mp4', 'video/mp4', 6642214, 'V1', 'uploaded', '2026-03-18 10:23:15'),
-(744, 944, 'Gudi Padwa Video.mp4', '/digilabs/dmap/api/uploads/Gudipadwa_Greetting/Gudipadwa Greetting/Prathamesh Shengale/V1/Gudi_Padwa_Video.mp4-1773829529990-576061939.mp4', 'video/mp4', 6645343, 'V1', 'uploaded', '2026-03-18 10:25:29'),
-(745, 938, 'Gift-box-artwork_A5.jpg', '/digilabs/dmap/api/uploads/Gift_box_artwork/Gift box artwork/Sanket Chandrakanat  Patade/V1/Gift_box_artwork_A5.jpg-1773831337164-731786021.jpg', 'image/jpeg', 275102, 'V1', 'uploaded', '2026-03-18 10:55:37'),
-(746, 886, 'IV-Fluid-Flyer.jpg', '/digilabs/dmap/api/uploads/IV_Fluid_Flyer/IV Fluid Flyer/Sanket Chandrakanat  Patade/V1/IV_Fluid_Flyer.jpg-1773831502656-411876665.jpg', 'image/jpeg', 801770, 'V1', 'uploaded', '2026-03-18 10:58:22'),
-(747, 547, 'Azithral OL VA Final_MAR_26_final.pdf', '/digilabs/dmap/api/uploads/Azithral_Solid_and_Liquid_VA/Azithral Solid and Liquid VA/Gaurav Karnik/V1/Azithral_OL_VA_Final_MAR_26_final.pdf-1773833754668-890472548.pdf', 'application/pdf', 3722593, 'V1', 'uploaded', '2026-03-18 11:35:54'),
-(748, 547, 'Azithral Solid VA - Nepal.pdf', '/digilabs/dmap/api/uploads/Azithral_Solid_and_Liquid_VA/Azithral Solid and Liquid VA/Gaurav Karnik/V1/Azithral_Solid_VA___Nepal.pdf-1773833754675-776972448.pdf', 'application/pdf', 6411863, 'V1', 'uploaded', '2026-03-18 11:35:54'),
-(749, 883, 'Birthday Greeting Card 1-01.jpg', '/digilabs/dmap/api/uploads/Birthday_greeting_card_for_Veterinary_doctor/Birthday greeting card for Veterinary doctor/Reshma Bastav/V1/Birthday_Greeting_Card_1_01.jpg-1773986632270-186324689.jpg', 'image/jpeg', 456488, 'V1', 'uploaded', '2026-03-20 06:03:52'),
-(750, 883, 'Birthday Greeting Card 1-02.jpg', '/digilabs/dmap/api/uploads/Birthday_greeting_card_for_Veterinary_doctor/Birthday greeting card for Veterinary doctor/Reshma Bastav/V1/Birthday_Greeting_Card_1_02.jpg-1773986632280-947500230.jpg', 'image/jpeg', 417278, 'V1', 'uploaded', '2026-03-20 06:03:52'),
-(751, 883, 'Birthday Greeting Card 1-03.jpg', '/digilabs/dmap/api/uploads/Birthday_greeting_card_for_Veterinary_doctor/Birthday greeting card for Veterinary doctor/Reshma Bastav/V1/Birthday_Greeting_Card_1_03.jpg-1773986632282-225716936.jpg', 'image/jpeg', 429976, 'V1', 'uploaded', '2026-03-20 06:03:52'),
-(752, 883, 'Birthday Greeting Card 1-04.jpg', '/digilabs/dmap/api/uploads/Birthday_greeting_card_for_Veterinary_doctor/Birthday greeting card for Veterinary doctor/Reshma Bastav/V1/Birthday_Greeting_Card_1_04.jpg-1773986632285-221497888.jpg', 'image/jpeg', 422718, 'V1', 'uploaded', '2026-03-20 06:03:52'),
-(753, 883, 'Birthday Greeting Card 1-05.jpg', '/digilabs/dmap/api/uploads/Birthday_greeting_card_for_Veterinary_doctor/Birthday greeting card for Veterinary doctor/Reshma Bastav/V1/Birthday_Greeting_Card_1_05.jpg-1773986632288-430652789.jpg', 'image/jpeg', 431246, 'V1', 'uploaded', '2026-03-20 06:03:52'),
-(754, 783, 'Cycloset_1st banner Category.pdf', '/digilabs/dmap/api/uploads/Banner_creative_/Banner creative/Angana Prakash Patil/V1/Cycloset_1st_banner_Category.pdf-1773998394077-885796508.pdf', 'application/pdf', 2837263, 'V1', 'uploaded', '2026-03-20 09:19:54'),
-(755, 783, 'Cycloset_1st banner Product page_2.pdf', '/digilabs/dmap/api/uploads/Banner_creative_/Banner creative/Angana Prakash Patil/V1/Cycloset_1st_banner_Product_page_2.pdf-1773998394089-838455798.pdf', 'application/pdf', 4423812, 'V1', 'uploaded', '2026-03-20 09:19:54'),
-(756, 783, 'Cycloset_2nd banner Search.pdf', '/digilabs/dmap/api/uploads/Banner_creative_/Banner creative/Angana Prakash Patil/V1/Cycloset_2nd_banner_Search.pdf-1773998394094-617030700.pdf', 'application/pdf', 1581687, 'V1', 'uploaded', '2026-03-20 09:19:54'),
-(757, 783, 'Ovigyn Q10_1st banner Category.pdf', '/digilabs/dmap/api/uploads/Banner_creative_/Banner creative/Angana Prakash Patil/V1/Ovigyn_Q10_1st_banner_Category.pdf-1773998394098-419039026.pdf', 'application/pdf', 5944246, 'V1', 'uploaded', '2026-03-20 09:19:54'),
-(758, 783, 'Ovigyn Q10_1st banner Product page.pdf', '/digilabs/dmap/api/uploads/Banner_creative_/Banner creative/Angana Prakash Patil/V1/Ovigyn_Q10_1st_banner_Product_page.pdf-1773998394105-841829435.pdf', 'application/pdf', 6895788, 'V1', 'uploaded', '2026-03-20 09:19:54'),
-(759, 783, 'Ovigyn Q10_2nd banner Search.pdf', '/digilabs/dmap/api/uploads/Banner_creative_/Banner creative/Angana Prakash Patil/V1/Ovigyn_Q10_2nd_banner_Search.pdf-1773998394114-256195067.pdf', 'application/pdf', 3663597, 'V1', 'uploaded', '2026-03-20 09:19:54'),
-(760, 927, 'Menstrual Hygiene Awareness Day_LBL-01.jpg', '/digilabs/dmap/api/uploads/MHAL_LBL/MHAL LBL/Angana Prakash Patil/V1/Menstrual_Hygiene_Awareness_Day_LBL_01.jpg-1773998481990-306995638.jpg', 'image/jpeg', 322468, 'V1', 'uploaded', '2026-03-20 09:21:21'),
-(761, 927, 'Menstrual Hygiene Awareness Day_LBL-02.jpg', '/digilabs/dmap/api/uploads/MHAL_LBL/MHAL LBL/Angana Prakash Patil/V1/Menstrual_Hygiene_Awareness_Day_LBL_02.jpg-1773998481996-204397296.jpg', 'image/jpeg', 129879, 'V1', 'uploaded', '2026-03-20 09:21:21'),
-(762, 957, 'pharma_dm_qr.png', '/digilabs/dmap/api/uploads/Diabetes_Management_Article_QR_Code/QR code generation/Gautam Baranwal/V1/pharma_dm_qr.png-1774001152761-290043925.png', 'image/png', 9454, 'V1', 'uploaded', '2026-03-20 10:05:52'),
-(763, 939, 'Summer Bonanza.pdf', '/digilabs/dmap/api/uploads/Summer_Bonanza_Campaign_Flyer/Summer Bonanza Campaign Flyer/Nilesh Khedekar/V1/Summer_Bonanza.pdf-1774003426584-119197840.pdf', 'application/pdf', 3973622, 'V1', 'uploaded', '2026-03-20 10:43:46'),
-(764, 887, 'Khurak Flyer.jpg', '/digilabs/dmap/api/uploads/Khurak_Flyer/Khurak Flyer/Milind Balkrushna Shelar/V1/Khurak_Flyer.jpg-1774248830379-328682568.jpg', 'image/jpeg', 8507519, 'V1', 'uploaded', '2026-03-23 06:53:50'),
-(765, 915, 'TIKOUT Dangler -01.jpg', '/digilabs/dmap/api/uploads/TIKOUT_DANGLER/TIKOUT DANGLER/Milind Balkrushna Shelar/V1/TIKOUT_Dangler__01.jpg-1774248889650-423902446.jpg', 'image/jpeg', 4425206, 'V1', 'uploaded', '2026-03-23 06:54:49'),
-(766, 915, 'TIKOUT Dangler -02.jpg', '/digilabs/dmap/api/uploads/TIKOUT_DANGLER/TIKOUT DANGLER/Milind Balkrushna Shelar/V1/TIKOUT_Dangler__02.jpg-1774248889657-682056108.jpg', 'image/jpeg', 5023904, 'V1', 'uploaded', '2026-03-23 06:54:49'),
-(767, 916, 'TIKOUT Dangler -01.jpg', '/digilabs/dmap/api/uploads/TIKOUT_DANGLER/TIKOUT DANGLER/Milind Balkrushna Shelar/V1/TIKOUT_Dangler__01.jpg-1774248932009-660998410.jpg', 'image/jpeg', 4425206, 'V1', 'uploaded', '2026-03-23 06:55:32'),
-(768, 916, 'TIKOUT Dangler -02.jpg', '/digilabs/dmap/api/uploads/TIKOUT_DANGLER/TIKOUT DANGLER/Milind Balkrushna Shelar/V1/TIKOUT_Dangler__02.jpg-1774248932015-513171440.jpg', 'image/jpeg', 5023904, 'V1', 'uploaded', '2026-03-23 06:55:32'),
-(769, 970, 'Ugadi Video.mp4', '/digilabs/dmap/api/uploads/Ugadi_Gif/Ugadi Gif/Prathamesh Shengale/V1/Ugadi_Video.mp4-1774249245364-222193683.mp4', 'video/mp4', 7210173, 'V1', 'uploaded', '2026-03-23 07:00:45'),
-(770, 717, 'August Tent Card.docx', '/digilabs/dmap/api/uploads/Tent_card/Tent card/Vinisha Chadala/V1/August_Tent_Card.docx-1774255747142-429764501.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13777, 'V1', 'uploaded', '2026-03-23 08:49:07'),
-(771, 717, 'July Tent Card.docx', '/digilabs/dmap/api/uploads/Tent_card/Tent card/Vinisha Chadala/V1/July_Tent_Card.docx-1774255747147-536023318.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12353, 'V1', 'uploaded', '2026-03-23 08:49:07'),
-(772, 717, 'September Tent Card.docx', '/digilabs/dmap/api/uploads/Tent_card/Tent card/Vinisha Chadala/V1/September_Tent_Card.docx-1774255747149-535744480.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12541, 'V1', 'uploaded', '2026-03-23 08:49:07'),
-(773, 717, 'Tent Card April.docx', '/digilabs/dmap/api/uploads/Tent_card/Tent card/Vinisha Chadala/V1/Tent_Card_April.docx-1774255747152-471296367.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13767, 'V1', 'uploaded', '2026-03-23 08:49:07'),
-(774, 717, 'Tent card May.docx', '/digilabs/dmap/api/uploads/Tent_card/Tent card/Vinisha Chadala/V1/Tent_card_May.docx-1774255747155-711485658.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 14199, 'V1', 'uploaded', '2026-03-23 08:49:07'),
-(775, 717, 'June tent card.docx', '/digilabs/dmap/api/uploads/Tent_card/Tent card/Vinisha Chadala/V1/June_tent_card.docx-1774255747158-935296313.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 14000, 'V1', 'uploaded', '2026-03-23 08:49:07'),
-(776, 685, 'UCPMP Script Video 2.docx', '/digilabs/dmap/api/uploads/UCPMP_Compliance_training_module/UCPMP Compliance training module/Vinisha Chadala/V1/UCPMP_Script_Video_2.docx-1774255824771-726226292.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 15325, 'V1', 'uploaded', '2026-03-23 08:50:24'),
-(777, 685, 'UCPMP Script Video 3.docx', '/digilabs/dmap/api/uploads/UCPMP_Compliance_training_module/UCPMP Compliance training module/Vinisha Chadala/V1/UCPMP_Script_Video_3.docx-1774255824774-247547985.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13816, 'V1', 'uploaded', '2026-03-23 08:50:24'),
-(778, 685, 'UCPMP Video Script 1.docx', '/digilabs/dmap/api/uploads/UCPMP_Compliance_training_module/UCPMP Compliance training module/Vinisha Chadala/V1/UCPMP_Video_Script_1.docx-1774255824776-643665449.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 14225, 'V1', 'uploaded', '2026-03-23 08:50:24'),
-(779, 675, 'Cheti Chand.docx', '/digilabs/dmap/api/uploads/Gudi_Padwa_Ugadi__Cheti_Chand__Eid_ul_Fitr_Greeting_/Gudi Padwa,Ugadi, Cheti Chand, Eid ul-Fitr Greeting /Vinisha Chadala/V1/Cheti_Chand.docx-1774255942372-358055764.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 11787, 'V1', 'uploaded', '2026-03-23 08:52:22'),
-(780, 675, 'Eid.docx', '/digilabs/dmap/api/uploads/Gudi_Padwa_Ugadi__Cheti_Chand__Eid_ul_Fitr_Greeting_/Gudi Padwa,Ugadi, Cheti Chand, Eid ul-Fitr Greeting /Vinisha Chadala/V1/Eid.docx-1774255942376-793955646.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 11783, 'V1', 'uploaded', '2026-03-23 08:52:22'),
-(781, 675, 'Gudi Padwa.docx', '/digilabs/dmap/api/uploads/Gudi_Padwa_Ugadi__Cheti_Chand__Eid_ul_Fitr_Greeting_/Gudi Padwa,Ugadi, Cheti Chand, Eid ul-Fitr Greeting /Vinisha Chadala/V1/Gudi_Padwa.docx-1774255942380-336874339.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12217, 'V1', 'uploaded', '2026-03-23 08:52:22'),
-(782, 675, 'Ugadi.docx', '/digilabs/dmap/api/uploads/Gudi_Padwa_Ugadi__Cheti_Chand__Eid_ul_Fitr_Greeting_/Gudi Padwa,Ugadi, Cheti Chand, Eid ul-Fitr Greeting /Vinisha Chadala/V1/Ugadi.docx-1774255942382-318967080.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 11943, 'V1', 'uploaded', '2026-03-23 08:52:22'),
-(783, 961, 'APD-360-Standee.jpg', '/digilabs/dmap/api/uploads/APD_wheel_Standee_for_EWE_meetings/APD wheel Standee for EWE meetings/Tanmay Santosh Chorghe/V1/APD_360_Standee.jpg-1774261152569-645511836.jpg', 'image/jpeg', 109546, 'V1', 'uploaded', '2026-03-23 10:19:12');
-INSERT INTO `task_documents` (`id`, `task_assignment_id`, `document_name`, `document_path`, `document_type`, `document_size`, `version`, `status`, `uploaded_at`) VALUES
-(784, 914, 'CME Invite and thank you card-01.jpg', '/digilabs/dmap/api/uploads/CME_invite/CME invite/Angana Prakash Patil/V1/CME_Invite_and_thank_you_card_01.jpg-1774261319616-129870961.jpg', 'image/jpeg', 713972, 'V1', 'uploaded', '2026-03-23 10:21:59'),
-(785, 914, 'CME Invite and thank you card-02.jpg', '/digilabs/dmap/api/uploads/CME_invite/CME invite/Angana Prakash Patil/V1/CME_Invite_and_thank_you_card_02.jpg-1774261319623-867112827.jpg', 'image/jpeg', 646555, 'V1', 'uploaded', '2026-03-23 10:21:59'),
-(786, 922, 'Sharkoferrol Aqua Telugu_Approved.docx', '/digilabs/dmap/api/uploads/Sharkoferrol_Aqua_AI_Video/Sharkoferrol Aqua AI Video/Divya Raval/V1/Sharkoferrol_Aqua_Telugu_Approved.docx-1774279763533-703187482.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12849, 'V1', 'uploaded', '2026-03-23 15:29:23'),
-(787, 922, 'Sharkoferrol Aqua_English.docx', '/digilabs/dmap/api/uploads/Sharkoferrol_Aqua_AI_Video/Sharkoferrol Aqua AI Video/Divya Raval/V1/Sharkoferrol_Aqua_English.docx-1774279763542-120220013.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13376, 'V1', 'uploaded', '2026-03-23 15:29:23'),
-(788, 926, 'Fertimax Chemist Requisition Book_2.pdf', '/digilabs/dmap/api/uploads/Fertimax_Chemist_Requisition_Book_/Fertimax Chemist Requisition Book /Sanket Chandrakanat  Patade/V1/Fertimax_Chemist_Requisition_Book_2.pdf-1774326384648-919921547.pdf', 'application/pdf', 2046960, 'V1', 'uploaded', '2026-03-24 04:26:24'),
-(789, 909, 'Artwork-for-Ralembic.jpg', '/digilabs/dmap/api/uploads/Artwork_for_Salembic___Ralembic__Salembic_D_LBL/Artwork for Salembic , Ralembic, Salembic-D LBL/Sanket Chandrakanat  Patade/V1/Artwork_for_Ralembic.jpg-1774326412000-830414515.jpg', 'image/jpeg', 554628, 'V1', 'uploaded', '2026-03-24 04:26:52'),
-(790, 909, 'Artwork-for-Salembic-,-Ralembic,-Salembic-D.jpg', '/digilabs/dmap/api/uploads/Artwork_for_Salembic___Ralembic__Salembic_D_LBL/Artwork for Salembic , Ralembic, Salembic-D LBL/Sanket Chandrakanat  Patade/V1/Artwork_for_Salembic___Ralembic__Salembic_D.jpg-1774326412011-552800546.jpg', 'image/jpeg', 787972, 'V1', 'uploaded', '2026-03-24 04:26:52'),
-(791, 909, 'Artwork-for-Salembic.jpg', '/digilabs/dmap/api/uploads/Artwork_for_Salembic___Ralembic__Salembic_D_LBL/Artwork for Salembic , Ralembic, Salembic-D LBL/Sanket Chandrakanat  Patade/V1/Artwork_for_Salembic.jpg-1774326412017-321240311.jpg', 'image/jpeg', 555620, 'V1', 'uploaded', '2026-03-24 04:26:52'),
-(792, 909, 'Artwork-for-Salembic_D.jpg', '/digilabs/dmap/api/uploads/Artwork_for_Salembic___Ralembic__Salembic_D_LBL/Artwork for Salembic , Ralembic, Salembic-D LBL/Sanket Chandrakanat  Patade/V1/Artwork_for_Salembic_D.jpg-1774326412021-668226654.jpg', 'image/jpeg', 545659, 'V1', 'uploaded', '2026-03-24 04:26:52'),
-(793, 929, 'Pin Point Chit Pad.jpg', '/digilabs/dmap/api/uploads/Need_PinPoint_Chitpad_artwork/Need PinPoint Chitpad artwork/Reshma Bastav/V1/Pin_Point_Chit_Pad.jpg-1774327053781-309984465.jpg', 'image/jpeg', 2356055, 'V1', 'uploaded', '2026-03-24 04:37:33'),
-(794, 930, 'Pin Point Chit Pad.jpg', '/digilabs/dmap/api/uploads/Need_PinPoint_Chitpad_artwork/Need PinPoint Chitpad artwork/Reshma Bastav/V1/Pin_Point_Chit_Pad.jpg-1774327078892-997945762.jpg', 'image/jpeg', 2356055, 'V1', 'uploaded', '2026-03-24 04:37:58'),
-(795, 979, 'Vehycal_XT_lbl_c2c_V2.pdf', '/digilabs/dmap/api/uploads/Vehycal_XT_LBL_Resizing/Vehycal XT LBL Resizing/Shubham Gurav/V1/Vehycal_XT_lbl_c2c_V2.pdf-1774327225568-32876833.pdf', 'application/pdf', 10457463, 'V1', 'uploaded', '2026-03-24 04:40:25'),
-(796, 711, 'Chaitra-Sukhladi.jpg', '/digilabs/dmap/api/uploads/Greetings_for_the_upcoming_Festives_on_the_mentioned_dates___/Megacare_ Artwork_Feb_ festival_2026/Tanmay Santosh Chorghe/V1/Chaitra_Sukhladi.jpg-1774327926253-341190962.jpg', 'image/jpeg', 182167, 'V1', 'uploaded', '2026-03-24 04:52:06'),
-(797, 711, 'Cheti-chand.jpg', '/digilabs/dmap/api/uploads/Greetings_for_the_upcoming_Festives_on_the_mentioned_dates___/Megacare_ Artwork_Feb_ festival_2026/Tanmay Santosh Chorghe/V1/Cheti_chand.jpg-1774327926256-856353455.jpg', 'image/jpeg', 258501, 'V1', 'uploaded', '2026-03-24 04:52:06'),
-(798, 711, 'Gudi-padwa.jpg', '/digilabs/dmap/api/uploads/Greetings_for_the_upcoming_Festives_on_the_mentioned_dates___/Megacare_ Artwork_Feb_ festival_2026/Tanmay Santosh Chorghe/V1/Gudi_padwa.jpg-1774327926259-617503532.jpg', 'image/jpeg', 234482, 'V1', 'uploaded', '2026-03-24 04:52:06'),
-(799, 711, 'Holi-1.jpg', '/digilabs/dmap/api/uploads/Greetings_for_the_upcoming_Festives_on_the_mentioned_dates___/Megacare_ Artwork_Feb_ festival_2026/Tanmay Santosh Chorghe/V1/Holi_1.jpg-1774327926261-620742543.jpg', 'image/jpeg', 228867, 'V1', 'uploaded', '2026-03-24 04:52:06'),
-(800, 711, 'Holika-Dahan.jpg', '/digilabs/dmap/api/uploads/Greetings_for_the_upcoming_Festives_on_the_mentioned_dates___/Megacare_ Artwork_Feb_ festival_2026/Tanmay Santosh Chorghe/V1/Holika_Dahan.jpg-1774327926264-738711684.jpg', 'image/jpeg', 935994, 'V1', 'uploaded', '2026-03-24 04:52:06'),
-(801, 711, 'Mahashivratri.jpg', '/digilabs/dmap/api/uploads/Greetings_for_the_upcoming_Festives_on_the_mentioned_dates___/Megacare_ Artwork_Feb_ festival_2026/Tanmay Santosh Chorghe/V1/Mahashivratri.jpg-1774327926267-422190823.jpg', 'image/jpeg', 609787, 'V1', 'uploaded', '2026-03-24 04:52:06'),
-(802, 711, 'Ram-navmi.jpg', '/digilabs/dmap/api/uploads/Greetings_for_the_upcoming_Festives_on_the_mentioned_dates___/Megacare_ Artwork_Feb_ festival_2026/Tanmay Santosh Chorghe/V1/Ram_navmi.jpg-1774327926270-690764592.jpg', 'image/jpeg', 245126, 'V1', 'uploaded', '2026-03-24 04:52:06'),
-(803, 969, 'Roxid OS - March 2026 - Opt 1.pdf', '/digilabs/dmap/api/uploads/Roxid_VA_Changes/Roxid VA Changes/Tanmay Santosh Chorghe/V1/Roxid_OS___March_2026___Opt_1.pdf-1774334458881-752468736.pdf', 'application/pdf', 1319137, 'V1', 'uploaded', '2026-03-24 06:40:58'),
-(804, 707, 'Ram-Navmi.png', '/digilabs/dmap/api/uploads/Ram_Navami_Flyer/Ram Navami Flyer/Tanmay Santosh Chorghe/V1/Ram_Navmi.png-1774334536275-218724285.png', 'image/png', 865947, 'V1', 'uploaded', '2026-03-24 06:42:16'),
-(805, 718, 'Vetmax March 2026.docx', '/digilabs/dmap/api/uploads/Days___Celebration_March/Days /Vinisha Chadala/V1/Vetmax_March_2026.docx-1774339452738-230435288.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13548, 'V1', 'uploaded', '2026-03-24 08:04:12'),
-(806, 826, 'Flyer.zip', '/digilabs/dmap/api/uploads/AWARENESS_AND_CELEBRATION_DAYS___MARCH_2026/AWARENESS AND CELEBRATION DAYS - MARCH 2026/Sanket Chandrakanat  Patade/V1/Flyer.zip-1774345741025-746434348.zip', 'application/x-zip-compressed', 10377846, 'V1', 'uploaded', '2026-03-24 09:49:01'),
-(807, 986, 'Tufehart PI Booklet_V4_CTC.pdf', '/digilabs/dmap/api/uploads/Prescribing_Information_of_Tufehart/Prescribing Information of Tufehart/Sanket Chandrakanat  Patade/V1/Tufehart_PI_Booklet_V4_CTC.pdf-1774347462452-978167273.pdf', 'application/pdf', 11599831, 'V1', 'uploaded', '2026-03-24 10:17:42'),
-(808, 607, 'Alembic-Timeline-Pithampur-Admin-Wall_212.5_X_59_Inch.jpg', '/digilabs/dmap/api/uploads/Pithampur_Branding_Activities/Pithampur Branding Activities/Sanket Chandrakanat  Patade/V1/Alembic_Timeline_Pithampur_Admin_Wall_212.5_X_59_Inch.jpg-1774347488476-530033288.jpg', 'image/jpeg', 6841948, 'V1', 'uploaded', '2026-03-24 10:18:08'),
-(809, 607, 'Alembic-Timeline-Pithampur-Plant-Entry-Lobby_159.5_X_59.jpg', '/digilabs/dmap/api/uploads/Pithampur_Branding_Activities/Pithampur Branding Activities/Sanket Chandrakanat  Patade/V1/Alembic_Timeline_Pithampur_Plant_Entry_Lobby_159.5_X_59.jpg-1774347488486-327580782.jpg', 'image/jpeg', 5748121, 'V1', 'uploaded', '2026-03-24 10:18:08'),
-(810, 607, 'Alembic-Timeline-Pithampur-Visitor-Waiting-Room_126_X_48.jpg', '/digilabs/dmap/api/uploads/Pithampur_Branding_Activities/Pithampur Branding Activities/Sanket Chandrakanat  Patade/V1/Alembic_Timeline_Pithampur_Visitor_Waiting_Room_126_X_48.jpg-1774347488496-948050875.jpg', 'image/jpeg', 7332157, 'V1', 'uploaded', '2026-03-24 10:18:08'),
-(811, 981, 'Cardigem Division All Brand reminder Card.pdf', '/digilabs/dmap/api/uploads/Cardigem_Division_All_Brand_reminder_Card/Cardigem Division All Brand reminder Card/Angana Prakash Patil/V1/Cardigem_Division_All_Brand_reminder_Card.pdf-1774347738039-832212218.pdf', 'application/pdf', 2920548, 'V1', 'uploaded', '2026-03-24 10:22:18'),
-(812, 936, 'Input_packaging-01.jpg', '/digilabs/dmap/api/uploads/Etrik_Box_Artwork_/Etrik Box Artwork /Angana Prakash Patil/V1/Input_packaging_01.jpg-1774347758923-351213412.jpg', 'image/jpeg', 1299420, 'V1', 'uploaded', '2026-03-24 10:22:38'),
-(813, 936, 'Input_packaging-02.jpg', '/digilabs/dmap/api/uploads/Etrik_Box_Artwork_/Etrik Box Artwork /Angana Prakash Patil/V1/Input_packaging_02.jpg-1774347758930-957088651.jpg', 'image/jpeg', 1216070, 'V1', 'uploaded', '2026-03-24 10:22:38'),
-(814, 712, 'Eid-01.jpg', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content /Nilesh Khedekar/V1/Eid_01.jpg-1774348613476-760956846.jpg', 'image/jpeg', 1196814, 'V1', 'uploaded', '2026-03-24 10:36:53'),
-(815, 712, 'Eid-02.jpg', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content /Nilesh Khedekar/V1/Eid_02.jpg-1774348613480-881984093.jpg', 'image/jpeg', 984404, 'V1', 'uploaded', '2026-03-24 10:36:53'),
-(816, 712, 'Gudi Padwa-01.jpg', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content /Nilesh Khedekar/V1/Gudi_Padwa_01.jpg-1774348613482-186049099.jpg', 'image/jpeg', 2296365, 'V1', 'uploaded', '2026-03-24 10:36:53'),
-(817, 712, 'Gudi Padwa-02.jpg', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content /Nilesh Khedekar/V1/Gudi_Padwa_02.jpg-1774348613487-474708820.jpg', 'image/jpeg', 2899604, 'V1', 'uploaded', '2026-03-24 10:36:53'),
-(818, 712, 'Holi 1.jpg', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content /Nilesh Khedekar/V1/Holi_1.jpg-1774348613492-261759291.jpg', 'image/jpeg', 1830275, 'V1', 'uploaded', '2026-03-24 10:36:53'),
-(819, 712, 'Holika Dahan 1.jpg', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content /Nilesh Khedekar/V1/Holika_Dahan_1.jpg-1774348613494-310256178.jpg', 'image/jpeg', 1798731, 'V1', 'uploaded', '2026-03-24 10:36:53'),
-(820, 712, 'Ram Navmi-01.jpg', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content /Nilesh Khedekar/V1/Ram_Navmi_01.jpg-1774348613497-324792310.jpg', 'image/jpeg', 1328309, 'V1', 'uploaded', '2026-03-24 10:36:53'),
-(821, 712, 'Ugadi.jpg', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content /Nilesh Khedekar/V1/Ugadi.jpg-1774348613500-196499369.jpg', 'image/jpeg', 3517425, 'V1', 'uploaded', '2026-03-24 10:36:53'),
-(822, 712, 'World Sleep Day-02.jpg', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content /Nilesh Khedekar/V1/World_Sleep_Day_02.jpg-1774348613504-748056992.jpg', 'image/jpeg', 1451426, 'V1', 'uploaded', '2026-03-24 10:36:53'),
-(823, 992, 'Voage_S_VA.pdf', '/digilabs/dmap/api/uploads/Voage_S_VA_Page_Design/Voage S VA Page Design/Tanmay Santosh Chorghe/V1/Voage_S_VA.pdf-1774350524601-491542346.pdf', 'application/pdf', 360490, 'V1', 'uploaded', '2026-03-24 11:08:44'),
-(824, 953, 'Tick Prevention Standee.pdf', '/digilabs/dmap/api/uploads/Standee_size_artwork_for_Tick_prevention/Standee size artwork for Tick prevention/Reshma Bastav/V1/Tick_Prevention_Standee.pdf-1774353225690-162697108.pdf', 'application/pdf', 3630366, 'V1', 'uploaded', '2026-03-24 11:53:45'),
-(825, 943, 'Cloff_OS_VA_Pg_01.gif', '/digilabs/dmap/api/uploads/CLOFF_OS_VA_animation/CLOFF OS VA animation/Prathamesh Shengale/V1/Cloff_OS_VA_Pg_01.gif-1774420523150-731761976.gif', 'image/gif', 2551038, 'V1', 'uploaded', '2026-03-25 06:35:23'),
-(826, 943, 'Cloff_OS_VA_Pg_02.gif', '/digilabs/dmap/api/uploads/CLOFF_OS_VA_animation/CLOFF OS VA animation/Prathamesh Shengale/V1/Cloff_OS_VA_Pg_02.gif-1774420523163-63463014.gif', 'image/gif', 3525867, 'V1', 'uploaded', '2026-03-25 06:35:23'),
-(827, 943, 'Cloff_OS_VA_Pg_03.gif', '/digilabs/dmap/api/uploads/CLOFF_OS_VA_animation/CLOFF OS VA animation/Prathamesh Shengale/V1/Cloff_OS_VA_Pg_03.gif-1774420523170-527947685.gif', 'image/gif', 5228864, 'V1', 'uploaded', '2026-03-25 06:35:23'),
-(828, 943, 'Cloff_OS_VA_Pg_04.gif', '/digilabs/dmap/api/uploads/CLOFF_OS_VA_animation/CLOFF OS VA animation/Prathamesh Shengale/V1/Cloff_OS_VA_Pg_04.gif-1774420523177-753239196.gif', 'image/gif', 3123939, 'V1', 'uploaded', '2026-03-25 06:35:23'),
-(829, 943, 'Cloff_OS_VA_Pg_05.gif', '/digilabs/dmap/api/uploads/CLOFF_OS_VA_animation/CLOFF OS VA animation/Prathamesh Shengale/V1/Cloff_OS_VA_Pg_05.gif-1774420523182-560221646.gif', 'image/gif', 2433384, 'V1', 'uploaded', '2026-03-25 06:35:23'),
-(830, 947, 'Vitaresp_FX_Jan_2026_VA_Pg_01.gif', '/digilabs/dmap/api/uploads/VITARESP_FX/VITARESP FX/Prathamesh Shengale/V1/Vitaresp_FX_Jan_2026_VA_Pg_01.gif-1774420567574-734050256.gif', 'image/gif', 3350786, 'V1', 'uploaded', '2026-03-25 06:36:07'),
-(831, 947, 'Vitaresp_FX_Jan_2026_VA_Pg_02.gif', '/digilabs/dmap/api/uploads/VITARESP_FX/VITARESP FX/Prathamesh Shengale/V1/Vitaresp_FX_Jan_2026_VA_Pg_02.gif-1774420567587-110961262.gif', 'image/gif', 4240681, 'V1', 'uploaded', '2026-03-25 06:36:07'),
-(832, 947, 'Vitaresp_FX_Jan_2026_VA_Pg_03.gif', '/digilabs/dmap/api/uploads/VITARESP_FX/VITARESP FX/Prathamesh Shengale/V1/Vitaresp_FX_Jan_2026_VA_Pg_03.gif-1774420567597-422671532.gif', 'image/gif', 5104969, 'V1', 'uploaded', '2026-03-25 06:36:07'),
-(833, 947, 'Vitaresp_FX_Jan_2026_VA_Pg_04.gif', '/digilabs/dmap/api/uploads/VITARESP_FX/VITARESP FX/Prathamesh Shengale/V1/Vitaresp_FX_Jan_2026_VA_Pg_04.gif-1774420567604-164718074.gif', 'image/gif', 4200494, 'V1', 'uploaded', '2026-03-25 06:36:07'),
-(834, 947, 'Vitaresp_FX_Jan_2026_VA_Pg_05.gif', '/digilabs/dmap/api/uploads/VITARESP_FX/VITARESP FX/Prathamesh Shengale/V1/Vitaresp_FX_Jan_2026_VA_Pg_05.gif-1774420567611-533281065.gif', 'image/gif', 1769974, 'V1', 'uploaded', '2026-03-25 06:36:07'),
-(835, 959, 'Observation Record Book_ctc.pdf', '/digilabs/dmap/api/uploads/Check_Tray_Observation_Record/Check Tray Observation Record/Reshma Bastav/V1/Observation_Record_Book_ctc.pdf-1774423585293-47977003.pdf', 'application/pdf', 6228597, 'V1', 'uploaded', '2026-03-25 07:26:25'),
-(836, 990, 'GIEP Invite.pdf', '/digilabs/dmap/api/uploads/GIEP_Program_Note_Pad/GIEP Program Note Pad/Reshma Bastav/V1/GIEP_Invite.pdf-1774423913114-414101519.pdf', 'application/pdf', 3010397, 'V1', 'uploaded', '2026-03-25 07:31:53');
-
 -- --------------------------------------------------------
 
---
--- Table structure for table `task_project_reference`
---
+INSERT INTO `task_documents` (`id`, `task_assignment_id`, `document_name`, `document_path`, `document_type`, `document_size`, `version`, `status`, `uploaded_at`, `review`, `intimate_client`) VALUES
+(6, 62, 'Day-of-Reminder.jpg', '/digilabs/dmap/api/uploads/Alembic_Health_First_New_Design/Alembic Health First/Sanket Chandrakanat  Patade/V1/Day_of_Reminder.jpg-1768195276122-346048697.jpg', 'image/jpeg', 673704, 'V1', 'uploaded', '2026-01-12 05:21:16', 'pending', 0),
+(7, 62, 'Event-Announcement-&-Highlights.jpg', '/digilabs/dmap/api/uploads/Alembic_Health_First_New_Design/Alembic Health First/Sanket Chandrakanat  Patade/V1/Event_Announcement___Highlights.jpg-1768195276138-42888751.jpg', 'image/jpeg', 503191, 'V1', 'uploaded', '2026-01-12 05:21:16', 'pending', 0),
+(8, 62, 'Myths-vs-Truths.jpg', '/digilabs/dmap/api/uploads/Alembic_Health_First_New_Design/Alembic Health First/Sanket Chandrakanat  Patade/V1/Myths_vs_Truths.jpg-1768195276142-158268032.jpg', 'image/jpeg', 323495, 'V1', 'uploaded', '2026-01-12 05:21:16', 'pending', 0),
+(9, 62, 'Post-Event-Highlights.jpg', '/digilabs/dmap/api/uploads/Alembic_Health_First_New_Design/Alembic Health First/Sanket Chandrakanat  Patade/V1/Post_Event_Highlights.jpg-1768195276147-946760990.jpg', 'image/jpeg', 361207, 'V1', 'uploaded', '2026-01-12 05:21:16', 'pending', 0),
+(10, 62, 'Pre-Buzz-Tease1250_X_1250_pxl_3.jpg', '/digilabs/dmap/api/uploads/Alembic_Health_First_New_Design/Alembic Health First/Sanket Chandrakanat  Patade/V1/Pre_Buzz_Tease1250_X_1250_pxl_3.jpg-1768195276153-506262583.jpg', 'image/jpeg', 681050, 'V1', 'uploaded', '2026-01-12 05:21:16', 'pending', 0),
+(12, 69, 'Dermavidya Standee_C2C.pdf', '/digilabs/dmap/api/uploads/DermaVidya_Standee/DermaVidya Standee/Angana Prakash Patil/V1/Dermavidya_Standee_C2C.pdf-1768282339111-227574400.pdf', 'application/pdf', 12781735, 'V1', 'uploaded', '2026-01-13 05:32:19', 'pending', 0),
+(13, 75, 'Teaser 1-01.jpg', '/digilabs/dmap/api/uploads/PEDICON_FLYERS/Pedicon Flyers/Gaurav Karnik/V1/Teaser_1_01.jpg-1768283165997-811654483.jpg', 'image/jpeg', 1496437, 'V1', 'uploaded', '2026-01-13 05:46:06', 'pending', 0),
+(14, 75, 'Teaser 1-04.jpg', '/digilabs/dmap/api/uploads/PEDICON_FLYERS/Pedicon Flyers/Gaurav Karnik/V1/Teaser_1_04.jpg-1768283166016-721331974.jpg', 'image/jpeg', 1573414, 'V1', 'uploaded', '2026-01-13 05:46:06', 'pending', 0),
+(15, 75, 'Teaser 1-06.jpg', '/digilabs/dmap/api/uploads/PEDICON_FLYERS/Pedicon Flyers/Gaurav Karnik/V1/Teaser_1_06.jpg-1768283166041-349297187.jpg', 'image/jpeg', 1309413, 'V1', 'uploaded', '2026-01-13 05:46:06', 'pending', 0),
+(16, 75, 'Teaser 1-11.jpg', '/digilabs/dmap/api/uploads/PEDICON_FLYERS/Pedicon Flyers/Gaurav Karnik/V1/Teaser_1_11.jpg-1768283166090-994361415.jpg', 'image/jpeg', 1497482, 'V1', 'uploaded', '2026-01-13 05:46:06', 'pending', 0),
+(17, 64, 'Reminder card_Jan.jpg', '/digilabs/dmap/api/uploads/NAC_brand_reminder/NAC brand reminder/Angana Prakash Patil/V1/Reminder_card_Jan.jpg-1768379881324-669889032.jpg', 'image/jpeg', 1002028, 'V1', 'uploaded', '2026-01-14 08:38:01', 'pending', 0),
+(20, 65, 'Reminder card_Jan.pdf', '/digilabs/dmap/api/uploads/NCV_Brand_Reminder_/NCV-Brand Reminder/Angana Prakash Patil/V1/Reminder_card_Jan.pdf-1768389648312-857452752.pdf', 'application/pdf', 2764804, 'V1', 'uploaded', '2026-01-14 11:20:48', 'pending', 0),
+(21, 73, 'Lactonic_Launch_Card_2.pdf', '/digilabs/dmap/api/uploads/Lactonic_Launch_Card_/Lactonic Launch Card/Angana Prakash Patil/V1/Lactonic_Launch_Card_2.pdf-1768389732619-240312233.pdf', 'application/pdf', 3751199, 'V1', 'uploaded', '2026-01-14 11:22:12', 'pending', 0),
+(22, 68, 'Pelvic bladder anatomy.pdf', '/digilabs/dmap/api/uploads/NASAL_CAVITY_AND_UTERUS_MODEL/Nasal Cavity/Angana Prakash Patil/V1/Pelvic_bladder_anatomy.pdf-1768464939589-888545127.pdf', 'application/pdf', 7149496, 'V1', 'uploaded', '2026-01-15 08:15:39', 'pending', 0),
+(23, 72, 'Livfit_Launch_Card_Final.pdf', '/digilabs/dmap/api/uploads/New_livfit_Launch_card/Livfit Card/Angana Prakash Patil/V1/Livfit_Launch_Card_Final.pdf-1768563538914-192550339.pdf', 'application/pdf', 2450240, 'V1', 'uploaded', '2026-01-16 11:38:58', 'pending', 0),
+(24, 63, 'Gestofit Presciption Pad AW Artwork 2 Final_Nepali.pdf', '/digilabs/dmap/api/uploads/Gestofit_Prescription_Pad/Gestofit Prescription Pad/Angana Prakash Patil/V1/Gestofit_Presciption_Pad_AW_Artwork_2_Final_Nepali.pdf-1768563737683-664948488.pdf', 'application/pdf', 3279948, 'V1', 'uploaded', '2026-01-16 11:42:17', 'pending', 0),
+(25, 87, 'HO-TV-artwork---Asia-Book-of-Records_1.jpg', '/digilabs/dmap/api/uploads/HO_TV_artwork___Asia_Book_of_Records/Asia Book/Sanket Chandrakanat  Patade/V1/HO_TV_artwork___Asia_Book_of_Records_1.jpg-1768807260292-543177715.jpg', 'image/jpeg', 200615, 'V1', 'uploaded', '2026-01-19 07:21:00', 'pending', 0),
+(26, 87, 'HO-TV-artwork---Asia-Book-of-Records_2.jpg', '/digilabs/dmap/api/uploads/HO_TV_artwork___Asia_Book_of_Records/Asia Book/Sanket Chandrakanat  Patade/V1/HO_TV_artwork___Asia_Book_of_Records_2.jpg-1768807260302-848720494.jpg', 'image/jpeg', 362512, 'V1', 'uploaded', '2026-01-19 07:21:00', 'pending', 0),
+(27, 87, 'HO-TV-artwork---Asia-Book-of-Records_3.jpg', '/digilabs/dmap/api/uploads/HO_TV_artwork___Asia_Book_of_Records/Asia Book/Sanket Chandrakanat  Patade/V1/HO_TV_artwork___Asia_Book_of_Records_3.jpg-1768807260308-277392397.jpg', 'image/jpeg', 288682, 'V1', 'uploaded', '2026-01-19 07:21:00', 'pending', 0),
+(28, 81, 'Happy-Republic-Day.jpg', '/digilabs/dmap/api/uploads/Republic_Day__Digital_Flyer/Republic Day/Sanket Chandrakanat  Patade/V1/Happy_Republic_Day.jpg-1768824156165-250005815.jpg', 'image/jpeg', 118153, 'V1', 'uploaded', '2026-01-19 12:02:36', 'pending', 0),
+(29, 102, 'Top-Medical-Representatives_Monthly_Dec-2025_Elena.jpg', '/digilabs/dmap/api/uploads/MRs_with_Highest_Productive_Calls___Monthly/MRs with Highest Productive Calls | Monthly/Sanket Chandrakanat  Patade/V1/Top_Medical_Representatives_Monthly_Dec_2025_Elena.jpg-1768876793388-213025892.jpg', 'image/jpeg', 144079, 'V1', 'uploaded', '2026-01-20 02:39:53', 'pending', 0),
+(30, 101, 'SCM-Award-Artwork.jpg', '/digilabs/dmap/api/uploads/Supply_Chain_Management_Team__Award_artwork/Supply Chain Management Team- Award artwork/Sanket Chandrakanat  Patade/V1/SCM_Award_Artwork.jpg-1768885133731-472767948.jpg', 'image/jpeg', 1023661, 'V1', 'uploaded', '2026-01-20 04:58:53', 'pending', 0),
+(31, 103, 'SKCDA-PROJECT-PROPOSAL_A4_Horizontal.jpg', '/digilabs/dmap/api/uploads/SCM_Advertisement/SCM Advertisement/Sanket Chandrakanat  Patade/V1/SKCDA_PROJECT_PROPOSAL_A4_Horizontal.jpg-1768889079484-46140349.jpg', 'image/jpeg', 197932, 'V1', 'uploaded', '2026-01-20 06:04:39', 'pending', 0),
+(32, 103, 'SKCDA-PROJECT-PROPOSAL_A4_Vertical.jpg', '/digilabs/dmap/api/uploads/SCM_Advertisement/SCM Advertisement/Sanket Chandrakanat  Patade/V1/SKCDA_PROJECT_PROPOSAL_A4_Vertical.jpg-1768889079491-377282111.jpg', 'image/jpeg', 192209, 'V1', 'uploaded', '2026-01-20 06:04:39', 'pending', 0),
+(33, 86, 'qr-code.png', '/digilabs/dmap/api/uploads/Evaraft_Consensus_QR_Code/Evaraft Consensus QR Code/Gautam Baranwal/V1/qr_code.png-1768904392398-699485131.png', 'image/png', 9011, 'V1', 'uploaded', '2026-01-20 10:19:52', 'pending', 0),
+(34, 82, 'Mouth Guard_Delton Sticker.jpg', '/digilabs/dmap/api/uploads/Deltone_SGPI_Outer_box_Artwork/Deltone SGPI Outer box/Nilesh Khedekar/V1/Mouth_Guard_Delton_Sticker.jpg-1768908451270-943528153.jpg', 'image/jpeg', 284185, 'V1', 'uploaded', '2026-01-20 11:27:31', 'pending', 0),
+(35, 135, 'Medical_changes___Estroplus_VA.pptx-1768901399254-980879241.pptx', '/digilabs/dmap/api/uploads/ESTROPLUS_VA/ESTROPLUS VA/Vinisha Chadala/V1/Medical_changes___Estroplus_VA.pptx_1768901399254_980879241.pptx-1768973422101-561185570.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 1542001, 'V1', 'uploaded', '2026-01-21 05:30:22', 'pending', 0),
+(36, 90, 'Republic Day - 2026_Corazone.mp4', '/digilabs/dmap/api/uploads/Republic_Day_Greetings/ Corazon- Republic Day Video 2026/Prashant Khade/V1/Republic_Day___2026_Corazone.mp4-1768987945466-285128052.mp4', 'video/mp4', 89863304, 'V1', 'uploaded', '2026-01-21 09:32:27', 'pending', 0),
+(37, 152, 'enteron_va_qr.png', '/digilabs/dmap/api/uploads/Enteron_FY_2026_27_VA_PDF_Copy_link/Enteron FY 2026-27 VA PDF Copy link/Gautam Baranwal/V1/enteron_va_qr.png-1769057894103-810988225.png', 'image/png', 9052, 'V1', 'uploaded', '2026-01-22 04:58:14', 'pending', 0),
+(38, 149, 'Crina-NCR Megaplex Template GYNE_Manila Jain Kaushal-01.jpg', '/digilabs/dmap/api/uploads/Crina_NCR_Megaplex_Activity___Indore/Crina-NCR Megaplex Activity - Indore/Reshma Bastav/V1/Crina_NCR_Megaplex_Template_GYNE_Manila_Jain_Kaushal_01.jpg-1769063903398-829173434.jpg', 'image/jpeg', 4314321, 'V1', 'uploaded', '2026-01-22 06:38:23', 'pending', 0),
+(39, 149, 'Crina-NCR Megaplex Template GYNE_Manila Jain Kaushal-02.jpg', '/digilabs/dmap/api/uploads/Crina_NCR_Megaplex_Activity___Indore/Crina-NCR Megaplex Activity - Indore/Reshma Bastav/V1/Crina_NCR_Megaplex_Template_GYNE_Manila_Jain_Kaushal_02.jpg-1769063903412-573107063.jpg', 'image/jpeg', 2717529, 'V1', 'uploaded', '2026-01-22 06:38:23', 'pending', 0),
+(40, 149, 'Crina-NCR Megaplex Template GYNE_Manila Jain Kaushal-03.jpg', '/digilabs/dmap/api/uploads/Crina_NCR_Megaplex_Activity___Indore/Crina-NCR Megaplex Activity - Indore/Reshma Bastav/V1/Crina_NCR_Megaplex_Template_GYNE_Manila_Jain_Kaushal_03.jpg-1769063903418-457390809.jpg', 'image/jpeg', 5608148, 'V1', 'uploaded', '2026-01-22 06:38:23', 'pending', 0),
+(41, 112, 'Pegtears reintroduction.docx', '/digilabs/dmap/api/uploads/PegTears_HP_Teaser/PegTears HP Teaser/Vinisha Chadala/V1/Pegtears_reintroduction.docx-1769064256551-436949497.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 16730, 'V1', 'uploaded', '2026-01-22 06:44:16', 'pending', 0),
+(42, 112, 'Pegtears script Healing Partner.docx', '/digilabs/dmap/api/uploads/PegTears_HP_Teaser/PegTears HP Teaser/Vinisha Chadala/V1/Pegtears_script_Healing_Partner.docx-1769064256560-706508904.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 14639, 'V1', 'uploaded', '2026-01-22 06:44:16', 'pending', 0),
+(43, 85, 'Summit LBLs (Mar\'26) & CME Invitation CTC.jpg', '/digilabs/dmap/api/uploads/InSH_Guideline_CME__Pune__Invitation_Card/InSH Guideline CME/Tanmay Santosh Chorghe/V1/Summit_LBLs__Mar_26____CME_Invitation_CTC.jpg-1769064400458-925871444.jpg', 'image/jpeg', 601683, 'V1', 'uploaded', '2026-01-22 06:46:40', 'pending', 0),
+(44, 93, 'Republic Day GIF 02.mp4', '/digilabs/dmap/api/uploads/Republic_Day_Video_and_GIF_from_Digilabs/Specia - Republic Day GIF 2026/Prathamesh Shengale/V1/Republic_Day_GIF_02.mp4-1769065438459-45849371.mp4', 'video/mp4', 7225017, 'V1', 'uploaded', '2026-01-22 07:03:58', 'pending', 0),
+(45, 94, 'Republic Day GIF 03.mp4', '/digilabs/dmap/api/uploads/Republic_day_Gif_Oryza_sensitive/Corium - Republic day Gif 2026/Prathamesh Shengale/V1/Republic_Day_GIF_03.mp4-1769065466809-492029395.mp4', 'video/mp4', 7228945, 'V1', 'uploaded', '2026-01-22 07:04:26', 'pending', 0),
+(46, 151, 'Republic Day GIF 04.mp4', '/digilabs/dmap/api/uploads/Republic_Day_Greetings__from_makers_of_Azithral_Solid__Azithral_Liquid__Laveta_M_Solid__Laveta_M_Liquid_/Republic Day Greetings, from makers of Azithral Solid, Azithral Liquid, Laveta M Solid, Laveta M Liquid./Prathamesh Shengale/V1/Republic_Day_GIF_04.mp4-1769065983536-295102790.mp4', 'video/mp4', 10344391, 'V1', 'uploaded', '2026-01-22 07:13:03', 'pending', 0),
+(47, 115, 'Gift Box.jpg', '/digilabs/dmap/api/uploads/Retailer_Gift_Box_artwork/Retailer Gift Box artwork/Nilesh Khedekar/V1/Gift_Box.jpg-1769071645107-37700543.jpg', 'image/jpeg', 3217939, 'V1', 'uploaded', '2026-01-22 08:47:25', 'pending', 0),
+(48, 100, 'Republic Day GIF 05.mp4', '/digilabs/dmap/api/uploads/Republic_Day_Video/Cardigem - Republic Day Video 2026/Prathamesh Shengale/V1/Republic_Day_GIF_05.mp4-1769079627968-148087748.mp4', 'video/mp4', 7246378, 'V1', 'uploaded', '2026-01-22 11:00:27', 'pending', 0),
+(49, 98, 'Republic Day GIF 06.mp4', '/digilabs/dmap/api/uploads/Republic_day_video/Ouron - Republic Day GIF 2026/Prathamesh Shengale/V1/Republic_Day_GIF_06.mp4-1769081268285-349383675.mp4', 'video/mp4', 7251127, 'V1', 'uploaded', '2026-01-22 11:27:48', 'pending', 0),
+(50, 113, 'Gynatrop_Rx Pad 1.jpg', '/digilabs/dmap/api/uploads/Gynatrop_Rx_Pad/Gynatrop Rx Pad/Nilesh Khedekar/V1/Gynatrop_Rx_Pad_1.jpg-1769081570417-595779940.jpg', 'image/jpeg', 1873265, 'V1', 'uploaded', '2026-01-22 11:32:50', 'pending', 0),
+(51, 113, 'Gynatrop_Rx Pad 2.jpg', '/digilabs/dmap/api/uploads/Gynatrop_Rx_Pad/Gynatrop Rx Pad/Nilesh Khedekar/V1/Gynatrop_Rx_Pad_2.jpg-1769081570432-219625375.jpg', 'image/jpeg', 1749838, 'V1', 'uploaded', '2026-01-22 11:32:50', 'pending', 0),
+(52, 113, 'Gynatrop_Rx Pad 3.jpg', '/digilabs/dmap/api/uploads/Gynatrop_Rx_Pad/Gynatrop Rx Pad/Nilesh Khedekar/V1/Gynatrop_Rx_Pad_3.jpg-1769081570437-761560009.jpg', 'image/jpeg', 1556788, 'V1', 'uploaded', '2026-01-22 11:32:50', 'pending', 0),
+(53, 163, 'Wikoryl Liquid Packshots.pdf', '/digilabs/dmap/api/uploads/Wikoryl_Pack_shots/Wikoryl Pack shots/Navneet Pathak/V1/Wikoryl_Liquid_Packshots.pdf-1769083002581-482760709.pdf', 'application/pdf', 11667408, 'V1', 'uploaded', '2026-01-22 11:56:42', 'pending', 0),
+(54, 161, 'CHCF Camp Reminder Cards_V2.pdf', '/digilabs/dmap/api/uploads/CHCF_camp_Reminder_card/CHCF camp Reminder card/Navneet Pathak/V1/CHCF_Camp_Reminder_Cards_V2.pdf-1769084549645-393712305.pdf', 'application/pdf', 3482636, 'V1', 'uploaded', '2026-01-22 12:22:29', 'pending', 0),
+(55, 84, 'Tellzy_LBL_March 2026.pdf', '/digilabs/dmap/api/uploads/Tellzy_Range_LBLs__Feb_25_/Tellzy Range LBLs/Angana Prakash Patil/V1/Tellzy_LBL_March_2026.pdf-1769146571863-232195263.pdf', 'application/pdf', 2018065, 'V1', 'uploaded', '2026-01-23 05:36:11', 'pending', 0),
+(56, 84, 'Tellzy-AM_LBL_March 2026.pdf', '/digilabs/dmap/api/uploads/Tellzy_Range_LBLs__Feb_25_/Tellzy Range LBLs/Angana Prakash Patil/V1/Tellzy_AM_LBL_March_2026.pdf-1769146571870-642737897.pdf', 'application/pdf', 2155711, 'V1', 'uploaded', '2026-01-23 05:36:11', 'pending', 0),
+(57, 84, 'Tellzy-LN_LBL_March 2026.pdf', '/digilabs/dmap/api/uploads/Tellzy_Range_LBLs__Feb_25_/Tellzy Range LBLs/Angana Prakash Patil/V1/Tellzy_LN_LBL_March_2026.pdf-1769146571875-789250652.pdf', 'application/pdf', 4337888, 'V1', 'uploaded', '2026-01-23 05:36:11', 'pending', 0),
+(58, 84, 'Tellzy-MT_LBL_March 2026.pdf', '/digilabs/dmap/api/uploads/Tellzy_Range_LBLs__Feb_25_/Tellzy Range LBLs/Angana Prakash Patil/V1/Tellzy_MT_LBL_March_2026.pdf-1769146571880-478982100.pdf', 'application/pdf', 3236189, 'V1', 'uploaded', '2026-01-23 05:36:11', 'pending', 0),
+(59, 84, 'Tellzy-Ach_LBL_March 2026.pdf', '/digilabs/dmap/api/uploads/Tellzy_Range_LBLs__Feb_25_/Tellzy Range LBLs/Angana Prakash Patil/V1/Tellzy_Ach_LBL_March_2026.pdf-1769146571885-200278582.pdf', 'application/pdf', 21536536, 'V1', 'uploaded', '2026-01-23 05:36:11', 'pending', 0),
+(60, 84, 'Tellzy-CH_LBL_March 2026.pdf', '/digilabs/dmap/api/uploads/Tellzy_Range_LBLs__Feb_25_/Tellzy Range LBLs/Angana Prakash Patil/V1/Tellzy_CH_LBL_March_2026.pdf-1769146571903-473029875.pdf', 'application/pdf', 4515516, 'V1', 'uploaded', '2026-01-23 05:36:11', 'pending', 0),
+(61, 172, 'Happy 77th Republic Day-02.jpg', '/digilabs/dmap/api/uploads/Social_Media_Post_and_Interact_Mailer_for_Republic_Day/Social Media Post and Interact Mailer for Republic Day/Tanmay Santosh Chorghe/V1/Happy_77th_Republic_Day_02.jpg-1769157754283-137513901.jpg', 'image/jpeg', 184043, 'V1', 'uploaded', '2026-01-23 08:42:34', 'pending', 0),
+(62, 164, 'Souvenir For Megacon Medical conference.jpg', '/digilabs/dmap/api/uploads/Souvenir_for_Megacon_2026/Souvenir for Megacon 2026/Nilesh Khedekar/V1/Souvenir_For_Megacon_Medical_conference.jpg-1769158282215-146289716.jpg', 'image/jpeg', 1256275, 'V1', 'uploaded', '2026-01-23 08:51:22', 'pending', 0),
+(63, 108, 'Republic Day.jpg', '/digilabs/dmap/api/uploads/Republic_Day_Greeting_/Republic Day Greeting/Nilesh Khedekar/V1/Republic_Day.jpg-1769161057266-554616254.jpg', 'image/jpeg', 605263, 'V1', 'uploaded', '2026-01-23 09:37:37', 'pending', 0),
+(64, 108, 'Republic Day.jpg', '/digilabs/dmap/api/uploads/Republic_Day_Greeting_/Republic Day Greeting/Nilesh Khedekar/V1/Republic_Day.jpg-1769161057272-270351445.jpg', 'image/jpeg', 605263, 'V1', 'uploaded', '2026-01-23 09:37:37', 'pending', 0),
+(65, 174, 'Republic Day.jpg', '/digilabs/dmap/api/uploads/Republic_Day_Flyer/Republic Day Flyer/Nilesh Khedekar/V1/Republic_Day.jpg-1769161118640-485413587.jpg', 'image/jpeg', 1430149, 'V1', 'uploaded', '2026-01-23 09:38:38', 'pending', 0),
+(66, 175, 'Brand Logo Video.mp4', '/digilabs/dmap/api/uploads/Brand_Logo_Video/Ouron Loop _Brand Logo Video_2026/Prathamesh Shengale/V1/Brand_Logo_Video.mp4-1769162831516-973115652.mp4', 'video/mp4', 9038645, 'V1', 'uploaded', '2026-01-23 10:07:11', 'pending', 0),
+(67, 173, 'Republic Day GIF 08.mp4', '/digilabs/dmap/api/uploads/Republic_Day_Video/Hospicare_Republic Day Video_2026/Prathamesh Shengale/V1/Republic_Day_GIF_08.mp4-1769163747817-509941253.mp4', 'video/mp4', 10309951, 'V1', 'uploaded', '2026-01-23 10:22:27', 'pending', 0),
+(68, 165, 'Certificate of Appriciation.pdf', '/digilabs/dmap/api/uploads/Need_appreciation_and_participation_certificates/Need appreciation and participation certificates/Nilesh Khedekar/V1/Certificate_of_Appriciation.pdf-1769164726726-949680705.pdf', 'application/pdf', 2777265, 'V1', 'uploaded', '2026-01-23 10:38:46', 'pending', 0),
+(69, 165, 'Certificate of Participation.pdf', '/digilabs/dmap/api/uploads/Need_appreciation_and_participation_certificates/Need appreciation and participation certificates/Nilesh Khedekar/V1/Certificate_of_Participation.pdf-1769164726752-737201107.pdf', 'application/pdf', 2798327, 'V1', 'uploaded', '2026-01-23 10:38:46', 'pending', 0),
+(70, 185, 'Republic Day.jpg', '/digilabs/dmap/api/uploads/Republic_Day_digital_flyer__enteron/Republic Day digital flyer- enteron/Nilesh Khedekar/V1/Republic_Day.jpg-1769514512125-161718950.jpg', 'image/jpeg', 664377, 'V1', 'uploaded', '2026-01-27 11:48:32', 'pending', 0),
+(71, 182, 'MR PRODUCTIVITY CALLS_WEEKLY_TOP_MR 01-19-2026.pdf', '/digilabs/dmap/api/uploads/MR_Productive_Calls_Weekly_Leaderboards/MR Productive Calls Weekly Leaderboards/Milind Balkrushna Shelar/V1/MR_PRODUCTIVITY_CALLS_WEEKLY_TOP_MR_01_19_2026.pdf-1769582151484-969584391.pdf', 'application/pdf', 24532662, 'V1', 'uploaded', '2026-01-28 06:35:52', 'pending', 0),
+(72, 170, 'Wikoryl AF Copies.docx', '/digilabs/dmap/api/uploads/Wikoryl_AF_VA_pages_FY_26_27/Wikoryl AF VA pages FY 26-27/Vinisha Chadala/V1/Wikoryl_AF_Copies.docx-1769582432785-817153419.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13749, 'V1', 'uploaded', '2026-01-28 06:40:33', 'pending', 0),
+(73, 170, 'Wikoryl AF Copies.docx', '/digilabs/dmap/api/uploads/Wikoryl_AF_VA_pages_FY_26_27/Wikoryl AF VA pages FY 26-27/Vinisha Chadala/V1/Wikoryl_AF_Copies.docx-1769582436985-345389953.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13749, 'V1', 'uploaded', '2026-01-28 06:40:41', 'pending', 0),
+(74, 170, 'Wikoryl AF Copies.docx', '/digilabs/dmap/api/uploads/Wikoryl_AF_VA_pages_FY_26_27/Wikoryl AF VA pages FY 26-27/Vinisha Chadala/V1/Wikoryl_AF_Copies.docx-1769582443685-804577197.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13749, 'V1', 'uploaded', '2026-01-28 06:40:45', 'pending', 0),
+(75, 170, 'Wikoryl AF Copies.docx', '/digilabs/dmap/api/uploads/Wikoryl_AF_VA_pages_FY_26_27/Wikoryl AF VA pages FY 26-27/Vinisha Chadala/V1/Wikoryl_AF_Copies.docx-1769582447589-38878959.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13749, 'V1', 'uploaded', '2026-01-28 06:40:49', 'pending', 0),
+(76, 170, 'Wikoryl AF Copies.docx', '/digilabs/dmap/api/uploads/Wikoryl_AF_VA_pages_FY_26_27/Wikoryl AF VA pages FY 26-27/Vinisha Chadala/V1/Wikoryl_AF_Copies.docx-1769582452287-369475939.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13749, 'V1', 'uploaded', '2026-01-28 06:40:52', 'pending', 0),
+(77, 170, 'Wikoryl AF Copies.docx', '/digilabs/dmap/api/uploads/Wikoryl_AF_VA_pages_FY_26_27/Wikoryl AF VA pages FY 26-27/Vinisha Chadala/V1/Wikoryl_AF_Copies.docx-1769582455086-340638122.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13749, 'V1', 'uploaded', '2026-01-28 06:40:55', 'pending', 0),
+(78, 170, 'Wikoryl AF Copies.docx', '/digilabs/dmap/api/uploads/Wikoryl_AF_VA_pages_FY_26_27/Wikoryl AF VA pages FY 26-27/Vinisha Chadala/V1/Wikoryl_AF_Copies.docx-1769582455891-770284629.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13749, 'V1', 'uploaded', '2026-01-28 06:40:56', 'pending', 0),
+(79, 181, 'Acute cluster Brand Standee-1.jpg', '/digilabs/dmap/api/uploads/Azithral/Azithral/Milind Balkrushna Shelar/V1/Acute_cluster_Brand_Standee_1.jpg-1769582598687-765657332.jpg', 'image/jpeg', 2929278, 'V1', 'uploaded', '2026-01-28 06:43:18', 'pending', 0),
+(80, 181, 'Acute cluster Brand Standee-2.jpg', '/digilabs/dmap/api/uploads/Azithral/Azithral/Milind Balkrushna Shelar/V1/Acute_cluster_Brand_Standee_2.jpg-1769582598788-292449656.jpg', 'image/jpeg', 2983485, 'V1', 'uploaded', '2026-01-28 06:43:18', 'pending', 0),
+(81, 176, 'MR PRODUCTIVITY CALLS_WEEKLY_TOP_MR 01-19-2026_compressed.pdf', '/digilabs/dmap/api/uploads/Leaderboards_for_Top_MRs_with_Highest_Productivity_Calls/Leaderboards for Top MRs with Highest Productivity Calls/Milind Balkrushna Shelar/V1/MR_PRODUCTIVITY_CALLS_WEEKLY_TOP_MR_01_19_2026_compressed.pdf-1769582734988-821044355.pdf', 'application/pdf', 1966316, 'V1', 'uploaded', '2026-01-28 06:45:35', 'pending', 0),
+(82, 104, 'MR PRODUCTIVE CALLS_WEEKLY_TOP_MR_01-26-2026.pdf', '/digilabs/dmap/api/uploads/MRs_with_Highest_Productive_Calls___Weekly/MRs with Highest Productive Calls | Weekly/Milind Balkrushna Shelar/V1/MR_PRODUCTIVE_CALLS_WEEKLY_TOP_MR_01_26_2026.pdf-1769582905185-39316407.pdf', 'application/pdf', 2001026, 'V1', 'uploaded', '2026-01-28 06:48:25', 'pending', 0),
+(83, 107, 'All size logos-01.jpg', '/digilabs/dmap/api/uploads/Timeline_Derma_product_s_logos/Timeline Derma product\'s logos/Milind Balkrushna Shelar/V1/All_size_logos_01.jpg-1769584136888-682197184.jpg', 'image/jpeg', 512148, 'V1', 'uploaded', '2026-01-28 07:08:56', 'pending', 0),
+(84, 107, 'All size logos-02.jpg', '/digilabs/dmap/api/uploads/Timeline_Derma_product_s_logos/Timeline Derma product\'s logos/Milind Balkrushna Shelar/V1/All_size_logos_02.jpg-1769584136893-867733592.jpg', 'image/jpeg', 376423, 'V1', 'uploaded', '2026-01-28 07:08:56', 'pending', 0),
+(85, 107, 'All size logos-03.jpg', '/digilabs/dmap/api/uploads/Timeline_Derma_product_s_logos/Timeline Derma product\'s logos/Milind Balkrushna Shelar/V1/All_size_logos_03.jpg-1769584136988-121014766.jpg', 'image/jpeg', 569437, 'V1', 'uploaded', '2026-01-28 07:08:56', 'pending', 0),
+(86, 109, 'Celebrating-Lohri-Carousel_1.jpg', '/digilabs/dmap/api/uploads/Lohri_Day_Celebration_Collage_Artwork/Lohri Day Celebration Collage Artwork/Sanket Chandrakanat  Patade/V1/Celebrating_Lohri_Carousel_1.jpg-1769588732482-688761640.jpg', 'image/jpeg', 1223265, 'V1', 'uploaded', '2026-01-28 08:25:35', 'pending', 0),
+(87, 109, 'Celebrating-Lohri-Carousel_2.jpg', '/digilabs/dmap/api/uploads/Lohri_Day_Celebration_Collage_Artwork/Lohri Day Celebration Collage Artwork/Sanket Chandrakanat  Patade/V1/Celebrating_Lohri_Carousel_2.jpg-1769588738194-605148929.jpg', 'image/jpeg', 1088421, 'V1', 'uploaded', '2026-01-28 08:25:39', 'pending', 0),
+(88, 109, 'Celebrating-Lohri-Carousel_1.jpg', '/digilabs/dmap/api/uploads/Lohri_Day_Celebration_Collage_Artwork/Lohri Day Celebration Collage Artwork/Sanket Chandrakanat  Patade/V1/Celebrating_Lohri_Carousel_1.jpg-1769588741588-225369009.jpg', 'image/jpeg', 1223265, 'V1', 'uploaded', '2026-01-28 08:25:42', 'pending', 0),
+(89, 109, 'Celebrating-Lohri-Carousel_2.jpg', '/digilabs/dmap/api/uploads/Lohri_Day_Celebration_Collage_Artwork/Lohri Day Celebration Collage Artwork/Sanket Chandrakanat  Patade/V1/Celebrating_Lohri_Carousel_2.jpg-1769588743085-449445767.jpg', 'image/jpeg', 1088421, 'V1', 'uploaded', '2026-01-28 08:25:43', 'pending', 0),
+(90, 109, 'Celebrating-Lohri-Carousel_1.jpg', '/digilabs/dmap/api/uploads/Lohri_Day_Celebration_Collage_Artwork/Lohri Day Celebration Collage Artwork/Sanket Chandrakanat  Patade/V1/Celebrating_Lohri_Carousel_1.jpg-1769588743184-999737177.jpg', 'image/jpeg', 1223265, 'V1', 'uploaded', '2026-01-28 08:25:43', 'pending', 0),
+(91, 109, 'Celebrating-Lohri-Carousel_2.jpg', '/digilabs/dmap/api/uploads/Lohri_Day_Celebration_Collage_Artwork/Lohri Day Celebration Collage Artwork/Sanket Chandrakanat  Patade/V1/Celebrating_Lohri_Carousel_2.jpg-1769588744181-793072828.jpg', 'image/jpeg', 1088421, 'V1', 'uploaded', '2026-01-28 08:25:44', 'pending', 0),
+(92, 109, 'Celebrating-Lohri-Carousel_1.jpg', '/digilabs/dmap/api/uploads/Lohri_Day_Celebration_Collage_Artwork/Lohri Day Celebration Collage Artwork/Sanket Chandrakanat  Patade/V1/Celebrating_Lohri_Carousel_1.jpg-1769588745187-522072952.jpg', 'image/jpeg', 1223265, 'V1', 'uploaded', '2026-01-28 08:25:45', 'pending', 0),
+(93, 109, 'Celebrating-Lohri-Carousel_2.jpg', '/digilabs/dmap/api/uploads/Lohri_Day_Celebration_Collage_Artwork/Lohri Day Celebration Collage Artwork/Sanket Chandrakanat  Patade/V1/Celebrating_Lohri_Carousel_2.jpg-1769588746591-530409054.jpg', 'image/jpeg', 1088421, 'V1', 'uploaded', '2026-01-28 08:25:47', 'pending', 0),
+(94, 109, 'Celebrating-Lohri-Carousel_1.jpg', '/digilabs/dmap/api/uploads/Lohri_Day_Celebration_Collage_Artwork/Lohri Day Celebration Collage Artwork/Sanket Chandrakanat  Patade/V1/Celebrating_Lohri_Carousel_1.jpg-1769588748783-197886496.jpg', 'image/jpeg', 1223265, 'V1', 'uploaded', '2026-01-28 08:25:49', 'pending', 0),
+(95, 109, 'Celebrating-Lohri-Carousel_2.jpg', '/digilabs/dmap/api/uploads/Lohri_Day_Celebration_Collage_Artwork/Lohri Day Celebration Collage Artwork/Sanket Chandrakanat  Patade/V1/Celebrating_Lohri_Carousel_2.jpg-1769588750183-895563423.jpg', 'image/jpeg', 1088421, 'V1', 'uploaded', '2026-01-28 08:25:51', 'pending', 0),
+(96, 109, 'Celebrating-Lohri-Carousel_1.jpg', '/digilabs/dmap/api/uploads/Lohri_Day_Celebration_Collage_Artwork/Lohri Day Celebration Collage Artwork/Sanket Chandrakanat  Patade/V1/Celebrating_Lohri_Carousel_1.jpg-1769588754083-52787991.jpg', 'image/jpeg', 1223265, 'V1', 'uploaded', '2026-01-28 08:25:55', 'pending', 0),
+(97, 109, 'Celebrating-Lohri-Carousel_2.jpg', '/digilabs/dmap/api/uploads/Lohri_Day_Celebration_Collage_Artwork/Lohri Day Celebration Collage Artwork/Sanket Chandrakanat  Patade/V1/Celebrating_Lohri_Carousel_2.jpg-1769588757083-154617127.jpg', 'image/jpeg', 1088421, 'V1', 'uploaded', '2026-01-28 08:25:59', 'pending', 0),
+(98, 171, 'Tetan tea Coaster_C2C.jpg', '/digilabs/dmap/api/uploads/Artwork_for_Tetan_Tea_Coaster/Artwork for Tetan Tea Coaster/Angana Prakash Patil/V1/Tetan_tea_Coaster_C2C.jpg-1769588944287-761380691.jpg', 'image/jpeg', 518531, 'V1', 'uploaded', '2026-01-28 08:29:05', 'pending', 0),
+(99, 180, 'standee-01.jpg', '/digilabs/dmap/api/uploads/Standees_for_Apollo___13th_IPSC_Conference/Standees for Apollo - 13th IPSC Conference/Angana Prakash Patil/V1/standee_01.jpg-1769589080285-944701768.jpg', 'image/jpeg', 5856892, 'V1', 'uploaded', '2026-01-28 08:31:20', 'pending', 0),
+(100, 180, 'standee-02.jpg', '/digilabs/dmap/api/uploads/Standees_for_Apollo___13th_IPSC_Conference/Standees for Apollo - 13th IPSC Conference/Angana Prakash Patil/V1/standee_02.jpg-1769589080383-559811244.jpg', 'image/jpeg', 5932274, 'V1', 'uploaded', '2026-01-28 08:31:20', 'pending', 0),
+(101, 179, 'Crina-NCR Megaplex Template IVF_Saudamini Mohapatra-01.jpg', '/digilabs/dmap/api/uploads/Crina_NCR_Megaplex_IVF___BBSR/Crina-NCR Megaplex IVF - BBSR/Reshma Bastav/V1/Crina_NCR_Megaplex_Template_IVF_Saudamini_Mohapatra_01.jpg-1769594278990-682934666.jpg', 'image/jpeg', 3395967, 'V1', 'uploaded', '2026-01-28 09:57:59', 'pending', 0),
+(102, 179, 'Crina-NCR Megaplex Template IVF_Saudamini Mohapatra-02.jpg', '/digilabs/dmap/api/uploads/Crina_NCR_Megaplex_IVF___BBSR/Crina-NCR Megaplex IVF - BBSR/Reshma Bastav/V1/Crina_NCR_Megaplex_Template_IVF_Saudamini_Mohapatra_02.jpg-1769594279185-510358150.jpg', 'image/jpeg', 4337353, 'V1', 'uploaded', '2026-01-28 09:57:59', 'pending', 0),
+(103, 179, 'Crina-NCR Megaplex Template IVF_Saudamini Mohapatra-03.jpg', '/digilabs/dmap/api/uploads/Crina_NCR_Megaplex_IVF___BBSR/Crina-NCR Megaplex IVF - BBSR/Reshma Bastav/V1/Crina_NCR_Megaplex_Template_IVF_Saudamini_Mohapatra_03.jpg-1769594279282-151763444.jpg', 'image/jpeg', 4208593, 'V1', 'uploaded', '2026-01-28 09:57:59', 'pending', 0),
+(104, 83, 'Camp_RC-01.jpg', '/digilabs/dmap/api/uploads/Camp_LBL_/Camp LBL/Nilesh Khedekar/V1/Camp_RC_01.jpg-1769600564087-736318116.jpg', 'image/jpeg', 319107, 'V1', 'uploaded', '2026-01-28 11:42:44', 'pending', 0),
+(105, 83, 'Camp_RC-02.jpg', '/digilabs/dmap/api/uploads/Camp_LBL_/Camp LBL/Nilesh Khedekar/V1/Camp_RC_02.jpg-1769600564285-355061905.jpg', 'image/jpeg', 257370, 'V1', 'uploaded', '2026-01-28 11:42:44', 'pending', 0),
+(106, 120, 'Sitalembic D_Short Video.pptx', '/digilabs/dmap/api/uploads/SITALEMBIC_D_VIDEO/SITALEMBIC D VIDEO/Divya Raval/V1/Sitalembic_D_Short_Video.pptx-1769601169084-821468972.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 1425326, 'V1', 'uploaded', '2026-01-28 11:52:50', 'pending', 0),
+(107, 120, 'Sitalembic_Storytelling video_Storyboard_Draft 1.pptx', '/digilabs/dmap/api/uploads/SITALEMBIC_D_VIDEO/SITALEMBIC D VIDEO/Divya Raval/V1/Sitalembic_Storytelling_video_Storyboard_Draft_1.pptx-1769601171881-366652636.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 4081065, 'V1', 'uploaded', '2026-01-28 11:52:52', 'pending', 0),
+(108, 162, 'Lanerwin LBL.pdf', '/digilabs/dmap/api/uploads/Lanerwin_RX_Pad_artwork_and_LBL/Lanerwin RX Pad artwork and LBL/Reshma Bastav/V1/Lanerwin_LBL.pdf-1769677126496-132868457.pdf', 'application/pdf', 3418247, 'V1', 'uploaded', '2026-01-29 08:58:46', 'pending', 0),
+(109, 162, 'Lanerwin Rx pad.pdf', '/digilabs/dmap/api/uploads/Lanerwin_RX_Pad_artwork_and_LBL/Lanerwin RX Pad artwork and LBL/Reshma Bastav/V1/Lanerwin_Rx_pad.pdf-1769677126511-788861883.pdf', 'application/pdf', 2158556, 'V1', 'uploaded', '2026-01-29 08:58:46', 'pending', 0),
+(110, 200, 'Kolkatta_Invite_Content.pptx', '/digilabs/dmap/api/uploads/Invitation_letter_/Invitation letter_2026/Divya Raval/V1/Kolkatta_Invite_Content.pptx-1769680996729-626947612.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 1681579, 'V1', 'uploaded', '2026-01-29 10:03:16', 'pending', 0),
+(111, 183, 'WOS- detailer 3d-2.jpg', '/digilabs/dmap/api/uploads/WOS_Detailer/WOS Detailer/Milind Balkrushna Shelar/V1/WOS__detailer_3d_2.jpg-1769686012634-808044321.jpg', 'image/jpeg', 1830598, 'V1', 'uploaded', '2026-01-29 11:26:52', 'pending', 0),
+(112, 183, 'WOS- detailer 3d-4.jpg', '/digilabs/dmap/api/uploads/WOS_Detailer/WOS Detailer/Milind Balkrushna Shelar/V1/WOS__detailer_3d_4.jpg-1769686012641-295821286.jpg', 'image/jpeg', 2879392, 'V1', 'uploaded', '2026-01-29 11:26:52', 'pending', 0),
+(113, 106, 'Estrofit Bhogi festival Greeting.jpg', '/digilabs/dmap/api/uploads/Vasant_Panchami_Greeting/Vasant Panchami Greeting/Milind Balkrushna Shelar/V1/Estrofit_Bhogi_festival_Greeting.jpg-1769686387290-469129461.jpg', 'image/jpeg', 4995941, 'V1', 'uploaded', '2026-01-29 11:33:07', 'pending', 0),
+(114, 194, 'Oryza Acne Clear.docx', '/digilabs/dmap/api/uploads/Oryza_Acne_Clear_video_copy_writing/Oryza Acne Clear video copy writing/Vinisha Chadala/V1/Oryza_Acne_Clear.docx-1769686873195-226011823.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13347, 'V1', 'uploaded', '2026-01-29 11:41:13', 'pending', 0),
+(115, 194, 'Oryza Acne Clear.docx', '/digilabs/dmap/api/uploads/Oryza_Acne_Clear_video_copy_writing/Oryza Acne Clear video copy writing/Vinisha Chadala/V1/Oryza_Acne_Clear.docx-1769686873199-989664524.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13347, 'V1', 'uploaded', '2026-01-29 11:41:13', 'pending', 0),
+(116, 218, 'Aqua CME_Banner_Feb.jpg', '/digilabs/dmap/api/uploads/Aqua_FEB_26_CME_Banner/Aqua FEB 26 CME Banner/Reshma Bastav/V1/Aqua_CME_Banner_Feb.jpg-1769687077590-770406924.jpg', 'image/jpeg', 7066242, 'V1', 'uploaded', '2026-01-29 11:44:37', 'pending', 0),
+(117, 229, 'New Joinee Reference Guide 2026.pdf', '/digilabs/dmap/api/uploads/Creation_of__Reference_guide_for_new_Joinees_E_book___Link/New Joinees Reference Guide/Sanket Chandrakanat  Patade/V1/New_Joinee_Reference_Guide_2026.pdf-1769690948795-560683576.pdf', 'application/pdf', 3810946, 'V1', 'uploaded', '2026-01-29 12:49:08', 'pending', 0),
+(118, 201, 'Kolkata_Invite_Content_Revised.pptx', '/digilabs/dmap/api/uploads/Invitation_letter_/Invitation letter_2026/Divya Raval/V1/Kolkata_Invite_Content_Revised.pptx-1769746821356-739847493.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 1682277, 'V1', 'uploaded', '2026-01-30 04:20:21', 'pending', 0),
+(119, 263, 'Unigolix 200MG Strip back.jpg', '/digilabs/dmap/api/uploads/Unigolix__200mg_pack_photo_shoot/Unigolix  200mg pack photo shoot/Vikram Rai/V1/Unigolix_200MG_Strip_back.jpg-1769750188729-219291864.jpg', 'image/jpeg', 1810248, 'V1', 'uploaded', '2026-01-30 05:16:28', 'pending', 0),
+(120, 263, 'Unigolix 200mg Strip front.jpg', '/digilabs/dmap/api/uploads/Unigolix__200mg_pack_photo_shoot/Unigolix  200mg pack photo shoot/Vikram Rai/V1/Unigolix_200mg_Strip_front.jpg-1769750188743-528834434.jpg', 'image/jpeg', 1263186, 'V1', 'uploaded', '2026-01-30 05:16:28', 'pending', 0),
+(121, 268, 'RUMIGEST VA_7.pdf', '/digilabs/dmap/api/uploads/VISUAL_AID_PAGE_OF_RUMIGEST/VISUAL AID PAGE OF RUMIGEST/Sanket Chandrakanat  Patade/V1/RUMIGEST_VA_7.pdf-1769751533238-806837736.pdf', 'application/pdf', 1087091, 'V1', 'uploaded', '2026-01-30 05:38:53', 'pending', 0),
+(122, 264, 'Alembic (Stellar 5) IB_c2c.pdf', '/digilabs/dmap/api/uploads/Gift_box_artwork/Gift box artwork/Nilesh Khedekar/V1/Alembic__Stellar_5__IB_c2c.pdf-1769755270342-86636778.pdf', 'application/pdf', 2374424, 'V1', 'uploaded', '2026-01-30 06:41:10', 'pending', 0),
+(123, 281, 'Tellzy_CH_for_designing-SATYAM-01.jpg', '/digilabs/dmap/api/uploads/Tellzy_CH_V_A_2027/Tellzy CH V.A 2027/Tanmay Santosh Chorghe/V1/Tellzy_CH_for_designing_SATYAM_01.jpg-1769782166227-766820233.jpg', 'image/jpeg', 1063807, 'V1', 'uploaded', '2026-01-30 14:09:26', 'pending', 0),
+(124, 281, 'Tellzy_CH_for_designing-SATYAM-02.jpg', '/digilabs/dmap/api/uploads/Tellzy_CH_V_A_2027/Tellzy CH V.A 2027/Tanmay Santosh Chorghe/V1/Tellzy_CH_for_designing_SATYAM_02.jpg-1769782166243-470767621.jpg', 'image/jpeg', 1232034, 'V1', 'uploaded', '2026-01-30 14:09:26', 'pending', 0),
+(125, 281, 'Tellzy_CH_for_designing-SATYAM-03.jpg', '/digilabs/dmap/api/uploads/Tellzy_CH_V_A_2027/Tellzy CH V.A 2027/Tanmay Santosh Chorghe/V1/Tellzy_CH_for_designing_SATYAM_03.jpg-1769782166248-597139463.jpg', 'image/jpeg', 1225788, 'V1', 'uploaded', '2026-01-30 14:09:26', 'pending', 0),
+(127, 216, 'Exceraft-VA-Cover-Page_1.jpg', '/digilabs/dmap/api/uploads/Exceraft_VA_Cover_Page/Exceraft VA Cover Page/Gaurav Karnik/V1/Exceraft_VA_Cover_Page_1.jpg-1770031714720-50443172.jpg', 'image/jpeg', 1914890, 'V1', 'uploaded', '2026-02-02 11:28:34', 'pending', 0),
+(128, 216, 'Exceraft-VA-Cover-Page_1_2.jpg', '/digilabs/dmap/api/uploads/Exceraft_VA_Cover_Page/Exceraft VA Cover Page/Gaurav Karnik/V1/Exceraft_VA_Cover_Page_1_2.jpg-1770031714729-207814841.jpg', 'image/jpeg', 1968691, 'V1', 'uploaded', '2026-02-02 11:28:34', 'pending', 0),
+(129, 216, 'Exceraft-VA-Cover-Page_2.jpg', '/digilabs/dmap/api/uploads/Exceraft_VA_Cover_Page/Exceraft VA Cover Page/Gaurav Karnik/V1/Exceraft_VA_Cover_Page_2.jpg-1770031714737-353393840.jpg', 'image/jpeg', 1317611, 'V1', 'uploaded', '2026-02-02 11:28:34', 'pending', 0),
+(130, 216, 'Exceraft-VA-Cover-Page_2_1.jpg', '/digilabs/dmap/api/uploads/Exceraft_VA_Cover_Page/Exceraft VA Cover Page/Gaurav Karnik/V1/Exceraft_VA_Cover_Page_2_1.jpg-1770031714743-763113460.jpg', 'image/jpeg', 1313249, 'V1', 'uploaded', '2026-02-02 11:28:34', 'pending', 0),
+(131, 311, 'TELLZY VA Submit R1.pdf', '/digilabs/dmap/api/uploads/Visual_Aid/Visual Aid/Gaurav Karnik/V1/TELLZY_VA_Submit_R1.pdf-1770031823621-658216088.pdf', 'application/pdf', 11137492, 'V1', 'uploaded', '2026-02-02 11:30:23', 'pending', 0),
+(132, 232, 'Sleeve 1.jpg', '/digilabs/dmap/api/uploads/Sleeve_artwork_box/Sleeve artwork box/Nilesh Khedekar/V1/Sleeve_1.jpg-1770089706141-827642645.jpg', 'image/jpeg', 634924, 'V1', 'uploaded', '2026-02-03 03:35:06', 'pending', 0),
+(133, 232, 'Sleeve 2.jpg', '/digilabs/dmap/api/uploads/Sleeve_artwork_box/Sleeve artwork box/Nilesh Khedekar/V1/Sleeve_2.jpg-1770089706151-269190454.jpg', 'image/jpeg', 585276, 'V1', 'uploaded', '2026-02-03 03:35:06', 'pending', 0),
+(134, 315, 'Donance M LBL_FEB 2026 C2C.pdf', '/digilabs/dmap/api/uploads/Donance_LBL/Donance LBL/Gaurav Karnik/V1/Donance_M_LBL_FEB_2026_C2C.pdf-1770092495942-232538962.pdf', 'application/pdf', 10972404, 'V1', 'uploaded', '2026-02-03 04:21:35', 'pending', 0),
+(136, 293, 'Kolkata-Poultry-fair-2026.jpg', '/digilabs/dmap/api/uploads/Kolkata_Poultry_fair_2026_/Kolkata Poultry fair 2026/Tanmay Santosh Chorghe/V1/Kolkata_Poultry_fair_2026.jpg-1770093809762-843145626.jpg', 'image/jpeg', 154995, 'V1', 'uploaded', '2026-02-03 04:43:29', 'pending', 0),
+(148, 291, 'Feb, 2026 Slab Input.jpg', '/digilabs/dmap/api/uploads/Slab_Input_Design/Slab Input Design/Nilesh Khedekar/V1/Feb__2026_Slab_Input.jpg-1770099438495-324784194.jpg', 'image/jpeg', 2001645, 'V1', 'uploaded', '2026-02-03 06:17:18', 'pending', 0),
+(149, 313, 'RCPA Card (Feb_26).pdf', '/digilabs/dmap/api/uploads/Gastron_RCPA_Card/Gastron RCPA Card/Nilesh Khedekar/V1/RCPA_Card__Feb_26_.pdf-1770109662458-501870823.pdf', 'application/pdf', 2651360, 'V1', 'uploaded', '2026-02-03 09:07:42', 'pending', 0),
+(150, 266, 'World Cancer Day.jpg', '/digilabs/dmap/api/uploads/World_Cancer_Day_Awareness_Greeting/World Cancer Day Awareness Greeting/Nilesh Khedekar/V1/World_Cancer_Day.jpg-1770112875792-897919324.jpg', 'image/jpeg', 323997, 'V1', 'uploaded', '2026-02-03 10:01:15', 'pending', 0),
+(151, 267, 'World Cancer Day.jpg', '/digilabs/dmap/api/uploads/World_Cancer_Day_Awareness_Greeting/World Cancer Day Awareness Greeting/Nilesh Khedekar/V1/World_Cancer_Day.jpg-1770112892970-471547504.jpg', 'image/jpeg', 323997, 'V1', 'uploaded', '2026-02-03 10:01:32', 'pending', 0),
+(152, 225, 'Feb Festive Posts_Divya.txt', '/digilabs/dmap/api/uploads/AWARENESS_AND_CELEBRATION_DAYS___FEBRUARY_2026/AWARENESS AND CELEBRATION DAYS /Divya Raval/V1/Feb_Festive_Posts_Divya.txt-1770114226734-309540596.txt', 'text/plain', 626, 'V1', 'uploaded', '2026-02-03 10:23:46', 'pending', 0),
+(153, 191, 'Republic Day GIF 07.mp4', '/digilabs/dmap/api/uploads/Republic_Day_/Republic Day_Animal Health 2026/Prathamesh Shengale/V1/Republic_Day_GIF_07.mp4-1770114857402-895918166.mp4', 'video/mp4', 10293257, 'V1', 'uploaded', '2026-02-03 10:34:17', 'pending', 0),
+(154, 233, 'GIEP Invite 1 -1.jpg', '/digilabs/dmap/api/uploads/GIEP_26_Invite_Flyer/GIEP\'26 Invite Flyer/Reshma Bastav/V1/GIEP_Invite_1__1.jpg-1770184375375-510196663.jpg', 'image/jpeg', 3656123, 'V1', 'uploaded', '2026-02-04 05:52:55', 'pending', 0),
+(155, 233, 'GIEP Invite 2-2.jpg', '/digilabs/dmap/api/uploads/GIEP_26_Invite_Flyer/GIEP\'26 Invite Flyer/Reshma Bastav/V1/GIEP_Invite_2_2.jpg-1770184375389-682311148.jpg', 'image/jpeg', 3394754, 'V1', 'uploaded', '2026-02-04 05:52:55', 'pending', 0),
+(156, 233, 'GIEP Invite 3-3.jpg', '/digilabs/dmap/api/uploads/GIEP_26_Invite_Flyer/GIEP\'26 Invite Flyer/Reshma Bastav/V1/GIEP_Invite_3_3.jpg-1770184375396-544760901.jpg', 'image/jpeg', 3684327, 'V1', 'uploaded', '2026-02-04 05:52:55', 'pending', 0),
+(157, 213, 'Wikoryl-Liquid-TRUST-the-1st-Communication-Series.zip', '/digilabs/dmap/api/uploads/Wikoryl_Liquid_TRUST_the_1st_Communication_Series_/Wikoryl Liquid TRUST the 1st Communication Series/Sanket Chandrakanat  Patade/V1/Wikoryl_Liquid_TRUST_the_1st_Communication_Series.zip-1770185254036-408430162.zip', 'application/x-zip-compressed', 5847810, 'V1', 'uploaded', '2026-02-04 06:07:34', 'pending', 0),
+(158, 355, 'Doctor-Appreciation-Week---3.jpg', '/digilabs/dmap/api/uploads/Doctor_s_Appreciation_Collage/Doctor\'s Appreciation Collage/Gaurav Karnik/V1/Doctor_Appreciation_Week___3.jpg-1770194578328-909071895.jpg', 'image/jpeg', 2703237, 'V1', 'uploaded', '2026-02-04 08:42:58', 'pending', 0),
+(159, 355, 'Doctor-Appreciation-Week.jpg', '/digilabs/dmap/api/uploads/Doctor_s_Appreciation_Collage/Doctor\'s Appreciation Collage/Gaurav Karnik/V1/Doctor_Appreciation_Week.jpg-1770194578348-222159946.jpg', 'image/jpeg', 2652105, 'V1', 'uploaded', '2026-02-04 08:42:58', 'pending', 0),
+(160, 355, 'Doctor-Appreciation-Week---1.jpg', '/digilabs/dmap/api/uploads/Doctor_s_Appreciation_Collage/Doctor\'s Appreciation Collage/Gaurav Karnik/V1/Doctor_Appreciation_Week___1.jpg-1770194578353-418843237.jpg', 'image/jpeg', 2553152, 'V1', 'uploaded', '2026-02-04 08:42:58', 'pending', 0),
+(161, 227, 'Aletol DS_Flyer.jpg', '/digilabs/dmap/api/uploads/Aletol_DS_Flyer/Aletol DS Flyer/Nilesh Khedekar/V1/Aletol_DS_Flyer.jpg-1770197945639-881923809.jpg', 'image/jpeg', 580814, 'V1', 'uploaded', '2026-02-04 09:39:05', 'pending', 0),
+(162, 364, 'Cancer-Post_TV.jpg', '/digilabs/dmap/api/uploads/Social_Media_Post_for_World_Cancer_Day/Social Media Post for World Cancer Day/Sanket Chandrakanat  Patade/V1/Cancer_Post_TV.jpg-1770202679675-303591097.jpg', 'image/jpeg', 260089, 'V1', 'uploaded', '2026-02-04 10:57:59', 'pending', 0),
+(163, 343, 'Conference Banner Updated Deltone Exceraft Freego Monovono 4 3 Pannel and Alembic with R Logo Changes-02.jpg', '/digilabs/dmap/api/uploads/Conference_Banner_Changes_Gastron/Conference Banner Changes Gastron/Tanmay Santosh Chorghe/V1/Conference_Banner_Updated_Deltone_Exceraft_Freego_Monovono_4_3_Pannel_and_Alembic_with_R_Logo_Changes_02.jpg-1770209959625-243385954.jpg', 'image/jpeg', 820241, 'V1', 'uploaded', '2026-02-04 12:59:19', 'pending', 0),
+(164, 343, 'Conference Banner Updated Deltone Exceraft Freego Monovono 4 3 Pannel and Alembic with R Logo Changes-03.jpg', '/digilabs/dmap/api/uploads/Conference_Banner_Changes_Gastron/Conference Banner Changes Gastron/Tanmay Santosh Chorghe/V1/Conference_Banner_Updated_Deltone_Exceraft_Freego_Monovono_4_3_Pannel_and_Alembic_with_R_Logo_Changes_03.jpg-1770209959641-155415461.jpg', 'image/jpeg', 810055, 'V1', 'uploaded', '2026-02-04 12:59:19', 'pending', 0),
+(165, 226, 'Gragain MF VA.pdf', '/digilabs/dmap/api/uploads/Grogain_MF_Visual_Aid_Page_Fy_27_Qtr_1/Grogain MF Visual Aid Page Fy 27 Qtr 1/Reshma Bastav/V1/Gragain_MF_VA.pdf-1770270422824-702121363.pdf', 'application/pdf', 11216730, 'V1', 'uploaded', '2026-02-05 05:47:02', 'pending', 0),
+(166, 271, 'Citanil-T_VA.pdf', '/digilabs/dmap/api/uploads/Cetanil_T_VA_Specia/Cetanil T VA Specia/Reshma Bastav/V1/Citanil_T_VA.pdf-1770270680445-672702159.pdf', 'application/pdf', 4359157, 'V1', 'uploaded', '2026-02-05 05:51:20', 'pending', 0),
+(167, 272, 'Citanil TRIO VA.pdf', '/digilabs/dmap/api/uploads/Cetanil_Trio_VA_copy/Cetanil Trio VA copy/Reshma Bastav/V1/Citanil_TRIO_VA.pdf-1770270825387-400397455.pdf', 'application/pdf', 2207042, 'V1', 'uploaded', '2026-02-05 05:53:45', 'pending', 0),
+(168, 314, 'Advert for Leaflet_ctc.pdf', '/digilabs/dmap/api/uploads/Advert_for_Tripura_Conference_/Advert for Tripura Conference/Reshma Bastav/V1/Advert_for_Leaflet_ctc.pdf-1770270957166-328922534.pdf', 'application/pdf', 1580343, 'V1', 'uploaded', '2026-02-05 05:55:57', 'pending', 0),
+(169, 316, 'Certificate India book of records.jpg', '/digilabs/dmap/api/uploads/HD_Photo_of_a_India_Book_of_record_certificate/HD Photo of a India Book of record certificate/Vikram Rai/V1/Certificate_India_book_of_records.jpg-1770272666862-301760929.jpg', 'image/jpeg', 10695255, 'V1', 'uploaded', '2026-02-05 06:24:26', 'pending', 0),
+(170, 212, 'Wikoryl Solids VA.pdf', '/digilabs/dmap/api/uploads/Wikoryl_Liquid_VA_revamp_/Wikoryl Liquid VA revamp/Milind Balkrushna Shelar/V1/Wikoryl_Solids_VA.pdf-1770276004880-696505589.pdf', 'application/pdf', 780993, 'V1', 'uploaded', '2026-02-05 07:20:04', 'pending', 0),
+(172, 288, 'Tellzy Tellzy AM VA.pdf', '/digilabs/dmap/api/uploads/TELLZY_MT_VA/TELLZY MT VA/Milind Balkrushna Shelar/V1/Tellzy_Tellzy_AM_VA.pdf-1770276190427-213607811.pdf', 'application/pdf', 1686820, 'V1', 'uploaded', '2026-02-05 07:23:10', 'pending', 0),
+(173, 377, 'Brand Film Packshots_1.png', '/digilabs/dmap/api/uploads/Rekool_D_CLM_Video_Campgain_/Rekool D 3d Packshot Creation /Prathamesh Shengale/V1/Brand_Film_Packshots_1.png-1770285333929-514893011.png', 'image/png', 2868323, 'V1', 'uploaded', '2026-02-05 09:55:33', 'pending', 0),
+(174, 377, 'Brand Film Packshots_Front.png', '/digilabs/dmap/api/uploads/Rekool_D_CLM_Video_Campgain_/Rekool D 3d Packshot Creation /Prathamesh Shengale/V1/Brand_Film_Packshots_Front.png-1770285333949-178598643.png', 'image/png', 2865301, 'V1', 'uploaded', '2026-02-05 09:55:33', 'pending', 0),
+(175, 377, 'Brand Film Packshots_Side.png', '/digilabs/dmap/api/uploads/Rekool_D_CLM_Video_Campgain_/Rekool D 3d Packshot Creation /Prathamesh Shengale/V1/Brand_Film_Packshots_Side.png-1770285333955-179420056.png', 'image/png', 2901762, 'V1', 'uploaded', '2026-02-05 09:55:33', 'pending', 0),
+(176, 367, 'Sikkim-Plant-Felicitated-by-Sikkim-Government-TV-1.jpg', '/digilabs/dmap/api/uploads/Sikkim_Plant_Certificate_TV/Sikkim Plant Certificate TV/Gaurav Karnik/V1/Sikkim_Plant_Felicitated_by_Sikkim_Government_TV_1.jpg-1770287654926-139499156.jpg', 'image/jpeg', 1336450, 'V1', 'uploaded', '2026-02-05 10:34:14', 'pending', 0),
+(177, 334, 'Oryza Acne Clear Video_01.mp4', '/digilabs/dmap/api/uploads/Oryza_Acne_Clear_video_copy_writing/Oryza Acne Clear Brand Awerness Campgain_Jan_2026 /Prathamesh Shengale/V1/Oryza_Acne_Clear_Video_01.mp4-1770288038058-445146900.mp4', 'video/mp4', 13997566, 'V1', 'uploaded', '2026-02-05 10:40:38', 'pending', 0),
+(178, 341, 'Oryza Acne Clear Video_02.mp4', '/digilabs/dmap/api/uploads/Oryza_Acne_Clear_video_copy_writing/Oryza Acne Clear_Acne clear – Option 2_2026/Prathamesh Shengale/V1/Oryza_Acne_Clear_Video_02.mp4-1770288075225-233446619.mp4', 'video/mp4', 12771897, 'V1', 'uploaded', '2026-02-05 10:41:15', 'pending', 0),
+(179, 369, '500-CR-A5-Low-res.jpg', '/digilabs/dmap/api/uploads/Horizontal_A5_size_artwork_500_crore_celebrations/Horizontal A5 size artwork 500 crore celebrations/Gaurav Karnik/V1/500_CR_A5_Low_res.jpg-1770297161825-328136256.jpg', 'image/jpeg', 525338, 'V1', 'uploaded', '2026-02-05 13:12:41', 'pending', 0),
+(180, 235, 'Festive Greetings_February 2026_Divya.txt', '/digilabs/dmap/api/uploads/Feb_Month_Festive_artwork_Zenovi_2025/Feb Month Festive artwork/Divya Raval/V1/Festive_Greetings_February_2026_Divya.txt-1770353284223-183986459.txt', 'text/plain', 504, 'V1', 'uploaded', '2026-02-06 04:48:04', 'pending', 0),
+(181, 256, 'Rekool D.docx', '/digilabs/dmap/api/uploads/Rekool_D_Motivation_Video_/Rekool D 2026 /Vinisha Chadala/V1/Rekool_D.docx-1770355715357-874610513.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 15004, 'V1', 'uploaded', '2026-02-06 05:28:35', 'pending', 0),
+(182, 256, 'Rekool D.docx', '/digilabs/dmap/api/uploads/Rekool_D_Motivation_Video_/Rekool D 2026 /Vinisha Chadala/V1/Rekool_D.docx-1770355715363-266003017.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 15004, 'V1', 'uploaded', '2026-02-06 05:28:35', 'pending', 0),
+(183, 202, 'Oryza Acne Clear.docx', '/digilabs/dmap/api/uploads/Oryza_Acne_Clear_video_copy_writing/Oryza Acne Clear video copy writing/Vinisha Chadala/V1/Oryza_Acne_Clear.docx-1770355937020-146751452.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13977, 'V1', 'uploaded', '2026-02-06 05:32:17', 'pending', 0),
+(184, 407, 'Uncle G goes to Zoo.docx', '/digilabs/dmap/api/uploads/Uncle_G_Video_Series/Uncle G Video Series/Vinisha Chadala/V1/Uncle_G_goes_to_Zoo.docx-1770357263626-720993490.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12145, 'V1', 'uploaded', '2026-02-06 05:54:23', 'pending', 0),
+(185, 407, 'Uncle G tries meditation.docx', '/digilabs/dmap/api/uploads/Uncle_G_Video_Series/Uncle G Video Series/Vinisha Chadala/V1/Uncle_G_tries_meditation.docx-1770357263633-806770764.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13415, 'V1', 'uploaded', '2026-02-06 05:54:23', 'pending', 0),
+(186, 407, 'Uncle G.docx', '/digilabs/dmap/api/uploads/Uncle_G_Video_Series/Uncle G Video Series/Vinisha Chadala/V1/Uncle_G.docx-1770357263637-867809493.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12289, 'V1', 'uploaded', '2026-02-06 05:54:23', 'pending', 0),
+(187, 399, 'Clostop_april_use_LBL.pptx-1770274295066-219612524.pptx', '/digilabs/dmap/api/uploads/Clostop_SRX_LBL_Issue_1/Clostop SRX LBL Issue 1/Aditi Varunkar/V1/Clostop_april_use_LBL.pptx_1770274295066_219612524.pptx-1770358190640-934743084.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 35981, 'V1', 'uploaded', '2026-02-06 06:09:50', 'pending', 0),
+(188, 354, 'Camp_creative V4 FINAL.pdf', '/digilabs/dmap/api/uploads/CHCF_camp_poster/CHCF camp poster/Milind Balkrushna Shelar/V1/Camp_creative_V4_FINAL.pdf-1770362153809-148336249.pdf', 'application/pdf', 736375, 'V1', 'uploaded', '2026-02-06 07:15:53', 'pending', 0),
+(189, 354, 'poster final n.pdf', '/digilabs/dmap/api/uploads/CHCF_camp_poster/CHCF camp poster/Milind Balkrushna Shelar/V1/poster_final_n.pdf-1770362153820-87982497.pdf', 'application/pdf', 1040595, 'V1', 'uploaded', '2026-02-06 07:15:53', 'pending', 0),
+(190, 250, 'Tellzy Tellzy MT VA.pdf', '/digilabs/dmap/api/uploads/Visual_Aid___Tellzy___Tellzy_AM/Visual Aid - Tellzy /Milind Balkrushna Shelar/V1/Tellzy_Tellzy_MT_VA.pdf-1770362301577-849103748.pdf', 'application/pdf', 1254181, 'V1', 'uploaded', '2026-02-06 07:18:21', 'pending', 0),
+(191, 390, 'National-Deworming-Day.jpg', '/digilabs/dmap/api/uploads/National_Deworming_Day_Greeting/National Deworming Day Greeting/Sanket Chandrakanat  Patade/V1/National_Deworming_Day.jpg-1770366732124-350618329.jpg', 'image/jpeg', 374881, 'V1', 'uploaded', '2026-02-06 08:32:12', 'pending', 0),
+(192, 393, 'SCM-Award-Artwork---R1_2.jpg', '/digilabs/dmap/api/uploads/SCM_Award_Artwork/SCM Award Artwork/Gaurav Karnik/V1/SCM_Award_Artwork___R1_2.jpg-1770366846974-307866979.jpg', 'image/jpeg', 1635358, 'V1', 'uploaded', '2026-02-06 08:34:06', 'pending', 0),
+(193, 392, 'Great-Place-To-Work.jpg', '/digilabs/dmap/api/uploads/GPTW_Social_Media_and_TV_artwork/GPTW Social Media and TV artwork/Gaurav Karnik/V1/Great_Place_To_Work.jpg-1770367018032-977315127.jpg', 'image/jpeg', 305450, 'V1', 'uploaded', '2026-02-06 08:36:58', 'pending', 0),
+(194, 392, 'Great-Place-To-Work-TV.jpg', '/digilabs/dmap/api/uploads/GPTW_Social_Media_and_TV_artwork/GPTW Social Media and TV artwork/Gaurav Karnik/V1/Great_Place_To_Work_TV.jpg-1770367018037-753350454.jpg', 'image/jpeg', 928611, 'V1', 'uploaded', '2026-02-06 08:36:58', 'pending', 0),
+(195, 357, 'Ulgeraft LBL - Die cut.png', '/digilabs/dmap/api/uploads/Ulgeraft_LBL_1/Ulgeraft LBL 1/Tanmay Santosh Chorghe/V1/Ulgeraft_LBL___Die_cut.png-1770375143059-172028492.png', 'image/png', 1927569, 'V1', 'uploaded', '2026-02-06 10:52:23', 'pending', 0),
+(196, 327, 'Grogain-Pro-VA_Ipad_Dec-2025_V4-1.jpg', '/digilabs/dmap/api/uploads/Grogain_Pro_VA_page_design/Grogain Pro VA page design/Gaurav Karnik/V1/Grogain_Pro_VA_Ipad_Dec_2025_V4_1.jpg-1770378703357-165847327.jpg', 'image/jpeg', 511601, 'V1', 'uploaded', '2026-02-06 11:51:43', 'pending', 0),
+(197, 328, 'Grogain-Pro-VA_Ipad_Dec-2025_V4-1.jpg', '/digilabs/dmap/api/uploads/Grogain_Pro_VA_page_design/Grogain Pro VA page design/Gaurav Karnik/V1/Grogain_Pro_VA_Ipad_Dec_2025_V4_1.jpg-1770378729611-745578183.jpg', 'image/jpeg', 511601, 'V1', 'uploaded', '2026-02-06 11:52:09', 'pending', 0),
+(198, 368, 'Diary 2026 R2-Low Res.pdf', '/digilabs/dmap/api/uploads/Budget_meeting___Diary_Artwork/Budget meeting - Diary Artwork/Gaurav Karnik/V1/Diary_2026_R2_Low_Res.pdf-1770381332154-991502675.pdf', 'application/pdf', 7278618, 'V1', 'uploaded', '2026-02-06 12:35:32', 'pending', 0),
+(199, 358, 'The-20-20-20-Rule-2.jpg', '/digilabs/dmap/api/uploads/Digital_Eye_strain_artwork/Digital Eye strain artwork/Tanmay Santosh Chorghe/V1/The_20_20_20_Rule_2.jpg-1770612049393-770934283.jpg', 'image/jpeg', 278028, 'V1', 'uploaded', '2026-02-09 04:40:49', 'pending', 0);
 
-CREATE TABLE `task_project_reference` (
-  `id` int(11) NOT NULL,
-  `task_id` int(11) NOT NULL,
-  `project_id` int(11) NOT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+INSERT INTO `task_documents` (`id`, `task_assignment_id`, `document_name`, `document_path`, `document_type`, `document_size`, `version`, `status`, `uploaded_at`, `review`, `intimate_client`) VALUES
+(200, 358, 'The-20-20-20-Rule-3.jpg', '/digilabs/dmap/api/uploads/Digital_Eye_strain_artwork/Digital Eye strain artwork/Tanmay Santosh Chorghe/V1/The_20_20_20_Rule_3.jpg-1770612049399-978192906.jpg', 'image/jpeg', 223253, 'V1', 'uploaded', '2026-02-09 04:40:49', 'pending', 0),
+(201, 347, 'SurveY_tellzy_AM_LBL_Dec.pdf-1770093801732-420386075.jpg', '/digilabs/dmap/api/uploads/TELLZY_AM_SURVEY_LBL/TELLZY AM SURVEY LBL/Tanmay Santosh Chorghe/V1/SurveY_tellzy_AM_LBL_Dec.pdf_1770093801732_420386075.jpg-1770612321298-841420907.jpg', 'image/jpeg', 231193, 'V1', 'uploaded', '2026-02-09 04:45:21', 'pending', 0),
+(202, 356, 'Eyecare-Portfolio-Banner_1.jpg.jpeg', '/digilabs/dmap/api/uploads/Eyecare_portfolio_banner/Eyecare portfolio banner/Tanmay Santosh Chorghe/V1/Eyecare_Portfolio_Banner_1.jpg.jpeg-1770612532699-863925600.jpeg', 'image/jpeg', 163838, 'V1', 'uploaded', '2026-02-09 04:48:52', 'pending', 0),
+(203, 356, 'Eyecare-portfolio-banner.jpg', '/digilabs/dmap/api/uploads/Eyecare_portfolio_banner/Eyecare portfolio banner/Tanmay Santosh Chorghe/V1/Eyecare_portfolio_banner.jpg-1770612532704-178963037.jpg', 'image/jpeg', 808083, 'V1', 'uploaded', '2026-02-09 04:48:52', 'pending', 0),
+(204, 258, 'Cataract Post Operation Care Instructions Leaflet.pdf', '/digilabs/dmap/api/uploads/Cataract_Post_Operation_Care_Instructions_Leaflet/Cataract Post Operation Care Instructions Leaflet/Reshma Bastav/V1/Cataract_Post_Operation_Care_Instructions_Leaflet.pdf-1770613112028-335364910.pdf', 'application/pdf', 1967508, 'V1', 'uploaded', '2026-02-09 04:58:32', 'pending', 0),
+(205, 132, 'Estroplus_VA_2.pdf', '/digilabs/dmap/api/uploads/ESTROPLUS_VA/ESTROPLUS VA/Angana Prakash Patil/V1/Estroplus_VA_2.pdf-1770618029716-782708821.pdf', 'application/pdf', 2268261, 'V1', 'uploaded', '2026-02-09 06:20:29', 'pending', 0),
+(206, 88, 'QUiz Poster_National Winners.jpg', '/digilabs/dmap/api/uploads/All_India_Derma_Championship_Final_Round_Winners/All India Derma Championship Final Round Winners/Angana Prakash Patil/V1/QUiz_Poster_National_Winners.jpg-1770618082995-805516457.jpg', 'image/jpeg', 1412060, 'V1', 'uploaded', '2026-02-09 06:21:23', 'pending', 0),
+(207, 76, 'table top.jpg', '/digilabs/dmap/api/uploads/Patient_Education_/Patient Education/Angana Prakash Patil/V1/table_top.jpg-1770618103422-721422588.jpg', 'image/jpeg', 542008, 'V1', 'uploaded', '2026-02-09 06:21:43', 'pending', 0),
+(208, 426, 'Dermavidya National certificate.pdf', '/digilabs/dmap/api/uploads/All_India_Derma_Championship_Certificates_/All India Derma Championship Certificates /Angana Prakash Patil/V1/Dermavidya_National_certificate.pdf-1770619271253-130387962.pdf', 'application/pdf', 2011707, 'V1', 'uploaded', '2026-02-09 06:41:11', 'pending', 0),
+(209, 426, 'Dermavidya zonal certificate.pdf', '/digilabs/dmap/api/uploads/All_India_Derma_Championship_Certificates_/All India Derma Championship Certificates /Angana Prakash Patil/V1/Dermavidya_zonal_certificate.pdf-1770619271261-478593298.pdf', 'application/pdf', 2003995, 'V1', 'uploaded', '2026-02-09 06:41:11', 'pending', 0),
+(210, 412, 'Roxid Inclinic Hand Sanitizer sleeve-2-01.jpg', '/digilabs/dmap/api/uploads/Roxid_Inclinic_Hand_Sanitizer/Roxid Inclinic Hand Sanitizer/Milind Balkrushna Shelar/V1/Roxid_Inclinic_Hand_Sanitizer_sleeve_2_01.jpg-1770619409523-836424244.jpg', 'image/jpeg', 1702127, 'V1', 'uploaded', '2026-02-09 06:43:29', 'pending', 0),
+(211, 394, 'Whatsapp sticker-03.png', '/digilabs/dmap/api/uploads/Zivemp_SM_Whatsapp_Sticker/Zivemp-SM Whatsapp Sticker/Gaurav Karnik/V1/Whatsapp_sticker_03.png-1770626905954-750813406.png', 'image/png', 169359, 'V1', 'uploaded', '2026-02-09 08:48:25', 'pending', 0),
+(212, 394, 'Whatsapp sticker-04.png', '/digilabs/dmap/api/uploads/Zivemp_SM_Whatsapp_Sticker/Zivemp-SM Whatsapp Sticker/Gaurav Karnik/V1/Whatsapp_sticker_04.png-1770626905959-830823361.png', 'image/png', 208830, 'V1', 'uploaded', '2026-02-09 08:48:25', 'pending', 0),
+(213, 228, 'Closal_LBL 1.jpg', '/digilabs/dmap/api/uploads/CLOSAL_LBL/CLOSAL LBL/Nilesh Khedekar/V1/Closal_LBL_1.jpg-1770633470972-409017406.jpg', 'image/jpeg', 2508639, 'V1', 'uploaded', '2026-02-09 10:37:50', 'pending', 0),
+(214, 228, 'Closal_LBL 2.jpg', '/digilabs/dmap/api/uploads/CLOSAL_LBL/CLOSAL LBL/Nilesh Khedekar/V1/Closal_LBL_2.jpg-1770633470986-908161137.jpg', 'image/jpeg', 1615070, 'V1', 'uploaded', '2026-02-09 10:37:50', 'pending', 0),
+(215, 80, 'Maha Shivratri-01.jpg', '/digilabs/dmap/api/uploads/_Mahashivatri__Festival_Flyer/MahaShivratri Festival flyer/Nilesh Khedekar/V1/Maha_Shivratri_01.jpg-1770635899736-756728138.jpg', 'image/jpeg', 781025, 'V1', 'uploaded', '2026-02-09 11:18:19', 'pending', 0),
+(216, 80, 'Maha Shivratri-02.jpg', '/digilabs/dmap/api/uploads/_Mahashivatri__Festival_Flyer/MahaShivratri Festival flyer/Nilesh Khedekar/V1/Maha_Shivratri_02.jpg-1770635899753-412440374.jpg', 'image/jpeg', 455805, 'V1', 'uploaded', '2026-02-09 11:18:19', 'pending', 0),
+(217, 365, 'Lactonic-Standee_FInal.jpg', '/digilabs/dmap/api/uploads/Lactonic_and_Livfit_Standee_/Lactonic and Livfit Standee/Sanket Chandrakanat  Patade/V1/Lactonic_Standee_FInal.jpg-1770697675450-174459240.jpg', 'image/jpeg', 2597133, 'V1', 'uploaded', '2026-02-10 04:27:55', 'pending', 0),
+(218, 365, 'Livfit-Standee_Final.jpg', '/digilabs/dmap/api/uploads/Lactonic_and_Livfit_Standee_/Lactonic and Livfit Standee/Sanket Chandrakanat  Patade/V1/Livfit_Standee_Final.jpg-1770697675463-795402936.jpg', 'image/jpeg', 2939406, 'V1', 'uploaded', '2026-02-10 04:27:55', 'pending', 0),
+(219, 431, 'Richar FCM ipad activity.zip', '/digilabs/dmap/api/uploads/World_Anaemia_Awareness_Digital_Activity/World Anaemia Awareness Digital Activity/Jayesh Mishra/V1/Richar_FCM_ipad_activity.zip-1770701404932-186536235.zip', 'application/x-zip-compressed', 4325103, 'V1', 'uploaded', '2026-02-10 05:30:04', 'pending', 0),
+(220, 234, 'Chhatrapati Shivaji Maharaj Jayanti.docx', '/digilabs/dmap/api/uploads/Feb_Month_Festive_artwork_Zenovi_2025/Feb Month Festive artwork_Zenovi_2025/Vinisha Chadala/V1/Chhatrapati_Shivaji_Maharaj_Jayanti.docx-1770713270298-203633929.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12465, 'V1', 'uploaded', '2026-02-10 08:47:50', 'pending', 0),
+(221, 234, 'National Science Day.docx', '/digilabs/dmap/api/uploads/Feb_Month_Festive_artwork_Zenovi_2025/Feb Month Festive artwork_Zenovi_2025/Vinisha Chadala/V1/National_Science_Day.docx-1770713270311-997333389.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12248, 'V1', 'uploaded', '2026-02-10 08:47:50', 'pending', 0),
+(222, 234, 'Ramadan Greeting.docx', '/digilabs/dmap/api/uploads/Feb_Month_Festive_artwork_Zenovi_2025/Feb Month Festive artwork_Zenovi_2025/Vinisha Chadala/V1/Ramadan_Greeting.docx-1770713270316-901052496.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12022, 'V1', 'uploaded', '2026-02-10 08:47:50', 'pending', 0),
+(223, 404, 'Laveta Ad Copies.docx', '/digilabs/dmap/api/uploads/AQI_Opener/AQI Opener_2026/Vinisha Chadala/V1/Laveta_Ad_Copies.docx-1770713624941-680444901.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12941, 'V1', 'uploaded', '2026-02-10 08:53:44', 'pending', 0),
+(224, 270, 'RUMIGEST VA_10.pdf', '/digilabs/dmap/api/uploads/VISUAL_AID_PAGE_OF_RUMIGEST/VISUAL AID PAGE OF RUMIGEST/Sanket Chandrakanat  Patade/V1/RUMIGEST_VA_10.pdf-1770713665477-670384476.pdf', 'application/pdf', 1809874, 'V1', 'uploaded', '2026-02-10 08:54:25', 'pending', 0),
+(225, 436, 'Best camp of the day-01.jpg', '/digilabs/dmap/api/uploads/Best_Camp___Artwork/Best Camp - Artwork/Milind Balkrushna Shelar/V1/Best_camp_of_the_day_01.jpg-1770728620175-959516272.jpg', 'image/jpeg', 1731635, 'V1', 'uploaded', '2026-02-10 13:03:40', 'pending', 0),
+(226, 436, 'Best camp of the day2.jpg', '/digilabs/dmap/api/uploads/Best_Camp___Artwork/Best Camp - Artwork/Milind Balkrushna Shelar/V1/Best_camp_of_the_day2.jpg-1770728620192-805908496.jpg', 'image/jpeg', 1645001, 'V1', 'uploaded', '2026-02-10 13:03:40', 'pending', 0),
+(227, 439, 'Yera_Eva_Jar_Set.jpg', '/digilabs/dmap/api/uploads/BOX_ARTWORK_DESIGN_/BOX ARTWORK DESIGN /Nilesh Khedekar/V1/Yera_Eva_Jar_Set.jpg-1770782033277-296567379.jpg', 'image/jpeg', 1914578, 'V1', 'uploaded', '2026-02-11 03:53:53', 'pending', 0),
+(228, 427, 'Resync PLUS Logo.pdf', '/digilabs/dmap/api/uploads/RESYNC_PLUS_LOGO_AND_PACK_SHOT/RESYNC PLUS LOGO AND PACK SHOT/Reshma Bastav/V1/Resync_PLUS_Logo.pdf-1770790768395-998158994.pdf', 'application/pdf', 2574212, 'V1', 'uploaded', '2026-02-11 06:19:28', 'pending', 0),
+(229, 425, 'Richar-CR-Hb-Camp_Thank-You-card.jpg', '/digilabs/dmap/api/uploads/Richar_CR_HB_Camp_Thank_you_Card_A5_/Richar CR HB Camp Thank you Card A5/Sanket Chandrakanat  Patade/V1/Richar_CR_Hb_Camp_Thank_You_card.jpg-1770792920483-330921844.jpg', 'image/jpeg', 464716, 'V1', 'uploaded', '2026-02-11 06:55:20', 'pending', 0),
+(230, 208, 'Tufehart VA Jan 2026_5.pdf', '/digilabs/dmap/api/uploads/Visual_Aid/Visual Aid Tufehart/Sanket Chandrakanat  Patade/V1/Tufehart_VA_Jan_2026_5.pdf-1770792971733-796088111.pdf', 'application/pdf', 6285478, 'V1', 'uploaded', '2026-02-11 06:56:11', 'pending', 0),
+(231, 389, 'L&D-Team-Event-A4_1.jpg', '/digilabs/dmap/api/uploads/standee_recreation_reformatting/standee recreation/reformatting/Sanket Chandrakanat  Patade/V1/L_D_Team_Event_A4_1.jpg-1770793007588-415654870.jpg', 'image/jpeg', 152776, 'V1', 'uploaded', '2026-02-11 06:56:47', 'pending', 0),
+(232, 389, 'L&D-Team-Event-A4_2.jpg', '/digilabs/dmap/api/uploads/standee_recreation_reformatting/standee recreation/reformatting/Sanket Chandrakanat  Patade/V1/L_D_Team_Event_A4_2.jpg-1770793007596-743290204.jpg', 'image/jpeg', 163821, 'V1', 'uploaded', '2026-02-11 06:56:47', 'pending', 0),
+(233, 389, 'L&D-Team-Event-Standee_1.jpg', '/digilabs/dmap/api/uploads/standee_recreation_reformatting/standee recreation/reformatting/Sanket Chandrakanat  Patade/V1/L_D_Team_Event_Standee_1.jpg-1770793007601-247613301.jpg', 'image/jpeg', 1270081, 'V1', 'uploaded', '2026-02-11 06:56:47', 'pending', 0),
+(234, 389, 'L&D-Team-Event-Standee_2.jpg', '/digilabs/dmap/api/uploads/standee_recreation_reformatting/standee recreation/reformatting/Sanket Chandrakanat  Patade/V1/L_D_Team_Event_Standee_2.jpg-1770793007606-710461999.jpg', 'image/jpeg', 1573113, 'V1', 'uploaded', '2026-02-11 06:56:47', 'pending', 0),
+(235, 451, 'Certificate of Appriciation.pdf', '/digilabs/dmap/api/uploads/Need_certificate_of_participation_and_appreciation_/Need certificate of participation and appreciation /Nilesh Khedekar/V1/Certificate_of_Appriciation.pdf-1770805134181-710742937.pdf', 'application/pdf', 754391, 'V1', 'uploaded', '2026-02-11 10:18:54', 'pending', 0),
+(236, 451, 'Certificate of Participation.pdf', '/digilabs/dmap/api/uploads/Need_certificate_of_participation_and_appreciation_/Need certificate of participation and appreciation /Nilesh Khedekar/V1/Certificate_of_Participation.pdf-1770805134193-902367347.pdf', 'application/pdf', 793694, 'V1', 'uploaded', '2026-02-11 10:18:54', 'pending', 0),
+(237, 207, 'Ceramax_VA.pdf', '/digilabs/dmap/api/uploads/Oryza___Ceramax_VA_redesigning_/Oryza Ceramax VA /Angana Prakash Patil/V1/Ceramax_VA.pdf-1770812045217-548094733.pdf', 'application/pdf', 8478023, 'V1', 'uploaded', '2026-02-11 12:14:05', 'pending', 0),
+(238, 290, 'Oryza Acne clear_VA.pdf', '/digilabs/dmap/api/uploads/Oryza_Acne_Clear_VA_re_designing/Oryza Acne Clear VA re-designing/Angana Prakash Patil/V1/Oryza_Acne_clear_VA.pdf-1770812184510-419241533.pdf', 'application/pdf', 3092433, 'V1', 'uploaded', '2026-02-11 12:16:24', 'pending', 0),
+(239, 287, 'oryza cream_VA.pdf', '/digilabs/dmap/api/uploads/VA_re_designing/VA re-designing/Angana Prakash Patil/V1/oryza_cream_VA.pdf-1770812343184-744643003.pdf', 'application/pdf', 3979878, 'V1', 'uploaded', '2026-02-11 12:19:03', 'pending', 0),
+(240, 453, 'Mahashivratri_1.jpg', '/digilabs/dmap/api/uploads/festive_greeting_for_Mahashivratri____Shiv_Jayanti_/festive greeting for Mahashivratri  /Sanket Chandrakanat  Patade/V1/Mahashivratri_1.jpg-1770813047294-833586438.jpg', 'image/jpeg', 481428, 'V1', 'uploaded', '2026-02-11 12:30:47', 'pending', 0),
+(241, 453, 'Mahashivratri_2.jpg', '/digilabs/dmap/api/uploads/festive_greeting_for_Mahashivratri____Shiv_Jayanti_/festive greeting for Mahashivratri  /Sanket Chandrakanat  Patade/V1/Mahashivratri_2.jpg-1770813047304-496227456.jpg', 'image/jpeg', 487006, 'V1', 'uploaded', '2026-02-11 12:30:47', 'pending', 0),
+(242, 453, 'Shiv-Jayanti_1.jpg', '/digilabs/dmap/api/uploads/festive_greeting_for_Mahashivratri____Shiv_Jayanti_/festive greeting for Mahashivratri  /Sanket Chandrakanat  Patade/V1/Shiv_Jayanti_1.jpg-1770813047313-287240492.jpg', 'image/jpeg', 293529, 'V1', 'uploaded', '2026-02-11 12:30:47', 'pending', 0),
+(243, 453, 'Shiv-Jayanti_2.jpg', '/digilabs/dmap/api/uploads/festive_greeting_for_Mahashivratri____Shiv_Jayanti_/festive greeting for Mahashivratri  /Sanket Chandrakanat  Patade/V1/Shiv_Jayanti_2.jpg-1770813047322-17263794.jpg', 'image/jpeg', 313855, 'V1', 'uploaded', '2026-02-11 12:30:47', 'pending', 0),
+(244, 467, 'Interview 3.mp4', '/digilabs/dmap/api/uploads/Rosave_EZ__Expert_Opinion_Series/Rosave EZ- Expert Opinion Series/Mahesh Morye/V1/Interview_3.mp4-1770874494941-235643197.mp4', 'video/mp4', 31700743, 'V1', 'uploaded', '2026-02-12 05:34:55', 'pending', 0),
+(245, 74, 'Enteron.jpg', '/digilabs/dmap/api/uploads/Reminder_Flyers_for_PEDICON/Reminder Flyers for PEDICON/Vivek Vishwakarma/V1/Enteron.jpg-1770881004412-762349835.jpg', 'image/jpeg', 663947, 'V1', 'uploaded', '2026-02-12 07:23:24', 'pending', 0),
+(246, 74, 'Maxis.jpg', '/digilabs/dmap/api/uploads/Reminder_Flyers_for_PEDICON/Reminder Flyers for PEDICON/Vivek Vishwakarma/V1/Maxis.jpg-1770881004418-59034423.jpg', 'image/jpeg', 676756, 'V1', 'uploaded', '2026-02-12 07:23:24', 'pending', 0),
+(247, 74, 'Megacare.jpg', '/digilabs/dmap/api/uploads/Reminder_Flyers_for_PEDICON/Reminder Flyers for PEDICON/Vivek Vishwakarma/V1/Megacare.jpg-1770881004428-913581389.jpg', 'image/jpeg', 669059, 'V1', 'uploaded', '2026-02-12 07:23:24', 'pending', 0),
+(248, 74, 'Pharma.jpg', '/digilabs/dmap/api/uploads/Reminder_Flyers_for_PEDICON/Reminder Flyers for PEDICON/Vivek Vishwakarma/V1/Pharma.jpg-1770881004433-429996435.jpg', 'image/jpeg', 649734, 'V1', 'uploaded', '2026-02-12 07:23:24', 'pending', 0),
+(249, 116, 'Ascal Gel Rx Pad - Jan 2026_C2C.pdf', '/digilabs/dmap/api/uploads/Dr_pad_designing/Dr pad designing/Vivek Vishwakarma/V1/Ascal_Gel_Rx_Pad___Jan_2026_C2C.pdf-1770881045700-672580595.pdf', 'application/pdf', 9599555, 'V1', 'uploaded', '2026-02-12 07:24:05', 'pending', 0),
+(250, 116, 'Xceft Rx Pad - Jan 2026_C2C.pdf', '/digilabs/dmap/api/uploads/Dr_pad_designing/Dr pad designing/Vivek Vishwakarma/V1/Xceft_Rx_Pad___Jan_2026_C2C.pdf-1770881045718-422940543.pdf', 'application/pdf', 2612741, 'V1', 'uploaded', '2026-02-12 07:24:05', 'pending', 0),
+(251, 397, 'Valentines Day Photo Frame - Feb 2026-01.png', '/digilabs/dmap/api/uploads/Valentine_s_day_frame/Valentine\'s day frame/Vivek Vishwakarma/V1/Valentines_Day_Photo_Frame___Feb_2026_01.png-1770881078517-772456821.png', 'image/png', 2138449, 'V1', 'uploaded', '2026-02-12 07:24:38', 'pending', 0),
+(252, 434, 'Pet Vaccination Booklet_1_2026_C2C.pdf', '/digilabs/dmap/api/uploads/Vaccine_book_modification/Vaccine book modification/Angana Prakash Patil/V1/Pet_Vaccination_Booklet_1_2026_C2C.pdf-1770890617856-479294089.pdf', 'application/pdf', 3268876, 'V1', 'uploaded', '2026-02-12 10:03:37', 'pending', 0),
+(253, 476, 'Cardigem-Standee_Glisen.jpg', '/digilabs/dmap/api/uploads/Cardigem_Diabetes_and_Hypertension_Standee/Cardigem Diabetes and Hypertension Standee/Sanket Chandrakanat  Patade/V1/Cardigem_Standee_Glisen.jpg-1770895016459-224425526.jpg', 'image/jpeg', 1310479, 'V1', 'uploaded', '2026-02-12 11:16:56', 'pending', 0),
+(254, 476, 'Cardigem-Standee_Tellzy.jpg', '/digilabs/dmap/api/uploads/Cardigem_Diabetes_and_Hypertension_Standee/Cardigem Diabetes and Hypertension Standee/Sanket Chandrakanat  Patade/V1/Cardigem_Standee_Tellzy.jpg-1770895016467-227321085.jpg', 'image/jpeg', 912623, 'V1', 'uploaded', '2026-02-12 11:16:56', 'pending', 0),
+(255, 475, 'IV-Fluid-A5-Leaflet.jpg', '/digilabs/dmap/api/uploads/IV_Fluid_/IV Fluid /Sanket Chandrakanat  Patade/V1/IV_Fluid_A5_Leaflet.jpg-1770896197402-367424064.jpg', 'image/jpeg', 840754, 'V1', 'uploaded', '2026-02-12 11:36:37', 'pending', 0),
+(256, 488, 'Mahashivratri.jpg', '/digilabs/dmap/api/uploads/Mahashivratri_Greeting/Mahashivratri Greeting/Sanket Chandrakanat  Patade/V1/Mahashivratri.jpg-1770962848357-875615231.jpg', 'image/jpeg', 442522, 'V1', 'uploaded', '2026-02-13 06:07:28', 'pending', 0),
+(259, 499, 'freepik__enhance__49185.png', '/digilabs/dmap/api/uploads/Brand_photo_shoot_required/Brand photo shoot required/Vikram Rai/V1/freepik__enhance__49185.png-1770963879985-656798342.png', 'image/png', 335819, 'V1', 'uploaded', '2026-02-13 06:24:39', 'pending', 0),
+(260, 499, 'Ascal gel advance back.jpg', '/digilabs/dmap/api/uploads/Brand_photo_shoot_required/Brand photo shoot required/Vikram Rai/V1/Ascal_gel_advance_back.jpg-1770963879996-587491792.jpg', 'image/jpeg', 4363000, 'V1', 'uploaded', '2026-02-13 06:24:39', 'pending', 0),
+(261, 359, 'Hospicare webinar.png', '/digilabs/dmap/api/uploads/QR_CODE_GENERATION/QR CODE GENERATION/Kiran Thekootu/V1/Hospicare_webinar.png-1770979395695-77484557.png', 'image/png', 33501, 'V1', 'uploaded', '2026-02-13 10:43:15', 'pending', 0),
+(262, 286, 'Rumigest Rx Pad.pdf', '/digilabs/dmap/api/uploads/RUMIGEST_RX_PAD/RUMIGEST RX PAD/Sanket Chandrakanat  Patade/V1/Rumigest_Rx_Pad.pdf-1770981766593-686049747.pdf', 'application/pdf', 5328158, 'V1', 'uploaded', '2026-02-13 11:22:46', 'pending', 0),
+(263, 199, 'Oryza Holi Script.docx', '/digilabs/dmap/api/uploads/Holi_Video_/Holi Video/Vinisha Chadala/V1/Oryza_Holi_Script.docx-1770983539985-668765254.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12984, 'V1', 'uploaded', '2026-02-13 11:52:19', 'pending', 0),
+(264, 479, 'Azithral Solid VA ENT.pdf', '/digilabs/dmap/api/uploads/AZOS_VA_ENT/AZOS VA ENT/Gaurav Karnik/V1/Azithral_Solid_VA_ENT.pdf-1770988762404-410328972.pdf', 'application/pdf', 4009024, 'V1', 'uploaded', '2026-02-13 13:19:22', 'pending', 0),
+(265, 450, 'PEGT POSTS.pptx', '/digilabs/dmap/api/uploads/Lasik_and_Contact_Lens_Education_Series_/Lasik and Contact Lens Education Series /Divya Raval/V1/PEGT_POSTS.pptx-1771058128709-775465821.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 8297054, 'V1', 'uploaded', '2026-02-14 08:35:28', 'pending', 0),
+(266, 237, 'Vetmax_Greetings_Divya.txt', '/digilabs/dmap/api/uploads/_AWARENESS_AND_CELEBRATION_DAYS___FEBRUARY_2026/ AWARENESS AND CELEBRATION DAYS /Divya Raval/V1/Vetmax_Greetings_Divya.txt-1771058479540-287873740.txt', 'text/plain', 1281, 'V1', 'uploaded', '2026-02-14 08:41:19', 'pending', 0),
+(267, 255, 'Enteron_Rekool D Anthem_Song 2_Draft 1 (1).pdf', '/digilabs/dmap/api/uploads/Rekool_D_Motivation_Video_/Rekool D Motivation Video/Divya Raval/V1/Enteron_Rekool_D_Anthem_Song_2_Draft_1__1_.pdf-1771058552097-965651387.pdf', 'application/pdf', 706487, 'V1', 'uploaded', '2026-02-14 08:42:32', 'pending', 0),
+(268, 398, 'Travisight PF_Video Greeting.txt', '/digilabs/dmap/api/uploads/Travisight__PF_Brand_Anniversary/Travisight- PF Brand Anniversary_2026/Divya Raval/V1/Travisight_PF_Video_Greeting.txt-1771058632438-122394525.txt', 'text/plain', 195, 'V1', 'uploaded', '2026-02-14 08:43:52', 'pending', 0),
+(269, 332, 'PeTAL VA 2026 1.pdf', '/digilabs/dmap/api/uploads/PetAL_VA_2026__New_Pages_/PetAL VA 2026 (New Pages)/Reshma Bastav/V1/PeTAL_VA_2026_1.pdf-1771219101092-646239580.pdf', 'application/pdf', 6400775, 'V1', 'uploaded', '2026-02-16 05:18:21', 'pending', 0),
+(270, 332, 'PeTAL VA 2026_2.pdf', '/digilabs/dmap/api/uploads/PetAL_VA_2026__New_Pages_/PetAL VA 2026 (New Pages)/Reshma Bastav/V1/PeTAL_VA_2026_2.pdf-1771219101108-544987931.pdf', 'application/pdf', 4773806, 'V1', 'uploaded', '2026-02-16 05:18:21', 'pending', 0),
+(271, 332, 'PeTAL VA 2026_3.pdf', '/digilabs/dmap/api/uploads/PetAL_VA_2026__New_Pages_/PetAL VA 2026 (New Pages)/Reshma Bastav/V1/PeTAL_VA_2026_3.pdf-1771219101114-403167044.pdf', 'application/pdf', 6130340, 'V1', 'uploaded', '2026-02-16 05:18:21', 'pending', 0),
+(272, 515, 'Best-Wishes-Mailer_Board-Exams_1.jpg', '/digilabs/dmap/api/uploads/Best_Wishes_Mailer_for_Board_Exams_/Best Wishes Mailer for Board Exams /Sanket Chandrakanat  Patade/V1/Best_Wishes_Mailer_Board_Exams_1.jpg-1771219622634-101283798.jpg', 'image/jpeg', 675603, 'V1', 'uploaded', '2026-02-16 05:27:02', 'pending', 0),
+(273, 515, 'Best-Wishes-Mailer_Board-Exams_2.jpg', '/digilabs/dmap/api/uploads/Best_Wishes_Mailer_for_Board_Exams_/Best Wishes Mailer for Board Exams /Sanket Chandrakanat  Patade/V1/Best_Wishes_Mailer_Board_Exams_2.jpg-1771219622652-388837922.jpg', 'image/jpeg', 676779, 'V1', 'uploaded', '2026-02-16 05:27:02', 'pending', 0),
+(274, 517, 'CIRCLE-OF-CHAMPIONS_Certificate.jpg', '/digilabs/dmap/api/uploads/Circle_of_Champions_Certificate/Circle of Champions Certificate/Sanket Chandrakanat  Patade/V1/CIRCLE_OF_CHAMPIONS_Certificate.jpg-1771219661889-921667949.jpg', 'image/jpeg', 126017, 'V1', 'uploaded', '2026-02-16 05:27:41', 'pending', 0),
+(275, 519, 'Celebrating-Lohri_Mailer.jpg', '/digilabs/dmap/api/uploads/Happy_Lohri_Wishes_for_TV_Screen/Happy Lohri Wishes for TV Screen/Sanket Chandrakanat  Patade/V1/Celebrating_Lohri_Mailer.jpg-1771219698920-834272528.jpg', 'image/jpeg', 505138, 'V1', 'uploaded', '2026-02-16 05:28:18', 'pending', 0),
+(276, 519, 'Celebrating-Lohri_TV.jpg', '/digilabs/dmap/api/uploads/Happy_Lohri_Wishes_for_TV_Screen/Happy Lohri Wishes for TV Screen/Sanket Chandrakanat  Patade/V1/Celebrating_Lohri_TV.jpg-1771219698927-828652484.jpg', 'image/jpeg', 647716, 'V1', 'uploaded', '2026-02-16 05:28:18', 'pending', 0),
+(277, 519, 'Celebrating-Lohri-Carousel_1.jpg', '/digilabs/dmap/api/uploads/Happy_Lohri_Wishes_for_TV_Screen/Happy Lohri Wishes for TV Screen/Sanket Chandrakanat  Patade/V1/Celebrating_Lohri_Carousel_1.jpg-1771219698937-411555101.jpg', 'image/jpeg', 1223265, 'V1', 'uploaded', '2026-02-16 05:28:18', 'pending', 0),
+(278, 519, 'Celebrating-Lohri-Carousel_2.jpg', '/digilabs/dmap/api/uploads/Happy_Lohri_Wishes_for_TV_Screen/Happy Lohri Wishes for TV Screen/Sanket Chandrakanat  Patade/V1/Celebrating_Lohri_Carousel_2.jpg-1771219698947-451906301.jpg', 'image/jpeg', 1088421, 'V1', 'uploaded', '2026-02-16 05:28:18', 'pending', 0),
+(279, 520, 'MR-PRODUCTIVE-CALLS_WEEKLY_TOP_MR_January-26-31,-2026.zip', '/digilabs/dmap/api/uploads/Top_MR_Productivity_Calls/Top MR Productivity Calls/Sanket Chandrakanat  Patade/V1/MR_PRODUCTIVE_CALLS_WEEKLY_TOP_MR_January_26_31__2026.zip-1771220063469-398865840.zip', 'application/x-zip-compressed', 2708158, 'V1', 'uploaded', '2026-02-16 05:34:23', 'pending', 0),
+(280, 522, 'Clostop-SRX-LBL_Back.jpg', '/digilabs/dmap/api/uploads/Clostop_SRX_LBL_Issue_1/Clostop SRX LBL Issue 1/Sanket Chandrakanat  Patade/V1/Clostop_SRX_LBL_Back.jpg-1771220132745-615784948.jpg', 'image/jpeg', 314048, 'V1', 'uploaded', '2026-02-16 05:35:32', 'pending', 0),
+(281, 522, 'Clostop-SRX-LBL_Front.jpg', '/digilabs/dmap/api/uploads/Clostop_SRX_LBL_Issue_1/Clostop SRX LBL Issue 1/Sanket Chandrakanat  Patade/V1/Clostop_SRX_LBL_Front.jpg-1771220132752-616239306.jpg', 'image/jpeg', 312155, 'V1', 'uploaded', '2026-02-16 05:35:32', 'pending', 0),
+(282, 516, 'CHRO-Communication_Series_New_Feb.jpg', '/digilabs/dmap/api/uploads/CHRO_Communication_for_the_Corporate_Film_/CHRO Communication for the Corporate Film /Sanket Chandrakanat  Patade/V1/CHRO_Communication_Series_New_Feb.jpg-1771220200257-430310746.jpg', 'image/jpeg', 627918, 'V1', 'uploaded', '2026-02-16 05:36:40', 'pending', 0),
+(283, 516, 'CHRO-Communication_Series_New_March.jpg', '/digilabs/dmap/api/uploads/CHRO_Communication_for_the_Corporate_Film_/CHRO Communication for the Corporate Film /Sanket Chandrakanat  Patade/V1/CHRO_Communication_Series_New_March.jpg-1771220200260-894754204.jpg', 'image/jpeg', 559371, 'V1', 'uploaded', '2026-02-16 05:36:40', 'pending', 0),
+(284, 231, 'Festive post.zip', '/digilabs/dmap/api/uploads/AWARENESS_AND_CELEBRATION_DAYS___FEBRUARY_2026/AWARENESS AND CELEBRATION DAYS - FEBRUARY 2026/Sanket Chandrakanat  Patade/V1/Festive_post.zip-1771221577747-596083660.zip', 'application/x-zip-compressed', 7577250, 'V1', 'uploaded', '2026-02-16 05:59:37', 'pending', 0),
+(285, 480, 'Closal_Poster.jpg', '/digilabs/dmap/api/uploads/CLOSAL_POSTER/CLOSAL POSTER/Nilesh Khedekar/V1/Closal_Poster.jpg-1771225094296-969122396.jpg', 'image/jpeg', 4240620, 'V1', 'uploaded', '2026-02-16 06:58:14', 'pending', 0),
+(288, 477, 'Chhatrapati Shivaji Maharaj Jayanti-01.jpg', '/digilabs/dmap/api/uploads/Shivaji_Jayanti_Flyer/Shivaji Jayanti Flyer/Nilesh Khedekar/V1/Chhatrapati_Shivaji_Maharaj_Jayanti_01.jpg-1771240160926-797926620.jpg', 'image/jpeg', 4580884, 'V1', 'uploaded', '2026-02-16 11:09:20', 'pending', 0),
+(289, 430, 'Ascal gel advance LBL A5 size.pdf', '/digilabs/dmap/api/uploads/LBL_design_required/LBL design required/Milind Balkrushna Shelar/V1/Ascal_gel_advance_LBL_A5_size.pdf-1771245977859-785107348.pdf', 'application/pdf', 6424555, 'V1', 'uploaded', '2026-02-16 12:46:17', 'pending', 0),
+(290, 513, 'A3-Size-Tent-Card.jpg', '/digilabs/dmap/api/uploads/Carb_Overload_Tent_Card_/Carb Overload Tent Card /Gaurav Karnik/V1/A3_Size_Tent_Card.jpg-1771246866932-586837456.jpg', 'image/jpeg', 418392, 'V1', 'uploaded', '2026-02-16 13:01:06', 'pending', 0),
+(291, 513, 'A5-Size-Tent-card-01-01-01.jpg', '/digilabs/dmap/api/uploads/Carb_Overload_Tent_Card_/Carb Overload Tent Card /Gaurav Karnik/V1/A5_Size_Tent_card_01_01_01.jpg-1771246866939-76476736.jpg', 'image/jpeg', 212067, 'V1', 'uploaded', '2026-02-16 13:01:06', 'pending', 0),
+(292, 240, 'Conveyor belt.docx', '/digilabs/dmap/api/uploads/Exceraft_26_27_Videos/Exceraft 26-27 Videos/Vinisha Chadala/V1/Conveyor_belt.docx-1771303633971-9042244.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 14502, 'V1', 'uploaded', '2026-02-17 04:47:13', 'pending', 0),
+(293, 240, 'Exceraft Train filler.docx', '/digilabs/dmap/api/uploads/Exceraft_26_27_Videos/Exceraft 26-27 Videos/Vinisha Chadala/V1/Exceraft_Train_filler.docx-1771303633988-33157559.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13202, 'V1', 'uploaded', '2026-02-17 04:47:13', 'pending', 0),
+(294, 240, 'Late night haunting.docx', '/digilabs/dmap/api/uploads/Exceraft_26_27_Videos/Exceraft 26-27 Videos/Vinisha Chadala/V1/Late_night_haunting.docx-1771303633994-262750660.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13493, 'V1', 'uploaded', '2026-02-17 04:47:13', 'pending', 0),
+(295, 240, 'Pacman.docx', '/digilabs/dmap/api/uploads/Exceraft_26_27_Videos/Exceraft 26-27 Videos/Vinisha Chadala/V1/Pacman.docx-1771303633998-361870300.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12639, 'V1', 'uploaded', '2026-02-17 04:47:13', 'pending', 0),
+(296, 506, 'Recreated Lyrics for Cloff_Draft 1.docx', '/digilabs/dmap/api/uploads/Cloff_Motivational_Anthem/Cloff Motivational Anthem/Divya Raval/V1/Recreated_Lyrics_for_Cloff_Draft_1.docx-1771305359179-767042182.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12945, 'V1', 'uploaded', '2026-02-17 05:15:59', 'pending', 0),
+(297, 491, 'Motivational Song_Draft 1.docx', '/digilabs/dmap/api/uploads/Video_Creation_for_budget_meeting_for_marketing_/Hospicare budget meeting /Divya Raval/V1/Motivational_Song_Draft_1.docx-1771309331900-338532081.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12413, 'V1', 'uploaded', '2026-02-17 06:22:11', 'pending', 0),
+(298, 496, 'Peel-kit-02.jpg', '/digilabs/dmap/api/uploads/Peel_kit_packaging_design/Peel kit packaging design/Angana Prakash Patil/V1/Peel_kit_02.jpg-1771317404473-713918078.jpg', 'image/jpeg', 753090, 'V1', 'uploaded', '2026-02-17 08:36:44', 'pending', 0),
+(299, 532, 'Laveta-M-Syrup-VA-Changes-3.jpg', '/digilabs/dmap/api/uploads/Requirement_of_Opener_Page___AQI___Allergic_Rhinitis_Prevalence_for_LMOL_VA/Requirement of Opener Page – AQI /Gaurav Karnik/V1/Laveta_M_Syrup_VA_Changes_3.jpg-1771318528277-710452922.jpg', 'image/jpeg', 2096206, 'V1', 'uploaded', '2026-02-17 08:55:28', 'pending', 0),
+(300, 530, 'PSA Camp Pamphlet A5_Amber Gupta_Hindi.pdf', '/digilabs/dmap/api/uploads/PSA_camp_Poster/PSA camp Poster/Gaurav Karnik/V1/PSA_Camp_Pamphlet_A5_Amber_Gupta_Hindi.pdf-1771322425825-694388038.pdf', 'application/pdf', 1969538, 'V1', 'uploaded', '2026-02-17 10:00:25', 'pending', 0),
+(301, 492, 'Nutrition_for_Better_Hemoglobin_Level_QR.png', '/digilabs/dmap/api/uploads/QR_Code_for_Richar_CR_Patient_education_Material/ Richar CR Patient education Material/Gautam Baranwal/V1/Nutrition_for_Better_Hemoglobin_Level_QR.png-1771325905421-533172575.png', 'image/png', 10043, 'V1', 'uploaded', '2026-02-17 10:58:25', 'pending', 0),
+(302, 351, 'WAA-Day_V3.jpg', '/digilabs/dmap/api/uploads/Photo_Frame_for_Anemia_Awarness_day_13th_Feb/Anemia Awarness day 13th Feb/Bhagwan Parab/V1/WAA_Day_V3.jpg-1771332387075-587813197.jpg', 'image/jpeg', 630893, 'V1', 'uploaded', '2026-02-17 12:46:27', 'pending', 0),
+(303, 421, 'Gift Box_Vitaresp FX-01.jpg', '/digilabs/dmap/api/uploads/Box_Artwork/Box Artwork/Tanmay Santosh Chorghe/V1/Gift_Box_Vitaresp_FX_01.jpg-1771388134648-5250626.jpg', 'image/jpeg', 259242, 'V1', 'uploaded', '2026-02-18 04:15:34', 'pending', 0),
+(304, 421, 'Gift Box_Vitaresp FX-02.jpg', '/digilabs/dmap/api/uploads/Box_Artwork/Box Artwork/Tanmay Santosh Chorghe/V1/Gift_Box_Vitaresp_FX_02.jpg-1771388134656-950147932.jpg', 'image/jpeg', 241957, 'V1', 'uploaded', '2026-02-18 04:15:34', 'pending', 0),
+(305, 388, 'Diana Jar Box Dimension V3 CTC -01.jpg', '/digilabs/dmap/api/uploads/Box_Artwork/Box Artwork/Tanmay Santosh Chorghe/V1/Diana_Jar_Box_Dimension_V3_CTC__01.jpg-1771388241334-311734822.jpg', 'image/jpeg', 570065, 'V1', 'uploaded', '2026-02-18 04:17:21', 'pending', 0),
+(306, 388, 'Diana Jar Box Dimension V3 CTC -02.jpg', '/digilabs/dmap/api/uploads/Box_Artwork/Box Artwork/Tanmay Santosh Chorghe/V1/Diana_Jar_Box_Dimension_V3_CTC__02.jpg-1771388241339-677709481.jpg', 'image/jpeg', 566163, 'V1', 'uploaded', '2026-02-18 04:17:21', 'pending', 0),
+(307, 388, 'Diana Jar Box Dimension V3 CTC -03.jpg', '/digilabs/dmap/api/uploads/Box_Artwork/Box Artwork/Tanmay Santosh Chorghe/V1/Diana_Jar_Box_Dimension_V3_CTC__03.jpg-1771388241342-32906165.jpg', 'image/jpeg', 565335, 'V1', 'uploaded', '2026-02-18 04:17:21', 'pending', 0),
+(308, 388, 'Diana Jar Box Dimension V3 CTC -04.jpg', '/digilabs/dmap/api/uploads/Box_Artwork/Box Artwork/Tanmay Santosh Chorghe/V1/Diana_Jar_Box_Dimension_V3_CTC__04.jpg-1771388241346-635515336.jpg', 'image/jpeg', 575744, 'V1', 'uploaded', '2026-02-18 04:17:21', 'pending', 0),
+(309, 460, 'Chemist Stationery Kit Artwork_CTC-03.pdf', '/digilabs/dmap/api/uploads/Chemist_Stationery_Kit_Artwork___Cardigem_Division_/Chemist Stationery Kit Artwork - Cardigem Division /Tanmay Santosh Chorghe/V1/Chemist_Stationery_Kit_Artwork_CTC_03.pdf-1771388338532-591248729.pdf', 'application/pdf', 936463, 'V1', 'uploaded', '2026-02-18 04:18:58', 'pending', 0),
+(310, 533, 'Focus-Brand-reminder-card-2.jpg', '/digilabs/dmap/api/uploads/Focus_Brand_reminder_card__Corazon/Focus Brand reminder card- Corazon/Tanmay Santosh Chorghe/V1/Focus_Brand_reminder_card_2.jpg-1771388429703-899238436.jpg', 'image/jpeg', 110967, 'V1', 'uploaded', '2026-02-18 04:20:29', 'pending', 0),
+(311, 533, 'Focus-Brand-reminder-card.jpg', '/digilabs/dmap/api/uploads/Focus_Brand_reminder_card__Corazon/Focus Brand reminder card- Corazon/Tanmay Santosh Chorghe/V1/Focus_Brand_reminder_card.jpg-1771388429707-63543730.jpg', 'image/jpeg', 99707, 'V1', 'uploaded', '2026-02-18 04:20:29', 'pending', 0),
+(312, 548, 'Sharkoferrol_Rx Pad-01.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Sharkoferrol_Rx_Pad_01.jpg-1771388455031-825984605.jpg', 'image/jpeg', 359398, 'V1', 'uploaded', '2026-02-18 04:20:55', 'pending', 0),
+(313, 548, 'Sharkoferrol_Rx Pad-02.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Sharkoferrol_Rx_Pad_02.jpg-1771388455036-377961201.jpg', 'image/jpeg', 291535, 'V1', 'uploaded', '2026-02-18 04:20:55', 'pending', 0),
+(314, 548, 'Sharkoferrol_Rx Pad-03.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Sharkoferrol_Rx_Pad_03.jpg-1771388455041-800454557.jpg', 'image/jpeg', 73021, 'V1', 'uploaded', '2026-02-18 04:20:55', 'pending', 0),
+(315, 548, 'Sharkoferrol_Rx Pad-04.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Sharkoferrol_Rx_Pad_04.jpg-1771388455044-817330299.jpg', 'image/jpeg', 199323, 'V1', 'uploaded', '2026-02-18 04:20:55', 'pending', 0),
+(316, 548, 'Sharkoferrol_Rx Pad-05.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Sharkoferrol_Rx_Pad_05.jpg-1771388455048-477833438.jpg', 'image/jpeg', 55580, 'V1', 'uploaded', '2026-02-18 04:20:55', 'pending', 0),
+(317, 548, 'Estrofit_Rx Pad-01.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Estrofit_Rx_Pad_01.jpg-1771388455051-28291544.jpg', 'image/jpeg', 245850, 'V1', 'uploaded', '2026-02-18 04:20:55', 'pending', 0),
+(318, 548, 'Estrofit_Rx Pad-02.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Estrofit_Rx_Pad_02.jpg-1771388455057-292452957.jpg', 'image/jpeg', 219117, 'V1', 'uploaded', '2026-02-18 04:20:55', 'pending', 0),
+(319, 548, 'Estrofit_Rx Pad-03.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Estrofit_Rx_Pad_03.jpg-1771388455059-917002517.jpg', 'image/jpeg', 103240, 'V1', 'uploaded', '2026-02-18 04:20:55', 'pending', 0),
+(320, 548, 'Estrofit_Rx Pad-04.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Estrofit_Rx_Pad_04.jpg-1771388455064-542127629.jpg', 'image/jpeg', 220687, 'V1', 'uploaded', '2026-02-18 04:20:55', 'pending', 0),
+(321, 548, 'Estrofit_Rx Pad-05.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Estrofit_Rx_Pad_05.jpg-1771388455068-730005605.jpg', 'image/jpeg', 75099, 'V1', 'uploaded', '2026-02-18 04:20:55', 'pending', 0),
+(322, 186, 'Rosave Gold VA Final_Artboard 1 copy 6-01.png', '/digilabs/dmap/api/uploads/Visual_Aid_Pages/Visual Aid Pages/Tanmay Santosh Chorghe/V1/Rosave_Gold_VA_Final_Artboard_1_copy_6_01.png-1771388725147-144857783.png', 'image/png', 4183825, 'V1', 'uploaded', '2026-02-18 04:25:25', 'pending', 0),
+(323, 186, 'Rosave Gold VA Final-02.png', '/digilabs/dmap/api/uploads/Visual_Aid_Pages/Visual Aid Pages/Tanmay Santosh Chorghe/V1/Rosave_Gold_VA_Final_02.png-1771388725154-468135540.png', 'image/png', 754071, 'V1', 'uploaded', '2026-02-18 04:25:25', 'pending', 0),
+(324, 186, 'Rosave Gold VA Final-03.png', '/digilabs/dmap/api/uploads/Visual_Aid_Pages/Visual Aid Pages/Tanmay Santosh Chorghe/V1/Rosave_Gold_VA_Final_03.png-1771388725157-584714148.png', 'image/png', 853799, 'V1', 'uploaded', '2026-02-18 04:25:25', 'pending', 0),
+(325, 186, 'Rosave Gold VA Final-04.png', '/digilabs/dmap/api/uploads/Visual_Aid_Pages/Visual Aid Pages/Tanmay Santosh Chorghe/V1/Rosave_Gold_VA_Final_04.png-1771388725165-72980158.png', 'image/png', 789625, 'V1', 'uploaded', '2026-02-18 04:25:25', 'pending', 0),
+(326, 186, 'Rosave Gold VA Final-05.png', '/digilabs/dmap/api/uploads/Visual_Aid_Pages/Visual Aid Pages/Tanmay Santosh Chorghe/V1/Rosave_Gold_VA_Final_05.png-1771388725168-782166399.png', 'image/png', 973237, 'V1', 'uploaded', '2026-02-18 04:25:25', 'pending', 0),
+(327, 344, 'Rosave Gold VA Final-02.png', '/digilabs/dmap/api/uploads/Rosave_EZ___VA_FY_26_27/Rosave EZ - VA FY 26-27/Tanmay Santosh Chorghe/V1/Rosave_Gold_VA_Final_02.png-1771388923063-199432843.png', 'image/png', 754071, 'V1', 'uploaded', '2026-02-18 04:28:43', 'pending', 0),
+(328, 344, 'Rosave Gold VA Final-03.png', '/digilabs/dmap/api/uploads/Rosave_EZ___VA_FY_26_27/Rosave EZ - VA FY 26-27/Tanmay Santosh Chorghe/V1/Rosave_Gold_VA_Final_03.png-1771388923079-160478185.png', 'image/png', 853799, 'V1', 'uploaded', '2026-02-18 04:28:43', 'pending', 0),
+(329, 344, 'Rosave Gold VA Final-04.png', '/digilabs/dmap/api/uploads/Rosave_EZ___VA_FY_26_27/Rosave EZ - VA FY 26-27/Tanmay Santosh Chorghe/V1/Rosave_Gold_VA_Final_04.png-1771388923086-429579075.png', 'image/png', 789625, 'V1', 'uploaded', '2026-02-18 04:28:43', 'pending', 0),
+(330, 344, 'Rosave Gold VA Final-05.png', '/digilabs/dmap/api/uploads/Rosave_EZ___VA_FY_26_27/Rosave EZ - VA FY 26-27/Tanmay Santosh Chorghe/V1/Rosave_Gold_VA_Final_05.png-1771388923091-938976253.png', 'image/png', 973237, 'V1', 'uploaded', '2026-02-18 04:28:43', 'pending', 0),
+(331, 484, 'Estrofit_Rx Pad-01.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Estrofit_Rx_Pad_01.jpg-1771390963313-447253123.jpg', 'image/jpeg', 245850, 'V1', 'uploaded', '2026-02-18 05:02:43', 'pending', 0),
+(332, 484, 'Estrofit_Rx Pad-02.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Estrofit_Rx_Pad_02.jpg-1771390963316-401122729.jpg', 'image/jpeg', 219117, 'V1', 'uploaded', '2026-02-18 05:02:43', 'pending', 0),
+(333, 484, 'Estrofit_Rx Pad-03.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Estrofit_Rx_Pad_03.jpg-1771390963319-394593053.jpg', 'image/jpeg', 103240, 'V1', 'uploaded', '2026-02-18 05:02:43', 'pending', 0),
+(334, 484, 'Estrofit_Rx Pad-04.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Estrofit_Rx_Pad_04.jpg-1771390963322-565486142.jpg', 'image/jpeg', 220687, 'V1', 'uploaded', '2026-02-18 05:02:43', 'pending', 0),
+(335, 484, 'Estrofit_Rx Pad-05.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Estrofit_Rx_Pad_05.jpg-1771390963330-255514467.jpg', 'image/jpeg', 75099, 'V1', 'uploaded', '2026-02-18 05:02:43', 'pending', 0),
+(336, 484, 'Sharkoferrol_Rx Pad-01.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Sharkoferrol_Rx_Pad_01.jpg-1771390963333-967431325.jpg', 'image/jpeg', 359398, 'V1', 'uploaded', '2026-02-18 05:02:43', 'pending', 0),
+(337, 484, 'Sharkoferrol_Rx Pad-02.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Sharkoferrol_Rx_Pad_02.jpg-1771390963335-516709113.jpg', 'image/jpeg', 291535, 'V1', 'uploaded', '2026-02-18 05:02:43', 'pending', 0),
+(338, 484, 'Sharkoferrol_Rx Pad-03.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Sharkoferrol_Rx_Pad_03.jpg-1771390963338-807315080.jpg', 'image/jpeg', 73021, 'V1', 'uploaded', '2026-02-18 05:02:43', 'pending', 0),
+(339, 484, 'Sharkoferrol_Rx Pad-04.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Sharkoferrol_Rx_Pad_04.jpg-1771390963340-156486438.jpg', 'image/jpeg', 199323, 'V1', 'uploaded', '2026-02-18 05:02:43', 'pending', 0),
+(340, 484, 'Sharkoferrol_Rx Pad-05.jpg', '/digilabs/dmap/api/uploads/Fertimax_RX_Pad/Fertimax RX Pad/Nilesh Khedekar/V1/Sharkoferrol_Rx_Pad_05.jpg-1771390963342-931333427.jpg', 'image/jpeg', 55580, 'V1', 'uploaded', '2026-02-18 05:02:43', 'pending', 0),
+(341, 454, 'Chhatrapati Shivaji Maharaj Jayanti.jpg', '/digilabs/dmap/api/uploads/Chhatrapati_Shivaji_Maharaj_Jayanti_Greeting/Chhatrapati Shivaji Maharaj Jayanti Greeting/Nilesh Khedekar/V1/Chhatrapati_Shivaji_Maharaj_Jayanti.jpg-1771391318773-563922456.jpg', 'image/jpeg', 1661901, 'V1', 'uploaded', '2026-02-18 05:08:38', 'pending', 0),
+(342, 531, 'SurveY_tellzy_AM_LBL_Feb.pdf-1770093801732-420386075.jpg', '/digilabs/dmap/api/uploads/Tellzy_survey_LBL/Tellzy survey LBL/Tanmay Santosh Chorghe/V1/SurveY_tellzy_AM_LBL_Feb.pdf_1770093801732_420386075.jpg-1771396752055-12960732.jpg', 'image/jpeg', 613881, 'V1', 'uploaded', '2026-02-18 06:39:12', 'pending', 0),
+(343, 211, 'Glisen SM VA - Jan 2026 - Selected_01.jpg', '/digilabs/dmap/api/uploads/Glisen_SM_VA_FY_26_27/Glisen SM VA FY 26-27/Vivek Vishwakarma/V1/Glisen_SM_VA___Jan_2026___Selected_01.jpg-1771405592660-609084995.jpg', 'image/jpeg', 1407129, 'V1', 'uploaded', '2026-02-18 09:06:32', 'pending', 0),
+(344, 211, 'Glisen SM VA - Jan 2026 - Selected_03.jpg', '/digilabs/dmap/api/uploads/Glisen_SM_VA_FY_26_27/Glisen SM VA FY 26-27/Vivek Vishwakarma/V1/Glisen_SM_VA___Jan_2026___Selected_03.jpg-1771405592676-500250377.jpg', 'image/jpeg', 1191198, 'V1', 'uploaded', '2026-02-18 09:06:32', 'pending', 0),
+(345, 211, 'Glisen SM VA - Jan 2026 - Selected_04.jpg', '/digilabs/dmap/api/uploads/Glisen_SM_VA_FY_26_27/Glisen SM VA FY 26-27/Vivek Vishwakarma/V1/Glisen_SM_VA___Jan_2026___Selected_04.jpg-1771405592686-352388532.jpg', 'image/jpeg', 1050350, 'V1', 'uploaded', '2026-02-18 09:06:32', 'pending', 0),
+(346, 211, 'Glisen SM VA - Jan 2026 - Selected-03.jpg', '/digilabs/dmap/api/uploads/Glisen_SM_VA_FY_26_27/Glisen SM VA FY 26-27/Vivek Vishwakarma/V1/Glisen_SM_VA___Jan_2026___Selected_03.jpg-1771405592692-535260001.jpg', 'image/jpeg', 1175092, 'V1', 'uploaded', '2026-02-18 09:06:32', 'pending', 0),
+(347, 211, 'Glisen SM VA - Jan 2026 - Selected-04.jpg', '/digilabs/dmap/api/uploads/Glisen_SM_VA_FY_26_27/Glisen SM VA FY 26-27/Vivek Vishwakarma/V1/Glisen_SM_VA___Jan_2026___Selected_04.jpg-1771405592695-314890565.jpg', 'image/jpeg', 1173081, 'V1', 'uploaded', '2026-02-18 09:06:32', 'pending', 0),
+(348, 211, 'Glisen SM VA - Jan 2026 - Selected-05.jpg', '/digilabs/dmap/api/uploads/Glisen_SM_VA_FY_26_27/Glisen SM VA FY 26-27/Vivek Vishwakarma/V1/Glisen_SM_VA___Jan_2026___Selected_05.jpg-1771405592703-373848382.jpg', 'image/jpeg', 1118022, 'V1', 'uploaded', '2026-02-18 09:06:32', 'pending', 0),
+(349, 211, 'Glisen SM VA - Jan 2026 - Selected-07.jpg', '/digilabs/dmap/api/uploads/Glisen_SM_VA_FY_26_27/Glisen SM VA FY 26-27/Vivek Vishwakarma/V1/Glisen_SM_VA___Jan_2026___Selected_07.jpg-1771405592712-821593865.jpg', 'image/jpeg', 1061012, 'V1', 'uploaded', '2026-02-18 09:06:32', 'pending', 0),
+(356, 192, 'Glisen Group VA - Selected.pdf', '/digilabs/dmap/api/uploads/Glisen_Visual_Aid_FY26_27/Glisen Visual Aid FY26-27/Vivek Vishwakarma/V1/Glisen_Group_VA___Selected.pdf-1771405739842-809825547.pdf', 'application/pdf', 19528723, 'V1', 'uploaded', '2026-02-18 09:08:59', 'pending', 0),
+(357, 318, 'Wikoryl VA Pages - Feb 2026-01.jpg', '/digilabs/dmap/api/uploads/Wikoryl_Liquid_VA_revamp_/Wikoryl Liquid VA revamp/Vivek Vishwakarma/V1/Wikoryl_VA_Pages___Feb_2026_01.jpg-1771405781363-680783030.jpg', 'image/jpeg', 3336230, 'V1', 'uploaded', '2026-02-18 09:09:41', 'pending', 0),
+(358, 318, 'Wikoryl VA Pages - Feb 2026-02.jpg', '/digilabs/dmap/api/uploads/Wikoryl_Liquid_VA_revamp_/Wikoryl Liquid VA revamp/Vivek Vishwakarma/V1/Wikoryl_VA_Pages___Feb_2026_02.jpg-1771405781369-787655553.jpg', 'image/jpeg', 2974162, 'V1', 'uploaded', '2026-02-18 09:09:41', 'pending', 0),
+(359, 318, 'Wikoryl VA Pages - Feb 2026-03.jpg', '/digilabs/dmap/api/uploads/Wikoryl_Liquid_VA_revamp_/Wikoryl Liquid VA revamp/Vivek Vishwakarma/V1/Wikoryl_VA_Pages___Feb_2026_03.jpg-1771405781374-489103926.jpg', 'image/jpeg', 2915734, 'V1', 'uploaded', '2026-02-18 09:09:41', 'pending', 0),
+(360, 318, 'Wikoryl VA Pages - Feb 2026-04.jpg', '/digilabs/dmap/api/uploads/Wikoryl_Liquid_VA_revamp_/Wikoryl Liquid VA revamp/Vivek Vishwakarma/V1/Wikoryl_VA_Pages___Feb_2026_04.jpg-1771405781379-551765707.jpg', 'image/jpeg', 2610928, 'V1', 'uploaded', '2026-02-18 09:09:41', 'pending', 0),
+(361, 318, 'Wikoryl VA Pages - Feb 2026-05.jpg', '/digilabs/dmap/api/uploads/Wikoryl_Liquid_VA_revamp_/Wikoryl Liquid VA revamp/Vivek Vishwakarma/V1/Wikoryl_VA_Pages___Feb_2026_05.jpg-1771405781384-412013483.jpg', 'image/jpeg', 2930849, 'V1', 'uploaded', '2026-02-18 09:09:41', 'pending', 0),
+(362, 318, 'Wikoryl VA Pages - Feb 2026-06.jpg', '/digilabs/dmap/api/uploads/Wikoryl_Liquid_VA_revamp_/Wikoryl Liquid VA revamp/Vivek Vishwakarma/V1/Wikoryl_VA_Pages___Feb_2026_06.jpg-1771405781390-806888123.jpg', 'image/jpeg', 2799517, 'V1', 'uploaded', '2026-02-18 09:09:41', 'pending', 0),
+(363, 318, 'Wikoryl VA Pages - Feb 2026-07.jpg', '/digilabs/dmap/api/uploads/Wikoryl_Liquid_VA_revamp_/Wikoryl Liquid VA revamp/Vivek Vishwakarma/V1/Wikoryl_VA_Pages___Feb_2026_07.jpg-1771405781398-302424182.jpg', 'image/jpeg', 2851486, 'V1', 'uploaded', '2026-02-18 09:09:41', 'pending', 0),
+(364, 318, 'Wikoryl VA Pages - Feb 2026-08.jpg', '/digilabs/dmap/api/uploads/Wikoryl_Liquid_VA_revamp_/Wikoryl Liquid VA revamp/Vivek Vishwakarma/V1/Wikoryl_VA_Pages___Feb_2026_08.jpg-1771405781404-902095007.jpg', 'image/jpeg', 185458, 'V1', 'uploaded', '2026-02-18 09:09:41', 'pending', 0),
+(365, 433, 'Box artwork for Cloff - Feb 2025 - Final_C2C.pdf', '/digilabs/dmap/api/uploads/_Box_Artwork_for_Cloff/ Box Artwork for Cloff/Vivek Vishwakarma/V1/Box_artwork_for_Cloff___Feb_2025___Final_C2C.pdf-1771405820214-19280121.pdf', 'application/pdf', 1441395, 'V1', 'uploaded', '2026-02-18 09:10:20', 'pending', 0),
+(366, 396, '1. FERTIMAX Logo - Feb 2026.jpg', '/digilabs/dmap/api/uploads/DIVISION_LOGO_DEVELOPMENT/DIVISION LOGO DEVELOPMENT/Vivek Vishwakarma/V1/1._FERTIMAX_Logo___Feb_2026.jpg-1771405843415-944076907.jpg', 'image/jpeg', 85853, 'V1', 'uploaded', '2026-02-18 09:10:43', 'pending', 0),
+(367, 396, '2. FERTIMAX Logo - Feb 2026.jpg', '/digilabs/dmap/api/uploads/DIVISION_LOGO_DEVELOPMENT/DIVISION LOGO DEVELOPMENT/Vivek Vishwakarma/V1/2._FERTIMAX_Logo___Feb_2026.jpg-1771405843419-204943080.jpg', 'image/jpeg', 90167, 'V1', 'uploaded', '2026-02-18 09:10:43', 'pending', 0),
+(368, 396, '3. FERTIMAX Logo - Feb 2026.jpg', '/digilabs/dmap/api/uploads/DIVISION_LOGO_DEVELOPMENT/DIVISION LOGO DEVELOPMENT/Vivek Vishwakarma/V1/3._FERTIMAX_Logo___Feb_2026.jpg-1771405843422-884251724.jpg', 'image/jpeg', 84971, 'V1', 'uploaded', '2026-02-18 09:10:43', 'pending', 0),
+(369, 396, '4. FERTIMAX Logo - Feb 2026.jpg', '/digilabs/dmap/api/uploads/DIVISION_LOGO_DEVELOPMENT/DIVISION LOGO DEVELOPMENT/Vivek Vishwakarma/V1/4._FERTIMAX_Logo___Feb_2026.jpg-1771405843425-389013852.jpg', 'image/jpeg', 83292, 'V1', 'uploaded', '2026-02-18 09:10:43', 'pending', 0),
+(370, 396, '5. FERTIMAX Logo - Feb 2026.jpg', '/digilabs/dmap/api/uploads/DIVISION_LOGO_DEVELOPMENT/DIVISION LOGO DEVELOPMENT/Vivek Vishwakarma/V1/5._FERTIMAX_Logo___Feb_2026.jpg-1771405843427-301817274.jpg', 'image/jpeg', 70356, 'V1', 'uploaded', '2026-02-18 09:10:43', 'pending', 0),
+(371, 396, '6. FERTIMAX Logo - Feb 2026.jpg', '/digilabs/dmap/api/uploads/DIVISION_LOGO_DEVELOPMENT/DIVISION LOGO DEVELOPMENT/Vivek Vishwakarma/V1/6._FERTIMAX_Logo___Feb_2026.jpg-1771405843430-753943317.jpg', 'image/jpeg', 65295, 'V1', 'uploaded', '2026-02-18 09:10:43', 'pending', 0),
+(372, 502, 'Box artwork for Vildambic - Feb 2026.pdf', '/digilabs/dmap/api/uploads/Vildambic_box_artwork_/Vildambic box artwork/Vivek Vishwakarma/V1/Box_artwork_for_Vildambic___Feb_2026.pdf-1771405895654-59622910.pdf', 'application/pdf', 4231623, 'V1', 'uploaded', '2026-02-18 09:11:35', 'pending', 0),
+(373, 542, 'Udaan Logo - Feb 2026.pdf', '/digilabs/dmap/api/uploads/UDAAN_LOGO/UDAAN LOGO/Vivek Vishwakarma/V1/Udaan_Logo___Feb_2026.pdf-1771406012996-944683757.pdf', 'application/pdf', 3192053, 'V1', 'uploaded', '2026-02-18 09:13:33', 'pending', 0),
+(374, 498, 'Resync PLUS Logo_Final.jpg', '/digilabs/dmap/api/uploads/RESYNC_PLUS_LOGO_AND_PACK_SHOT/RESYNC PLUS LOGO AND PACK SHOT/Reshma Bastav/V1/Resync_PLUS_Logo_Final.jpg-1771407089301-900954481.jpg', 'image/jpeg', 3743122, 'V1', 'uploaded', '2026-02-18 09:31:29', 'pending', 0),
+(375, 498, 'Resync PLUS Pack.pdf', '/digilabs/dmap/api/uploads/RESYNC_PLUS_LOGO_AND_PACK_SHOT/RESYNC PLUS LOGO AND PACK SHOT/Reshma Bastav/V1/Resync_PLUS_Pack.pdf-1771407089310-387739555.pdf', 'application/pdf', 1832940, 'V1', 'uploaded', '2026-02-18 09:31:29', 'pending', 0),
+(376, 539, 'Rosave EZ VA page.pdf', '/digilabs/dmap/api/uploads/Rosave_EZ___survey_LBL/Rosave EZ - survey LBL/Gaurav Karnik/V1/Rosave_EZ_VA_page.pdf-1771422171257-573703983.pdf', 'application/pdf', 2177895, 'V1', 'uploaded', '2026-02-18 13:42:51', 'pending', 0),
+(377, 540, 'PSA Camp Pamphlet A5_Amber Gupta_Hindi.pdf', '/digilabs/dmap/api/uploads/Glipy_Group_Camp_Poster/Glipy Group Camp Poster/Gaurav Karnik/V1/PSA_Camp_Pamphlet_A5_Amber_Gupta_Hindi.pdf-1771422251250-96672823.pdf', 'application/pdf', 1969538, 'V1', 'uploaded', '2026-02-18 13:44:11', 'pending', 0),
+(378, 536, 'Citanil VA_1.pdf', '/digilabs/dmap/api/uploads/CETANIL_VA_CHANGES/CETANIL VA CHANGES/Reshma Bastav/V1/Citanil_VA_1.pdf-1771479355928-107254792.pdf', 'application/pdf', 7839144, 'V1', 'uploaded', '2026-02-19 05:35:55', 'pending', 0),
+(379, 569, 'IMA Conference Participation - Souvenir Artwork - Feb 2026_C2C.pdf', '/digilabs/dmap/api/uploads/Souvenier_artwork_for_CLOFF___DSP/Souvenier artwork for CLOFF /Vivek Vishwakarma/V1/IMA_Conference_Participation___Souvenir_Artwork___Feb_2026_C2C.pdf-1771482703395-952177890.pdf', 'application/pdf', 1824327, 'V1', 'uploaded', '2026-02-19 06:31:43', 'pending', 0),
+(380, 555, 'GROGAIN PRO VA - Print - Feb 2026.pdf', '/digilabs/dmap/api/uploads/Grogain_Pro_final_VA_all_pages/Grogain Pro final VA all pages/Vivek Vishwakarma/V1/GROGAIN_PRO_VA___Print___Feb_2026.pdf-1771482805773-348368981.pdf', 'application/pdf', 8979631, 'V1', 'uploaded', '2026-02-19 06:33:25', 'pending', 0),
+(381, 545, 'rafle Chitpad.pdf', '/digilabs/dmap/api/uploads/Rafle_Chit_Pad_Designing/Rafle Chit Pad Designing/Milind Balkrushna Shelar/V1/rafle_Chitpad.pdf-1771483419443-449388104.pdf', 'application/pdf', 224725, 'V1', 'uploaded', '2026-02-19 06:43:39', 'pending', 0),
+(382, 556, 'Voage-MS VA 2026 v4.pdf', '/digilabs/dmap/api/uploads/Voage_MS_VA_Design/Voage MS VA Design/Milind Balkrushna Shelar/V1/Voage_MS_VA_2026_v4.pdf-1771483614073-688257945.pdf', 'application/pdf', 5029203, 'V1', 'uploaded', '2026-02-19 06:46:54', 'pending', 0),
+(383, 557, 'Relugolix 40 mg, Estradiol 1 mg & Norethindrone (1x1) PS 194mm BL.pdf', '/digilabs/dmap/api/uploads/Packshot__and_panel_design_for_new_brand_Reluher/Packshot  and panel design for new brand Reluher/Milind Balkrushna Shelar/V1/Relugolix_40_mg__Estradiol_1_mg___Norethindrone__1x1__PS_194mm_BL.pdf-1771483787003-814314828.pdf', 'application/pdf', 1871686, 'V1', 'uploaded', '2026-02-19 06:49:47', 'pending', 0),
+(384, 557, 'Relugolix 40 mg, Estradiol 1 mg & Norethindrone (10x10) 154mm final copy.pdf', '/digilabs/dmap/api/uploads/Packshot__and_panel_design_for_new_brand_Reluher/Packshot  and panel design for new brand Reluher/Milind Balkrushna Shelar/V1/Relugolix_40_mg__Estradiol_1_mg___Norethindrone__10x10__154mm_final_copy.pdf-1771483787010-636186529.pdf', 'application/pdf', 1647500, 'V1', 'uploaded', '2026-02-19 06:49:47', 'pending', 0),
+(385, 463, 'Khurak-Video-Artwork_4.jpg', '/digilabs/dmap/api/uploads/Khurak_video_artwork/Khurak video artwork/Sanket Chandrakanat  Patade/V1/Khurak_Video_Artwork_4.jpg-1771496924982-21112084.jpg', 'image/jpeg', 579100, 'V1', 'uploaded', '2026-02-19 10:28:44', 'pending', 0),
+(386, 575, 'Circle-of-champions-Event-Collage.jpg', '/digilabs/dmap/api/uploads/Circle_of_Champions_Collage/Circle of Champions Collage/Sanket Chandrakanat  Patade/V1/Circle_of_champions_Event_Collage.jpg-1771500535575-197771683.jpg', 'image/jpeg', 743896, 'V1', 'uploaded', '2026-02-19 11:28:55', 'pending', 0),
+(387, 576, 'APL-Thumnbail-Final.jpg', '/digilabs/dmap/api/uploads/APL_Thumbnail/APL Thumbnail/Sanket Chandrakanat  Patade/V1/APL_Thumnbail_Final.jpg-1771500573176-375453799.jpg', 'image/jpeg', 1331510, 'V1', 'uploaded', '2026-02-19 11:29:33', 'pending', 0),
+(388, 574, 'AAA-Post_TV.jpg', '/digilabs/dmap/api/uploads/AAA_TV_Version/AAA TV Version/Sanket Chandrakanat  Patade/V1/AAA_Post_TV.jpg-1771500619070-458759361.jpg', 'image/jpeg', 500459, 'V1', 'uploaded', '2026-02-19 11:30:19', 'pending', 0),
+(389, 478, 'STEP UP_Draft 3_Cricket Theme.docx', '/digilabs/dmap/api/uploads/BUDGET_MEETING_THEME_/BUDGET MEETING THEME /Divya Raval/V1/STEP_UP_Draft_3_Cricket_Theme.docx-1771501077844-387725868.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 14350, 'V1', 'uploaded', '2026-02-19 11:37:57', 'pending', 0),
+(390, 584, 'AAA-Post_TV.jpg', '/digilabs/dmap/api/uploads/AAA_Creatives/AAA Creatives/Sanket Chandrakanat  Patade/V1/AAA_Post_TV.jpg-1771564324064-22576708.jpg', 'image/jpeg', 499124, 'V1', 'uploaded', '2026-02-20 05:12:04', 'pending', 0);
 
---
+INSERT INTO `task_documents` (`id`, `task_assignment_id`, `document_name`, `document_path`, `document_type`, `document_size`, `version`, `status`, `uploaded_at`, `review`, `intimate_client`) VALUES
+(391, 243, 'Acidity Monster vs Exceraft_Pitch Deck.pptx', '/digilabs/dmap/api/uploads/Exceraft_26_27_Videos/Exceraft 26-27 Videos/Divya Raval/V1/Acidity_Monster_vs_Exceraft_Pitch_Deck.pptx-1771567298196-908797468.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 7182124, 'V1', 'uploaded', '2026-02-20 06:01:38', 'pending', 0),
+(392, 561, 'Pacman Gamification Video.mp4', '/digilabs/dmap/api/uploads/Exceraft_Pacman_Video/Exceraft Pacman Video/Prathamesh Shengale/V1/Pacman_Gamification_Video.mp4-1771569949697-65028061.mp4', 'video/mp4', 16275442, 'V1', 'uploaded', '2026-02-20 06:45:49', 'pending', 0),
+(393, 568, 'logo step up.pdf', '/digilabs/dmap/api/uploads/EYECARE_BUDGET_MEETING_/EYECARE BUDGET MEETING /Tanmay Santosh Chorghe/V1/logo_step_up.pdf-1771571699387-452232749.pdf', 'application/pdf', 1842687, 'V1', 'uploaded', '2026-02-20 07:14:59', 'pending', 0),
+(394, 586, 'All Brand Reminder Card Feb 2026 LBL_1_CTC.pdf', '/digilabs/dmap/api/uploads/All_brand_LBL___addition_of_Mamal_LC_/All brand LBL - addition of Mamal LC/Sanket Chandrakanat  Patade/V1/All_Brand_Reminder_Card_Feb_2026_LBL_1_CTC.pdf-1771584363502-841236687.pdf', 'application/pdf', 5240564, 'V1', 'uploaded', '2026-02-20 10:46:03', 'pending', 0),
+(395, 535, 'Milbecidal magazine Advertisement_ctc.pdf', '/digilabs/dmap/api/uploads/Milbecidal_magazine_advertisement_artwork/Milbecidal magazine advertisement artwork/Reshma Bastav/V1/Milbecidal_magazine_Advertisement_ctc.pdf-1771589174231-699954965.pdf', 'application/pdf', 1754327, 'V1', 'uploaded', '2026-02-20 12:06:14', 'pending', 0),
+(396, 551, 'World-Spay-Day.jpg', '/digilabs/dmap/api/uploads/Animal_Health_Day_Greeting/Animal Health Day Greeting/Sanket Chandrakanat  Patade/V1/World_Spay_Day.jpg-1771826163579-410877863.jpg', 'image/jpeg', 724902, 'V1', 'uploaded', '2026-02-23 05:56:03', 'pending', 0),
+(397, 518, 'Alembic-Timeline-Pithampur-Admin-Wall_212.5_X_59_Inch.jpg', '/digilabs/dmap/api/uploads/Alembic_Timeline_Pithampur/Alembic Timeline Pithampur/Sanket Chandrakanat  Patade/V1/Alembic_Timeline_Pithampur_Admin_Wall_212.5_X_59_Inch.jpg-1771831267834-293737316.jpg', 'image/jpeg', 6841948, 'V1', 'uploaded', '2026-02-23 07:21:07', 'pending', 0),
+(398, 518, 'Alembic-Timeline-Pithampur-Plant-Entry-Lobby_159.5_X_59.jpg', '/digilabs/dmap/api/uploads/Alembic_Timeline_Pithampur/Alembic Timeline Pithampur/Sanket Chandrakanat  Patade/V1/Alembic_Timeline_Pithampur_Plant_Entry_Lobby_159.5_X_59.jpg-1771831267850-621802122.jpg', 'image/jpeg', 5748121, 'V1', 'uploaded', '2026-02-23 07:21:07', 'pending', 0),
+(399, 518, 'Alembic-Timeline-Pithampur-Visitor-Waiting-Room_126_X_48.jpg', '/digilabs/dmap/api/uploads/Alembic_Timeline_Pithampur/Alembic Timeline Pithampur/Sanket Chandrakanat  Patade/V1/Alembic_Timeline_Pithampur_Visitor_Waiting_Room_126_X_48.jpg-1771831267868-799324643.jpg', 'image/jpeg', 7332157, 'V1', 'uploaded', '2026-02-23 07:21:07', 'pending', 0),
+(400, 583, 'Chemist-outer-box-artwork-4-X-4 A.jpg', '/digilabs/dmap/api/uploads/Chemist_outer_box_artwork/Chemist outer box artwork/Tanmay Santosh Chorghe/V1/Chemist_outer_box_artwork_4_X_4_A.jpg-1771836587357-726298790.jpg', 'image/jpeg', 96958, 'V1', 'uploaded', '2026-02-23 08:49:47', 'pending', 0),
+(401, 583, 'Chemist-outer-box-artwork-4-X-4.jpg', '/digilabs/dmap/api/uploads/Chemist_outer_box_artwork/Chemist outer box artwork/Tanmay Santosh Chorghe/V1/Chemist_outer_box_artwork_4_X_4.jpg-1771836587362-559602975.jpg', 'image/jpeg', 109163, 'V1', 'uploaded', '2026-02-23 08:49:47', 'pending', 0),
+(402, 527, 'Resync Song_Draft 1.pdf', '/digilabs/dmap/api/uploads/RESYNC___VIDEO_SCRIPT_FOR_CYCLE_MEET___DHURANDHAR/RESYNC - VIDEO SCRIPT FOR CYCLE MEET - DHURANDHAR/Divya Raval/V1/Resync_Song_Draft_1.pdf-1771837537828-179292228.pdf', 'application/pdf', 550622, 'V1', 'uploaded', '2026-02-23 09:05:37', 'pending', 0),
+(403, 353, 'Game activity during meeting.pptx', '/digilabs/dmap/api/uploads/PegTears_HP_Cycle_Meeting/PegTears HP Cycle Meeting_2026/Divya Raval/V1/Game_activity_during_meeting.pptx-1771838014137-209732350.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 37889, 'V1', 'uploaded', '2026-02-23 09:13:34', 'pending', 0),
+(405, 529, 'Laveta Ad copies 2.docx', '/digilabs/dmap/api/uploads/AQI_LMOL_VA_PAGE_COPY/AQI LMOL VA PAGE COPY/Vinisha Chadala/V1/Laveta_Ad_copies_2.docx-1771841479317-25113514.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 14122, 'V1', 'uploaded', '2026-02-23 10:11:19', 'pending', 0),
+(406, 509, 'Almizol Spray Gamification.docx', '/digilabs/dmap/api/uploads/Almizol_WS_Spray/Almizol WS Spray/Vinisha Chadala/V1/Almizol_Spray_Gamification.docx-1771841569867-321658189.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 15921, 'V1', 'uploaded', '2026-02-23 10:12:49', 'pending', 0),
+(407, 528, 'Womens Day Oryza Script.docx', '/digilabs/dmap/api/uploads/Women_s_Day_Video/Women\'s Day Video/Vinisha Chadala/V1/Womens_Day_Oryza_Script.docx-1771841683200-285049274.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 16491, 'V1', 'uploaded', '2026-02-23 10:14:43', 'pending', 0),
+(408, 352, 'Teasers for PEGTEARS.docx', '/digilabs/dmap/api/uploads/PegTears_HP_Cycle_Meeting/PegTears HP Cycle Meeting_2026/Vinisha Chadala/V1/Teasers_for_PEGTEARS.docx-1771841729944-888226181.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 14282, 'V1', 'uploaded', '2026-02-23 10:15:29', 'pending', 0),
+(409, 590, 'Mastitis_MCEFT_Script.docx', '/digilabs/dmap/api/uploads/Mceft_Video/Mceft Video/Divya Raval/V1/Mastitis_MCEFT_Script.docx-1771843693214-526266911.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 11740, 'V1', 'uploaded', '2026-02-23 10:48:13', 'pending', 0),
+(410, 578, 'dangler-2-02.jpg', '/digilabs/dmap/api/uploads/Danglers/Danglers/Milind Balkrushna Shelar/V1/dangler_2_02.jpg-1771850762671-632823085.jpg', 'image/jpeg', 1903966, 'V1', 'uploaded', '2026-02-23 12:46:02', 'pending', 0),
+(411, 578, 'dangler-2-03.jpg', '/digilabs/dmap/api/uploads/Danglers/Danglers/Milind Balkrushna Shelar/V1/dangler_2_03.jpg-1771850762681-343326706.jpg', 'image/jpeg', 2772416, 'V1', 'uploaded', '2026-02-23 12:46:02', 'pending', 0),
+(412, 391, 'GLisen Reminder card.pdf', '/digilabs/dmap/api/uploads/Glisen_Reminder_Card/Glisen Reminder Card/Gaurav Karnik/V1/GLisen_Reminder_card.pdf-1771854500871-215226962.pdf', 'application/pdf', 757510, 'V1', 'uploaded', '2026-02-23 13:48:20', 'pending', 0),
+(413, 580, 'LBL.pdf', '/digilabs/dmap/api/uploads/Haircare_Apr_LBL/Haircare Apr LBL/Gaurav Karnik/V1/LBL.pdf-1771903336004-697192172.pdf', 'application/pdf', 1522577, 'V1', 'uploaded', '2026-02-24 03:22:16', 'pending', 0),
+(414, 617, 'Happy-Holi.jpg', '/digilabs/dmap/api/uploads/Digital_flyer_for_Holi/Digital flyer for Holi/Sanket Chandrakanat  Patade/V1/Happy_Holi.jpg-1771908470598-700341215.jpg', 'image/jpeg', 105386, 'V1', 'uploaded', '2026-02-24 04:47:50', 'pending', 0),
+(415, 577, 'Box Design.pdf', '/digilabs/dmap/api/uploads/Eyecare_Doctors_Gift_Box/Eyecare Doctors Gift Box/Gaurav Karnik/V1/Box_Design.pdf-1771910621131-924563357.pdf', 'application/pdf', 474836, 'V1', 'uploaded', '2026-02-24 05:23:41', 'pending', 0),
+(416, 544, 'TELLZY VA.pdf', '/digilabs/dmap/api/uploads/Tellzy_VA_/Tellzy VA/Gaurav Karnik/V1/TELLZY_VA.pdf-1771914471955-198348712.pdf', 'application/pdf', 4274264, 'V1', 'uploaded', '2026-02-24 06:27:51', 'pending', 0),
+(417, 437, 'Lactonic LBL_01.pdf', '/digilabs/dmap/api/uploads/Lactonic_LBL_/Lactonic LBL /Angana Prakash Patil/V1/Lactonic_LBL_01.pdf-1771918642602-770334744.pdf', 'application/pdf', 1812277, 'V1', 'uploaded', '2026-02-24 07:37:22', 'pending', 0),
+(418, 437, 'Lactonic LBL_02.pdf', '/digilabs/dmap/api/uploads/Lactonic_LBL_/Lactonic LBL /Angana Prakash Patil/V1/Lactonic_LBL_02.pdf-1771918642617-306945004.pdf', 'application/pdf', 1835154, 'V1', 'uploaded', '2026-02-24 07:37:22', 'pending', 0),
+(419, 437, 'Lactonic LBL_03.pdf', '/digilabs/dmap/api/uploads/Lactonic_LBL_/Lactonic LBL /Angana Prakash Patil/V1/Lactonic_LBL_03.pdf-1771918642622-422596010.pdf', 'application/pdf', 2093774, 'V1', 'uploaded', '2026-02-24 07:37:22', 'pending', 0),
+(420, 514, 'Oryza sensitive_VA_6.pdf', '/digilabs/dmap/api/uploads/Oryza_sensitive_A__pages___New/Oryza sensitive A  pages - New/Angana Prakash Patil/V1/Oryza_sensitive_VA_6.pdf-1771920386907-831193820.pdf', 'application/pdf', 12501925, 'V1', 'uploaded', '2026-02-24 08:06:26', 'pending', 0),
+(421, 546, 'Oryza Sensitive_LBL_C2C.pdf', '/digilabs/dmap/api/uploads/Rosacea_LBL/Rosacea LBL/Angana Prakash Patil/V1/Oryza_Sensitive_LBL_C2C.pdf-1771920471306-503937208.pdf', 'application/pdf', 95495562, 'V1', 'uploaded', '2026-02-24 08:07:52', 'pending', 0),
+(422, 510, 'Brand Reminder Card_Feb 2016_C2C.pdf', '/digilabs/dmap/api/uploads/All_brand_reminder_card/All brand reminder card/Angana Prakash Patil/V1/Brand_Reminder_Card_Feb_2016_C2C.pdf-1771920534478-85864856.pdf', 'application/pdf', 1775832, 'V1', 'uploaded', '2026-02-24 08:08:54', 'pending', 0),
+(423, 606, 'Dettol_Soap_Hand_wash_magic_hand_wash_Antiseptic 1771580301185-6577056.pdf', '/digilabs/dmap/api/uploads/TELLZY_MT_SGPI_ART_WORK/TELLZY MT SGPI ART WORK/Tanmay Santosh Chorghe/V1/Dettol_Soap_Hand_wash_magic_hand_wash_Antiseptic_1771580301185_6577056.pdf-1771926542428-806167208.pdf', 'application/pdf', 1195434, 'V1', 'uploaded', '2026-02-24 09:49:02', 'pending', 0),
+(424, 608, 'SurveY_tellzy_AM_LBL_Feb-A 1770093801732-420386075.jpg', '/digilabs/dmap/api/uploads/TELLZY_MT_SURVEY_LBL/TELLZY MT SURVEY LBL/Tanmay Santosh Chorghe/V1/SurveY_tellzy_AM_LBL_Feb_A_1770093801732_420386075.jpg-1771927514168-273156922.jpg', 'image/jpeg', 640317, 'V1', 'uploaded', '2026-02-24 10:05:14', 'pending', 0),
+(450, 618, 'All-Brand-Reminder-Card-March-2026-_RC.jpg', '/digilabs/dmap/api/uploads/All_Brand_Reminder_Card/All Brand Reminder Card/Tanmay Santosh Chorghe/V1/All_Brand_Reminder_Card_March_2026__RC.jpg-1771934458038-653138710.jpg', 'image/jpeg', 529549, 'V1', 'uploaded', '2026-02-24 12:00:58', 'pending', 0),
+(451, 618, 'All-Brand-Reminder-Card-March-2026-2_RC.jpg', '/digilabs/dmap/api/uploads/All_Brand_Reminder_Card/All Brand Reminder Card/Tanmay Santosh Chorghe/V1/All_Brand_Reminder_Card_March_2026_2_RC.jpg-1771934458045-881899631.jpg', 'image/jpeg', 621385, 'V1', 'uploaded', '2026-02-24 12:00:58', 'pending', 0),
+(452, 646, 'Camp-Poster-1.jpg', '/digilabs/dmap/api/uploads/Zivemp_SM_Detection_Camp_Poster/Zivemp-SM Detection Camp Poster/Gaurav Karnik/V1/Camp_Poster_1.jpg-1771939450463-38141336.jpg', 'image/jpeg', 1829378, 'V1', 'uploaded', '2026-02-24 13:24:10', 'pending', 0),
+(453, 646, 'Camp-Poster-2.jpg', '/digilabs/dmap/api/uploads/Zivemp_SM_Detection_Camp_Poster/Zivemp-SM Detection Camp Poster/Gaurav Karnik/V1/Camp_Poster_2.jpg-1771939450474-199245805.jpg', 'image/jpeg', 1214854, 'V1', 'uploaded', '2026-02-24 13:24:10', 'pending', 0),
+(454, 550, 'Mothers Day packaigng key line (002)-1.jpg', '/digilabs/dmap/api/uploads/Mother_s_day_box_AW/Mother\'s day box AW/Angana Prakash Patil/V1/Mothers_Day_packaigng_key_line__002__1.jpg-1771989594391-825202255.jpg', 'image/jpeg', 4749020, 'V1', 'uploaded', '2026-02-25 03:19:54', 'pending', 0),
+(455, 550, 'Mothers Day packaigng key line (002)-2.jpg', '/digilabs/dmap/api/uploads/Mother_s_day_box_AW/Mother\'s day box AW/Angana Prakash Patil/V1/Mothers_Day_packaigng_key_line__002__2.jpg-1771989594410-570391195.jpg', 'image/jpeg', 1724604, 'V1', 'uploaded', '2026-02-25 03:19:54', 'pending', 0),
+(456, 215, 'Oryza sensitive_VA_6_Low.pdf', '/digilabs/dmap/api/uploads/Oryza_Sensitive_FY27___Revised_VA/Oryza Sensitive FY27 - Revised VA/Angana Prakash Patil/V1/Oryza_sensitive_VA_6_Low.pdf-1771989633589-882486618.pdf', 'application/pdf', 1027280, 'V1', 'uploaded', '2026-02-25 03:20:33', 'pending', 0),
+(457, 379, 'Rekool Teasers.docx', '/digilabs/dmap/api/uploads/Rekool_D_CLM_Video_Campgain_/Rekool D CLM Campgain_2026/Vinisha Chadala/V1/Rekool_Teasers.docx-1771993507109-702446205.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 17575, 'V1', 'uploaded', '2026-02-25 04:25:07', 'pending', 0),
+(458, 571, 'Salembic Script.docx', '/digilabs/dmap/api/uploads/IV_fluid_script_/IV fluid script /Vinisha Chadala/V1/Salembic_Script.docx-1771993530843-986223657.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 14127, 'V1', 'uploaded', '2026-02-25 04:25:30', 'pending', 0),
+(460, 634, 'World-Spay-Day.jpg', '/digilabs/dmap/api/uploads/World_Wildlife_Day/World Wildlife Day/Sanket Chandrakanat  Patade/V1/World_Spay_Day.jpg-1772016148118-225812808.jpg', 'image/jpeg', 724902, 'V1', 'uploaded', '2026-02-25 10:42:28', 'pending', 0),
+(461, 601, 'Holika Dahan.txt', '/digilabs/dmap/api/uploads/Holika_Dahan_Greeting/Holika Dahan Greeting/Divya Raval/V1/Holika_Dahan.txt-1772016748384-986072094.txt', 'text/plain', 165, 'V1', 'uploaded', '2026-02-25 10:52:28', 'pending', 0),
+(462, 602, 'Holi.txt', '/digilabs/dmap/api/uploads/Holi_Greeting/Holi Greeting/Divya Raval/V1/Holi.txt-1772017331497-318825619.txt', 'text/plain', 149, 'V1', 'uploaded', '2026-02-25 11:02:11', 'pending', 0),
+(463, 603, 'Poster_1.jpg', '/digilabs/dmap/api/uploads/Fertimax_LBL_Oredr_Book___Banner/Fertimax LBL,Oredr Book /Sanket Chandrakanat  Patade/V1/Poster_1.jpg-1772017530275-26126815.jpg', 'image/jpeg', 8657227, 'V1', 'uploaded', '2026-02-25 11:05:30', 'pending', 0),
+(464, 603, 'LBL_2.jpg', '/digilabs/dmap/api/uploads/Fertimax_LBL_Oredr_Book___Banner/Fertimax LBL,Oredr Book /Sanket Chandrakanat  Patade/V1/LBL_2.jpg-1772017530287-298576679.jpg', 'image/jpeg', 240400, 'V1', 'uploaded', '2026-02-25 11:05:30', 'pending', 0),
+(465, 603, 'Fertimax-Order-Book_1.jpg', '/digilabs/dmap/api/uploads/Fertimax_LBL_Oredr_Book___Banner/Fertimax LBL,Oredr Book /Sanket Chandrakanat  Patade/V1/Fertimax_Order_Book_1.jpg-1772017530290-326447856.jpg', 'image/jpeg', 200787, 'V1', 'uploaded', '2026-02-25 11:05:30', 'pending', 0),
+(466, 603, 'Fertimax-Order-Book_2.jpg', '/digilabs/dmap/api/uploads/Fertimax_LBL_Oredr_Book___Banner/Fertimax LBL,Oredr Book /Sanket Chandrakanat  Patade/V1/Fertimax_Order_Book_2.jpg-1772017530293-778780323.jpg', 'image/jpeg', 184607, 'V1', 'uploaded', '2026-02-25 11:05:30', 'pending', 0),
+(467, 677, 'Holi Greeting.txt', '/digilabs/dmap/api/uploads/Holika_Dahan_Celebration_Day_Greeting/Holika Dahan Celebration Day Greeting/Divya Raval/V1/Holi_Greeting.txt-1772018159971-130165942.txt', 'text/plain', 248, 'V1', 'uploaded', '2026-02-25 11:15:59', 'pending', 0),
+(468, 591, 'Khurak_Video.gif', '/digilabs/dmap/api/uploads/Khurak_Pack_video/Khurak Pack video/Prathamesh Shengale/V1/Khurak_Video.gif-1772083397394-915169682.gif', 'image/gif', 21290993, 'V1', 'uploaded', '2026-02-26 05:23:17', 'pending', 0),
+(469, 630, 'National-Science-Day.jpg', '/digilabs/dmap/api/uploads/National_Science_Day_Greeting/National Science Day Greeting/Sanket Chandrakanat  Patade/V1/National_Science_Day.jpg-1772087516421-793235877.jpg', 'image/jpeg', 355370, 'V1', 'uploaded', '2026-02-26 06:31:56', 'pending', 0),
+(470, 640, 'Deltone-LBL-April\'26-Back.jpg', '/digilabs/dmap/api/uploads/Deltone_LBL_April_26/Deltone LBL April\'26/Tanmay Santosh Chorghe/V1/Deltone_LBL_April_26_Back.jpg-1772087695211-914832690.jpg', 'image/jpeg', 379670, 'V1', 'uploaded', '2026-02-26 06:34:55', 'pending', 0),
+(471, 640, 'Deltone-LBL-April\'26-Front.jpg', '/digilabs/dmap/api/uploads/Deltone_LBL_April_26/Deltone LBL April\'26/Tanmay Santosh Chorghe/V1/Deltone_LBL_April_26_Front.jpg-1772087695230-72131694.jpg', 'image/jpeg', 496670, 'V1', 'uploaded', '2026-02-26 06:34:55', 'pending', 0),
+(472, 632, 'Happy-Holi.jpg', '/digilabs/dmap/api/uploads/Holi_Greeting_/Holi Greeting /Sanket Chandrakanat  Patade/V1/Happy_Holi.jpg-1772095231234-519678752.jpg', 'image/jpeg', 918110, 'V1', 'uploaded', '2026-02-26 08:40:31', 'pending', 0),
+(473, 638, 'Holika-Dahan.jpg', '/digilabs/dmap/api/uploads/Holika_Dahan_Celebration_Day_Greeting/Holika Dahan Celebration Day Greeting/Sanket Chandrakanat  Patade/V1/Holika_Dahan.jpg-1772095255285-63116607.jpg', 'image/jpeg', 944224, 'V1', 'uploaded', '2026-02-26 08:40:55', 'pending', 0),
+(474, 614, 'Travisight+ Brinzemic B VA.pdf', '/digilabs/dmap/api/uploads/Adjunctive_Therapy__Visual_Aid/Adjunctive Therapy  Visual Aid/Reshma Bastav/V1/Travisight__Brinzemic_B_VA.pdf-1772095825964-956422251.pdf', 'application/pdf', 4995950, 'V1', 'uploaded', '2026-02-26 08:50:25', 'pending', 0),
+(475, 686, 'Donance S Pro LBL - April 26.pdf', '/digilabs/dmap/api/uploads/DSP_LBL_APRIL/DSP LBL APRIL/Gaurav Karnik/V1/Donance_S_Pro_LBL___April_26.pdf-1772100823955-751492744.pdf', 'application/pdf', 5466240, 'V1', 'uploaded', '2026-02-26 10:13:43', 'pending', 0),
+(476, 668, 'Crina-NCR Megaplex Template GYNE_Dr Polami_Indore-01.jpg', '/digilabs/dmap/api/uploads/Crina_NCR_Megaplex___Indore___BBSR/Crina-NCR Megaplex - Indore /Reshma Bastav/V1/Crina_NCR_Megaplex_Template_GYNE_Dr_Polami_Indore_01.jpg-1772103504306-718654035.jpg', 'image/jpeg', 4313783, 'V1', 'uploaded', '2026-02-26 10:58:24', 'pending', 0),
+(477, 668, 'Crina-NCR Megaplex Template GYNE_Dr Polami_Indore-02.jpg', '/digilabs/dmap/api/uploads/Crina_NCR_Megaplex___Indore___BBSR/Crina-NCR Megaplex - Indore /Reshma Bastav/V1/Crina_NCR_Megaplex_Template_GYNE_Dr_Polami_Indore_02.jpg-1772103504314-728220985.jpg', 'image/jpeg', 2959589, 'V1', 'uploaded', '2026-02-26 10:58:24', 'pending', 0),
+(478, 668, 'Crina-NCR Megaplex Template GYNE_Dr Polami_Indore-03.jpg', '/digilabs/dmap/api/uploads/Crina_NCR_Megaplex___Indore___BBSR/Crina-NCR Megaplex - Indore /Reshma Bastav/V1/Crina_NCR_Megaplex_Template_GYNE_Dr_Polami_Indore_03.jpg-1772103504320-876875750.jpg', 'image/jpeg', 4157744, 'V1', 'uploaded', '2026-02-26 10:58:24', 'pending', 0),
+(479, 668, 'Crina-NCR Megaplex Template IVF_Saudamini Mohapatra-01.jpg', '/digilabs/dmap/api/uploads/Crina_NCR_Megaplex___Indore___BBSR/Crina-NCR Megaplex - Indore /Reshma Bastav/V1/Crina_NCR_Megaplex_Template_IVF_Saudamini_Mohapatra_01.jpg-1772103504325-200464417.jpg', 'image/jpeg', 3399359, 'V1', 'uploaded', '2026-02-26 10:58:24', 'pending', 0),
+(480, 668, 'Crina-NCR Megaplex Template IVF_Saudamini Mohapatra-02.jpg', '/digilabs/dmap/api/uploads/Crina_NCR_Megaplex___Indore___BBSR/Crina-NCR Megaplex - Indore /Reshma Bastav/V1/Crina_NCR_Megaplex_Template_IVF_Saudamini_Mohapatra_02.jpg-1772103504331-936269356.jpg', 'image/jpeg', 3352376, 'V1', 'uploaded', '2026-02-26 10:58:24', 'pending', 0),
+(481, 668, 'Crina-NCR Megaplex Template IVF_Saudamini Mohapatra-03.jpg', '/digilabs/dmap/api/uploads/Crina_NCR_Megaplex___Indore___BBSR/Crina-NCR Megaplex - Indore /Reshma Bastav/V1/Crina_NCR_Megaplex_Template_IVF_Saudamini_Mohapatra_03.jpg-1772103504336-85202540.jpg', 'image/jpeg', 4308915, 'V1', 'uploaded', '2026-02-26 10:58:24', 'pending', 0),
+(482, 616, 'Aldine-s Bolus Rx Pad.pdf', '/digilabs/dmap/api/uploads/Thaminal_Mamal_LC__Aldine___almizol_lotion_Rx_Pad/Thaminal,Mamal LC ,Aldine /Sanket Chandrakanat  Patade/V1/Aldine_s_Bolus_Rx_Pad.pdf-1772104160578-24993009.pdf', 'application/pdf', 1055366, 'V1', 'uploaded', '2026-02-26 11:09:20', 'pending', 0),
+(483, 616, 'Malal LC Rx Pad.pdf', '/digilabs/dmap/api/uploads/Thaminal_Mamal_LC__Aldine___almizol_lotion_Rx_Pad/Thaminal,Mamal LC ,Aldine /Sanket Chandrakanat  Patade/V1/Malal_LC_Rx_Pad.pdf-1772104160583-830411979.pdf', 'application/pdf', 985935, 'V1', 'uploaded', '2026-02-26 11:09:20', 'pending', 0),
+(484, 616, 'Thaminal Rx Pad.pdf', '/digilabs/dmap/api/uploads/Thaminal_Mamal_LC__Aldine___almizol_lotion_Rx_Pad/Thaminal,Mamal LC ,Aldine /Sanket Chandrakanat  Patade/V1/Thaminal_Rx_Pad.pdf-1772104160585-286203576.pdf', 'application/pdf', 2455557, 'V1', 'uploaded', '2026-02-26 11:09:20', 'pending', 0),
+(485, 679, 'Reminder Card Jan_2026-01.jpg', '/digilabs/dmap/api/uploads/All_brand_reminder_card/All brand reminder card/Nilesh Khedekar/V1/Reminder_Card_Jan_2026_01.jpg-1772104985553-740979771.jpg', 'image/jpeg', 640342, 'V1', 'uploaded', '2026-02-26 11:23:05', 'pending', 0),
+(486, 679, 'Reminder Card Jan_2026-02.jpg', '/digilabs/dmap/api/uploads/All_brand_reminder_card/All brand reminder card/Nilesh Khedekar/V1/Reminder_Card_Jan_2026_02.jpg-1772104985560-308816536.jpg', 'image/jpeg', 691124, 'V1', 'uploaded', '2026-02-26 11:23:05', 'pending', 0),
+(487, 587, 'Gujarati Poster content.pptx', '/digilabs/dmap/api/uploads/Gujarati_Language_Glaucoma_Awareness_Standee/Gujarati Language Glaucoma Awareness Standee/Divya Raval/V1/Gujarati_Poster_content.pptx-1772105802166-136787505.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 45852, 'V1', 'uploaded', '2026-02-26 11:36:42', 'pending', 0),
+(488, 624, 'Holi-Flyer-3.jpg', '/digilabs/dmap/api/uploads/Holi_Flyer/Holi Flyer/Tanmay Santosh Chorghe/V1/Holi_Flyer_3.jpg-1772167168402-399760133.jpg', 'image/jpeg', 1216238, 'V1', 'uploaded', '2026-02-27 04:39:28', 'pending', 0),
+(489, 628, 'Holi.jpg', '/digilabs/dmap/api/uploads/Holi_Digital_Post/Holi Digital Post/Tanmay Santosh Chorghe/V1/Holi.jpg-1772167465730-704079615.jpg', 'image/jpeg', 846467, 'V1', 'uploaded', '2026-02-27 04:44:25', 'pending', 0),
+(490, 636, 'HOLI-E-CARD.jpg', '/digilabs/dmap/api/uploads/HOLI_E_CARD/HOLI E-CARD/Tanmay Santosh Chorghe/V1/HOLI_E_CARD.jpg-1772167689515-454476159.jpg', 'image/jpeg', 287354, 'V1', 'uploaded', '2026-02-27 04:48:09', 'pending', 0),
+(491, 582, 'Rosave-F-Survey-LBL.jpg', '/digilabs/dmap/api/uploads/Rosave_F_Survey_LBL/Rosave F Survey LBL/Tanmay Santosh Chorghe/V1/Rosave_F_Survey_LBL.jpg-1772167869876-690521686.jpg', 'image/jpeg', 1093443, 'V1', 'uploaded', '2026-02-27 04:51:09', 'pending', 0),
+(492, 622, 'holi_1-02.jpg', '/digilabs/dmap/api/uploads/Holi_Greeting/Holi Greeting/Angana Prakash Patil/V1/holi_1_02.jpg-1772169108799-548068776.jpg', 'image/jpeg', 702968, 'V1', 'uploaded', '2026-02-27 05:11:48', 'pending', 0),
+(493, 622, 'holi_1-03.jpg', '/digilabs/dmap/api/uploads/Holi_Greeting/Holi Greeting/Angana Prakash Patil/V1/holi_1_03.jpg-1772169108806-469435966.jpg', 'image/jpeg', 587246, 'V1', 'uploaded', '2026-02-27 05:11:48', 'pending', 0),
+(494, 623, 'holika dahan-01.jpg', '/digilabs/dmap/api/uploads/Holika_Dahan/Holika Dahan/Angana Prakash Patil/V1/holika_dahan_01.jpg-1772169139395-533739352.jpg', 'image/jpeg', 503815, 'V1', 'uploaded', '2026-02-27 05:12:19', 'pending', 0),
+(495, 623, 'holika dahan-02.jpg', '/digilabs/dmap/api/uploads/Holika_Dahan/Holika Dahan/Angana Prakash Patil/V1/holika_dahan_02.jpg-1772169139399-91874387.jpg', 'image/jpeg', 563191, 'V1', 'uploaded', '2026-02-27 05:12:19', 'pending', 0),
+(496, 289, 'Ceramax_Whatsapp Flyer.pdf', '/digilabs/dmap/api/uploads/Oryza_Ceramax_Study_Flyers/Oryza Ceramax Study Flyers/Angana Prakash Patil/V1/Ceramax_Whatsapp_Flyer.pdf-1772170146873-799998535.pdf', 'application/pdf', 63333936, 'V1', 'uploaded', '2026-02-27 05:29:07', 'pending', 0),
+(497, 701, 'Donance M LBL_April 2026.pdf', '/digilabs/dmap/api/uploads/DONANCE_LBL___APRIL_26/DONANCE LBL - APRIL\'26/Gaurav Karnik/V1/Donance_M_LBL_April_2026.pdf-1772171637999-845327997.pdf', 'application/pdf', 660081, 'V1', 'uploaded', '2026-02-27 05:53:58', 'pending', 0),
+(498, 411, 'Festive Texts.txt', '/digilabs/dmap/api/uploads/Greetings_for_the_upcoming_Festives_on_the_mentioned_dates___/Megacare_ Feb_ festival_2026/Divya Raval/V1/Festive_Texts.txt-1772171771344-466404566.txt', 'text/plain', 818, 'V1', 'uploaded', '2026-02-27 05:56:11', 'pending', 0),
+(499, 612, 'Women\'s Day.txt', '/digilabs/dmap/api/uploads/International_Women_s_Day/International Women\'s Day/Divya Raval/V1/Women_s_Day.txt-1772174290287-106540780.txt', 'text/plain', 174, 'V1', 'uploaded', '2026-02-27 06:38:10', 'pending', 0),
+(500, 708, '100 Cr A5-01.jpg', '/digilabs/dmap/api/uploads/POULTRY_100_Cr_Milestone_Post_/POULTRY 100 Cr Milestone Post /Gaurav Karnik/V1/100_Cr_A5_01.jpg-1772174710680-492798749.jpg', 'image/jpeg', 338971, 'V1', 'uploaded', '2026-02-27 06:45:10', 'pending', 0),
+(501, 708, '100 Cr A5-02.jpg', '/digilabs/dmap/api/uploads/POULTRY_100_Cr_Milestone_Post_/POULTRY 100 Cr Milestone Post /Gaurav Karnik/V1/100_Cr_A5_02.jpg-1772174710685-472610924.jpg', 'image/jpeg', 337630, 'V1', 'uploaded', '2026-02-27 06:45:10', 'pending', 0),
+(502, 716, 'Livfit 60 bottle front.jpg', '/digilabs/dmap/api/uploads/New_Livfit_3_SKU_Packshot_images/New Livfit 3 SKU Packshot images/Vikram Rai/V1/Livfit_60_bottle_front.jpg-1772185945048-437485926.jpg', 'image/jpeg', 1191675, 'V1', 'uploaded', '2026-02-27 09:52:25', 'pending', 0),
+(503, 716, 'livfit 60ml side (2).jpg', '/digilabs/dmap/api/uploads/New_Livfit_3_SKU_Packshot_images/New Livfit 3 SKU Packshot images/Vikram Rai/V1/livfit_60ml_side__2_.jpg-1772185945054-891561757.jpg', 'image/jpeg', 1142872, 'V1', 'uploaded', '2026-02-27 09:52:25', 'pending', 0),
+(504, 716, 'Livfit 200ml side.jpg', '/digilabs/dmap/api/uploads/New_Livfit_3_SKU_Packshot_images/New Livfit 3 SKU Packshot images/Vikram Rai/V1/Livfit_200ml_side.jpg-1772185945056-617851268.jpg', 'image/jpeg', 1246334, 'V1', 'uploaded', '2026-02-27 09:52:25', 'pending', 0),
+(505, 716, 'Livfit 200ml.jpg', '/digilabs/dmap/api/uploads/New_Livfit_3_SKU_Packshot_images/New Livfit 3 SKU Packshot images/Vikram Rai/V1/Livfit_200ml.jpg-1772185945060-160204092.jpg', 'image/jpeg', 1269693, 'V1', 'uploaded', '2026-02-27 09:52:25', 'pending', 0),
+(506, 716, 'Livfit front.jpg', '/digilabs/dmap/api/uploads/New_Livfit_3_SKU_Packshot_images/New Livfit 3 SKU Packshot images/Vikram Rai/V1/Livfit_front.jpg-1772185945063-709778787.jpg', 'image/jpeg', 1933156, 'V1', 'uploaded', '2026-02-27 09:52:25', 'pending', 0),
+(507, 716, 'livfit side 2.jpg', '/digilabs/dmap/api/uploads/New_Livfit_3_SKU_Packshot_images/New Livfit 3 SKU Packshot images/Vikram Rai/V1/livfit_side_2.jpg-1772185945067-13238504.jpg', 'image/jpeg', 1363527, 'V1', 'uploaded', '2026-02-27 09:52:25', 'pending', 0),
+(508, 716, 'lIVFIT SIDE.jpg', '/digilabs/dmap/api/uploads/New_Livfit_3_SKU_Packshot_images/New Livfit 3 SKU Packshot images/Vikram Rai/V1/lIVFIT_SIDE.jpg-1772185945070-279506319.jpg', 'image/jpeg', 1469099, 'V1', 'uploaded', '2026-02-27 09:52:25', 'pending', 0),
+(509, 716, 'livfit strip back copy.jpg', '/digilabs/dmap/api/uploads/New_Livfit_3_SKU_Packshot_images/New Livfit 3 SKU Packshot images/Vikram Rai/V1/livfit_strip_back_copy.jpg-1772185945073-829617806.jpg', 'image/jpeg', 1671195, 'V1', 'uploaded', '2026-02-27 09:52:25', 'pending', 0),
+(510, 716, 'Strip.jpg', '/digilabs/dmap/api/uploads/New_Livfit_3_SKU_Packshot_images/New Livfit 3 SKU Packshot images/Vikram Rai/V1/Strip.jpg-1772185945075-255468586.jpg', 'image/jpeg', 1651826, 'V1', 'uploaded', '2026-02-27 09:52:25', 'pending', 0),
+(511, 593, 'Tellzy AM  LBL.pdf', '/digilabs/dmap/api/uploads/Tellzy_Range_LBLs__April_26_/Tellzy Range LBLs (April\'26)/Milind Balkrushna Shelar/V1/Tellzy_AM__LBL.pdf-1772187609199-975055542.pdf', 'application/pdf', 926317, 'V1', 'uploaded', '2026-02-27 10:20:09', 'pending', 0),
+(512, 593, 'Tellzy LBL.pdf', '/digilabs/dmap/api/uploads/Tellzy_Range_LBLs__April_26_/Tellzy Range LBLs (April\'26)/Milind Balkrushna Shelar/V1/Tellzy_LBL.pdf-1772187609205-474906491.pdf', 'application/pdf', 814614, 'V1', 'uploaded', '2026-02-27 10:20:09', 'pending', 0),
+(513, 593, 'Tellzy LN LBL.pdf', '/digilabs/dmap/api/uploads/Tellzy_Range_LBLs__April_26_/Tellzy Range LBLs (April\'26)/Milind Balkrushna Shelar/V1/Tellzy_LN_LBL.pdf-1772187609210-807141221.pdf', 'application/pdf', 361728, 'V1', 'uploaded', '2026-02-27 10:20:09', 'pending', 0),
+(514, 593, 'Tellzy MT  LBL.pdf', '/digilabs/dmap/api/uploads/Tellzy_Range_LBLs__April_26_/Tellzy Range LBLs (April\'26)/Milind Balkrushna Shelar/V1/Tellzy_MT__LBL.pdf-1772187609213-298880813.pdf', 'application/pdf', 397761, 'V1', 'uploaded', '2026-02-27 10:20:09', 'pending', 0),
+(515, 609, '5 brands for Success.pdf', '/digilabs/dmap/api/uploads/AntiGlaucoma_Video_Text/AntiGlaucoma Video Text/Divya Raval/V1/5_brands_for_Success.pdf-1772191843278-854211858.pdf', 'application/pdf', 466397, 'V1', 'uploaded', '2026-02-27 11:30:43', 'pending', 0),
+(516, 611, 'Ram Navami.docx', '/digilabs/dmap/api/uploads/Ram_Navami_Greeting/Ram Navami Greeting/Divya Raval/V1/Ram_Navami.docx-1772191905160-344457364.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 11894, 'V1', 'uploaded', '2026-02-27 11:31:45', 'pending', 0),
+(517, 697, 'Veldrop_draft 1_Video script.docx', '/digilabs/dmap/api/uploads/Veldrop_iPad_video/Veldrop iPad video/Divya Raval/V1/Veldrop_draft_1_Video_script.docx-1772193924923-620772417.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12298, 'V1', 'uploaded', '2026-02-27 12:05:24', 'pending', 0),
+(518, 715, 'March, 2026 Slab Input.jpg', '/digilabs/dmap/api/uploads/Slab_Artwork/Slab Artwork/Nilesh Khedekar/V1/March__2026_Slab_Input.jpg-1772425543688-783863901.jpg', 'image/jpeg', 2225827, 'V1', 'uploaded', '2026-03-02 04:25:43', 'pending', 0),
+(519, 621, 'Exceraft_LBL 1 c2c.pdf', '/digilabs/dmap/api/uploads/Exceraft_LBL_1_and_2/Exceraft LBL 1 and 2/Nilesh Khedekar/V1/Exceraft_LBL_1_c2c.pdf-1772425570909-419931051.pdf', 'application/pdf', 1430975, 'V1', 'uploaded', '2026-03-02 04:26:10', 'pending', 0),
+(520, 695, 'World Sleep Day.docx', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content/Vinisha Chadala/V1/World_Sleep_Day.docx-1772427517653-139069312.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12194, 'V1', 'uploaded', '2026-03-02 04:58:37', 'pending', 0),
+(521, 695, 'Womens Day.docx', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content/Vinisha Chadala/V1/Womens_Day.docx-1772427517659-159885721.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12262, 'V1', 'uploaded', '2026-03-02 04:58:37', 'pending', 0),
+(522, 695, 'Holi.docx', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content/Vinisha Chadala/V1/Holi.docx-1772427517662-439039407.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12069, 'V1', 'uploaded', '2026-03-02 04:58:37', 'pending', 0),
+(523, 695, 'Holika Dahan.docx', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content/Vinisha Chadala/V1/Holika_Dahan.docx-1772427517664-903571099.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12254, 'V1', 'uploaded', '2026-03-02 04:58:37', 'pending', 0),
+(524, 695, 'Chhatrapati Shivaji Maharaj Jayanti.docx', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content/Vinisha Chadala/V1/Chhatrapati_Shivaji_Maharaj_Jayanti.docx-1772427517667-534973875.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12465, 'V1', 'uploaded', '2026-03-02 04:58:37', 'pending', 0),
+(525, 695, 'National Science Day.docx', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content/Vinisha Chadala/V1/National_Science_Day.docx-1772427517669-714505654.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12248, 'V1', 'uploaded', '2026-03-02 04:58:37', 'pending', 0),
+(526, 695, 'Ramadan Greeting.docx', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content/Vinisha Chadala/V1/Ramadan_Greeting.docx-1772427517670-319551282.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12022, 'V1', 'uploaded', '2026-03-02 04:58:37', 'pending', 0),
+(527, 714, 'Perumadi_Revised Copy.pptx', '/digilabs/dmap/api/uploads/PERUMADI_VA_THEME_PAGE/PERUMADI VA THEME PAGE/Divya Raval/V1/Perumadi_Revised_Copy.pptx-1772434385106-218278131.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 3200705, 'V1', 'uploaded', '2026-03-02 06:53:05', 'pending', 0),
+(528, 259, 'Adjunctive Therapy Post.pptx', '/digilabs/dmap/api/uploads/BE_Free_Campaign/BE Free Campaign/Divya Raval/V1/Adjunctive_Therapy_Post.pptx-1772443529096-399381526.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 429048, 'V1', 'uploaded', '2026-03-02 09:25:29', 'pending', 0),
+(529, 721, 'Video Script for Theme Olympus.docx', '/digilabs/dmap/api/uploads/Budget_Meeting_Video___Theme__Rise_of_Olympus___The_Rising_Year/Budget Meeting Video - Theme: Rise of Olympus – The Rising Year/Vinisha Chadala/V1/Video_Script_for_Theme_Olympus.docx-1772446747327-483283275.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 14409, 'V1', 'uploaded', '2026-03-02 10:19:07', 'pending', 0),
+(530, 541, 'Pegtears HP VA_26.pdf', '/digilabs/dmap/api/uploads/PegTears_HP_Visual_Aid/PegTears HP Visual Aid/Reshma Bastav/V1/Pegtears_HP_VA_26.pdf-1772535470327-582884079.pdf', 'application/pdf', 2852537, 'V1', 'uploaded', '2026-03-03 10:57:50', 'pending', 0),
+(531, 725, 'Good to Great_Script Draft 1.pptx', '/digilabs/dmap/api/uploads/Azithral_Good_to_Great_Video/Azithral Good to Great Video/Divya Raval/V1/Good_to_Great_Script_Draft_1.pptx-1772613838102-869708587.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 50127, 'V1', 'uploaded', '2026-03-04 08:43:58', 'pending', 0),
+(532, 749, 'World Adherance Day_Revised Script.docx', '/digilabs/dmap/api/uploads/World_Adherence_Day_Video/World Adherence Day Video/Divya Raval/V1/World_Adherance_Day_Revised_Script.docx-1772613980218-128802488.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13662, 'V1', 'uploaded', '2026-03-04 08:46:20', 'pending', 0),
+(533, 713, 'Zivemp SM Standee_CTC.pdf', '/digilabs/dmap/api/uploads/Zivemp_SM_Conference_Standee/Zivemp-SM Conference Standee/Sanket Chandrakanat  Patade/V1/Zivemp_SM_Standee_CTC.pdf-1772614560949-597671045.pdf', 'application/pdf', 8900640, 'V1', 'uploaded', '2026-03-04 08:56:00', 'pending', 0),
+(534, 585, 'Grogain Booklet_5.pdf', '/digilabs/dmap/api/uploads/Grogain_Pro_1_year_celebration_feedback_booklet/Grogain Pro 1 year celebration feedback booklet/Sanket Chandrakanat  Patade/V1/Grogain_Booklet_5.pdf-1772617537272-836643992.pdf', 'application/pdf', 518473, 'V1', 'uploaded', '2026-03-04 09:45:37', 'pending', 0),
+(535, 481, 'Vetmax Division Cycle 1 VA_3-01.jpg', '/digilabs/dmap/api/uploads/Vetamx_Visual_AId____1/Vetamx Visual AId  - 1/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_01.jpg-1772617695753-460076850.jpg', 'image/jpeg', 147446, 'V1', 'uploaded', '2026-03-04 09:48:15', 'pending', 0),
+(536, 481, 'Vetmax Division Cycle 1 VA_3-02.jpg', '/digilabs/dmap/api/uploads/Vetamx_Visual_AId____1/Vetamx Visual AId  - 1/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_02.jpg-1772617695758-403808566.jpg', 'image/jpeg', 162556, 'V1', 'uploaded', '2026-03-04 09:48:15', 'pending', 0),
+(537, 481, 'Vetmax Division Cycle 1 VA_3-03.jpg', '/digilabs/dmap/api/uploads/Vetamx_Visual_AId____1/Vetamx Visual AId  - 1/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_03.jpg-1772617695761-521049928.jpg', 'image/jpeg', 271463, 'V1', 'uploaded', '2026-03-04 09:48:15', 'pending', 0),
+(538, 481, 'Vetmax Division Cycle 1 VA_3-04.jpg', '/digilabs/dmap/api/uploads/Vetamx_Visual_AId____1/Vetamx Visual AId  - 1/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_04.jpg-1772617695764-946530469.jpg', 'image/jpeg', 247042, 'V1', 'uploaded', '2026-03-04 09:48:15', 'pending', 0),
+(539, 481, 'Vetmax Division Cycle 1 VA_3-05.jpg', '/digilabs/dmap/api/uploads/Vetamx_Visual_AId____1/Vetamx Visual AId  - 1/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_05.jpg-1772617695767-801899878.jpg', 'image/jpeg', 142304, 'V1', 'uploaded', '2026-03-04 09:48:15', 'pending', 0),
+(540, 481, 'Vetmax Division Cycle 1 VA_3-06.jpg', '/digilabs/dmap/api/uploads/Vetamx_Visual_AId____1/Vetamx Visual AId  - 1/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_06.jpg-1772617695770-56711697.jpg', 'image/jpeg', 185527, 'V1', 'uploaded', '2026-03-04 09:48:15', 'pending', 0),
+(541, 481, 'Vetmax Division Cycle 1 VA_3-07.jpg', '/digilabs/dmap/api/uploads/Vetamx_Visual_AId____1/Vetamx Visual AId  - 1/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_07.jpg-1772617695773-757833720.jpg', 'image/jpeg', 235825, 'V1', 'uploaded', '2026-03-04 09:48:15', 'pending', 0),
+(542, 481, 'Vetmax Division Cycle 1 VA_3-08.jpg', '/digilabs/dmap/api/uploads/Vetamx_Visual_AId____1/Vetamx Visual AId  - 1/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_08.jpg-1772617695775-905392309.jpg', 'image/jpeg', 255947, 'V1', 'uploaded', '2026-03-04 09:48:15', 'pending', 0),
+(543, 481, 'Vetmax Division Cycle 1 VA_3-09.jpg', '/digilabs/dmap/api/uploads/Vetamx_Visual_AId____1/Vetamx Visual AId  - 1/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_09.jpg-1772617695777-420370377.jpg', 'image/jpeg', 187965, 'V1', 'uploaded', '2026-03-04 09:48:15', 'pending', 0),
+(544, 481, 'Vetmax Division Cycle 1 VA_3-10.jpg', '/digilabs/dmap/api/uploads/Vetamx_Visual_AId____1/Vetamx Visual AId  - 1/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_10.jpg-1772617695781-144283492.jpg', 'image/jpeg', 210799, 'V1', 'uploaded', '2026-03-04 09:48:15', 'pending', 0),
+(545, 487, 'Vetmax Division Cycle 1 VA_3_Artboard 2 copy 3.jpg', '/digilabs/dmap/api/uploads/VA_2/VA-2/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_Artboard_2_copy_3.jpg-1772617786713-200619236.jpg', 'image/jpeg', 222904, 'V1', 'uploaded', '2026-03-04 09:49:46', 'pending', 0),
+(546, 487, 'Vetmax Division Cycle 1 VA_3_Artboard 2 copy 4.jpg', '/digilabs/dmap/api/uploads/VA_2/VA-2/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_Artboard_2_copy_4.jpg-1772617786719-674390381.jpg', 'image/jpeg', 268177, 'V1', 'uploaded', '2026-03-04 09:49:46', 'pending', 0),
+(547, 487, 'Vetmax Division Cycle 1 VA_3_Artboard 2 copy 6-12.jpg', '/digilabs/dmap/api/uploads/VA_2/VA-2/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_Artboard_2_copy_6_12.jpg-1772617786722-352938267.jpg', 'image/jpeg', 250856, 'V1', 'uploaded', '2026-03-04 09:49:46', 'pending', 0),
+(548, 487, 'Vetmax Division Cycle 1 VA_3_Artboard 2 copy 7-14.jpg', '/digilabs/dmap/api/uploads/VA_2/VA-2/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_Artboard_2_copy_7_14.jpg-1772617786725-837559477.jpg', 'image/jpeg', 274902, 'V1', 'uploaded', '2026-03-04 09:49:46', 'pending', 0),
+(549, 487, 'Vetmax Division Cycle 1 VA_3_Artboard 2 copy 10.jpg', '/digilabs/dmap/api/uploads/VA_2/VA-2/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_Artboard_2_copy_10.jpg-1772617786727-95144460.jpg', 'image/jpeg', 469389, 'V1', 'uploaded', '2026-03-04 09:49:46', 'pending', 0),
+(550, 487, 'Vetmax Division Cycle 1 VA_3-16.jpg', '/digilabs/dmap/api/uploads/VA_2/VA-2/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_16.jpg-1772617786732-575202866.jpg', 'image/jpeg', 212940, 'V1', 'uploaded', '2026-03-04 09:49:46', 'pending', 0),
+(551, 487, 'Vetmax Division Cycle 1 VA_3-17.jpg', '/digilabs/dmap/api/uploads/VA_2/VA-2/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_17.jpg-1772617786734-83075478.jpg', 'image/jpeg', 223163, 'V1', 'uploaded', '2026-03-04 09:49:46', 'pending', 0),
+(552, 487, 'Vetmax Division Cycle 1 VA_3-18.jpg', '/digilabs/dmap/api/uploads/VA_2/VA-2/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_18.jpg-1772617786737-956943446.jpg', 'image/jpeg', 423873, 'V1', 'uploaded', '2026-03-04 09:49:46', 'pending', 0),
+(553, 487, 'Vetmax Division Cycle 1 VA_3-19.jpg', '/digilabs/dmap/api/uploads/VA_2/VA-2/Sanket Chandrakanat  Patade/V1/Vetmax_Division_Cycle_1_VA_3_19.jpg-1772617786739-305972300.jpg', 'image/jpeg', 152008, 'V1', 'uploaded', '2026-03-04 09:49:46', 'pending', 0),
+(554, 594, 'Bladmir VA Option 2.pdf', '/digilabs/dmap/api/uploads/Bladmir_VA_designing/Bladmir VA designing/Gaurav Karnik/V1/Bladmir_VA_Option_2.pdf-1772620070210-785032305.pdf', 'application/pdf', 2778406, 'V1', 'uploaded', '2026-03-04 10:27:50', 'pending', 0),
+(555, 678, 'logo_Final.png', '/digilabs/dmap/api/uploads/Oyrza_Skin_Camp_Logo_Designing_/Oyrza Skin Camp Logo Designing /Angana Prakash Patil/V1/logo_Final.png-1772621387610-39937506.png', 'image/png', 1120856, 'V1', 'uploaded', '2026-03-04 10:49:47', 'pending', 0),
+(556, 678, 'logo-01.jpg', '/digilabs/dmap/api/uploads/Oyrza_Skin_Camp_Logo_Designing_/Oyrza Skin Camp Logo Designing /Angana Prakash Patil/V1/logo_01.jpg-1772621387615-582800201.jpg', 'image/jpeg', 200859, 'V1', 'uploaded', '2026-03-04 10:49:47', 'pending', 0),
+(557, 678, 'logo-03.jpg', '/digilabs/dmap/api/uploads/Oyrza_Skin_Camp_Logo_Designing_/Oyrza Skin Camp Logo Designing /Angana Prakash Patil/V1/logo_03.jpg-1772621387617-479096162.jpg', 'image/jpeg', 225201, 'V1', 'uploaded', '2026-03-04 10:49:47', 'pending', 0),
+(558, 678, 'logo-04.jpg', '/digilabs/dmap/api/uploads/Oyrza_Skin_Camp_Logo_Designing_/Oyrza Skin Camp Logo Designing /Angana Prakash Patil/V1/logo_04.jpg-1772621387619-361833179.jpg', 'image/jpeg', 194487, 'V1', 'uploaded', '2026-03-04 10:49:47', 'pending', 0),
+(559, 687, 'Tetan LBL_April_C2C.pdf', '/digilabs/dmap/api/uploads/TETAN_LBL_APRIL/TETAN LBL APRIL/Angana Prakash Patil/V1/Tetan_LBL_April_C2C.pdf-1772621753772-224956527.pdf', 'application/pdf', 11553625, 'V1', 'uploaded', '2026-03-04 10:55:53', 'pending', 0),
+(560, 664, 'Natonal Infertility awareness week_Poster_2.pdf', '/digilabs/dmap/api/uploads/infertility_awareness_poster/infertility awareness poster/Angana Prakash Patil/V1/Natonal_Infertility_awareness_week_Poster_2.pdf-1772622679164-463771108.pdf', 'application/pdf', 4711347, 'V1', 'uploaded', '2026-03-04 11:11:19', 'pending', 0),
+(561, 595, 'Tellzy_LN_VA.pdf', '/digilabs/dmap/api/uploads/Tellzy_LN_Visual_Aid_2027/Tellzy LN Visual Aid 2027/Milind Balkrushna Shelar/V1/Tellzy_LN_VA.pdf-1772623783258-897811659.pdf', 'application/pdf', 1394841, 'V1', 'uploaded', '2026-03-04 11:29:43', 'pending', 0),
+(562, 312, 'Zara Nach Ke Dikha.zip', '/digilabs/dmap/api/uploads/Zara_Nachke_Dikha/Zara Nachke Dikha/Sanket Chandrakanat  Patade/V1/Zara_Nach_Ke_Dikha.zip-1772686493060-111755199.zip', 'application/x-zip-compressed', 6044223, 'V1', 'uploaded', '2026-03-05 04:54:53', 'pending', 0),
+(563, 765, 'Alembic Pharma.pdf', '/digilabs/dmap/api/uploads/Certificate_for_Acute_Cluster/Certificate for Acute Cluster/Sanket Chandrakanat  Patade/V1/Alembic_Pharma.pdf-1772700116452-34341144.pdf', 'application/pdf', 6477918, 'V1', 'uploaded', '2026-03-05 08:41:56', 'pending', 0),
+(564, 765, 'Enteron_1.pdf', '/digilabs/dmap/api/uploads/Certificate_for_Acute_Cluster/Certificate for Acute Cluster/Sanket Chandrakanat  Patade/V1/Enteron_1.pdf-1772700116471-588434796.pdf', 'application/pdf', 3900744, 'V1', 'uploaded', '2026-03-05 08:41:56', 'pending', 0),
+(565, 765, 'Megacare.pdf', '/digilabs/dmap/api/uploads/Certificate_for_Acute_Cluster/Certificate for Acute Cluster/Sanket Chandrakanat  Patade/V1/Megacare.pdf-1772700116478-742566362.pdf', 'application/pdf', 3770195, 'V1', 'uploaded', '2026-03-05 08:41:56', 'pending', 0),
+(566, 765, 'Osteofit.pdf', '/digilabs/dmap/api/uploads/Certificate_for_Acute_Cluster/Certificate for Acute Cluster/Sanket Chandrakanat  Patade/V1/Osteofit.pdf-1772700116483-924383851.pdf', 'application/pdf', 3243766, 'V1', 'uploaded', '2026-03-05 08:41:56', 'pending', 0),
+(567, 767, 'Certificate_Corium_March 2026.pdf', '/digilabs/dmap/api/uploads/Corium_cycle_meet_certificates/Corium cycle meet certificates/Angana Prakash Patil/V1/Certificate_Corium_March_2026.pdf-1772703651898-802603680.pdf', 'application/pdf', 2724991, 'V1', 'uploaded', '2026-03-05 09:40:51', 'pending', 0),
+(568, 772, 'Excelarate Anthem Video_V02.mp4', '/digilabs/dmap/api/uploads/Excelarate_2027_Cardigem_Anthem_/Excelarate 2027 Cardigem Anthem /Prathamesh Shengale/V1/Excelarate_Anthem_Video_V02.mp4-1772707868158-43273322.mp4', 'video/mp4', 70082612, 'V1', 'uploaded', '2026-03-05 10:51:08', 'pending', 0),
+(569, 694, 'Google Keep Document(1).PDF', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content /Divya Raval/V1/Google_Keep_Document_1_.PDF-1772708572454-932288748.PDF', 'application/pdf', 13839, 'V1', 'uploaded', '2026-03-05 11:02:52', 'pending', 0),
+(570, 705, 'Women\'s Day Flyer.jpg', '/digilabs/dmap/api/uploads/International_Womens_Day_Flyer/International Womens Day Flyer/Tanmay Santosh Chorghe/V1/Women_s_Day_Flyer.jpg-1772713089459-994225274.jpg', 'image/jpeg', 476562, 'V1', 'uploaded', '2026-03-05 12:18:09', 'pending', 0),
+(571, 780, 'Gujarati Poster.pdf', '/digilabs/dmap/api/uploads/Gujarati_Language_Glaucoma_Awareness_Poster_/Gujarati Language Glaucoma Awareness Poster/Shubham Gurav/V1/Gujarati_Poster.pdf-1772713474721-82967848.pdf', 'application/pdf', 3852285, 'V1', 'uploaded', '2026-03-05 12:24:34', 'pending', 0),
+(572, 667, 'Dil ki baat Booklet R1.pdf', '/digilabs/dmap/api/uploads/Dil_Ki_Baat_Booklet/Dil Ki Baat Booklet/Gaurav Karnik/V1/Dil_ki_baat_Booklet_R1.pdf-1772766963107-338581875.pdf', 'application/pdf', 3494280, 'V1', 'uploaded', '2026-03-06 03:16:03', 'pending', 0),
+(573, 693, 'Rafle VA Pages.pdf', '/digilabs/dmap/api/uploads/Rafle_Visual_Aid/Rafle Visual Aid/Gaurav Karnik/V1/Rafle_VA_Pages.pdf-1772767014940-954499810.pdf', 'application/pdf', 505746, 'V1', 'uploaded', '2026-03-06 03:16:54', 'pending', 0),
+(574, 747, 'Holi_2026_For Petal.mp4', '/digilabs/dmap/api/uploads/Gif_flyer_for_Holi_festival/Gif flyer for Holi festival/Poonam Aditya Waman/V1/Holi_2026_For_Petal.mp4-1772771740569-692173658.mp4', 'video/mp4', 32830816, 'V1', 'uploaded', '2026-03-06 04:35:40', 'pending', 0),
+(575, 779, 'Annual top performer medal.pdf', '/digilabs/dmap/api/uploads/Annual_top_performer_medal_/Annual top performer medal /Shubham Gurav/V1/Annual_top_performer_medal.pdf-1772776724649-643602580.pdf', 'application/pdf', 1635875, 'V1', 'uploaded', '2026-03-06 05:58:44', 'pending', 0),
+(576, 785, 'Cycle Meet (L&D) Certificate.pdf', '/digilabs/dmap/api/uploads/Cycle_Meet__L_D__Certificate/Cycle Meet (L/Shubham Gurav/V1/Cycle_Meet__L_D__Certificate.pdf-1772782457686-995206560.pdf', 'application/pdf', 2932057, 'V1', 'uploaded', '2026-03-06 07:34:17', 'pending', 0),
+(577, 782, 'Woemn\'s-Day_2.jpg', '/digilabs/dmap/api/uploads/Women_s_Day/Women\'s Day/Sanket Chandrakanat  Patade/V1/Woemn_s_Day_2.jpg-1772783091787-100271132.jpg', 'image/jpeg', 479430, 'V1', 'uploaded', '2026-03-06 07:44:51', 'pending', 0),
+(578, 782, 'Woemn\'s-Day_4.jpg', '/digilabs/dmap/api/uploads/Women_s_Day/Women\'s Day/Sanket Chandrakanat  Patade/V1/Woemn_s_Day_4.jpg-1772783091796-135705522.jpg', 'image/jpeg', 287365, 'V1', 'uploaded', '2026-03-06 07:44:51', 'pending', 0),
+(579, 789, 'Rumigest-Standee.jpg', '/digilabs/dmap/api/uploads/RUMIGEST_STANDIEE/RUMIGEST STANDIEE/Sanket Chandrakanat  Patade/V1/Rumigest_Standee.jpg-1772789952244-393847367.jpg', 'image/jpeg', 4288719, 'V1', 'uploaded', '2026-03-06 09:39:12', 'pending', 0),
+(580, 764, 'Geripod M LBL APR 26.pdf', '/digilabs/dmap/api/uploads/Geripod_M_LBL_Apr_26/Geripod-M LBL-Apr\'26/Milind Balkrushna Shelar/V1/Geripod_M_LBL_APR_26.pdf-1772790203064-698666421.pdf', 'application/pdf', 5532182, 'V1', 'uploaded', '2026-03-06 09:43:23', 'pending', 0),
+(581, 629, 'Womens day-02.jpg', '/digilabs/dmap/api/uploads/International_Women_s_Day_Greeting/International Women\'s Day Greeting/Angana Prakash Patil/V1/Womens_day_02.jpg-1772790414079-18572931.jpg', 'image/jpeg', 218878, 'V1', 'uploaded', '2026-03-06 09:46:54', 'pending', 0),
+(582, 775, 'C4All_VA_PG_03.gif', '/digilabs/dmap/api/uploads/C4ALL_GIF_VIDEO/C4ALL GIF VIDEO/Prathamesh Shengale/V1/C4All_VA_PG_03.gif-1772796669168-163584330.gif', 'image/gif', 1775745, 'V1', 'uploaded', '2026-03-06 11:31:09', 'pending', 0),
+(583, 775, 'Rumen_C4ALL_VA_Pg_07.gif', '/digilabs/dmap/api/uploads/C4ALL_GIF_VIDEO/C4ALL GIF VIDEO/Prathamesh Shengale/V1/Rumen_C4ALL_VA_Pg_07.gif-1772796669178-499161127.gif', 'image/gif', 35967061, 'V1', 'uploaded', '2026-03-06 11:31:09', 'pending', 0),
+(584, 775, 'Rumen_C4ALL_VA_Pg_9.gif', '/digilabs/dmap/api/uploads/C4ALL_GIF_VIDEO/C4ALL GIF VIDEO/Prathamesh Shengale/V1/Rumen_C4ALL_VA_Pg_9.gif-1772796669206-521086076.gif', 'image/gif', 18825571, 'V1', 'uploaded', '2026-03-06 11:31:09', 'pending', 0),
+(585, 728, 'bag tag-2-02.jpg', '/digilabs/dmap/api/uploads/Divisional_Excelaration_theme_collaterals_/Divisional Excelaration theme collaterals /Milind Balkrushna Shelar/V1/bag_tag_2_02.jpg-1772800210603-748507401.jpg', 'image/jpeg', 366421, 'V1', 'uploaded', '2026-03-06 12:30:10', 'pending', 0),
+(586, 728, 'gate-2.jpg', '/digilabs/dmap/api/uploads/Divisional_Excelaration_theme_collaterals_/Divisional Excelaration theme collaterals /Milind Balkrushna Shelar/V1/gate_2.jpg-1772800210608-238014334.jpg', 'image/jpeg', 3719064, 'V1', 'uploaded', '2026-03-06 12:30:10', 'pending', 0),
+(587, 728, 'Stage Setup 18x12.jpg', '/digilabs/dmap/api/uploads/Divisional_Excelaration_theme_collaterals_/Divisional Excelaration theme collaterals /Milind Balkrushna Shelar/V1/Stage_Setup_18x12.jpg-1772800210613-271698448.jpg', 'image/jpeg', 1108899, 'V1', 'uploaded', '2026-03-06 12:30:10', 'pending', 0),
+(588, 728, 'Standee 4x8 feet-2-01.jpg', '/digilabs/dmap/api/uploads/Divisional_Excelaration_theme_collaterals_/Divisional Excelaration theme collaterals /Milind Balkrushna Shelar/V1/Standee_4x8_feet_2_01.jpg-1772800210617-500470754.jpg', 'image/jpeg', 1080954, 'V1', 'uploaded', '2026-03-06 12:30:10', 'pending', 0),
+(589, 728, 'Standee 4x8 feet-2-02.jpg', '/digilabs/dmap/api/uploads/Divisional_Excelaration_theme_collaterals_/Divisional Excelaration theme collaterals /Milind Balkrushna Shelar/V1/Standee_4x8_feet_2_02.jpg-1772800210625-639572668.jpg', 'image/jpeg', 1010248, 'V1', 'uploaded', '2026-03-06 12:30:10', 'pending', 0),
+(590, 728, 'Standee 4x8 feet-2-03.jpg', '/digilabs/dmap/api/uploads/Divisional_Excelaration_theme_collaterals_/Divisional Excelaration theme collaterals /Milind Balkrushna Shelar/V1/Standee_4x8_feet_2_03.jpg-1772800210637-912323450.jpg', 'image/jpeg', 1098708, 'V1', 'uploaded', '2026-03-06 12:30:10', 'pending', 0),
+(591, 728, 'Standee 4x8 feet-2-04.jpg', '/digilabs/dmap/api/uploads/Divisional_Excelaration_theme_collaterals_/Divisional Excelaration theme collaterals /Milind Balkrushna Shelar/V1/Standee_4x8_feet_2_04.jpg-1772800210641-579079135.jpg', 'image/jpeg', 1115833, 'V1', 'uploaded', '2026-03-06 12:30:10', 'pending', 0),
+(592, 728, 'Wall of Fame 16x8.jpg', '/digilabs/dmap/api/uploads/Divisional_Excelaration_theme_collaterals_/Divisional Excelaration theme collaterals /Milind Balkrushna Shelar/V1/Wall_of_Fame_16x8.jpg-1772800210644-519347307.jpg', 'image/jpeg', 1592150, 'V1', 'uploaded', '2026-03-06 12:30:10', 'pending', 0),
+(593, 754, 'Welcome-standee.jpg', '/digilabs/dmap/api/uploads/Zivemp_SM_CME_Welcome_Standee_/Zivemp-SM CME Welcome Standee /Gaurav Karnik/V1/Welcome_standee.jpg-1773027103229-359956782.jpg', 'image/jpeg', 2646716, 'V1', 'uploaded', '2026-03-09 03:31:43', 'pending', 0),
+(594, 641, 'Aqua VA March 26.pdf', '/digilabs/dmap/api/uploads/Aqua_VA_Focus_Brand_Updating/Aqua VA Focus Brand Updating/Reshma Bastav/V1/Aqua_VA_March_26.pdf-1773032201708-546776224.pdf', 'application/pdf', 14257880, 'V1', 'uploaded', '2026-03-09 04:56:41', 'pending', 0),
+(595, 704, 'Bladmir LBL March 2026 Low Res.pdf', '/digilabs/dmap/api/uploads/Bladmir_LBL_Apr_26/Bladmir LBL-Apr\'26/Gaurav Karnik/V1/Bladmir_LBL_March_2026_Low_Res.pdf-1773042019540-387328510.pdf', 'application/pdf', 951450, 'V1', 'uploaded', '2026-03-09 07:40:19', 'pending', 0),
+(596, 732, 'Glaucoma Awareness Week 1.pdf', '/digilabs/dmap/api/uploads/World_Glaucoma_Week/World Glaucoma Week/Reshma Bastav/V1/Glaucoma_Awareness_Week_1.pdf-1773044836788-665579341.pdf', 'application/pdf', 2073031, 'V1', 'uploaded', '2026-03-09 08:27:16', 'pending', 0),
+(597, 581, 'NK_FarmCure_Closal_VA 1.jpg', '/digilabs/dmap/api/uploads/Closal_VA_Page/Closal VA Page/Nilesh Khedekar/V1/NK_FarmCure_Closal_VA_1.jpg-1773052198610-211644223.jpg', 'image/jpeg', 1538592, 'V1', 'uploaded', '2026-03-09 10:29:58', 'pending', 0),
+(598, 581, 'NK_FarmCure_Closal_VA 2.jpg', '/digilabs/dmap/api/uploads/Closal_VA_Page/Closal VA Page/Nilesh Khedekar/V1/NK_FarmCure_Closal_VA_2.jpg-1773052198616-316811868.jpg', 'image/jpeg', 776456, 'V1', 'uploaded', '2026-03-09 10:29:58', 'pending', 0),
+(599, 819, 'STEP UP Motivational Video_V04.mp4', '/digilabs/dmap/api/uploads/Resync_Plus___Launch_video_teaser_content/Eyecare StepUP Video/Prathamesh Shengale/V1/STEP_UP_Motivational_Video_V04.mp4-1773052323229-258929476.mp4', 'video/mp4', 46998405, 'V1', 'uploaded', '2026-03-09 10:32:03', 'pending', 0);
+
+INSERT INTO `task_documents` (`id`, `task_assignment_id`, `document_name`, `document_path`, `document_type`, `document_size`, `version`, `status`, `uploaded_at`, `review`, `intimate_client`) VALUES
+(600, 688, 'Gate Standee_Final.pdf', '/digilabs/dmap/api/uploads/Annual_Meet_Stage_artwork/Annual Meet Stage artwork/Tanmay Santosh Chorghe/V1/Gate_Standee_Final.pdf-1773062836515-29260490.pdf', 'application/pdf', 3451404, 'V1', 'uploaded', '2026-03-09 13:27:16', 'pending', 0),
+(601, 596, 'Estrofit Video.mp4', '/digilabs/dmap/api/uploads/Estrofit_Video_For_VA/Estrofit Video For VA/Mahesh Morye/V1/Estrofit_Video.mp4-1773110365040-966483240.mp4', 'video/mp4', 17317165, 'V1', 'uploaded', '2026-03-10 02:39:25', 'pending', 0),
+(602, 691, 'Resync Plus Availability Card.pdf', '/digilabs/dmap/api/uploads/Design_Resync_Plus___Brand_reminder_card_as_well_as_Chemist_Availability_Card/Design Resync Plus - Brand reminder card as well as Chemist Availability Card/Reshma Bastav/V1/Resync_Plus_Availability_Card.pdf-1773118221206-795387926.pdf', 'application/pdf', 1810311, 'V1', 'uploaded', '2026-03-10 04:50:21', 'pending', 0),
+(603, 691, 'Resync Plus Reminder Card.pdf', '/digilabs/dmap/api/uploads/Design_Resync_Plus___Brand_reminder_card_as_well_as_Chemist_Availability_Card/Design Resync Plus - Brand reminder card as well as Chemist Availability Card/Reshma Bastav/V1/Resync_Plus_Reminder_Card.pdf-1773118221222-213085408.pdf', 'application/pdf', 2041725, 'V1', 'uploaded', '2026-03-10 04:50:21', 'pending', 0),
+(604, 637, 'Minertox A VA 26.pdf', '/digilabs/dmap/api/uploads/Kodiceft___Minertox_VA_update_/Kodiceft /Reshma Bastav/V1/Minertox_A_VA_26.pdf-1773118776284-605066971.pdf', 'application/pdf', 5280110, 'V1', 'uploaded', '2026-03-10 04:59:36', 'pending', 0),
+(605, 637, 'MinerTOX Z_VA 26.pdf', '/digilabs/dmap/api/uploads/Kodiceft___Minertox_VA_update_/Kodiceft /Reshma Bastav/V1/MinerTOX_Z_VA_26.pdf-1773118776295-605463526.pdf', 'application/pdf', 7471121, 'V1', 'uploaded', '2026-03-10 04:59:36', 'pending', 0),
+(606, 637, 'NZYMATRIX VA _ Mar 26.pdf', '/digilabs/dmap/api/uploads/Kodiceft___Minertox_VA_update_/Kodiceft /Reshma Bastav/V1/NZYMATRIX_VA___Mar_26.pdf-1773118776304-219674137.pdf', 'application/pdf', 11321168, 'V1', 'uploaded', '2026-03-10 04:59:36', 'pending', 0),
+(607, 726, 'Geripod VA.pdf', '/digilabs/dmap/api/uploads/VA_/VA/Tanmay Santosh Chorghe/V1/Geripod_VA.pdf-1773121720501-692143331.pdf', 'application/pdf', 1017238, 'V1', 'uploaded', '2026-03-10 05:48:40', 'pending', 0),
+(608, 726, 'Geripod D VA.pdf', '/digilabs/dmap/api/uploads/VA_/VA/Tanmay Santosh Chorghe/V1/Geripod_D_VA.pdf-1773121720508-338438925.pdf', 'application/pdf', 1484083, 'V1', 'uploaded', '2026-03-10 05:48:40', 'pending', 0),
+(609, 762, 'Geripod D LBL APR 26.pdf', '/digilabs/dmap/api/uploads/Geripod_D_LBL/Geripod-D LBL/Milind Balkrushna Shelar/V1/Geripod_D_LBL_APR_26.pdf-1773122845535-479333311.pdf', 'application/pdf', 670992, 'V1', 'uploaded', '2026-03-10 06:07:25', 'pending', 0),
+(610, 810, 'Rosave-F VA March 2026.pdf', '/digilabs/dmap/api/uploads/Rosave_F_VA/Rosave F VA/Milind Balkrushna Shelar/V1/Rosave_F_VA_March_2026.pdf-1773122883523-264956346.pdf', 'application/pdf', 1268989, 'V1', 'uploaded', '2026-03-10 06:08:03', 'pending', 0),
+(611, 438, 'Vetmax_VA_Q1_2026.pdf', '/digilabs/dmap/api/uploads/visual_AID_sheet_for_ASCAL_GEL_ADVANCE/visual AID sheet for ASCAL GEL ADVANCE/Nilesh Khedekar/V1/Vetmax_VA_Q1_2026.pdf-1773127683591-193266074.pdf', 'application/pdf', 7324932, 'V1', 'uploaded', '2026-03-10 07:28:03', 'pending', 0),
+(612, 461, 'Vetmax_VA_Q1_2026.pdf', '/digilabs/dmap/api/uploads/Visual_aid_design/Visual aid design/Nilesh Khedekar/V1/Vetmax_VA_Q1_2026.pdf-1773127825201-571559183.pdf', 'application/pdf', 7324932, 'V1', 'uploaded', '2026-03-10 07:30:25', 'pending', 0),
+(613, 342, 'Mockup copy.jpg', '/digilabs/dmap/api/uploads/Sample_Dispenser_Artwork/Sample Dispenser Artwork/Tanmay Santosh Chorghe/V1/Mockup_copy.jpg-1773137795315-317346595.jpg', 'image/jpeg', 1040013, 'V1', 'uploaded', '2026-03-10 10:16:35', 'pending', 0),
+(614, 342, 'Mockup.jpg', '/digilabs/dmap/api/uploads/Sample_Dispenser_Artwork/Sample Dispenser Artwork/Tanmay Santosh Chorghe/V1/Mockup.jpg-1773137795320-561567293.jpg', 'image/jpeg', 2644816, 'V1', 'uploaded', '2026-03-10 10:16:35', 'pending', 0),
+(615, 342, 'Travisight___Albrim_Sample_Dispensor-03.jpg', '/digilabs/dmap/api/uploads/Sample_Dispenser_Artwork/Sample Dispenser Artwork/Tanmay Santosh Chorghe/V1/Travisight___Albrim_Sample_Dispensor_03.jpg-1773137795329-128139853.jpg', 'image/jpeg', 253713, 'V1', 'uploaded', '2026-03-10 10:16:35', 'pending', 0),
+(616, 824, 'OSTEOFIT_Weighing_Scale_Packaging.pdf', '/digilabs/dmap/api/uploads/WEIGHING_SCALE_ARTWORK_/WEIGHING SCALE ARTWORK /Shubham Gurav/V1/OSTEOFIT_Weighing_Scale_Packaging.pdf-1773140661500-687724963.pdf', 'application/pdf', 8369783, 'V1', 'uploaded', '2026-03-10 11:04:21', 'pending', 0),
+(617, 787, 'Citanil M VA_Feb 26.jpg', '/digilabs/dmap/api/uploads/Cetanil_TM_M_VA_page/Cetanil TM/M VA page/Reshma Bastav/V1/Citanil_M_VA_Feb_26.jpg-1773143166772-904959239.jpg', 'image/jpeg', 2632723, 'V1', 'uploaded', '2026-03-10 11:46:06', 'pending', 0),
+(618, 787, 'Citanil TM VA_Feb 26.jpg', '/digilabs/dmap/api/uploads/Cetanil_TM_M_VA_page/Cetanil TM/M VA page/Reshma Bastav/V1/Citanil_TM_VA_Feb_26.jpg-1773143166778-746021828.jpg', 'image/jpeg', 313903, 'V1', 'uploaded', '2026-03-10 11:46:06', 'pending', 0),
+(619, 722, 'Geripod M VA.pdf', '/digilabs/dmap/api/uploads/Geripod_M_Visual_Aid/Geripod-M Visual Aid/Tanmay Santosh Chorghe/V1/Geripod_M_VA.pdf-1773145151058-389008005.pdf', 'application/pdf', 707371, 'V1', 'uploaded', '2026-03-10 12:19:11', 'pending', 0),
+(620, 806, 'CSM-Certificate_V2.pdf', '/digilabs/dmap/api/uploads/CSM_Certificate_Layout/CSM-Certificate Layout/Shubham Gurav/V1/CSM_Certificate_V2.pdf-1773147190809-976433835.pdf', 'application/pdf', 1579989, 'V1', 'uploaded', '2026-03-10 12:53:10', 'pending', 0),
+(621, 665, 'logo_CQ.pdf', '/digilabs/dmap/api/uploads/Alvite_M_Gold_Brand_Name_Design/Alvite M Gold Brand Name Design/Gaurav Karnik/V1/logo_CQ.pdf-1773204673995-441584572.pdf', 'application/pdf', 1000800, 'V1', 'uploaded', '2026-03-11 04:51:13', 'pending', 0),
+(622, 825, 'Certificate For Annual Meet_Althrocin.pdf', '/digilabs/dmap/api/uploads/Certificates/Certificates/Reshma Bastav/V1/Certificate_For_Annual_Meet_Althrocin.pdf-1773208378746-664037368.pdf', 'application/pdf', 652096, 'V1', 'uploaded', '2026-03-11 05:52:58', 'pending', 0),
+(623, 825, 'Certificate For Annual Meet_Azithral.pdf', '/digilabs/dmap/api/uploads/Certificates/Certificates/Reshma Bastav/V1/Certificate_For_Annual_Meet_Azithral.pdf-1773208378751-678472460.pdf', 'application/pdf', 701472, 'V1', 'uploaded', '2026-03-11 05:52:58', 'pending', 0),
+(624, 825, 'Certificate For Annual Meet_Brozeet LS.pdf', '/digilabs/dmap/api/uploads/Certificates/Certificates/Reshma Bastav/V1/Certificate_For_Annual_Meet_Brozeet_LS.pdf-1773208378754-298379455.pdf', 'application/pdf', 606115, 'V1', 'uploaded', '2026-03-11 05:52:58', 'pending', 0),
+(625, 825, 'Certificate For Annual Meet_HO.pdf', '/digilabs/dmap/api/uploads/Certificates/Certificates/Reshma Bastav/V1/Certificate_For_Annual_Meet_HO.pdf-1773208378757-532491972.pdf', 'application/pdf', 1684032, 'V1', 'uploaded', '2026-03-11 05:52:58', 'pending', 0),
+(626, 825, 'Certificate For Annual Meet_Laveta M.pdf', '/digilabs/dmap/api/uploads/Certificates/Certificates/Reshma Bastav/V1/Certificate_For_Annual_Meet_Laveta_M.pdf-1773208378760-602800413.pdf', 'application/pdf', 607191, 'V1', 'uploaded', '2026-03-11 05:52:58', 'pending', 0),
+(627, 825, 'Certificate For Annual Meet_Medal.pdf', '/digilabs/dmap/api/uploads/Certificates/Certificates/Reshma Bastav/V1/Certificate_For_Annual_Meet_Medal.pdf-1773208378763-187249570.pdf', 'application/pdf', 11637140, 'V1', 'uploaded', '2026-03-11 05:52:58', 'pending', 0),
+(628, 825, 'Certificate For Annual Meet_Process.pdf', '/digilabs/dmap/api/uploads/Certificates/Certificates/Reshma Bastav/V1/Certificate_For_Annual_Meet_Process.pdf-1773208378775-321716297.pdf', 'application/pdf', 1355277, 'V1', 'uploaded', '2026-03-11 05:52:58', 'pending', 0),
+(629, 825, 'Certificate For Annual Meet_Rekool.pdf', '/digilabs/dmap/api/uploads/Certificates/Certificates/Reshma Bastav/V1/Certificate_For_Annual_Meet_Rekool.pdf-1773208378778-119136738.pdf', 'application/pdf', 702100, 'V1', 'uploaded', '2026-03-11 05:52:58', 'pending', 0),
+(630, 825, 'Certificate For Annual Meet_Ulgel.pdf', '/digilabs/dmap/api/uploads/Certificates/Certificates/Reshma Bastav/V1/Certificate_For_Annual_Meet_Ulgel.pdf-1773208378782-625586381.pdf', 'application/pdf', 501986, 'V1', 'uploaded', '2026-03-11 05:52:58', 'pending', 0),
+(631, 825, 'Certificate For Annual Meet_Wikoryl.pdf', '/digilabs/dmap/api/uploads/Certificates/Certificates/Reshma Bastav/V1/Certificate_For_Annual_Meet_Wikoryl.pdf-1773208378785-724985365.pdf', 'application/pdf', 408451, 'V1', 'uploaded', '2026-03-11 05:52:58', 'pending', 0),
+(632, 827, 'Medal Sticker_ctc.pdf', '/digilabs/dmap/api/uploads/medal_sticker/medal sticker/Reshma Bastav/V1/Medal_Sticker_ctc.pdf-1773208454780-54805780.pdf', 'application/pdf', 2126879, 'V1', 'uploaded', '2026-03-11 05:54:14', 'pending', 0),
+(633, 604, 'Glaucoma Awareness Week 1.jpg', '/digilabs/dmap/api/uploads/Gujarati__Language_Glaucoma_Awareness_Week_/Gujarati  Language Glaucoma Awareness Week /Reshma Bastav/V1/Glaucoma_Awareness_Week_1.jpg-1773208510041-568001484.jpg', 'image/jpeg', 4157288, 'V1', 'uploaded', '2026-03-11 05:55:10', 'pending', 0),
+(634, 751, 'Azithral Good to Great Video.mp4', '/digilabs/dmap/api/uploads/Azithral_Good_to_Great_Video_script_/Azithral Good to Great Video script/Prathamesh Shengale/V1/Azithral_Good_to_Great_Video.mp4-1773209158308-713919637.mp4', 'video/mp4', 63643953, 'V1', 'uploaded', '2026-03-11 06:05:58', 'pending', 0),
+(635, 788, 'Messages-to-MRs.zip', '/digilabs/dmap/api/uploads/Messages_for_MRs/Messages for MRs/Sanket Chandrakanat  Patade/V1/Messages_to_MRs.zip-1773212672336-479420755.zip', 'application/x-zip-compressed', 3316340, 'V1', 'uploaded', '2026-03-11 07:04:32', 'pending', 0),
+(636, 790, 'Availability Card_2.pdf', '/digilabs/dmap/api/uploads/Availability_and_Doctor_card/Availability and Doctor card/Sanket Chandrakanat  Patade/V1/Availability_Card_2.pdf-1773212721480-330141612.pdf', 'application/pdf', 842756, 'V1', 'uploaded', '2026-03-11 07:05:21', 'pending', 0),
+(637, 790, 'Thank You Card_2.pdf', '/digilabs/dmap/api/uploads/Availability_and_Doctor_card/Availability and Doctor card/Sanket Chandrakanat  Patade/V1/Thank_You_Card_2.pdf-1773212721484-501162500.pdf', 'application/pdf', 650371, 'V1', 'uploaded', '2026-03-11 07:05:21', 'pending', 0),
+(638, 799, 'iPad Pro 12.9_ - 1.png', '/digilabs/dmap/api/uploads/Crina_NCR_mastery_portal/Crina-NCR mastery portal/Balgovind Shanbhag/V1/iPad_Pro_12.9____1.png-1773217202158-424277595.png', 'image/png', 601247, 'V1', 'uploaded', '2026-03-11 08:20:02', 'pending', 0),
+(639, 799, 'iPad Pro 12.9_ - 2.png', '/digilabs/dmap/api/uploads/Crina_NCR_mastery_portal/Crina-NCR mastery portal/Balgovind Shanbhag/V1/iPad_Pro_12.9____2.png-1773217202176-852605720.png', 'image/png', 563960, 'V1', 'uploaded', '2026-03-11 08:20:02', 'pending', 0),
+(640, 799, 'Recording 2026-03-11 134720.mp4', '/digilabs/dmap/api/uploads/Crina_NCR_mastery_portal/Crina-NCR mastery portal/Balgovind Shanbhag/V1/Recording_2026_03_11_134720.mp4-1773217202186-899333872.mp4', 'video/mp4', 4965360, 'V1', 'uploaded', '2026-03-11 08:20:02', 'pending', 0),
+(641, 834, 'Tufehart Kit.jpg.jpeg', '/digilabs/dmap/api/uploads/Image_to_CDR__JPG__PNG/Image to CDR, JPG, PNG/Vikram Rai/V1/Tufehart_Kit.jpg.jpeg-1773217366508-595154013.jpeg', 'image/jpeg', 15737849, 'V1', 'uploaded', '2026-03-11 08:22:46', 'pending', 0),
+(642, 734, 'Laveta M OS VA Nepal Low Res.pdf', '/digilabs/dmap/api/uploads/Laveta_M_va/Laveta M va/Gaurav Karnik/V1/Laveta_M_OS_VA_Nepal_Low_Res.pdf-1773225428449-688215568.pdf', 'application/pdf', 6565632, 'V1', 'uploaded', '2026-03-11 10:37:08', 'pending', 0),
+(643, 822, 'Adjunctive Therapy Post.jpg', '/digilabs/dmap/api/uploads/Adjunctive_Therapy__Concept_Page/Adjunctive Therapy  Concept Page/Reshma Bastav/V1/Adjunctive_Therapy_Post.jpg-1773231608048-49660963.jpg', 'image/jpeg', 643954, 'V1', 'uploaded', '2026-03-11 12:20:08', 'pending', 0),
+(644, 823, 'Resync Plus Gift flyer.jpg', '/digilabs/dmap/api/uploads/Resync_Plus_Gift_flyer/Resync Plus Gift flyer/Reshma Bastav/V1/Resync_Plus_Gift_flyer.jpg-1773231625216-844814561.jpg', 'image/jpeg', 2525918, 'V1', 'uploaded', '2026-03-11 12:20:25', 'pending', 0),
+(645, 626, 'Gudi-padwa.jpg', '/digilabs/dmap/api/uploads/Gudi_Padwa_Flyer/Gudi Padwa Flyer/Tanmay Santosh Chorghe/V1/Gudi_padwa.jpg-1773235640646-863687676.jpg', 'image/jpeg', 355853, 'V1', 'uploaded', '2026-03-11 13:27:20', 'pending', 0),
+(646, 625, 'Ugadi-Flyer.jpg', '/digilabs/dmap/api/uploads/Ugadi_Flyer/Ugadi Flyer/Tanmay Santosh Chorghe/V1/Ugadi_Flyer.jpg-1773235773039-319985508.jpg', 'image/jpeg', 411980, 'V1', 'uploaded', '2026-03-11 13:29:33', 'pending', 0),
+(647, 699, 'Resync Plus_First 3 teasers.txt', '/digilabs/dmap/api/uploads/Resync_Plus___Launch_video_teaser_content/Resync Plus - Launch video teaser content/Divya Raval/V1/Resync_Plus_First_3_teasers.txt-1773292856618-544939975.txt', 'text/plain', 333, 'V1', 'uploaded', '2026-03-12 05:20:56', 'pending', 0),
+(648, 805, '100 Cr_Standee.jpg', '/digilabs/dmap/api/uploads/Annual_meeting_standee_/Annual meeting standee /Nilesh Khedekar/V1/100_Cr_Standee.jpg-1773296056884-679040864.jpg', 'image/jpeg', 626981, 'V1', 'uploaded', '2026-03-12 06:14:16', 'pending', 0),
+(649, 805, 'Logos_Standee.jpg', '/digilabs/dmap/api/uploads/Annual_meeting_standee_/Annual meeting standee /Nilesh Khedekar/V1/Logos_Standee.jpg-1773296056889-85114247.jpg', 'image/jpeg', 454764, 'V1', 'uploaded', '2026-03-12 06:14:16', 'pending', 0),
+(650, 805, 'THINK BEYOND LIMITS_Standee.jpg', '/digilabs/dmap/api/uploads/Annual_meeting_standee_/Annual meeting standee /Nilesh Khedekar/V1/THINK_BEYOND_LIMITS_Standee.jpg-1773296056892-676519761.jpg', 'image/jpeg', 532432, 'V1', 'uploaded', '2026-03-12 06:14:16', 'pending', 0),
+(651, 777, 'AP26 CYCLE MEETING POST CARD.pdf', '/digilabs/dmap/api/uploads/AP26_CYCLE_MEETING_POST_CARD/AP26 CYCLE MEETING POST CARD/Angana Prakash Patil/V1/AP26_CYCLE_MEETING_POST_CARD.pdf-1773297168780-898044831.pdf', 'application/pdf', 12356267, 'V1', 'uploaded', '2026-03-12 06:32:48', 'pending', 0),
+(652, 537, 'Sitalembic-MD_VA_3.pdf', '/digilabs/dmap/api/uploads/VA___SITALEMBIC_MD/VA - SITALEMBIC MD/Angana Prakash Patil/V1/Sitalembic_MD_VA_3.pdf-1773304095862-27205603.pdf', 'application/pdf', 11933620, 'V1', 'uploaded', '2026-03-12 08:28:15', 'pending', 0),
+(653, 750, 'Wikoryl 325 DT_VA.pdf', '/digilabs/dmap/api/uploads/Wikoryl_325DT_VA_page/Wikoryl 325DT VA page/Angana Prakash Patil/V1/Wikoryl_325_DT_VA.pdf-1773305060314-231363836.pdf', 'application/pdf', 1116187, 'V1', 'uploaded', '2026-03-12 08:44:20', 'pending', 0),
+(654, 812, 'Dhurandhar_Resync_Low v.mp4', '/digilabs/dmap/api/uploads/RESYNC___VIDEO_SCRIPT_FOR_CYCLE_MEET___DHURANDHAR/RESYNC - VIDEO SCRIPT FOR CYCLE MEET - DHURANDHAR/Poonam Aditya Waman/V1/Dhurandhar_Resync_Low_v.mp4-1773307266644-907480380.mp4', 'video/mp4', 47868744, 'V1', 'uploaded', '2026-03-12 09:21:06', 'pending', 0),
+(655, 849, 'Khurak Nutrition Stages Video.mp4', '/digilabs/dmap/api/uploads/Khurak_theme_page_video_/Khurak theme page video /Prathamesh Shengale/V1/Khurak_Nutrition_Stages_Video.mp4-1773307525198-480279723.mp4', 'video/mp4', 5416994, 'V1', 'uploaded', '2026-03-12 09:25:25', 'pending', 0),
+(656, 808, 'Standee 3x6-02.jpg', '/digilabs/dmap/api/uploads/Standee_for_CME_RTM_GDM/Standee for CME/RTM/GDM/Milind Balkrushna Shelar/V1/Standee_3x6_02.jpg-1773314843403-885108641.jpg', 'image/jpeg', 1471716, 'V1', 'uploaded', '2026-03-12 11:27:23', 'pending', 0),
+(657, 844, 'DIANA JAR_1.pdf', '/digilabs/dmap/api/uploads/YERA_ARTWORK___OSTEOFIT_/YERA ARTWORK - OSTEOFIT/Shubham Gurav/V1/DIANA_JAR_1.pdf-1773318551028-478380940.pdf', 'application/pdf', 2942958, 'V1', 'uploaded', '2026-03-12 12:29:11', 'pending', 0),
+(658, 768, 'Rafle LBL Low Res.pdf', '/digilabs/dmap/api/uploads/Rafle_IBS_Has_A_MOOD_Too_LBL_/Rafle_IBS Has A MOOD Too_LBL /Gaurav Karnik/V1/Rafle_LBL_Low_Res.pdf-1773320694337-929734060.pdf', 'application/pdf', 993695, 'V1', 'uploaded', '2026-03-12 13:04:54', 'pending', 0),
+(659, 524, 'World-Kidney-Day-Dangler_B.jpg', '/digilabs/dmap/api/uploads/World_Kidney_Day_collaterals/World Kidney Day collaterals/Sanket Chandrakanat  Patade/V1/World_Kidney_Day_Dangler_B.jpg-1773375322861-733111112.jpg', 'image/jpeg', 297233, 'V1', 'uploaded', '2026-03-13 04:15:22', 'pending', 0),
+(660, 524, 'World-Kidney-Day-Dangler_F.jpg', '/digilabs/dmap/api/uploads/World_Kidney_Day_collaterals/World Kidney Day collaterals/Sanket Chandrakanat  Patade/V1/World_Kidney_Day_Dangler_F.jpg-1773375322897-962506536.jpg', 'image/jpeg', 283001, 'V1', 'uploaded', '2026-03-13 04:15:22', 'pending', 0),
+(661, 524, 'World-Kidney-Day-Poster.jpg', '/digilabs/dmap/api/uploads/World_Kidney_Day_collaterals/World Kidney Day collaterals/Sanket Chandrakanat  Patade/V1/World_Kidney_Day_Poster.jpg-1773375322907-538987728.jpg', 'image/jpeg', 648567, 'V1', 'uploaded', '2026-03-13 04:15:22', 'pending', 0),
+(662, 867, 'World-Kidney-Day-2026_2.jpg', '/digilabs/dmap/api/uploads/World_Kidney_Day_SM_Post/World Kidney Day SM Post/Sanket Chandrakanat  Patade/V1/World_Kidney_Day_2026_2.jpg-1773376479981-282313032.jpg', 'image/jpeg', 305015, 'V1', 'uploaded', '2026-03-13 04:34:39', 'pending', 0),
+(663, 867, 'World-Kidney-Day-2026_3.jpg', '/digilabs/dmap/api/uploads/World_Kidney_Day_SM_Post/World Kidney Day SM Post/Sanket Chandrakanat  Patade/V1/World_Kidney_Day_2026_3.jpg-1773376479988-245141752.jpg', 'image/jpeg', 315225, 'V1', 'uploaded', '2026-03-13 04:34:39', 'pending', 0),
+(664, 869, 'FOCUS-Leaderboard---February-2026_TV.jpg', '/digilabs/dmap/api/uploads/FOCUS_Leaderboards/FOCUS Leaderboards/Sanket Chandrakanat  Patade/V1/FOCUS_Leaderboard___February_2026_TV.jpg-1773377751885-971147369.jpg', 'image/jpeg', 1614224, 'V1', 'uploaded', '2026-03-13 04:55:51', 'pending', 0),
+(665, 869, 'FOCUS-Leaderboard---February-2026_Mailer.jpg', '/digilabs/dmap/api/uploads/FOCUS_Leaderboards/FOCUS Leaderboards/Sanket Chandrakanat  Patade/V1/FOCUS_Leaderboard___February_2026_Mailer.jpg-1773377751890-764085751.jpg', 'image/jpeg', 1312514, 'V1', 'uploaded', '2026-03-13 04:55:51', 'pending', 0),
+(666, 871, '1-Day-To-Go.jpg', '/digilabs/dmap/api/uploads/Women_s_Day_Posts/Women\'s Day Posts/Sanket Chandrakanat  Patade/V1/1_Day_To_Go.jpg-1773381470485-107452369.jpg', 'image/jpeg', 411081, 'V1', 'uploaded', '2026-03-13 05:57:50', 'pending', 0),
+(667, 871, 'Celebration-+-Session-Reminder.jpg', '/digilabs/dmap/api/uploads/Women_s_Day_Posts/Women\'s Day Posts/Sanket Chandrakanat  Patade/V1/Celebration___Session_Reminder.jpg-1773381470494-362366056.jpg', 'image/jpeg', 441775, 'V1', 'uploaded', '2026-03-13 05:57:50', 'pending', 0),
+(668, 871, 'Celebration-Insights.jpg', '/digilabs/dmap/api/uploads/Women_s_Day_Posts/Women\'s Day Posts/Sanket Chandrakanat  Patade/V1/Celebration_Insights.jpg-1773381470496-38257516.jpg', 'image/jpeg', 704535, 'V1', 'uploaded', '2026-03-13 05:57:50', 'pending', 0),
+(669, 871, 'FOR-YOU.jpg', '/digilabs/dmap/api/uploads/Women_s_Day_Posts/Women\'s Day Posts/Sanket Chandrakanat  Patade/V1/FOR_YOU.jpg-1773381470499-327038172.jpg', 'image/jpeg', 791436, 'V1', 'uploaded', '2026-03-13 05:57:50', 'pending', 0),
+(670, 871, 'Sessions-Invite.jpg', '/digilabs/dmap/api/uploads/Women_s_Day_Posts/Women\'s Day Posts/Sanket Chandrakanat  Patade/V1/Sessions_Invite.jpg-1773381470502-96726568.jpg', 'image/jpeg', 563080, 'V1', 'uploaded', '2026-03-13 05:57:50', 'pending', 0),
+(671, 871, 'Sessions-Invite_2.jpg', '/digilabs/dmap/api/uploads/Women_s_Day_Posts/Women\'s Day Posts/Sanket Chandrakanat  Patade/V1/Sessions_Invite_2.jpg-1773381470504-847321460.jpg', 'image/jpeg', 286550, 'V1', 'uploaded', '2026-03-13 05:57:50', 'pending', 0),
+(672, 871, 'Sessions-Invite_2_1.jpg', '/digilabs/dmap/api/uploads/Women_s_Day_Posts/Women\'s Day Posts/Sanket Chandrakanat  Patade/V1/Sessions_Invite_2_1.jpg-1773381470506-486437170.jpg', 'image/jpeg', 275650, 'V1', 'uploaded', '2026-03-13 05:57:50', 'pending', 0),
+(673, 871, 'Woemn\'s-Day_2.jpg', '/digilabs/dmap/api/uploads/Women_s_Day_Posts/Women\'s Day Posts/Sanket Chandrakanat  Patade/V1/Woemn_s_Day_2.jpg-1773381470508-261255729.jpg', 'image/jpeg', 479430, 'V1', 'uploaded', '2026-03-13 05:57:50', 'pending', 0),
+(674, 871, 'Woemn\'s-Day_4.jpg', '/digilabs/dmap/api/uploads/Women_s_Day_Posts/Women\'s Day Posts/Sanket Chandrakanat  Patade/V1/Woemn_s_Day_4.jpg-1773381470513-869805083.jpg', 'image/jpeg', 287365, 'V1', 'uploaded', '2026-03-13 05:57:50', 'pending', 0),
+(675, 841, 'Certificate of Appriciation.pdf', '/digilabs/dmap/api/uploads/Need_certificate_of_participation_and_appreciation_/Need certificate of participation and appreciation /Nilesh Khedekar/V1/Certificate_of_Appriciation.pdf-1773381511459-306195827.pdf', 'application/pdf', 1619830, 'V1', 'uploaded', '2026-03-13 05:58:31', 'pending', 0),
+(676, 841, 'Certificate of Participation.pdf', '/digilabs/dmap/api/uploads/Need_certificate_of_participation_and_appreciation_/Need certificate of participation and appreciation /Nilesh Khedekar/V1/Certificate_of_Participation.pdf-1773381511464-416806505.pdf', 'application/pdf', 1629568, 'V1', 'uploaded', '2026-03-13 05:58:31', 'pending', 0),
+(677, 874, 'Docmycin Article.svg', '/digilabs/dmap/api/uploads/Need_QR_code_for_the_trial_report_PDF/QR code/Kiran Thekootu/V1/Docmycin_Article.svg-1773385087832-661633497.svg', 'image/svg+xml', 36912, 'V1', 'uploaded', '2026-03-13 06:58:07', 'pending', 0),
+(678, 821, 'Ulgeraft Motivational Video.mp4', '/digilabs/dmap/api/uploads/Ulgeraft_Video/Ulgeraft Video-AV script Fire/Prathamesh Shengale/V1/Ulgeraft_Motivational_Video.mp4-1773395921630-292456750.mp4', 'video/mp4', 24754007, 'V1', 'uploaded', '2026-03-13 09:58:41', 'pending', 0),
+(679, 882, 'Gastron Motivational Video_V02.mp4', '/digilabs/dmap/api/uploads/Gastron_Motivational_Video/Gastron Motivational Video/Prathamesh Shengale/V1/Gastron_Motivational_Video_V02.mp4-1773399319170-600531027.mp4', 'video/mp4', 47714476, 'V1', 'uploaded', '2026-03-13 10:55:19', 'pending', 0),
+(680, 838, 'Evolve Algrow Certificate_Mar 26.pdf', '/digilabs/dmap/api/uploads/Algrow_Vetmax_and_Poultry_Evolve_Certificate/Algrow Vetmax and Poultry Evolve Certificate/Reshma Bastav/V1/Evolve_Algrow_Certificate_Mar_26.pdf-1773400942248-410257175.pdf', 'application/pdf', 38105668, 'V1', 'uploaded', '2026-03-13 11:22:22', 'pending', 0),
+(681, 838, 'Evolve Aqua Certificate_Mar 26.pdf', '/digilabs/dmap/api/uploads/Algrow_Vetmax_and_Poultry_Evolve_Certificate/Algrow Vetmax and Poultry Evolve Certificate/Reshma Bastav/V1/Evolve_Aqua_Certificate_Mar_26.pdf-1773400942279-67591251.pdf', 'application/pdf', 5707477, 'V1', 'uploaded', '2026-03-13 11:22:22', 'pending', 0),
+(682, 838, 'Evolve Fertimax Certificate_Mar 26.pdf', '/digilabs/dmap/api/uploads/Algrow_Vetmax_and_Poultry_Evolve_Certificate/Algrow Vetmax and Poultry Evolve Certificate/Reshma Bastav/V1/Evolve_Fertimax_Certificate_Mar_26.pdf-1773400942287-164841929.pdf', 'application/pdf', 14183560, 'V1', 'uploaded', '2026-03-13 11:22:22', 'pending', 0),
+(683, 838, 'Evolve Vetmax Certificate_Mar 26.pdf', '/digilabs/dmap/api/uploads/Algrow_Vetmax_and_Poultry_Evolve_Certificate/Algrow Vetmax and Poultry Evolve Certificate/Reshma Bastav/V1/Evolve_Vetmax_Certificate_Mar_26.pdf-1773400942433-968930812.pdf', 'application/pdf', 32684810, 'V1', 'uploaded', '2026-03-13 11:22:23', 'pending', 0),
+(684, 792, 'Estroplus_VA_3.pdf', '/digilabs/dmap/api/uploads/Estroplus_VA/Estroplus VA/Angana Prakash Patil/V1/Estroplus_VA_3.pdf-1773404888170-651732745.pdf', 'application/pdf', 538961, 'V1', 'uploaded', '2026-03-13 12:28:08', 'pending', 0),
+(685, 366, 'Gestofit_VA.pdf', '/digilabs/dmap/api/uploads/Gestofit_VA_/Gestofit VA/Angana Prakash Patil/V1/Gestofit_VA.pdf-1773404920244-95872560.pdf', 'application/pdf', 3776999, 'V1', 'uploaded', '2026-03-13 12:28:40', 'pending', 0),
+(686, 753, 'Dangler Back-02.png', '/digilabs/dmap/api/uploads/World_Hypertension_Day_2026_Artwork/World Hypertension Day 2026 Artwork/Tanmay Santosh Chorghe/V1/Dangler_Back_02.png-1773406738638-423101038.png', 'image/png', 166955, 'V1', 'uploaded', '2026-03-13 12:58:58', 'pending', 0),
+(687, 753, 'Dangler Front-01.png', '/digilabs/dmap/api/uploads/World_Hypertension_Day_2026_Artwork/World Hypertension Day 2026 Artwork/Tanmay Santosh Chorghe/V1/Dangler_Front_01.png-1773406738642-581154446.png', 'image/png', 162725, 'V1', 'uploaded', '2026-03-13 12:58:58', 'pending', 0),
+(688, 753, 'Poster-design.jpg', '/digilabs/dmap/api/uploads/World_Hypertension_Day_2026_Artwork/World Hypertension Day 2026 Artwork/Tanmay Santosh Chorghe/V1/Poster_design.jpg-1773406738645-654756829.jpg', 'image/jpeg', 116227, 'V1', 'uploaded', '2026-03-13 12:58:58', 'pending', 0),
+(689, 870, 'Ouron Logo Mosaic.pdf', '/digilabs/dmap/api/uploads/Ouron_Logo_Mosaic/Ouron Logo Mosaic/Shubham Gurav/V1/Ouron_Logo_Mosaic.pdf-1773408335900-15963372.pdf', 'application/pdf', 31518299, 'V1', 'uploaded', '2026-03-13 13:25:35', 'pending', 0),
+(690, 868, 'Grogain PRO prospective study 2026.pdf', '/digilabs/dmap/api/uploads/Prospective__Study_CRF__Booklet_Fy_27/Prospective  Study CRF  Booklet Fy 27/Milind Balkrushna Shelar/V1/Grogain_PRO_prospective_study_2026.pdf-1773410971469-221810319.pdf', 'application/pdf', 823757, 'V1', 'uploaded', '2026-03-13 14:09:31', 'pending', 0),
+(691, 153, 'Laveta M AR Video_01.mp4', '/digilabs/dmap/api/uploads/Mono_vs_bilayer/Megacare_Mono vs bilayer 2026/Poonam Aditya Waman/V1/Laveta_M_AR_Video_01.mp4-1773635045791-527437321.mp4', 'video/mp4', 20172352, 'V1', 'uploaded', '2026-03-16 04:24:05', 'pending', 0),
+(692, 759, 'Vildambic_M_VA_Pg_01.gif', '/digilabs/dmap/api/uploads/Pharma_VA_pages_animation/Pharma VA pages animation/Prathamesh Shengale/V1/Vildambic_M_VA_Pg_01.gif-1773639555587-981842960.gif', 'image/gif', 32036639, 'V1', 'uploaded', '2026-03-16 05:39:15', 'pending', 0),
+(693, 759, 'Vildambic_M_VA_Pg_02.gif', '/digilabs/dmap/api/uploads/Pharma_VA_pages_animation/Pharma VA pages animation/Prathamesh Shengale/V1/Vildambic_M_VA_Pg_02.gif-1773639555614-265509701.gif', 'image/gif', 6766378, 'V1', 'uploaded', '2026-03-16 05:39:15', 'pending', 0),
+(694, 759, 'Vildambic_M_VA_Pg_03.gif', '/digilabs/dmap/api/uploads/Pharma_VA_pages_animation/Pharma VA pages animation/Prathamesh Shengale/V1/Vildambic_M_VA_Pg_03.gif-1773639555621-557941581.gif', 'image/gif', 4294514, 'V1', 'uploaded', '2026-03-16 05:39:15', 'pending', 0),
+(695, 759, 'Vildambic_M_VA_Pg_04.gif', '/digilabs/dmap/api/uploads/Pharma_VA_pages_animation/Pharma VA pages animation/Prathamesh Shengale/V1/Vildambic_M_VA_Pg_04.gif-1773639555635-530775343.gif', 'image/gif', 4698286, 'V1', 'uploaded', '2026-03-16 05:39:15', 'pending', 0),
+(696, 833, 'Maxis Cycle Meeting Certificate_4.pdf', '/digilabs/dmap/api/uploads/Maxis_cycle_meeting_creatives/Maxis cycle meeting creatives/Sanket Chandrakanat  Patade/V1/Maxis_Cycle_Meeting_Certificate_4.pdf-1773652892680-32129453.pdf', 'application/pdf', 525051, 'V1', 'uploaded', '2026-03-16 09:21:32', 'pending', 0),
+(697, 843, 'Ascal-Gel-Advance-Display-artwork_Mockup.jpg', '/digilabs/dmap/api/uploads/Ascal_Gel_Advance_Display_artwork/Ascal Gel Advance Display artwork/Sanket Chandrakanat  Patade/V1/Ascal_Gel_Advance_Display_artwork_Mockup.jpg-1773652975572-989954158.jpg', 'image/jpeg', 1282945, 'V1', 'uploaded', '2026-03-16 09:22:55', 'pending', 0),
+(698, 633, 'Eid-Mubarak.jpg', '/digilabs/dmap/api/uploads/Gudi_Padwa_Ugadi__Cheti_Chand__Eid_ul_Fitr_Greeting_/Gudi Padwa,Ugadi, Cheti Chand, Eid ul-Fitr Greeting /Sanket Chandrakanat  Patade/V1/Eid_Mubarak.jpg-1773654313967-585769626.jpg', 'image/jpeg', 531274, 'V1', 'uploaded', '2026-03-16 09:45:13', 'pending', 0),
+(699, 633, 'Happy-Cheti-Chand.jpg', '/digilabs/dmap/api/uploads/Gudi_Padwa_Ugadi__Cheti_Chand__Eid_ul_Fitr_Greeting_/Gudi Padwa,Ugadi, Cheti Chand, Eid ul-Fitr Greeting /Sanket Chandrakanat  Patade/V1/Happy_Cheti_Chand.jpg-1773654313971-750121610.jpg', 'image/jpeg', 584265, 'V1', 'uploaded', '2026-03-16 09:45:13', 'pending', 0),
+(700, 633, 'Happy-Gudi-Padwa.jpg', '/digilabs/dmap/api/uploads/Gudi_Padwa_Ugadi__Cheti_Chand__Eid_ul_Fitr_Greeting_/Gudi Padwa,Ugadi, Cheti Chand, Eid ul-Fitr Greeting /Sanket Chandrakanat  Patade/V1/Happy_Gudi_Padwa.jpg-1773654313974-443348067.jpg', 'image/jpeg', 442411, 'V1', 'uploaded', '2026-03-16 09:45:13', 'pending', 0),
+(701, 633, 'Happy-Ugadi.jpg', '/digilabs/dmap/api/uploads/Gudi_Padwa_Ugadi__Cheti_Chand__Eid_ul_Fitr_Greeting_/Gudi Padwa,Ugadi, Cheti Chand, Eid ul-Fitr Greeting /Sanket Chandrakanat  Patade/V1/Happy_Ugadi.jpg-1773654313977-90536910.jpg', 'image/jpeg', 519366, 'V1', 'uploaded', '2026-03-16 09:45:13', 'pending', 0),
+(702, 872, 'BMD_Camp_Sleeve_all_CTC..pdf', '/digilabs/dmap/api/uploads/Vitamin_D_Camp_Slips___Posters/Vitamin D Camp Slips /Shubham Gurav/V1/BMD_Camp_Sleeve_all_CTC..pdf-1773660517492-675519672.pdf', 'application/pdf', 2017889, 'V1', 'uploaded', '2026-03-16 11:28:37', 'pending', 0),
+(703, 872, 'BMD_Poster_CTC.pdf', '/digilabs/dmap/api/uploads/Vitamin_D_Camp_Slips___Posters/Vitamin D Camp Slips /Shubham Gurav/V1/BMD_Poster_CTC.pdf-1773660517499-608109572.pdf', 'application/pdf', 4088265, 'V1', 'uploaded', '2026-03-16 11:28:37', 'pending', 0),
+(704, 310, 'Non Focus_VA.pdf', '/digilabs/dmap/api/uploads/Visual_Aid_Q_2_All_focus_10_Brand_with_Non_Focus_Brand/Visual Aid Q-2 All focus 10 Brand with Non Focus Brand/Nilesh Khedekar/V1/Non_Focus_VA.pdf-1773660998604-368786462.pdf', 'application/pdf', 5944676, 'V1', 'uploaded', '2026-03-16 11:36:38', 'pending', 0),
+(705, 310, 'VA 1 to 10.pdf', '/digilabs/dmap/api/uploads/Visual_Aid_Q_2_All_focus_10_Brand_with_Non_Focus_Brand/Visual Aid Q-2 All focus 10 Brand with Non Focus Brand/Nilesh Khedekar/V1/VA_1_to_10.pdf-1773660998613-231518576.pdf', 'application/pdf', 3494916, 'V1', 'uploaded', '2026-03-16 11:36:38', 'pending', 0),
+(706, 310, 'VA 11 to 21.pdf', '/digilabs/dmap/api/uploads/Visual_Aid_Q_2_All_focus_10_Brand_with_Non_Focus_Brand/Visual Aid Q-2 All focus 10 Brand with Non Focus Brand/Nilesh Khedekar/V1/VA_11_to_21.pdf-1773660998618-147552520.pdf', 'application/pdf', 4842551, 'V1', 'uploaded', '2026-03-16 11:36:38', 'pending', 0),
+(707, 310, 'VA 22 to 37.pdf', '/digilabs/dmap/api/uploads/Visual_Aid_Q_2_All_focus_10_Brand_with_Non_Focus_Brand/Visual Aid Q-2 All focus 10 Brand with Non Focus Brand/Nilesh Khedekar/V1/VA_22_to_37.pdf-1773660998624-545118521.pdf', 'application/pdf', 1408686, 'V1', 'uploaded', '2026-03-16 11:36:38', 'pending', 0),
+(708, 310, 'VA 40 to 46.pdf', '/digilabs/dmap/api/uploads/Visual_Aid_Q_2_All_focus_10_Brand_with_Non_Focus_Brand/Visual Aid Q-2 All focus 10 Brand with Non Focus Brand/Nilesh Khedekar/V1/VA_40_to_46.pdf-1773660998628-156262818.pdf', 'application/pdf', 3817617, 'V1', 'uploaded', '2026-03-16 11:36:38', 'pending', 0),
+(709, 786, 'SurveY_tellzy_AM_LBL_March.pdf', '/digilabs/dmap/api/uploads/TELLZY_TELLZY_MT_TELLZY_CH_TELLZY_AM_SURVEY_LBL/TELLZY,TELLZY MT,TELLZY CH,TELLZY AM SURVEY LBL/Tanmay Santosh Chorghe/V1/SurveY_tellzy_AM_LBL_March.pdf-1773720765642-959984396.pdf', 'application/pdf', 834514, 'V1', 'uploaded', '2026-03-17 04:12:45', 'pending', 0),
+(710, 911, 'Scratch Card New Product Launch - RUMIGEST Artwork_CTC.pdf', '/digilabs/dmap/api/uploads/Scratch_card_new_product_launch/Scratch card new product launch/Sanket Chandrakanat  Patade/V1/Scratch_Card_New_Product_Launch___RUMIGEST_Artwork_CTC.pdf-1773721943600-473651107.pdf', 'application/pdf', 23095724, 'V1', 'uploaded', '2026-03-17 04:32:23', 'pending', 0),
+(711, 911, 'Scratch Card New Product Launch - RUMIGEST Envolope_CTC.pdf', '/digilabs/dmap/api/uploads/Scratch_card_new_product_launch/Scratch card new product launch/Sanket Chandrakanat  Patade/V1/Scratch_Card_New_Product_Launch___RUMIGEST_Envolope_CTC.pdf-1773721943657-26440080.pdf', 'application/pdf', 892295, 'V1', 'uploaded', '2026-03-17 04:32:23', 'pending', 0),
+(712, 847, 'Veldrop Preamble Script.docx', '/digilabs/dmap/api/uploads/Veldrop_Preamble_Video/Veldrop Preamble Video/Divya Raval/V1/Veldrop_Preamble_Script.docx-1773724211496-56604365.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 14804, 'V1', 'uploaded', '2026-03-17 05:10:11', 'pending', 0),
+(713, 847, 'Veldrop preamble_Draft 2.pptx', '/digilabs/dmap/api/uploads/Veldrop_Preamble_Video/Veldrop Preamble Video/Divya Raval/V1/Veldrop_preamble_Draft_2.pptx-1773724211499-286447414.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 20182929, 'V1', 'uploaded', '2026-03-17 05:10:11', 'pending', 0),
+(714, 619, 'Ram Navmi-01.jpg', '/digilabs/dmap/api/uploads/Ram_Navami_Greeting/Ram Navami Greeting/Angana Prakash Patil/V1/Ram_Navmi_01.jpg-1773726500748-452511528.jpg', 'image/jpeg', 269914, 'V1', 'uploaded', '2026-03-17 05:48:20', 'pending', 0),
+(715, 619, 'Ram Navmi-02.jpg', '/digilabs/dmap/api/uploads/Ram_Navami_Greeting/Ram Navami Greeting/Angana Prakash Patil/V1/Ram_Navmi_02.jpg-1773726500756-46807248.jpg', 'image/jpeg', 213532, 'V1', 'uploaded', '2026-03-17 05:48:20', 'pending', 0),
+(716, 857, 'Tellzy_CH_VA_Pg_01.gif', '/digilabs/dmap/api/uploads/TELLZY_CH_V_A_ANIMATION/TELLZY CH V.A ANIMATION/Prathamesh Shengale/V1/Tellzy_CH_VA_Pg_01.gif-1773726793624-112062592.gif', 'image/gif', 1627520, 'V1', 'uploaded', '2026-03-17 05:53:13', 'pending', 0),
+(717, 857, 'Tellzy_CH_VA_Pg_02.gif', '/digilabs/dmap/api/uploads/TELLZY_CH_V_A_ANIMATION/TELLZY CH V.A ANIMATION/Prathamesh Shengale/V1/Tellzy_CH_VA_Pg_02.gif-1773726793630-250210744.gif', 'image/gif', 1978120, 'V1', 'uploaded', '2026-03-17 05:53:13', 'pending', 0),
+(718, 857, 'Tellzy_CH_VA_Pg_03.gif', '/digilabs/dmap/api/uploads/TELLZY_CH_V_A_ANIMATION/TELLZY CH V.A ANIMATION/Prathamesh Shengale/V1/Tellzy_CH_VA_Pg_03.gif-1773726793636-966623267.gif', 'image/gif', 1749640, 'V1', 'uploaded', '2026-03-17 05:53:13', 'pending', 0),
+(719, 855, 'Tellzy_MT_VA_Pg_01.gif', '/digilabs/dmap/api/uploads/TELLZY_MT_VA_ANIMATION/TELLZY MT VA ANIMATION/Prathamesh Shengale/V1/Tellzy_MT_VA_Pg_01.gif-1773726853993-287647727.gif', 'image/gif', 4650506, 'V1', 'uploaded', '2026-03-17 05:54:13', 'pending', 0),
+(720, 855, 'Tellzy_MT_VA_Pg_02.gif', '/digilabs/dmap/api/uploads/TELLZY_MT_VA_ANIMATION/TELLZY MT VA ANIMATION/Prathamesh Shengale/V1/Tellzy_MT_VA_Pg_02.gif-1773726853999-407889567.gif', 'image/gif', 2018237, 'V1', 'uploaded', '2026-03-17 05:54:14', 'pending', 0),
+(721, 855, 'Tellzy_MT_VA_Pg_03.gif', '/digilabs/dmap/api/uploads/TELLZY_MT_VA_ANIMATION/TELLZY MT VA ANIMATION/Prathamesh Shengale/V1/Tellzy_MT_VA_Pg_03.gif-1773726854012-213993083.gif', 'image/gif', 2389605, 'V1', 'uploaded', '2026-03-17 05:54:14', 'pending', 0),
+(722, 855, 'Tellzy_MT_VA_Pg_04.gif', '/digilabs/dmap/api/uploads/TELLZY_MT_VA_ANIMATION/TELLZY MT VA ANIMATION/Prathamesh Shengale/V1/Tellzy_MT_VA_Pg_04.gif-1773726854019-31514685.gif', 'image/gif', 2280791, 'V1', 'uploaded', '2026-03-17 05:54:14', 'pending', 0),
+(723, 880, 'Ascal Gel Advanced_Coming Soon.txt', '/digilabs/dmap/api/uploads/Ascal_gel_advance__coming_soon_video/Ascal gel advance  coming soon video/Divya Raval/V1/Ascal_Gel_Advanced_Coming_Soon.txt-1773731565073-458053377.txt', 'text/plain', 106, 'V1', 'uploaded', '2026-03-17 07:12:45', 'pending', 0),
+(724, 879, 'Ascal gel Advanced_Packshot Reveal.txt', '/digilabs/dmap/api/uploads/Ascal_gel_Advance_Packshot_revealing_video/Ascal gel Advance Packshot revealing video/Divya Raval/V1/Ascal_gel_Advanced_Packshot_Reveal.txt-1773731591142-116181902.txt', 'text/plain', 140, 'V1', 'uploaded', '2026-03-17 07:13:11', 'pending', 0),
+(725, 894, 'Award Ceremony Template.pdf', '/digilabs/dmap/api/uploads/Award_Ceremony_Template/Award Ceremony Template/Shubham Gurav/V1/Award_Ceremony_Template.pdf-1773732334570-246667812.pdf', 'application/pdf', 3644805, 'V1', 'uploaded', '2026-03-17 07:25:34', 'pending', 0),
+(726, 893, 'PVR Advertisement_Poona Eyecare.pdf', '/digilabs/dmap/api/uploads/PVR_ADVERT___POONA_EYE_HOSPITAL/PVR ADVERT - POONA EYE HOSPITAL/Reshma Bastav/V1/PVR_Advertisement_Poona_Eyecare.pdf-1773732568490-111421846.pdf', 'application/pdf', 3308586, 'V1', 'uploaded', '2026-03-17 07:29:28', 'pending', 0),
+(727, 923, 'TishuHeal_VA_Pg_01.gif', '/digilabs/dmap/api/uploads/Tishuheal_VA_Page_Pop_up_edit/Tishuheal VA Page Pop up edit/Prathamesh Shengale/V1/TishuHeal_VA_Pg_01.gif-1773738402370-137704367.gif', 'image/gif', 8529424, 'V1', 'uploaded', '2026-03-17 09:06:42', 'pending', 0),
+(728, 918, 'Almizol 50ml.jpg', '/digilabs/dmap/api/uploads/Almizol_Skin_Lotion_Packshot__Photoshoot/Almizol Skin Lotion Packshot  Photoshoot/Vikram Rai/V1/Almizol_50ml.jpg-1773739118002-430025045.jpg', 'image/jpeg', 9019502, 'V1', 'uploaded', '2026-03-17 09:18:38', 'pending', 0),
+(729, 918, 'Almizol 100ml.jpg', '/digilabs/dmap/api/uploads/Almizol_Skin_Lotion_Packshot__Photoshoot/Almizol Skin Lotion Packshot  Photoshoot/Vikram Rai/V1/Almizol_100ml.jpg-1773739118014-784026446.jpg', 'image/jpeg', 9229262, 'V1', 'uploaded', '2026-03-17 09:18:38', 'pending', 0),
+(730, 925, 'DSC09956.JPG', '/digilabs/dmap/api/uploads/TRAZTIK_packshot_shoot/TRAZTIK packshot shoot/Vikram Rai/V1/DSC09956.JPG-1773743727705-127543229.JPG', 'image/jpeg', 7569408, 'V1', 'uploaded', '2026-03-17 10:35:27', 'pending', 0),
+(731, 925, 'DSC09957.JPG', '/digilabs/dmap/api/uploads/TRAZTIK_packshot_shoot/TRAZTIK packshot shoot/Vikram Rai/V1/DSC09957.JPG-1773743727716-94256512.JPG', 'image/jpeg', 7471104, 'V1', 'uploaded', '2026-03-17 10:35:27', 'pending', 0),
+(732, 913, 'Promatogram - Mar 2026.pdf', '/digilabs/dmap/api/uploads/Promotogram/Promotogram/Angana Prakash Patil/V1/Promatogram___Mar_2026.pdf-1773807694546-977178190.pdf', 'application/pdf', 2982525, 'V1', 'uploaded', '2026-03-18 04:21:34', 'pending', 0),
+(733, 839, 'Roxid 150_VA.pdf', '/digilabs/dmap/api/uploads/Roxid_VA/Roxid VA/Angana Prakash Patil/V1/Roxid_150_VA.pdf-1773807773656-518645926.pdf', 'application/pdf', 3705551, 'V1', 'uploaded', '2026-03-18 04:22:53', 'pending', 0),
+(734, 892, 'EID-MUBARAK-.jpg', '/digilabs/dmap/api/uploads/Gudi_Padwa___Eid_Festive_Post/Gudi Padwa | Eid Festive Post/Tanmay Santosh Chorghe/V1/EID_MUBARAK_.jpg-1773808337547-18049046.jpg', 'image/jpeg', 149146, 'V1', 'uploaded', '2026-03-18 04:32:17', 'pending', 0),
+(735, 892, 'Gudi-padaw.jpg', '/digilabs/dmap/api/uploads/Gudi_Padwa___Eid_Festive_Post/Gudi Padwa | Eid Festive Post/Tanmay Santosh Chorghe/V1/Gudi_padaw.jpg-1773808337551-852468373.jpg', 'image/jpeg', 303347, 'V1', 'uploaded', '2026-03-18 04:32:17', 'pending', 0),
+(736, 892, 'Ugadi.jpg', '/digilabs/dmap/api/uploads/Gudi_Padwa___Eid_Festive_Post/Gudi Padwa | Eid Festive Post/Tanmay Santosh Chorghe/V1/Ugadi.jpg-1773808337562-949881217.jpg', 'image/jpeg', 797677, 'V1', 'uploaded', '2026-03-18 04:32:17', 'pending', 0),
+(737, 891, 'Patient Education Leaflets_ctc.pdf', '/digilabs/dmap/api/uploads/PATIENT_EDUCATION_SHEET_/PATIENT EDUCATION SHEET /Reshma Bastav/V1/Patient_Education_Leaflets_ctc.pdf-1773813661314-7077372.pdf', 'application/pdf', 4664537, 'V1', 'uploaded', '2026-03-18 06:01:01', 'pending', 0),
+(738, 910, 'Veldrop Box Outline_ctc.pdf', '/digilabs/dmap/api/uploads/Veldrop__Gift_Box/Veldrop  Gift Box/Reshma Bastav/V1/Veldrop_Box_Outline_ctc.pdf-1773813690361-335760923.pdf', 'application/pdf', 1500682, 'V1', 'uploaded', '2026-03-18 06:01:30', 'pending', 0),
+(739, 845, 'Badge.jpg', '/digilabs/dmap/api/uploads/Poster__Tent_card_design/Poster, Tent card design/Tanmay Santosh Chorghe/V1/Badge.jpg-1773819449172-288654901.jpg', 'image/jpeg', 82473, 'V1', 'uploaded', '2026-03-18 07:37:29', 'pending', 0),
+(740, 845, 'IPSS-Poster.jpg', '/digilabs/dmap/api/uploads/Poster__Tent_card_design/Poster, Tent card design/Tanmay Santosh Chorghe/V1/IPSS_Poster.jpg-1773819449177-178891957.jpg', 'image/jpeg', 444080, 'V1', 'uploaded', '2026-03-18 07:37:29', 'pending', 0),
+(741, 845, 'Tent-Card-1.jpg', '/digilabs/dmap/api/uploads/Poster__Tent_card_design/Poster, Tent card design/Tanmay Santosh Chorghe/V1/Tent_Card_1.jpg-1773819449180-487535607.jpg', 'image/jpeg', 173271, 'V1', 'uploaded', '2026-03-18 07:37:29', 'pending', 0),
+(742, 698, 'resync.docx', '/digilabs/dmap/api/uploads/Resync_Plus___Launch_video_teaser_content/Resync Plus - Launch video teaser content/Vinisha Chadala/V1/resync.docx-1773823081079-794754518.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12494, 'V1', 'uploaded', '2026-03-18 08:38:01', 'pending', 0),
+(743, 942, 'Gudi Padwa Video Osteofit.mp4', '/digilabs/dmap/api/uploads/Festival_Flyer__Gudi_Padwa__Ugadi_Etc_/Festival Flyer (Gudi Padwa, Ugadi Etc)/Prathamesh Shengale/V1/Gudi_Padwa_Video_Osteofit.mp4-1773829395647-844612267.mp4', 'video/mp4', 6642214, 'V1', 'uploaded', '2026-03-18 10:23:15', 'pending', 0),
+(744, 944, 'Gudi Padwa Video.mp4', '/digilabs/dmap/api/uploads/Gudipadwa_Greetting/Gudipadwa Greetting/Prathamesh Shengale/V1/Gudi_Padwa_Video.mp4-1773829529990-576061939.mp4', 'video/mp4', 6645343, 'V1', 'uploaded', '2026-03-18 10:25:29', 'pending', 0),
+(745, 938, 'Gift-box-artwork_A5.jpg', '/digilabs/dmap/api/uploads/Gift_box_artwork/Gift box artwork/Sanket Chandrakanat  Patade/V1/Gift_box_artwork_A5.jpg-1773831337164-731786021.jpg', 'image/jpeg', 275102, 'V1', 'uploaded', '2026-03-18 10:55:37', 'pending', 0),
+(746, 886, 'IV-Fluid-Flyer.jpg', '/digilabs/dmap/api/uploads/IV_Fluid_Flyer/IV Fluid Flyer/Sanket Chandrakanat  Patade/V1/IV_Fluid_Flyer.jpg-1773831502656-411876665.jpg', 'image/jpeg', 801770, 'V1', 'uploaded', '2026-03-18 10:58:22', 'pending', 0),
+(747, 547, 'Azithral OL VA Final_MAR_26_final.pdf', '/digilabs/dmap/api/uploads/Azithral_Solid_and_Liquid_VA/Azithral Solid and Liquid VA/Gaurav Karnik/V1/Azithral_OL_VA_Final_MAR_26_final.pdf-1773833754668-890472548.pdf', 'application/pdf', 3722593, 'V1', 'uploaded', '2026-03-18 11:35:54', 'pending', 0),
+(748, 547, 'Azithral Solid VA - Nepal.pdf', '/digilabs/dmap/api/uploads/Azithral_Solid_and_Liquid_VA/Azithral Solid and Liquid VA/Gaurav Karnik/V1/Azithral_Solid_VA___Nepal.pdf-1773833754675-776972448.pdf', 'application/pdf', 6411863, 'V1', 'uploaded', '2026-03-18 11:35:54', 'pending', 0),
+(749, 883, 'Birthday Greeting Card 1-01.jpg', '/digilabs/dmap/api/uploads/Birthday_greeting_card_for_Veterinary_doctor/Birthday greeting card for Veterinary doctor/Reshma Bastav/V1/Birthday_Greeting_Card_1_01.jpg-1773986632270-186324689.jpg', 'image/jpeg', 456488, 'V1', 'uploaded', '2026-03-20 06:03:52', 'pending', 0),
+(750, 883, 'Birthday Greeting Card 1-02.jpg', '/digilabs/dmap/api/uploads/Birthday_greeting_card_for_Veterinary_doctor/Birthday greeting card for Veterinary doctor/Reshma Bastav/V1/Birthday_Greeting_Card_1_02.jpg-1773986632280-947500230.jpg', 'image/jpeg', 417278, 'V1', 'uploaded', '2026-03-20 06:03:52', 'pending', 0),
+(751, 883, 'Birthday Greeting Card 1-03.jpg', '/digilabs/dmap/api/uploads/Birthday_greeting_card_for_Veterinary_doctor/Birthday greeting card for Veterinary doctor/Reshma Bastav/V1/Birthday_Greeting_Card_1_03.jpg-1773986632282-225716936.jpg', 'image/jpeg', 429976, 'V1', 'uploaded', '2026-03-20 06:03:52', 'pending', 0),
+(752, 883, 'Birthday Greeting Card 1-04.jpg', '/digilabs/dmap/api/uploads/Birthday_greeting_card_for_Veterinary_doctor/Birthday greeting card for Veterinary doctor/Reshma Bastav/V1/Birthday_Greeting_Card_1_04.jpg-1773986632285-221497888.jpg', 'image/jpeg', 422718, 'V1', 'uploaded', '2026-03-20 06:03:52', 'pending', 0),
+(753, 883, 'Birthday Greeting Card 1-05.jpg', '/digilabs/dmap/api/uploads/Birthday_greeting_card_for_Veterinary_doctor/Birthday greeting card for Veterinary doctor/Reshma Bastav/V1/Birthday_Greeting_Card_1_05.jpg-1773986632288-430652789.jpg', 'image/jpeg', 431246, 'V1', 'uploaded', '2026-03-20 06:03:52', 'pending', 0),
+(754, 783, 'Cycloset_1st banner Category.pdf', '/digilabs/dmap/api/uploads/Banner_creative_/Banner creative/Angana Prakash Patil/V1/Cycloset_1st_banner_Category.pdf-1773998394077-885796508.pdf', 'application/pdf', 2837263, 'V1', 'uploaded', '2026-03-20 09:19:54', 'pending', 0),
+(755, 783, 'Cycloset_1st banner Product page_2.pdf', '/digilabs/dmap/api/uploads/Banner_creative_/Banner creative/Angana Prakash Patil/V1/Cycloset_1st_banner_Product_page_2.pdf-1773998394089-838455798.pdf', 'application/pdf', 4423812, 'V1', 'uploaded', '2026-03-20 09:19:54', 'pending', 0),
+(756, 783, 'Cycloset_2nd banner Search.pdf', '/digilabs/dmap/api/uploads/Banner_creative_/Banner creative/Angana Prakash Patil/V1/Cycloset_2nd_banner_Search.pdf-1773998394094-617030700.pdf', 'application/pdf', 1581687, 'V1', 'uploaded', '2026-03-20 09:19:54', 'pending', 0),
+(757, 783, 'Ovigyn Q10_1st banner Category.pdf', '/digilabs/dmap/api/uploads/Banner_creative_/Banner creative/Angana Prakash Patil/V1/Ovigyn_Q10_1st_banner_Category.pdf-1773998394098-419039026.pdf', 'application/pdf', 5944246, 'V1', 'uploaded', '2026-03-20 09:19:54', 'pending', 0),
+(758, 783, 'Ovigyn Q10_1st banner Product page.pdf', '/digilabs/dmap/api/uploads/Banner_creative_/Banner creative/Angana Prakash Patil/V1/Ovigyn_Q10_1st_banner_Product_page.pdf-1773998394105-841829435.pdf', 'application/pdf', 6895788, 'V1', 'uploaded', '2026-03-20 09:19:54', 'pending', 0),
+(759, 783, 'Ovigyn Q10_2nd banner Search.pdf', '/digilabs/dmap/api/uploads/Banner_creative_/Banner creative/Angana Prakash Patil/V1/Ovigyn_Q10_2nd_banner_Search.pdf-1773998394114-256195067.pdf', 'application/pdf', 3663597, 'V1', 'uploaded', '2026-03-20 09:19:54', 'pending', 0),
+(760, 927, 'Menstrual Hygiene Awareness Day_LBL-01.jpg', '/digilabs/dmap/api/uploads/MHAL_LBL/MHAL LBL/Angana Prakash Patil/V1/Menstrual_Hygiene_Awareness_Day_LBL_01.jpg-1773998481990-306995638.jpg', 'image/jpeg', 322468, 'V1', 'uploaded', '2026-03-20 09:21:21', 'pending', 0),
+(761, 927, 'Menstrual Hygiene Awareness Day_LBL-02.jpg', '/digilabs/dmap/api/uploads/MHAL_LBL/MHAL LBL/Angana Prakash Patil/V1/Menstrual_Hygiene_Awareness_Day_LBL_02.jpg-1773998481996-204397296.jpg', 'image/jpeg', 129879, 'V1', 'uploaded', '2026-03-20 09:21:21', 'pending', 0),
+(762, 957, 'pharma_dm_qr.png', '/digilabs/dmap/api/uploads/Diabetes_Management_Article_QR_Code/QR code generation/Gautam Baranwal/V1/pharma_dm_qr.png-1774001152761-290043925.png', 'image/png', 9454, 'V1', 'uploaded', '2026-03-20 10:05:52', 'pending', 0),
+(763, 939, 'Summer Bonanza.pdf', '/digilabs/dmap/api/uploads/Summer_Bonanza_Campaign_Flyer/Summer Bonanza Campaign Flyer/Nilesh Khedekar/V1/Summer_Bonanza.pdf-1774003426584-119197840.pdf', 'application/pdf', 3973622, 'V1', 'uploaded', '2026-03-20 10:43:46', 'pending', 0),
+(764, 887, 'Khurak Flyer.jpg', '/digilabs/dmap/api/uploads/Khurak_Flyer/Khurak Flyer/Milind Balkrushna Shelar/V1/Khurak_Flyer.jpg-1774248830379-328682568.jpg', 'image/jpeg', 8507519, 'V1', 'uploaded', '2026-03-23 06:53:50', 'pending', 0),
+(765, 915, 'TIKOUT Dangler -01.jpg', '/digilabs/dmap/api/uploads/TIKOUT_DANGLER/TIKOUT DANGLER/Milind Balkrushna Shelar/V1/TIKOUT_Dangler__01.jpg-1774248889650-423902446.jpg', 'image/jpeg', 4425206, 'V1', 'uploaded', '2026-03-23 06:54:49', 'pending', 0),
+(766, 915, 'TIKOUT Dangler -02.jpg', '/digilabs/dmap/api/uploads/TIKOUT_DANGLER/TIKOUT DANGLER/Milind Balkrushna Shelar/V1/TIKOUT_Dangler__02.jpg-1774248889657-682056108.jpg', 'image/jpeg', 5023904, 'V1', 'uploaded', '2026-03-23 06:54:49', 'pending', 0),
+(767, 916, 'TIKOUT Dangler -01.jpg', '/digilabs/dmap/api/uploads/TIKOUT_DANGLER/TIKOUT DANGLER/Milind Balkrushna Shelar/V1/TIKOUT_Dangler__01.jpg-1774248932009-660998410.jpg', 'image/jpeg', 4425206, 'V1', 'uploaded', '2026-03-23 06:55:32', 'pending', 0),
+(768, 916, 'TIKOUT Dangler -02.jpg', '/digilabs/dmap/api/uploads/TIKOUT_DANGLER/TIKOUT DANGLER/Milind Balkrushna Shelar/V1/TIKOUT_Dangler__02.jpg-1774248932015-513171440.jpg', 'image/jpeg', 5023904, 'V1', 'uploaded', '2026-03-23 06:55:32', 'pending', 0),
+(769, 970, 'Ugadi Video.mp4', '/digilabs/dmap/api/uploads/Ugadi_Gif/Ugadi Gif/Prathamesh Shengale/V1/Ugadi_Video.mp4-1774249245364-222193683.mp4', 'video/mp4', 7210173, 'V1', 'uploaded', '2026-03-23 07:00:45', 'pending', 0),
+(770, 717, 'August Tent Card.docx', '/digilabs/dmap/api/uploads/Tent_card/Tent card/Vinisha Chadala/V1/August_Tent_Card.docx-1774255747142-429764501.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13777, 'V1', 'uploaded', '2026-03-23 08:49:07', 'pending', 0),
+(771, 717, 'July Tent Card.docx', '/digilabs/dmap/api/uploads/Tent_card/Tent card/Vinisha Chadala/V1/July_Tent_Card.docx-1774255747147-536023318.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12353, 'V1', 'uploaded', '2026-03-23 08:49:07', 'pending', 0),
+(772, 717, 'September Tent Card.docx', '/digilabs/dmap/api/uploads/Tent_card/Tent card/Vinisha Chadala/V1/September_Tent_Card.docx-1774255747149-535744480.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12541, 'V1', 'uploaded', '2026-03-23 08:49:07', 'pending', 0),
+(773, 717, 'Tent Card April.docx', '/digilabs/dmap/api/uploads/Tent_card/Tent card/Vinisha Chadala/V1/Tent_Card_April.docx-1774255747152-471296367.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13767, 'V1', 'uploaded', '2026-03-23 08:49:07', 'pending', 0),
+(774, 717, 'Tent card May.docx', '/digilabs/dmap/api/uploads/Tent_card/Tent card/Vinisha Chadala/V1/Tent_card_May.docx-1774255747155-711485658.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 14199, 'V1', 'uploaded', '2026-03-23 08:49:07', 'pending', 0),
+(775, 717, 'June tent card.docx', '/digilabs/dmap/api/uploads/Tent_card/Tent card/Vinisha Chadala/V1/June_tent_card.docx-1774255747158-935296313.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 14000, 'V1', 'uploaded', '2026-03-23 08:49:07', 'pending', 0),
+(776, 685, 'UCPMP Script Video 2.docx', '/digilabs/dmap/api/uploads/UCPMP_Compliance_training_module/UCPMP Compliance training module/Vinisha Chadala/V1/UCPMP_Script_Video_2.docx-1774255824771-726226292.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 15325, 'V1', 'uploaded', '2026-03-23 08:50:24', 'pending', 0),
+(777, 685, 'UCPMP Script Video 3.docx', '/digilabs/dmap/api/uploads/UCPMP_Compliance_training_module/UCPMP Compliance training module/Vinisha Chadala/V1/UCPMP_Script_Video_3.docx-1774255824774-247547985.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13816, 'V1', 'uploaded', '2026-03-23 08:50:24', 'pending', 0),
+(778, 685, 'UCPMP Video Script 1.docx', '/digilabs/dmap/api/uploads/UCPMP_Compliance_training_module/UCPMP Compliance training module/Vinisha Chadala/V1/UCPMP_Video_Script_1.docx-1774255824776-643665449.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 14225, 'V1', 'uploaded', '2026-03-23 08:50:24', 'pending', 0),
+(779, 675, 'Cheti Chand.docx', '/digilabs/dmap/api/uploads/Gudi_Padwa_Ugadi__Cheti_Chand__Eid_ul_Fitr_Greeting_/Gudi Padwa,Ugadi, Cheti Chand, Eid ul-Fitr Greeting /Vinisha Chadala/V1/Cheti_Chand.docx-1774255942372-358055764.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 11787, 'V1', 'uploaded', '2026-03-23 08:52:22', 'pending', 0),
+(780, 675, 'Eid.docx', '/digilabs/dmap/api/uploads/Gudi_Padwa_Ugadi__Cheti_Chand__Eid_ul_Fitr_Greeting_/Gudi Padwa,Ugadi, Cheti Chand, Eid ul-Fitr Greeting /Vinisha Chadala/V1/Eid.docx-1774255942376-793955646.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 11783, 'V1', 'uploaded', '2026-03-23 08:52:22', 'pending', 0),
+(781, 675, 'Gudi Padwa.docx', '/digilabs/dmap/api/uploads/Gudi_Padwa_Ugadi__Cheti_Chand__Eid_ul_Fitr_Greeting_/Gudi Padwa,Ugadi, Cheti Chand, Eid ul-Fitr Greeting /Vinisha Chadala/V1/Gudi_Padwa.docx-1774255942380-336874339.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12217, 'V1', 'uploaded', '2026-03-23 08:52:22', 'pending', 0),
+(782, 675, 'Ugadi.docx', '/digilabs/dmap/api/uploads/Gudi_Padwa_Ugadi__Cheti_Chand__Eid_ul_Fitr_Greeting_/Gudi Padwa,Ugadi, Cheti Chand, Eid ul-Fitr Greeting /Vinisha Chadala/V1/Ugadi.docx-1774255942382-318967080.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 11943, 'V1', 'uploaded', '2026-03-23 08:52:22', 'pending', 0),
+(783, 961, 'APD-360-Standee.jpg', '/digilabs/dmap/api/uploads/APD_wheel_Standee_for_EWE_meetings/APD wheel Standee for EWE meetings/Tanmay Santosh Chorghe/V1/APD_360_Standee.jpg-1774261152569-645511836.jpg', 'image/jpeg', 109546, 'V1', 'uploaded', '2026-03-23 10:19:12', 'pending', 0);
+
+INSERT INTO `task_documents` (`id`, `task_assignment_id`, `document_name`, `document_path`, `document_type`, `document_size`, `version`, `status`, `uploaded_at`, `review`, `intimate_client`) VALUES
+(784, 914, 'CME Invite and thank you card-01.jpg', '/digilabs/dmap/api/uploads/CME_invite/CME invite/Angana Prakash Patil/V1/CME_Invite_and_thank_you_card_01.jpg-1774261319616-129870961.jpg', 'image/jpeg', 713972, 'V1', 'uploaded', '2026-03-23 10:21:59', 'pending', 0),
+(785, 914, 'CME Invite and thank you card-02.jpg', '/digilabs/dmap/api/uploads/CME_invite/CME invite/Angana Prakash Patil/V1/CME_Invite_and_thank_you_card_02.jpg-1774261319623-867112827.jpg', 'image/jpeg', 646555, 'V1', 'uploaded', '2026-03-23 10:21:59', 'pending', 0),
+(786, 922, 'Sharkoferrol Aqua Telugu_Approved.docx', '/digilabs/dmap/api/uploads/Sharkoferrol_Aqua_AI_Video/Sharkoferrol Aqua AI Video/Divya Raval/V1/Sharkoferrol_Aqua_Telugu_Approved.docx-1774279763533-703187482.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 12849, 'V1', 'uploaded', '2026-03-23 15:29:23', 'pending', 0),
+(787, 922, 'Sharkoferrol Aqua_English.docx', '/digilabs/dmap/api/uploads/Sharkoferrol_Aqua_AI_Video/Sharkoferrol Aqua AI Video/Divya Raval/V1/Sharkoferrol_Aqua_English.docx-1774279763542-120220013.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13376, 'V1', 'uploaded', '2026-03-23 15:29:23', 'pending', 0),
+(788, 926, 'Fertimax Chemist Requisition Book_2.pdf', '/digilabs/dmap/api/uploads/Fertimax_Chemist_Requisition_Book_/Fertimax Chemist Requisition Book /Sanket Chandrakanat  Patade/V1/Fertimax_Chemist_Requisition_Book_2.pdf-1774326384648-919921547.pdf', 'application/pdf', 2046960, 'V1', 'uploaded', '2026-03-24 04:26:24', 'pending', 0),
+(789, 909, 'Artwork-for-Ralembic.jpg', '/digilabs/dmap/api/uploads/Artwork_for_Salembic___Ralembic__Salembic_D_LBL/Artwork for Salembic , Ralembic, Salembic-D LBL/Sanket Chandrakanat  Patade/V1/Artwork_for_Ralembic.jpg-1774326412000-830414515.jpg', 'image/jpeg', 554628, 'V1', 'uploaded', '2026-03-24 04:26:52', 'pending', 0),
+(790, 909, 'Artwork-for-Salembic-,-Ralembic,-Salembic-D.jpg', '/digilabs/dmap/api/uploads/Artwork_for_Salembic___Ralembic__Salembic_D_LBL/Artwork for Salembic , Ralembic, Salembic-D LBL/Sanket Chandrakanat  Patade/V1/Artwork_for_Salembic___Ralembic__Salembic_D.jpg-1774326412011-552800546.jpg', 'image/jpeg', 787972, 'V1', 'uploaded', '2026-03-24 04:26:52', 'pending', 0),
+(791, 909, 'Artwork-for-Salembic.jpg', '/digilabs/dmap/api/uploads/Artwork_for_Salembic___Ralembic__Salembic_D_LBL/Artwork for Salembic , Ralembic, Salembic-D LBL/Sanket Chandrakanat  Patade/V1/Artwork_for_Salembic.jpg-1774326412017-321240311.jpg', 'image/jpeg', 555620, 'V1', 'uploaded', '2026-03-24 04:26:52', 'pending', 0),
+(792, 909, 'Artwork-for-Salembic_D.jpg', '/digilabs/dmap/api/uploads/Artwork_for_Salembic___Ralembic__Salembic_D_LBL/Artwork for Salembic , Ralembic, Salembic-D LBL/Sanket Chandrakanat  Patade/V1/Artwork_for_Salembic_D.jpg-1774326412021-668226654.jpg', 'image/jpeg', 545659, 'V1', 'uploaded', '2026-03-24 04:26:52', 'pending', 0),
+(793, 929, 'Pin Point Chit Pad.jpg', '/digilabs/dmap/api/uploads/Need_PinPoint_Chitpad_artwork/Need PinPoint Chitpad artwork/Reshma Bastav/V1/Pin_Point_Chit_Pad.jpg-1774327053781-309984465.jpg', 'image/jpeg', 2356055, 'V1', 'uploaded', '2026-03-24 04:37:33', 'pending', 0),
+(794, 930, 'Pin Point Chit Pad.jpg', '/digilabs/dmap/api/uploads/Need_PinPoint_Chitpad_artwork/Need PinPoint Chitpad artwork/Reshma Bastav/V1/Pin_Point_Chit_Pad.jpg-1774327078892-997945762.jpg', 'image/jpeg', 2356055, 'V1', 'uploaded', '2026-03-24 04:37:58', 'pending', 0),
+(795, 979, 'Vehycal_XT_lbl_c2c_V2.pdf', '/digilabs/dmap/api/uploads/Vehycal_XT_LBL_Resizing/Vehycal XT LBL Resizing/Shubham Gurav/V1/Vehycal_XT_lbl_c2c_V2.pdf-1774327225568-32876833.pdf', 'application/pdf', 10457463, 'V1', 'uploaded', '2026-03-24 04:40:25', 'pending', 0),
+(796, 711, 'Chaitra-Sukhladi.jpg', '/digilabs/dmap/api/uploads/Greetings_for_the_upcoming_Festives_on_the_mentioned_dates___/Megacare_ Artwork_Feb_ festival_2026/Tanmay Santosh Chorghe/V1/Chaitra_Sukhladi.jpg-1774327926253-341190962.jpg', 'image/jpeg', 182167, 'V1', 'uploaded', '2026-03-24 04:52:06', 'pending', 0),
+(797, 711, 'Cheti-chand.jpg', '/digilabs/dmap/api/uploads/Greetings_for_the_upcoming_Festives_on_the_mentioned_dates___/Megacare_ Artwork_Feb_ festival_2026/Tanmay Santosh Chorghe/V1/Cheti_chand.jpg-1774327926256-856353455.jpg', 'image/jpeg', 258501, 'V1', 'uploaded', '2026-03-24 04:52:06', 'pending', 0),
+(798, 711, 'Gudi-padwa.jpg', '/digilabs/dmap/api/uploads/Greetings_for_the_upcoming_Festives_on_the_mentioned_dates___/Megacare_ Artwork_Feb_ festival_2026/Tanmay Santosh Chorghe/V1/Gudi_padwa.jpg-1774327926259-617503532.jpg', 'image/jpeg', 234482, 'V1', 'uploaded', '2026-03-24 04:52:06', 'pending', 0),
+(799, 711, 'Holi-1.jpg', '/digilabs/dmap/api/uploads/Greetings_for_the_upcoming_Festives_on_the_mentioned_dates___/Megacare_ Artwork_Feb_ festival_2026/Tanmay Santosh Chorghe/V1/Holi_1.jpg-1774327926261-620742543.jpg', 'image/jpeg', 228867, 'V1', 'uploaded', '2026-03-24 04:52:06', 'pending', 0),
+(800, 711, 'Holika-Dahan.jpg', '/digilabs/dmap/api/uploads/Greetings_for_the_upcoming_Festives_on_the_mentioned_dates___/Megacare_ Artwork_Feb_ festival_2026/Tanmay Santosh Chorghe/V1/Holika_Dahan.jpg-1774327926264-738711684.jpg', 'image/jpeg', 935994, 'V1', 'uploaded', '2026-03-24 04:52:06', 'pending', 0),
+(801, 711, 'Mahashivratri.jpg', '/digilabs/dmap/api/uploads/Greetings_for_the_upcoming_Festives_on_the_mentioned_dates___/Megacare_ Artwork_Feb_ festival_2026/Tanmay Santosh Chorghe/V1/Mahashivratri.jpg-1774327926267-422190823.jpg', 'image/jpeg', 609787, 'V1', 'uploaded', '2026-03-24 04:52:06', 'pending', 0),
+(802, 711, 'Ram-navmi.jpg', '/digilabs/dmap/api/uploads/Greetings_for_the_upcoming_Festives_on_the_mentioned_dates___/Megacare_ Artwork_Feb_ festival_2026/Tanmay Santosh Chorghe/V1/Ram_navmi.jpg-1774327926270-690764592.jpg', 'image/jpeg', 245126, 'V1', 'uploaded', '2026-03-24 04:52:06', 'pending', 0),
+(803, 969, 'Roxid OS - March 2026 - Opt 1.pdf', '/digilabs/dmap/api/uploads/Roxid_VA_Changes/Roxid VA Changes/Tanmay Santosh Chorghe/V1/Roxid_OS___March_2026___Opt_1.pdf-1774334458881-752468736.pdf', 'application/pdf', 1319137, 'V1', 'uploaded', '2026-03-24 06:40:58', 'pending', 0),
+(804, 707, 'Ram-Navmi.png', '/digilabs/dmap/api/uploads/Ram_Navami_Flyer/Ram Navami Flyer/Tanmay Santosh Chorghe/V1/Ram_Navmi.png-1774334536275-218724285.png', 'image/png', 865947, 'V1', 'uploaded', '2026-03-24 06:42:16', 'pending', 0),
+(805, 718, 'Vetmax March 2026.docx', '/digilabs/dmap/api/uploads/Days___Celebration_March/Days /Vinisha Chadala/V1/Vetmax_March_2026.docx-1774339452738-230435288.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 13548, 'V1', 'uploaded', '2026-03-24 08:04:12', 'pending', 0),
+(806, 826, 'Flyer.zip', '/digilabs/dmap/api/uploads/AWARENESS_AND_CELEBRATION_DAYS___MARCH_2026/AWARENESS AND CELEBRATION DAYS - MARCH 2026/Sanket Chandrakanat  Patade/V1/Flyer.zip-1774345741025-746434348.zip', 'application/x-zip-compressed', 10377846, 'V1', 'uploaded', '2026-03-24 09:49:01', 'pending', 0),
+(807, 986, 'Tufehart PI Booklet_V4_CTC.pdf', '/digilabs/dmap/api/uploads/Prescribing_Information_of_Tufehart/Prescribing Information of Tufehart/Sanket Chandrakanat  Patade/V1/Tufehart_PI_Booklet_V4_CTC.pdf-1774347462452-978167273.pdf', 'application/pdf', 11599831, 'V1', 'uploaded', '2026-03-24 10:17:42', 'pending', 0),
+(808, 607, 'Alembic-Timeline-Pithampur-Admin-Wall_212.5_X_59_Inch.jpg', '/digilabs/dmap/api/uploads/Pithampur_Branding_Activities/Pithampur Branding Activities/Sanket Chandrakanat  Patade/V1/Alembic_Timeline_Pithampur_Admin_Wall_212.5_X_59_Inch.jpg-1774347488476-530033288.jpg', 'image/jpeg', 6841948, 'V1', 'uploaded', '2026-03-24 10:18:08', 'pending', 0),
+(809, 607, 'Alembic-Timeline-Pithampur-Plant-Entry-Lobby_159.5_X_59.jpg', '/digilabs/dmap/api/uploads/Pithampur_Branding_Activities/Pithampur Branding Activities/Sanket Chandrakanat  Patade/V1/Alembic_Timeline_Pithampur_Plant_Entry_Lobby_159.5_X_59.jpg-1774347488486-327580782.jpg', 'image/jpeg', 5748121, 'V1', 'uploaded', '2026-03-24 10:18:08', 'pending', 0),
+(810, 607, 'Alembic-Timeline-Pithampur-Visitor-Waiting-Room_126_X_48.jpg', '/digilabs/dmap/api/uploads/Pithampur_Branding_Activities/Pithampur Branding Activities/Sanket Chandrakanat  Patade/V1/Alembic_Timeline_Pithampur_Visitor_Waiting_Room_126_X_48.jpg-1774347488496-948050875.jpg', 'image/jpeg', 7332157, 'V1', 'uploaded', '2026-03-24 10:18:08', 'pending', 0),
+(811, 981, 'Cardigem Division All Brand reminder Card.pdf', '/digilabs/dmap/api/uploads/Cardigem_Division_All_Brand_reminder_Card/Cardigem Division All Brand reminder Card/Angana Prakash Patil/V1/Cardigem_Division_All_Brand_reminder_Card.pdf-1774347738039-832212218.pdf', 'application/pdf', 2920548, 'V1', 'uploaded', '2026-03-24 10:22:18', 'pending', 0),
+(812, 936, 'Input_packaging-01.jpg', '/digilabs/dmap/api/uploads/Etrik_Box_Artwork_/Etrik Box Artwork /Angana Prakash Patil/V1/Input_packaging_01.jpg-1774347758923-351213412.jpg', 'image/jpeg', 1299420, 'V1', 'uploaded', '2026-03-24 10:22:38', 'pending', 0),
+(813, 936, 'Input_packaging-02.jpg', '/digilabs/dmap/api/uploads/Etrik_Box_Artwork_/Etrik Box Artwork /Angana Prakash Patil/V1/Input_packaging_02.jpg-1774347758930-957088651.jpg', 'image/jpeg', 1216070, 'V1', 'uploaded', '2026-03-24 10:22:38', 'pending', 0),
+(814, 712, 'Eid-01.jpg', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content /Nilesh Khedekar/V1/Eid_01.jpg-1774348613476-760956846.jpg', 'image/jpeg', 1196814, 'V1', 'uploaded', '2026-03-24 10:36:53', 'pending', 0),
+(815, 712, 'Eid-02.jpg', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content /Nilesh Khedekar/V1/Eid_02.jpg-1774348613480-881984093.jpg', 'image/jpeg', 984404, 'V1', 'uploaded', '2026-03-24 10:36:53', 'pending', 0),
+(816, 712, 'Gudi Padwa-01.jpg', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content /Nilesh Khedekar/V1/Gudi_Padwa_01.jpg-1774348613482-186049099.jpg', 'image/jpeg', 2296365, 'V1', 'uploaded', '2026-03-24 10:36:53', 'pending', 0),
+(817, 712, 'Gudi Padwa-02.jpg', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content /Nilesh Khedekar/V1/Gudi_Padwa_02.jpg-1774348613487-474708820.jpg', 'image/jpeg', 2899604, 'V1', 'uploaded', '2026-03-24 10:36:53', 'pending', 0),
+(818, 712, 'Holi 1.jpg', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content /Nilesh Khedekar/V1/Holi_1.jpg-1774348613492-261759291.jpg', 'image/jpeg', 1830275, 'V1', 'uploaded', '2026-03-24 10:36:53', 'pending', 0),
+(819, 712, 'Holika Dahan 1.jpg', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content /Nilesh Khedekar/V1/Holika_Dahan_1.jpg-1774348613494-310256178.jpg', 'image/jpeg', 1798731, 'V1', 'uploaded', '2026-03-24 10:36:53', 'pending', 0),
+(820, 712, 'Ram Navmi-01.jpg', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content /Nilesh Khedekar/V1/Ram_Navmi_01.jpg-1774348613497-324792310.jpg', 'image/jpeg', 1328309, 'V1', 'uploaded', '2026-03-24 10:36:53', 'pending', 0),
+(821, 712, 'Ugadi.jpg', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content /Nilesh Khedekar/V1/Ugadi.jpg-1774348613500-196499369.jpg', 'image/jpeg', 3517425, 'V1', 'uploaded', '2026-03-24 10:36:53', 'pending', 0),
+(822, 712, 'World Sleep Day-02.jpg', '/digilabs/dmap/api/uploads/Zenovi_division_March_Festive_content_/Zenovi division March Festive content /Nilesh Khedekar/V1/World_Sleep_Day_02.jpg-1774348613504-748056992.jpg', 'image/jpeg', 1451426, 'V1', 'uploaded', '2026-03-24 10:36:53', 'pending', 0),
+(823, 992, 'Voage_S_VA.pdf', '/digilabs/dmap/api/uploads/Voage_S_VA_Page_Design/Voage S VA Page Design/Tanmay Santosh Chorghe/V1/Voage_S_VA.pdf-1774350524601-491542346.pdf', 'application/pdf', 360490, 'V1', 'uploaded', '2026-03-24 11:08:44', 'pending', 0),
+(824, 953, 'Tick Prevention Standee.pdf', '/digilabs/dmap/api/uploads/Standee_size_artwork_for_Tick_prevention/Standee size artwork for Tick prevention/Reshma Bastav/V1/Tick_Prevention_Standee.pdf-1774353225690-162697108.pdf', 'application/pdf', 3630366, 'V1', 'uploaded', '2026-03-24 11:53:45', 'pending', 0),
+(825, 943, 'Cloff_OS_VA_Pg_01.gif', '/digilabs/dmap/api/uploads/CLOFF_OS_VA_animation/CLOFF OS VA animation/Prathamesh Shengale/V1/Cloff_OS_VA_Pg_01.gif-1774420523150-731761976.gif', 'image/gif', 2551038, 'V1', 'uploaded', '2026-03-25 06:35:23', 'pending', 0),
+(826, 943, 'Cloff_OS_VA_Pg_02.gif', '/digilabs/dmap/api/uploads/CLOFF_OS_VA_animation/CLOFF OS VA animation/Prathamesh Shengale/V1/Cloff_OS_VA_Pg_02.gif-1774420523163-63463014.gif', 'image/gif', 3525867, 'V1', 'uploaded', '2026-03-25 06:35:23', 'pending', 0),
+(827, 943, 'Cloff_OS_VA_Pg_03.gif', '/digilabs/dmap/api/uploads/CLOFF_OS_VA_animation/CLOFF OS VA animation/Prathamesh Shengale/V1/Cloff_OS_VA_Pg_03.gif-1774420523170-527947685.gif', 'image/gif', 5228864, 'V1', 'uploaded', '2026-03-25 06:35:23', 'pending', 0),
+(828, 943, 'Cloff_OS_VA_Pg_04.gif', '/digilabs/dmap/api/uploads/CLOFF_OS_VA_animation/CLOFF OS VA animation/Prathamesh Shengale/V1/Cloff_OS_VA_Pg_04.gif-1774420523177-753239196.gif', 'image/gif', 3123939, 'V1', 'uploaded', '2026-03-25 06:35:23', 'pending', 0),
+(829, 943, 'Cloff_OS_VA_Pg_05.gif', '/digilabs/dmap/api/uploads/CLOFF_OS_VA_animation/CLOFF OS VA animation/Prathamesh Shengale/V1/Cloff_OS_VA_Pg_05.gif-1774420523182-560221646.gif', 'image/gif', 2433384, 'V1', 'uploaded', '2026-03-25 06:35:23', 'pending', 0),
+(830, 947, 'Vitaresp_FX_Jan_2026_VA_Pg_01.gif', '/digilabs/dmap/api/uploads/VITARESP_FX/VITARESP FX/Prathamesh Shengale/V1/Vitaresp_FX_Jan_2026_VA_Pg_01.gif-1774420567574-734050256.gif', 'image/gif', 3350786, 'V1', 'uploaded', '2026-03-25 06:36:07', 'pending', 0),
+(831, 947, 'Vitaresp_FX_Jan_2026_VA_Pg_02.gif', '/digilabs/dmap/api/uploads/VITARESP_FX/VITARESP FX/Prathamesh Shengale/V1/Vitaresp_FX_Jan_2026_VA_Pg_02.gif-1774420567587-110961262.gif', 'image/gif', 4240681, 'V1', 'uploaded', '2026-03-25 06:36:07', 'pending', 0),
+(832, 947, 'Vitaresp_FX_Jan_2026_VA_Pg_03.gif', '/digilabs/dmap/api/uploads/VITARESP_FX/VITARESP FX/Prathamesh Shengale/V1/Vitaresp_FX_Jan_2026_VA_Pg_03.gif-1774420567597-422671532.gif', 'image/gif', 5104969, 'V1', 'uploaded', '2026-03-25 06:36:07', 'pending', 0),
+(833, 947, 'Vitaresp_FX_Jan_2026_VA_Pg_04.gif', '/digilabs/dmap/api/uploads/VITARESP_FX/VITARESP FX/Prathamesh Shengale/V1/Vitaresp_FX_Jan_2026_VA_Pg_04.gif-1774420567604-164718074.gif', 'image/gif', 4200494, 'V1', 'uploaded', '2026-03-25 06:36:07', 'pending', 0),
+(834, 947, 'Vitaresp_FX_Jan_2026_VA_Pg_05.gif', '/digilabs/dmap/api/uploads/VITARESP_FX/VITARESP FX/Prathamesh Shengale/V1/Vitaresp_FX_Jan_2026_VA_Pg_05.gif-1774420567611-533281065.gif', 'image/gif', 1769974, 'V1', 'uploaded', '2026-03-25 06:36:07', 'pending', 0),
+(835, 959, 'Observation Record Book_ctc.pdf', '/digilabs/dmap/api/uploads/Check_Tray_Observation_Record/Check Tray Observation Record/Reshma Bastav/V1/Observation_Record_Book_ctc.pdf-1774423585293-47977003.pdf', 'application/pdf', 6228597, 'V1', 'uploaded', '2026-03-25 07:26:25', 'pending', 0),
+(836, 990, 'GIEP Invite.pdf', '/digilabs/dmap/api/uploads/GIEP_Program_Note_Pad/GIEP Program Note Pad/Reshma Bastav/V1/GIEP_Invite.pdf-1774423913114-414101519.pdf', 'application/pdf', 3010397, 'V1', 'uploaded', '2026-03-25 07:31:53', 'pending', 0);
+
+-- --------------------------------------------------------
 -- Dumping data for table `task_project_reference`
---
+-- --------------------------------------------------------
 
 INSERT INTO `task_project_reference` (`id`, `task_id`, `project_id`, `created_at`, `updated_at`) VALUES
 (1, 1, 1, '2025-12-30 08:42:37', '2025-12-30 08:42:37'),
@@ -4746,23 +4949,8 @@ INSERT INTO `task_project_reference` (`id`, `task_id`, `project_id`, `created_at
 (311, 101, 32, '2025-12-30 08:42:37', '2025-12-30 08:42:37');
 
 -- --------------------------------------------------------
-
---
--- Table structure for table `task_type`
---
-
-CREATE TABLE `task_type` (
-  `id` int(11) NOT NULL,
-  `task_type` varchar(100) NOT NULL,
-  `description` mediumtext DEFAULT NULL,
-  `quantification` varchar(100) DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
 -- Dumping data for table `task_type`
---
+-- --------------------------------------------------------
 
 INSERT INTO `task_type` (`id`, `task_type`, `description`, `quantification`, `created_at`, `updated_at`) VALUES
 (1, 'Visual Aid', 'Pharma/Medical Artwork', 'No. of collaterals designed', '2025-12-30 08:41:10', '2025-12-30 08:41:10'),
@@ -4868,36 +5056,8 @@ INSERT INTO `task_type` (`id`, `task_type`, `description`, `quantification`, `cr
 (101, 'Audio Editing', 'Audio Recording & Post-Production', 'No. of audio collaterals shot', '2025-12-30 08:41:10', '2025-12-30 08:41:10');
 
 -- --------------------------------------------------------
-
---
--- Table structure for table `users`
---
-
-CREATE TABLE `users` (
-  `id` int(11) NOT NULL,
-  `name` varchar(100) DEFAULT NULL,
-  `email` varchar(100) NOT NULL,
-  `phone` varchar(15) DEFAULT NULL,
-  `password` varchar(255) DEFAULT NULL,
-  `department_id` int(11) DEFAULT NULL,
-  `job_role_id` int(11) DEFAULT NULL,
-  `location_id` int(11) DEFAULT NULL,
-  `designation_id` int(11) DEFAULT NULL,
-  `email_verified_status` tinyint(1) DEFAULT 0,
-  `latest_verification_token` varchar(512) DEFAULT NULL,
-  `account_status` enum('pending','active','inactive','locked','rejected','vacant') DEFAULT 'pending',
-  `last_login` datetime DEFAULT NULL,
-  `login_attempts` int(11) DEFAULT 0,
-  `lock_until` datetime DEFAULT NULL,
-  `password_changed_at` datetime DEFAULT NULL,
-  `password_expires_at` datetime DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
 -- Dumping data for table `users`
---
+-- --------------------------------------------------------
 
 INSERT INTO `users` (`id`, `name`, `email`, `phone`, `password`, `department_id`, `job_role_id`, `location_id`, `designation_id`, `email_verified_status`, `latest_verification_token`, `account_status`, `last_login`, `login_attempts`, `lock_until`, `password_changed_at`, `password_expires_at`, `created_at`, `updated_at`) VALUES
 (1, 'System Admin', 'admin@alembic.co.in', '8080302041', '$2a$12$/.rT3avNPO1l0ZjqSRS/Ru09mKVNuIRSLaHjBDeMwLHscVLq1ETY6', 2, 1, 1, NULL, 1, NULL, 'active', '2025-11-12 06:04:52', 0, NULL, '2025-11-12 06:04:52', '2026-02-10 06:04:52', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
@@ -5054,22 +5214,8 @@ INSERT INTO `users` (`id`, `name`, `email`, `phone`, `password`, `department_id`
 (179, 'Mitesh Mhatre', 'mitesh.mhatre@alembic.co.in', '9764817826', '$2a$10$.V3yhUTPAasXvJ036q.Ore5.8WECUrKqlL1jK4BVsZacBRYFbLika', 5, 8, 1, 18, 1, NULL, 'active', '2026-03-25 06:24:55', 0, NULL, '2026-03-25 06:24:39', '2026-06-23 06:24:39', '2026-03-25 06:19:10', '2026-03-25 06:24:55');
 
 -- --------------------------------------------------------
-
---
--- Table structure for table `user_divisions`
---
-
-CREATE TABLE `user_divisions` (
-  `id` int(11) NOT NULL,
-  `user_id` int(11) NOT NULL,
-  `division_id` int(11) NOT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
 -- Dumping data for table `user_divisions`
---
+-- --------------------------------------------------------
 
 INSERT INTO `user_divisions` (`id`, `user_id`, `division_id`, `created_at`, `updated_at`) VALUES
 (24, 20, 5, '2025-12-12 06:04:27', '2026-01-20 09:19:23'),
@@ -5215,31 +5361,8 @@ INSERT INTO `user_divisions` (`id`, `user_id`, `division_id`, `created_at`, `upd
 (173, 179, 10, '2026-03-25 06:24:39', '2026-03-25 06:24:39');
 
 -- --------------------------------------------------------
-
---
--- Table structure for table `work_requests`
---
-
-CREATE TABLE `work_requests` (
-  `id` int(11) NOT NULL,
-  `user_id` int(11) NOT NULL,
-  `project_name` varchar(255) NOT NULL,
-  `brand` varchar(100) DEFAULT NULL,
-  `request_type_id` int(11) NOT NULL,
-  `project_id` int(11) DEFAULT NULL,
-  `description` mediumtext NOT NULL,
-  `about_project` mediumtext DEFAULT NULL,
-  `priority` enum('low','medium','high','critical') DEFAULT 'medium',
-  `status` enum('draft','pending','accepted','assigned','in_progress','completed','rejected') DEFAULT 'pending',
-  `requested_at` datetime DEFAULT NULL,
-  `remarks` mediumtext DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
 -- Dumping data for table `work_requests`
---
+-- --------------------------------------------------------
 
 INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `request_type_id`, `project_id`, `description`, `about_project`, `priority`, `status`, `requested_at`, `remarks`, `created_at`, `updated_at`) VALUES
 (143, 59, 'DermaVidya Standee', 'Oryza ', 1, 1, 'DermaVidya connects dermatologists to a comprehensive world of trusted knowledge, education, and clinical resources. It offers access to IMCAS Academy Premium, Magzter publications, expert-led procedural videos, dermatology journals, e-books, and personalized patient education. The platform is thoughtfully designed to support continuous medical learning, enhance clinical expertise, and deliver valuable global insights in dermatology practice.', '{\"output_devices\":[\"Print\"],\"target_audience\":[\"Doctors\"]}', 'critical', 'completed', '2026-01-08 09:01:56', '', '2026-01-08 09:01:56', '2026-01-13 05:32:19'),
@@ -5320,6 +5443,7 @@ INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `request_
 (228, 120, 'Glisen Visual Aid FY26-27', 'Glisen Group', 1, 1, 'Design the Glisen Group visual aid (Glisen / MF / VM / PM) in line with the shared outline. The overarching communication theme is “Designed for Indian Diabetes Patients.” The visual narrative should depict the heterogeneity of Indian diabetes by showcasing distinct patient profiles and clearly mapping each profile to the appropriate Glisen SKU as a tailored solution. The artwork should have a strong Indian look and feel, reflecting real-world Indian patients, settings, and clinical practice.', '{\"output_devices\":[\"iPad 10\",\"iPad 9\"],\"target_audience\":[\"Doctors\"]}', 'low', 'completed', '2026-01-23 05:05:22', '', '2026-01-23 05:05:22', '2026-02-18 09:08:59'),
 (229, 121, 'Visual Aid Pages', 'Rosave Gold', 1, 1, 'Rosave  Gold Visual Aid designing for the year 2026-2027.\r\n\r\nBack ground Layout will be the same for next year.\r\n\r\nPage 1.  Opener page we need a  emotional  human male image depiction.\r\nPage 2.  The downward arrow need to be properly shown.\r\nPage 3.  ESC 2025 logo  need to be  prominent. \r\nPage 4.  79% survival rate point need to be highlighted on this page.\r\nPage 5. This remains the same as per the on going year VA.\r\n\r\nFor any queries please get in touch with me. many points will be same as the same VA.\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n', '{\"output_devices\":[\"Desktop\",\"iPad 10\",\"iPad 9\",\"Mobile\",\"Print\"],\"target_audience\":[\"Doctors\"]}', 'medium', 'completed', '2026-01-23 05:10:09', '', '2026-01-23 05:10:09', '2026-02-18 04:25:25'),
 (230, 64, 'Gastron Republic Day Video', 'Deltone', 2, 13, 'As Republic Day is approaching, we request you to kindly share the video already made with Gastron\'s brands in it.\r\n\r\nAlso attaching a pdf file from which the focussed brands to be taken like\r\nDeltone, Exceraft, Freego, Freego PEG and Rafle. \r\n\r\nThe video will serve as a meaningful Republic Day message while reinforcing brand recall and engagement.', '{\"output_devices\":[\"Mobile\"],\"target_audience\":[\"Doctors\"]}', 'low', 'completed', '2026-01-23 05:11:59', '', '2026-01-23 05:11:59', '2026-01-23 08:59:37');
+
 INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `request_type_id`, `project_id`, `description`, `about_project`, `priority`, `status`, `requested_at`, `remarks`, `created_at`, `updated_at`) VALUES
 (231, 119, 'Visual Aid', 'Tellzy H, Tellzy AH, Tellzy BS', 1, 1, 'For FY’27, the brand requires a stronger, insight-led visual aid.\r\nHeadline: Outcome-oriented and benefit-led\r\nSub-headline: Scientific rationale in simple language\r\nSupporting points: Short, sharp, recall-friendly\r\nClosing slide: Strong brand takeaway\r\nClear differentiation\r\nStrong alignment between science and storytelling\r\nImproved HCP confidence in prescribing\r\nEnhanced patient-centric brand perception\r\nLong-term brand equity growth', '{\"output_devices\":[\"Desktop\",\"iPad 10\",\"iPad 9\",\"Mobile\"],\"target_audience\":[\"Alembic HO\",\"Doctors\",\"Field Representatives\",\"Others\"]}', 'high', 'assigned', '2026-01-23 05:21:44', '', '2026-01-23 05:21:44', '2026-02-02 11:09:16'),
 (232, 91, 'Glisen SM VA', 'Glisen SM', 2, 10, 'Need to design Glisen SM VA with intro page with animation & the flow as per the given presentation slides\r\nNeed creative animation which will highlight the headlines and body content\r\n\r\nAdd creative animation and send\r\n\r\nThis is a priority VA animation which need to be completed by the end of this month (30th January 2026)\r\n   ', '{\"output_devices\":[\"iPad 10\",\"iPad 9\",\"Mobile\",\"Desktop\"],\"target_audience\":[\"Alembic HO\",\"Chemists\",\"Doctors\",\"Field Representatives\"]}', 'medium', 'completed', '2026-01-23 05:22:04', '', '2026-01-23 05:22:04', '2026-03-13 06:37:19'),
@@ -5398,6 +5522,7 @@ INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `request_
 (317, 146, 'DIVISION LOGO DEVELOPMENT', 'FERTIMAX', 1, 4, 'NEW INNOVATIVE , CREATIVE DIVISION LOGO TO CREATED , WHICH WILL RESEMBLE MAXIMUM FERTILITY IN DAIRY ANIMALS FERTIMAX LOGO TO BE CREATED WHICH WILL BE FOR OUR NEW DIVISION ,IT WILL BE LAUNCHED IN NEXT 2MONTHS . I AM SHARING OUR EXISTING VETMAX  DIVISION LOGO FOR REFERENCE SO THAT DEVLOPING ARTIST WILL HAVE AN BETTER IDEA', '{\"output_devices\":[\"Desktop\"],\"target_audience\":[\"Doctors\",\"Field Representatives\",\"Chemists\"]}', 'low', 'completed', '2026-02-03 02:44:18', '', '2026-02-03 02:44:18', '2026-02-18 09:10:43'),
 (318, 69, 'All India Derma Championship Certificates ', 'Derma Vidya', 1, 2, 'We wnat to design 12 certificates for the PG Quiz conducted by DermaVidya, covering 6 zonal winners and 6 national round winners. These certificates will be used to formally felicitate the winning doctors. Hard copies will be presented during clinic visits, while soft copies will be shared via email for their records and wider professional use.', '{\"output_devices\":[\"Mobile\",\"Print\"],\"target_audience\":[\"Doctors\"]}', 'medium', 'completed', '2026-02-03 03:28:38', '', '2026-02-03 03:28:38', '2026-02-09 06:41:11'),
 (319, 34, 'RESYNC PLUS LOGO AND PACK SHOT', 'RESYNC', 1, 4, 'I want to create a brand logo for my upcoming new sku of Resync i.e Resync Plus which content sodium hyaluronate 0.18%. logo should be sync with other 2 sku of Resync. Resync Plus there are 2 SKU i.e 10 ml & 5 ml as Resync. Kinldy provide 5 options of logo design', '{\"output_devices\":[\"Print\",\"iPad 9\"],\"target_audience\":[\"Doctors\"]}', 'high', 'completed', '2026-02-03 04:36:33', '', '2026-02-03 04:36:33', '2026-02-18 09:31:29');
+
 INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `request_type_id`, `project_id`, `description`, `about_project`, `priority`, `status`, `requested_at`, `remarks`, `created_at`, `updated_at`) VALUES
 (320, 129, 'TELLZY AM SURVEY LBL', 'TELLZY AM', 1, 1, 'This content has been developed by referring to the attached PDF for scientific context and the provided Word file for structuring key pointers, with a clear and impactful heading marked with an asterisk (*) and supported by the statement “Data on File,” ensuring that the information is presented in simple, grammatically correct sentences that highlight the clinical relevance, therapeutic benefits, and practical applicability for doctors in day-to-day patient management, while maintaining clarity, credibility, and professional communication standards.', '{\"output_devices\":[\"Print\"],\"target_audience\":[\"Doctors\"]}', 'medium', 'completed', '2026-02-03 04:43:21', '', '2026-02-03 04:43:21', '2026-02-09 04:45:21'),
 (321, 147, 'Grogain Pro VA page design', 'Grogain Pro', 1, 1, 'One page to create for Grogain Pro VA , other pages will remain same\r\nThis page has before and after images of patients after using Grogain pro hair serum.\r\nWe will provide the final images within 2,3 days of time. meanwhile you can start working on the designing the page', '{\"output_devices\":[\"Print\"],\"target_audience\":[\"Doctors\"]}', 'medium', 'completed', '2026-02-03 07:17:53', '', '2026-02-03 07:17:53', '2026-02-06 11:52:09'),
@@ -5475,6 +5600,7 @@ INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `request_
 (395, 101, 'Khurak video artwork', 'Khurak', 1, 1, 'Required artwork for Khurak video in visual aid. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .', '{\"output_devices\":[\"iPad 10\",\"iPad 9\",\"Mobile\",\"Print\"],\"target_audience\":[\"Chemists\",\"Doctors\",\"Field Representatives\",\"Others\"]}', 'low', 'completed', '2026-02-10 06:59:03', '', '2026-02-10 06:59:03', '2026-02-19 10:28:45'),
 (396, 101, 'Almizol WS Spray', 'Almizol WS Spray', 4, 22, 'Required activity on Visual aid for brand Khurak . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . ', '{\"output_devices\":[\"iPad 10\",\"iPad 9\"],\"target_audience\":[\"Doctors\"]}', 'low', 'completed', '2026-02-10 07:12:08', '', '2026-02-10 07:12:08', '2026-02-23 10:12:49'),
 (397, 99, 'Mahashivratri Greeting', 'Ascal Gold & Moxel', 1, 2, 'Kindly provide a greeting for Mahashivratri.\r\n\r\n\r\n This sacred night honors Lord Shiva\'s marriage and cosmic dance, symbolizing creation and destruction. Devotees observe fasts, worship the Shiva lingam with milk, yogurt, and bael leaves, and chant \"Om namah shivaya\". This night brings spiritual growth, liberation, and self-transformation. This sacred night honors Lord Shiva\'s marriage and cosmic dance, symbolizing creation and destruction. Devotees observe fasts, worship the Shiva lingam with milk, yogurt, and bael leaves, and chant \"Om namah shivaya\". This night brings spiritual growth, liberation, and self-transformation.', '{\"output_devices\":[\"Mobile\"],\"target_audience\":[\"Doctors\"]}', 'low', 'completed', '2026-02-10 07:44:44', '', '2026-02-10 07:44:44', '2026-02-13 06:07:28');
+
 INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `request_type_id`, `project_id`, `description`, `about_project`, `priority`, `status`, `requested_at`, `remarks`, `created_at`, `updated_at`) VALUES
 (398, 99, 'Ramadan Greeting', 'C4ALL', 1, 2, 'Kindly provide a greeting for Ramadan.\r\n\r\n\r\nRamadan is the ninth month of the Islamic calendar. It is observed by Muslims worldwide as a month of fasting, communal prayer, reflection, and community. It is also the month in which the Quran is believed to have been revealed to the Islamic prophet Muhammad. Ramadan is the ninth month of the Islamic calendar. It is observed by Muslims worldwide as a month of fasting, communal prayer, reflection, and community. It is also the month in which the Quran is believed to have been revealed to the Islamic prophet Muhammad.', '{\"output_devices\":[\"iPad 9\"],\"target_audience\":[\"Doctors\"]}', 'low', 'assigned', '2026-02-10 07:47:45', '', '2026-02-10 07:47:45', '2026-02-18 04:30:30'),
 (399, 115, 'Need certificate of participation and appreciation ', 'No brand', 1, 2, 'Need a certificate for participation and appreciation for doctor.\r\nEarlier this was made from your team, In that same format just need to change the doctor\'s name photo, topic date and signature.\r\nHave attached those certificate draft ppt in the mail and also the signature for attachment . . .', '{\"output_devices\":[\"Desktop\",\"Mobile\",\"Print\"],\"target_audience\":[\"Alembic HO\",\"Doctors\"]}', 'medium', 'completed', '2026-02-10 07:57:21', '', '2026-02-10 07:57:21', '2026-02-11 10:18:54'),
@@ -5553,6 +5679,7 @@ INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `request_
 (481, 147, 'Grogain Pro final VA all pages', 'Grogain Pro', 1, 1, 'These are the all pages of VA for Grogain pro. There are only few changes in older VA which must be available with team. If VA open files are not available please let me know I can share with you. As the changes are minimal expecting this to be completed on priority', '{\"output_devices\":[\"Print\"],\"target_audience\":[\"Doctors\"]}', 'high', 'completed', '2026-02-18 04:58:55', '', '2026-02-18 04:58:55', '2026-02-19 06:33:25'),
 (482, 69, 'Oyrza Skin Camp Logo Designing ', 'Oryza Group', 1, 4, 'We are launching an AI-based Skin Camp for the Oryza group and require a premium, modern logo. The design should reflect AI technology, dermatology expertise,  and innovation while aligning with Oryza’s brand identity. It must be clean and minimal, suitable for both print and digital use. Name is: Oryza AI Skin Camp', '{\"output_devices\":[\"Mobile\",\"Print\"],\"target_audience\":[\"Doctors\",\"Field Representatives\",\"Alembic HO\"]}', 'medium', 'completed', '2026-02-18 05:23:31', '', '2026-02-18 05:23:31', '2026-03-04 10:49:47'),
 (485, 115, 'Festive flyer greetings for the month of February, March and April', 'refer the mail ', 1, 2, 'Need festive/days flyer for below mentioned days\r\n19th Feb 2026 - Shiv Jayanti\r\n3rd March 2026 - World Wildlife Day\r\n3rd March 2026 - Holi/Rang Panchami\r\n19th March 2026 - Gudi Padwa\r\n20th March 2026 - Ramzan Eid\r\n27th March 2026 - Ram Navami\r\n31st March 2026 - Mahavir Jayanti\r\n3rd April 2026 - Good Friday/Easter Sunday\r\n4th April 2026 - World Stray Animals Day\r\n14th April 2026 - Ambedkar Jayanti, Baisakhi, Bihu\r\n25th April 2026 - World Veterinary Day', '{\"output_devices\":[\"Desktop\",\"Mobile\"],\"target_audience\":[\"Alembic HO\",\"Chemists\",\"Doctors\",\"Field Representatives\"]}', 'medium', 'assigned', '2026-02-18 06:36:31', '', '2026-02-18 06:36:31', '2026-02-18 10:09:53');
+
 INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `request_type_id`, `project_id`, `description`, `about_project`, `priority`, `status`, `requested_at`, `remarks`, `created_at`, `updated_at`) VALUES
 (486, 146, 'IV FLUID CALCULATOR ACTIVITY ', 'IV FLUID BRANDS (SALEMBIC, SALEMBIC-D, RALEMBIC )', 4, 22, 'FLUID CALCULATOR ACTIVITY WHICH WAS DEVELOPED BY  YOU NEEDS TO BE UPLOADED IN IPAD . IT SHOULD RUNS WITHOUT INTERNET. DECODE PREVIOUSLY DEVELOPED ARTWORK IN SUCH WAY THAT IT CAN WORK DIRECTLY ON IPAD WITHOUT INTERNET. BELOW IS THE LINK DETAILS \r\nhttps://alembicdigilabs.com/farmcure/fluid_calculator_activity/\r\nSapcode: 123456 or any sapcode\r\nPassword: farmcure\r\nKindly do the needful ASAP', '{\"output_devices\":[\"iPad 10\",\"iPad 9\",\"Mobile\"],\"target_audience\":[\"Field Representatives\",\"Doctors\",\"Others\"]}', 'low', 'completed', '2026-02-18 06:37:40', '', '2026-02-18 06:37:40', '2026-03-06 05:22:04'),
 (487, 119, 'H1 Certificate Designs', 'Cardigem Focus Brands', 1, 2, 'Cardigem Divisional Certificate, \r\nGlisen Group, \r\nTellzy, \r\nTufehart, \r\nGlisen SM\r\nRosave Gold\r\n\r\nCertificates for FY\'26 cycle meeting \r\nBrand Certificates will be in brand colour and divisional certificates will be in cardigems team colour\r\n\r\nMake a proper formal and unique certificates for cycle meeting which should be  aligned with a proper colours and designs', '{\"output_devices\":[\"Print\"],\"target_audience\":[\"Field Representatives\"]}', 'critical', 'completed', '2026-02-18 08:01:02', '', '2026-02-18 08:01:02', '2026-02-23 09:33:46'),
@@ -5630,6 +5757,7 @@ INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `request_
 (598, 100, 'All brand reminder card', 'Ovigyn Q10', 1, 1, 'This will take approximately 10 minutes to complete. I need to add the new brand logo to the existing brand reminder card and reorganize all the brands within the same artwork layout to ensure proper alignment, visibility, and overall design consistency as per the updated branding requirement.\r\n\r\nKindly assign the artist on priority', '{\"output_devices\":[\"Print\"],\"target_audience\":[\"Doctors\"]}', 'high', 'completed', '2026-02-24 10:39:29', '', '2026-02-24 10:39:29', '2026-02-26 11:23:05'),
 (599, 120, 'Divisional Excelaration theme collaterals ', 'Glisen Group, Tellzy H/AH, Rosave Gold and Tufehar', 1, 7, 'Design all artworks aligned to the Excelerate 2027 theme, including the Entry Arc, Main Backdrop, Standees, Bag Tags, and all supporting collaterals, ensuring a consistent visual identity and high-energy performance look across every element\r\nUse a colour combination as per logo shared, use the same colour combination and develop the artworks on same  ', '{\"output_devices\":[\"Print\"],\"target_audience\":[\"Field Representatives\"]}', 'high', 'completed', '2026-02-24 11:42:00', '', '2026-02-24 11:42:00', '2026-03-06 12:30:10'),
 (600, 91, 'Medal & trophy sticker', 'Focused brands', 1, 2, 'In this need design of Medal & Trophy sticker which will have Field names on the stickers, need alembic logo on that and cardigem logo as per last time artwork, there will be brand wise medal sticker and common trophy artwork with Each achiver name will be there on it', '{\"output_devices\":[\"Print\"],\"target_audience\":[\"Field Representatives\",\"Alembic HO\"]}', 'medium', 'assigned', '2026-02-24 14:20:32', '', '2026-02-24 14:20:32', '2026-02-26 04:26:54');
+
 INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `request_type_id`, `project_id`, `description`, `about_project`, `priority`, `status`, `requested_at`, `remarks`, `created_at`, `updated_at`) VALUES
 (601, 36, 'Crina-NCR Megaplex - Indore & BBSR', 'Crina-NCR', 1, 2, 'Megaplex activity is about patient awareness or hospital advertisement in the theatre. I want to create the slides to present inside the theatre. There will be 3 slides as per the attached PPT.  This should very creative and easily visible from long distance. Also we are targeting the gynaecologists Drs  ', '{\"output_devices\":[\"Desktop\"],\"target_audience\":[\"Doctors\"]}', 'high', 'completed', '2026-02-25 05:20:52', '', '2026-02-25 05:20:52', '2026-02-26 10:58:24'),
 (602, 170, 'Sharkoferrol Video', 'Sharkoferrol', 2, 10, 'During heat stress, Low haemoglobin level may lead to Hypoxia and Panting due to low oxygen carrying capacity. Higher the hemoglobin, Higher Oxygen Carrying capacity. Higher the haemoglobin, Better the performance.\r\nOxygen from Pulmonary alveolus get bind with Haemoglobin\r\n\r\nRed blood cells carries carbon dioxide back from tissue to the lungs\r\n\r\nRed blood cell release oxygen to cells\r\n\r\nHaemoglobin in the blood carries oxygen from lung to rest of tissue\r\n\r\n', '{\"output_devices\":[\"iPad 10\"],\"target_audience\":[\"Doctors\"]}', 'high', 'completed', '2026-02-25 05:39:38', '', '2026-02-25 05:39:38', '2026-03-18 04:38:37'),
@@ -5702,6 +5830,7 @@ INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `request_
 (672, 100, 'Banner creative ', 'Cycloset', 1, 2, 'To create three banners in different dimensions, the required content should be sourced from the existing VA pages of Cycloset. The same content should be taken from the  available on the official Tata 1mg website and other relevant online platforms for reference.\r\nit will be 3 different dimension size is required for the same\r\n', '{\"output_devices\":[\"Desktop\"],\"target_audience\":[\"Doctors\",\"Others\"]}', 'high', 'completed', '2026-03-04 05:37:32', '', '2026-03-04 05:37:32', '2026-03-20 09:19:54'),
 (673, 147, 'Corium cycle meet certificates', 'All brands', 1, 2, 'These certificates templates are ready at your end just need to change the content in the same template. All the content I have mentioned on slides. 2 signatures remaining I will provide you by tomorrow. Kindly get the designing done on priority as our cycle meet is just 3 days away\r\n', '{\"output_devices\":[\"Print\"],\"target_audience\":[\"Field Representatives\"]}', 'high', 'completed', '2026-03-04 05:58:25', '', '2026-03-04 05:58:25', '2026-03-05 09:40:51'),
 (674, 173, 'Maxis cycle meeting creatives', 'Division', 1, 2, 'Theme: Top Gun Maxis\r\nContent information for each certificate:\r\n1.	Maxis Top Zonal Manager – Pan India\r\n2.	Maxis Top Regional Manager – Pan India\r\n3.	Maxis Top Regional Manager – West Zone\r\n4.	Maxis Top Regional Manager – East Zone\r\n5.	Maxis Top Regional Manager – North Zone\r\n6.	Maxis Top Regional Manager – South Zone\r\n7.	Maxis Top Area Manager – Pan India\r\n8.	Maxis Top Performer – Pan India\r\n9.	Maxis Top Zonal Manager – Managerial Effectiveness\r\n10.	Maxis Top Regional Manager – Managerial Effectiveness\r\n11.	Maxis Top Area Manager – Managerial Effectiveness', '{\"output_devices\":[\"Print\"],\"target_audience\":[\"Field Representatives\"]}', 'high', 'completed', '2026-03-04 06:37:28', '', '2026-03-04 06:37:28', '2026-03-16 09:21:32');
+
 INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `request_type_id`, `project_id`, `description`, `about_project`, `priority`, `status`, `requested_at`, `remarks`, `created_at`, `updated_at`) VALUES
 (675, 148, 'Zivemp-SM CME Welcome Standee ', 'Zivemp-SM', 1, 7, 'Please create an elegant and impactful welcome artwork for the launch of our new brand, Zivemp-SM. The design should reflect innovation in holistic diabetes care, highlighting cardio-renal and metabolic benefits beyond glucose control. Use modern medical visuals, vibrant yet professional colors, and a premium feel to warmly welcome delegates and celebrate this significant milestone.', '{\"output_devices\":[\"Print\"],\"target_audience\":[\"Doctors\"]}', 'high', 'completed', '2026-03-04 06:39:27', '', '2026-03-04 06:39:27', '2026-03-09 03:31:43'),
 (676, 121, 'Rosave Gold Cath Lab activity SOP  Video', 'Rosave Gold', 2, 11, 'Hi hope you are doing good. I need a video to be made from the attached data, the video will be circulated to the HCP\'s which they will further circulate to the nursing staff. Need animation and pictures  rest briefing will be given personally. thank you need your kind support. require the first cut by 13th March 2026.', '{\"output_devices\":[\"Mobile\",\"iPad 9\",\"iPad 10\",\"Desktop\"],\"target_audience\":[\"Doctors\",\"Others\"]}', 'medium', 'assigned', '2026-03-04 07:02:41', '', '2026-03-04 07:02:41', '2026-03-16 10:06:23'),
@@ -5795,6 +5924,7 @@ INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `request_
 (767, 137, 'TRAZTIK packshot shoot', 'TRAZTIK', 5, 30, 'Traztik 15 ml packshot photoshot for va purpose and new cap purpose', '{\"output_devices\":[\"iPad 10\",\"iPad 9\"],\"target_audience\":[\"Doctors\"]}', 'medium', 'completed', '2026-03-17 09:45:35', '', '2026-03-17 09:45:35', '2026-03-17 10:35:27'),
 (768, 137, 'poster', 'ASCAL GOLD & PERUMADI', 1, 2, 'Poster for ASCAL GOLD & PERUMADI FOR STICKING AT RETAIL STORE', '{\"output_devices\":[\"Print\"],\"target_audience\":[\"Chemists\",\"Doctors\",\"Others\"]}', 'medium', 'assigned', '2026-03-17 10:04:15', '', '2026-03-17 10:04:15', '2026-03-18 06:30:11'),
 (769, 137, 'weblink for POB collection', 'PERUMADI', 4, 28, 'Weblink_ fso will enter hq name and date and pob collected for perumadi brand on that date , so the final outcome will be zm wise , rm wise, hq wise pob collected', '{\"output_devices\":[\"Desktop\"],\"target_audience\":[\"Field Representatives\"]}', 'medium', 'pending', '2026-03-17 10:11:13', '', '2026-03-17 10:11:13', '2026-03-17 10:11:13');
+
 INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `request_type_id`, `project_id`, `description`, `about_project`, `priority`, `status`, `requested_at`, `remarks`, `created_at`, `updated_at`) VALUES
 (770, 119, 'Tufehart - Visual AId Animation', 'Tufehart', 2, 10, 'The Tufehart Visual Aid animation is designed to deliver a compelling and scientific brand story that resonates with healthcare professionals. It visually explains the burden of iron deficiency in heart failure, highlighting its impact on patient energy levels, exercise capacity, and quality of life. Through simple yet powerful graphics, the animation demonstrates how Tufehart, with ferric carboxymaltose, restores iron stores effectively. It incorporates key clinical evidence, such as improved functional outcomes and reduced hospitalizations, making the message credible. The engaging flow ensures better recall, helping doctors quickly understand the product’s value and confidently translate it into their prescribing practice.', '{\"output_devices\":[\"Desktop\",\"iPad 10\",\"iPad 9\",\"Mobile\"],\"target_audience\":[\"Alembic HO\",\"Doctors\",\"Field Representatives\"]}', 'critical', 'assigned', '2026-03-17 10:56:28', '', '2026-03-17 10:56:28', '2026-03-18 04:48:36'),
 (771, 115, 'Need PinPoint Chitpad artwork', 'Pinpoint', 1, 1, 'A chitpad showing a brand logo of Pinpoint, make it in normal chitpad size with every pages showing Pinpoint logo\r\nIt is for activity purpose\r\nA chitpad showing a brand logo of Pinpoint, make it in normal chitpad size with every pages showing Pinpoint logo\r\nIt is for activity purpose', '{\"output_devices\":[\"Desktop\",\"iPad 10\",\"iPad 9\",\"Mobile\",\"Print\"],\"target_audience\":[\"Alembic HO\",\"Chemists\",\"Doctors\",\"Field Representatives\"]}', 'medium', 'completed', '2026-03-17 11:08:52', '', '2026-03-17 11:08:52', '2026-03-24 04:37:58'),
@@ -5861,25 +5991,8 @@ INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `request_
 (832, 81, 'GENERIC LB - All brand ', 'all brand ', 1, 1, 'LB text will be attched, front & back need to design ', '{\"output_devices\":[\"Mobile\",\"Print\"],\"target_audience\":[\"Field Representatives\"]}', 'high', 'pending', '2026-03-25 07:11:49', '', '2026-03-25 07:11:49', '2026-03-25 07:11:49');
 
 -- --------------------------------------------------------
-
---
--- Table structure for table `work_request_documents`
---
-
-CREATE TABLE `work_request_documents` (
-  `id` int(11) NOT NULL,
-  `work_request_id` int(11) NOT NULL,
-  `document_name` varchar(255) NOT NULL,
-  `document_path` varchar(500) NOT NULL,
-  `document_type` varchar(255) DEFAULT NULL,
-  `document_size` int(11) DEFAULT NULL,
-  `status` enum('uploading','uploaded','failed') DEFAULT 'uploading',
-  `uploaded_at` timestamp NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
 -- Dumping data for table `work_request_documents`
---
+-- --------------------------------------------------------
 
 INSERT INTO `work_request_documents` (`id`, `work_request_id`, `document_name`, `document_path`, `document_type`, `document_size`, `status`, `uploaded_at`) VALUES
 (254, 143, 'Dermatimes --.pptx', '/digilabs/dmap/api/uploads/DermaVidya_Standee/Dermatimes___.pptx-1767862916919-611841720.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 272038, 'uploaded', '2026-01-08 09:01:56'),
@@ -6075,6 +6188,7 @@ INSERT INTO `work_request_documents` (`id`, `work_request_id`, `document_name`, 
 (454, 513, 'Reference.jpeg', '/digilabs/dmap/api/uploads/Holi_Flyer/Reference.jpeg-1771588031394-103506453.jpeg', 'image/jpeg', 250190, 'uploaded', '2026-02-20 11:47:11'),
 (455, 514, 'Reference.jpeg', '/digilabs/dmap/api/uploads/Ugadi_Flyer/Reference.jpeg-1771604350403-88178841.jpeg', 'image/jpeg', 250190, 'uploaded', '2026-02-20 16:19:10'),
 (456, 515, 'Reference.jpeg', '/digilabs/dmap/api/uploads/Gudi_Padwa_Flyer/Reference.jpeg-1771606195050-587351232.jpeg', 'image/jpeg', 250190, 'uploaded', '2026-02-20 16:49:55');
+
 INSERT INTO `work_request_documents` (`id`, `work_request_id`, `document_name`, `document_path`, `document_type`, `document_size`, `status`, `uploaded_at`) VALUES
 (457, 516, 'Reference.jpeg', '/digilabs/dmap/api/uploads/National_Doctors_Day_Flyer/Reference.jpeg-1771606556515-15673804.jpeg', 'image/jpeg', 250190, 'uploaded', '2026-02-20 16:55:56'),
 (458, 517, 'Reference.jpeg', '/digilabs/dmap/api/uploads/Ramzan_ID_Flyer/Reference.jpeg-1771606961637-340534694.jpeg', 'image/jpeg', 250190, 'uploaded', '2026-02-20 17:02:41'),
@@ -6244,22 +6358,8 @@ INSERT INTO `work_request_documents` (`id`, `work_request_id`, `document_name`, 
 (623, 832, 'Focus Product LB- Front&back.pptx', '/digilabs/dmap/api/uploads/GENERIC_LB___All_brand_/Focus_Product_LB__Front_back.pptx-1774422709881-999900499.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 43929, 'uploaded', '2026-03-25 07:11:49');
 
 -- --------------------------------------------------------
-
---
--- Table structure for table `work_request_managers`
---
-
-CREATE TABLE `work_request_managers` (
-  `id` int(11) NOT NULL,
-  `work_request_id` int(11) NOT NULL,
-  `manager_id` int(11) NOT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
 -- Dumping data for table `work_request_managers`
---
+-- --------------------------------------------------------
 
 INSERT INTO `work_request_managers` (`id`, `work_request_id`, `manager_id`, `created_at`, `updated_at`) VALUES
 (169, 143, 24, '2026-01-08 09:01:56', '2026-01-08 09:01:56'),
@@ -6958,510 +7058,57 @@ INSERT INTO `work_request_managers` (`id`, `work_request_id`, `manager_id`, `cre
 (992, 831, 24, '2026-03-25 06:39:31', '2026-03-25 06:39:31'),
 (993, 832, 24, '2026-03-25 07:11:49', '2026-03-25 07:11:49');
 
---
--- Indexes for dumped tables
---
-
---
--- Indexes for table `about_project`
---
-ALTER TABLE `about_project`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `type` (`type`);
-
---
--- Indexes for table `change_issue_tasktype`
---
-ALTER TABLE `change_issue_tasktype`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `task_id` (`task_id`),
-  ADD KEY `change_issue_id` (`change_issue_id`);
-
---
--- Indexes for table `department`
---
-ALTER TABLE `department`
-  ADD PRIMARY KEY (`id`);
-
---
--- Indexes for table `designation`
---
-ALTER TABLE `designation`
-  ADD PRIMARY KEY (`id`);
-
---
--- Indexes for table `designation_departments`
---
-ALTER TABLE `designation_departments`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `unique_designation_department` (`designation_id`,`department_id`),
-  ADD KEY `designation_id` (`designation_id`),
-  ADD KEY `department_id` (`department_id`);
-
---
--- Indexes for table `designation_jobroles`
---
-ALTER TABLE `designation_jobroles`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `unique_designation_jobrole` (`designation_id`,`jobrole_id`),
-  ADD KEY `designation_id` (`designation_id`),
-  ADD KEY `jobrole_id` (`jobrole_id`),
-  ADD KEY `department_id` (`department_id`);
-
---
--- Indexes for table `division`
---
-ALTER TABLE `division`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `department_id` (`department_id`);
-
---
--- Indexes for table `issue_register`
---
-ALTER TABLE `issue_register`
-  ADD PRIMARY KEY (`id`);
-
---
--- Indexes for table `job_role`
---
-ALTER TABLE `job_role`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `department_id` (`department_id`);
-
---
--- Indexes for table `location`
---
-ALTER TABLE `location`
-  ADD PRIMARY KEY (`id`);
-
---
--- Indexes for table `project_request_reference`
---
-ALTER TABLE `project_request_reference`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `project_request_reference_ibfk_1` (`project_id`),
-  ADD KEY `project_request_reference_ibfk_2` (`request_id`);
-
---
--- Indexes for table `project_type`
---
-ALTER TABLE `project_type`
-  ADD PRIMARY KEY (`id`);
-
---
--- Indexes for table `request_division_reference`
---
-ALTER TABLE `request_division_reference`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `request_id` (`request_id`),
-  ADD KEY `division_id` (`division_id`);
-
---
--- Indexes for table `request_type`
---
-ALTER TABLE `request_type`
-  ADD PRIMARY KEY (`id`);
-
---
--- Indexes for table `sales`
---
-ALTER TABLE `sales`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `unique_emp_code` (`emp_code`),
-  ADD UNIQUE KEY `unique_sap_code` (`sap_code`),
-  ADD UNIQUE KEY `unique_email_id` (`email_id`),
-  ADD KEY `division_id` (`division_id`);
-
---
--- Indexes for table `tasks`
---
-ALTER TABLE `tasks`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `task_type_id` (`task_type_id`),
-  ADD KEY `work_request_id` (`work_request_id`),
-  ADD KEY `request_type_id` (`request_type_id`);
-
---
--- Indexes for table `task_assignments`
---
-ALTER TABLE `task_assignments`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `task_id` (`task_id`),
-  ADD KEY `user_id` (`user_id`);
-
---
--- Indexes for table `task_dependencies`
---
-ALTER TABLE `task_dependencies`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `task_id` (`task_id`),
-  ADD KEY `dependency_task_id` (`dependency_task_id`);
-
---
--- Indexes for table `task_documents`
---
-ALTER TABLE `task_documents`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `task_assignment_id` (`task_assignment_id`),
-  ADD KEY `version` (`version`);
-
---
--- Indexes for table `task_project_reference`
---
-ALTER TABLE `task_project_reference`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `task_id` (`task_id`),
-  ADD KEY `project_id` (`project_id`);
-
---
--- Indexes for table `task_type`
---
-ALTER TABLE `task_type`
-  ADD PRIMARY KEY (`id`);
-
---
--- Indexes for table `users`
---
-ALTER TABLE `users`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `unique_email` (`email`),
-  ADD KEY `department_id` (`department_id`),
-  ADD KEY `job_role_id` (`job_role_id`),
-  ADD KEY `location_id` (`location_id`),
-  ADD KEY `designation_id` (`designation_id`);
-
---
--- Indexes for table `user_divisions`
---
-ALTER TABLE `user_divisions`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `unique_user_division` (`user_id`,`division_id`),
-  ADD KEY `division_id` (`division_id`);
-
---
--- Indexes for table `work_requests`
---
-ALTER TABLE `work_requests`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `user_id` (`user_id`),
-  ADD KEY `request_type_id` (`request_type_id`),
-  ADD KEY `project_id` (`project_id`),
-  ADD KEY `idx_work_requests_status` (`status`),
-  ADD KEY `idx_work_requests_priority` (`priority`),
-  ADD KEY `idx_work_requests_created_at` (`created_at`),
-  ADD KEY `idx_work_requests_updated_at` (`updated_at`),
-  ADD KEY `idx_work_requests_project_name` (`project_name`),
-  ADD KEY `idx_work_requests_brand` (`brand`),
-  ADD KEY `idx_work_requests_search` (`status`,`priority`,`created_at`),
-  ADD KEY `idx_work_requests_user_search` (`user_id`,`status`,`created_at`);
-ALTER TABLE `work_requests` ADD FULLTEXT KEY `ft_work_requests_content` (`project_name`,`brand`,`about_project`);
-
---
--- Indexes for table `work_request_documents`
---
-ALTER TABLE `work_request_documents`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `work_request_id` (`work_request_id`);
-
---
--- Indexes for table `work_request_managers`
---
-ALTER TABLE `work_request_managers`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `work_request_id` (`work_request_id`),
-  ADD KEY `manager_id` (`manager_id`);
-
---
--- AUTO_INCREMENT for dumped tables
---
-
---
--- AUTO_INCREMENT for table `about_project`
---
-ALTER TABLE `about_project`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
-
---
--- AUTO_INCREMENT for table `change_issue_tasktype`
---
-ALTER TABLE `change_issue_tasktype`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1497;
-
---
--- AUTO_INCREMENT for table `department`
---
-ALTER TABLE `department`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
-
---
--- AUTO_INCREMENT for table `designation`
---
-ALTER TABLE `designation`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
-
---
--- AUTO_INCREMENT for table `designation_departments`
---
-ALTER TABLE `designation_departments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=71;
-
---
--- AUTO_INCREMENT for table `designation_jobroles`
---
-ALTER TABLE `designation_jobroles`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=71;
-
---
--- AUTO_INCREMENT for table `division`
---
-ALTER TABLE `division`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
-
---
--- AUTO_INCREMENT for table `issue_register`
---
-ALTER TABLE `issue_register`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
-
---
--- AUTO_INCREMENT for table `job_role`
---
-ALTER TABLE `job_role`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
-
---
--- AUTO_INCREMENT for table `location`
---
-ALTER TABLE `location`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
-
---
--- AUTO_INCREMENT for table `project_request_reference`
---
-ALTER TABLE `project_request_reference`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=65;
-
---
--- AUTO_INCREMENT for table `project_type`
---
-ALTER TABLE `project_type`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
-
---
--- AUTO_INCREMENT for table `request_division_reference`
---
-ALTER TABLE `request_division_reference`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
-
---
--- AUTO_INCREMENT for table `request_type`
---
-ALTER TABLE `request_type`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
-
---
--- AUTO_INCREMENT for table `sales`
---
-ALTER TABLE `sales`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
-
---
--- AUTO_INCREMENT for table `tasks`
---
-ALTER TABLE `tasks`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=804;
-
---
--- AUTO_INCREMENT for table `task_assignments`
---
-ALTER TABLE `task_assignments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1003;
-
---
--- AUTO_INCREMENT for table `task_dependencies`
---
-ALTER TABLE `task_dependencies`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
-
---
--- AUTO_INCREMENT for table `task_documents`
---
-ALTER TABLE `task_documents`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=837;
-
---
--- AUTO_INCREMENT for table `task_project_reference`
---
-ALTER TABLE `task_project_reference`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=312;
-
---
--- AUTO_INCREMENT for table `task_type`
---
-ALTER TABLE `task_type`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=102;
-
---
--- AUTO_INCREMENT for table `users`
---
-ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=180;
-
---
--- AUTO_INCREMENT for table `user_divisions`
---
-ALTER TABLE `user_divisions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=174;
-
---
--- AUTO_INCREMENT for table `work_requests`
---
-ALTER TABLE `work_requests`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=833;
-
---
--- AUTO_INCREMENT for table `work_request_documents`
---
-ALTER TABLE `work_request_documents`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=624;
-
---
--- AUTO_INCREMENT for table `work_request_managers`
---
-ALTER TABLE `work_request_managers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=994;
-
---
--- Constraints for dumped tables
---
-
---
--- Constraints for table `change_issue_tasktype`
---
-ALTER TABLE `change_issue_tasktype`
-  ADD CONSTRAINT `fk_issue_reference` FOREIGN KEY (`change_issue_id`) REFERENCES `issue_register` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `fk_task_reference` FOREIGN KEY (`task_id`) REFERENCES `task_type` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `designation_departments`
---
-ALTER TABLE `designation_departments`
-  ADD CONSTRAINT `designation_departments_ibfk_1` FOREIGN KEY (`designation_id`) REFERENCES `designation` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `designation_departments_ibfk_2` FOREIGN KEY (`department_id`) REFERENCES `department` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `designation_jobroles`
---
-ALTER TABLE `designation_jobroles`
-  ADD CONSTRAINT `designation_jobroles_ibfk_1` FOREIGN KEY (`designation_id`) REFERENCES `designation` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `designation_jobroles_ibfk_2` FOREIGN KEY (`jobrole_id`) REFERENCES `job_role` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `fk_jobroles_department` FOREIGN KEY (`department_id`) REFERENCES `department` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
---
--- Constraints for table `division`
---
-ALTER TABLE `division`
-  ADD CONSTRAINT `division_ibfk_1` FOREIGN KEY (`department_id`) REFERENCES `department` (`id`);
-
---
--- Constraints for table `job_role`
---
-ALTER TABLE `job_role`
-  ADD CONSTRAINT `job_role_ibfk_1` FOREIGN KEY (`department_id`) REFERENCES `department` (`id`) ON DELETE SET NULL;
-
---
--- Constraints for table `project_request_reference`
---
-ALTER TABLE `project_request_reference`
-  ADD CONSTRAINT `project_request_reference_ibfk_1` FOREIGN KEY (`project_id`) REFERENCES `project_type` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `project_request_reference_ibfk_2` FOREIGN KEY (`request_id`) REFERENCES `request_type` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `request_division_reference`
---
-ALTER TABLE `request_division_reference`
-  ADD CONSTRAINT `request_division_reference_ibfk_1` FOREIGN KEY (`request_id`) REFERENCES `request_type` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `request_division_reference_ibfk_2` FOREIGN KEY (`division_id`) REFERENCES `division` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `sales`
---
-ALTER TABLE `sales`
-  ADD CONSTRAINT `sales_ibfk_1` FOREIGN KEY (`division_id`) REFERENCES `division` (`id`) ON DELETE SET NULL;
-
---
--- Constraints for table `tasks`
---
-ALTER TABLE `tasks`
-  ADD CONSTRAINT `tasks_ibfk_2` FOREIGN KEY (`task_type_id`) REFERENCES `task_type` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `tasks_ibfk_3` FOREIGN KEY (`work_request_id`) REFERENCES `work_requests` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `tasks_ibfk_4` FOREIGN KEY (`request_type_id`) REFERENCES `request_type` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `task_assignments`
---
-ALTER TABLE `task_assignments`
-  ADD CONSTRAINT `task_assignments_ibfk_1` FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `task_assignments_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `task_dependencies`
---
-ALTER TABLE `task_dependencies`
-  ADD CONSTRAINT `task_dependencies_ibfk_1` FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `task_dependencies_ibfk_2` FOREIGN KEY (`dependency_task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `task_documents`
---
-ALTER TABLE `task_documents`
-  ADD CONSTRAINT `task_documents_ibfk_1` FOREIGN KEY (`task_assignment_id`) REFERENCES `task_assignments` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `task_project_reference`
---
-ALTER TABLE `task_project_reference`
-  ADD CONSTRAINT `task_project_reference_ibfk_1` FOREIGN KEY (`task_id`) REFERENCES `task_type` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `task_project_reference_ibfk_2` FOREIGN KEY (`project_id`) REFERENCES `project_type` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `users`
---
-ALTER TABLE `users`
-  ADD CONSTRAINT `users_ibfk_1` FOREIGN KEY (`department_id`) REFERENCES `department` (`id`) ON DELETE SET NULL,
-  ADD CONSTRAINT `users_ibfk_2` FOREIGN KEY (`job_role_id`) REFERENCES `job_role` (`id`) ON DELETE SET NULL,
-  ADD CONSTRAINT `users_ibfk_4` FOREIGN KEY (`location_id`) REFERENCES `location` (`id`) ON DELETE SET NULL,
-  ADD CONSTRAINT `users_ibfk_5` FOREIGN KEY (`designation_id`) REFERENCES `designation` (`id`) ON DELETE SET NULL;
-
---
--- Constraints for table `user_divisions`
---
-ALTER TABLE `user_divisions`
-  ADD CONSTRAINT `user_divisions_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `user_divisions_ibfk_2` FOREIGN KEY (`division_id`) REFERENCES `division` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `work_requests`
---
-ALTER TABLE `work_requests`
-  ADD CONSTRAINT `work_requests_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `work_requests_ibfk_2` FOREIGN KEY (`request_type_id`) REFERENCES `request_type` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `work_requests_ibfk_3` FOREIGN KEY (`project_id`) REFERENCES `project_type` (`id`) ON DELETE SET NULL;
-
---
--- Constraints for table `work_request_documents`
---
-ALTER TABLE `work_request_documents`
-  ADD CONSTRAINT `work_request_documents_ibfk_1` FOREIGN KEY (`work_request_id`) REFERENCES `work_requests` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `work_request_managers`
---
-ALTER TABLE `work_request_managers`
-  ADD CONSTRAINT `work_request_managers_ibfk_1` FOREIGN KEY (`work_request_id`) REFERENCES `work_requests` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `work_request_managers_ibfk_2` FOREIGN KEY (`manager_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+-- ========================================================
+-- FOREIGN KEY CONSTRAINTS
+-- ========================================================
+
+ALTER TABLE `change_issue_tasktype` ADD CONSTRAINT `fk_issue_reference` FOREIGN KEY (`change_issue_id`) REFERENCES `issue_register` (`id`) ON DELETE CASCADE, ADD CONSTRAINT `fk_task_reference` FOREIGN KEY (`task_id`) REFERENCES `task_type` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `designation_departments` ADD CONSTRAINT `designation_departments_ibfk_1` FOREIGN KEY (`designation_id`) REFERENCES `designation` (`id`) ON DELETE CASCADE, ADD CONSTRAINT `designation_departments_ibfk_2` FOREIGN KEY (`department_id`) REFERENCES `department` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `designation_jobroles` ADD CONSTRAINT `designation_jobroles_ibfk_1` FOREIGN KEY (`designation_id`) REFERENCES `designation` (`id`) ON DELETE CASCADE, ADD CONSTRAINT `designation_jobroles_ibfk_2` FOREIGN KEY (`jobrole_id`) REFERENCES `job_role` (`id`) ON DELETE CASCADE, ADD CONSTRAINT `fk_jobroles_department` FOREIGN KEY (`department_id`) REFERENCES `department` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE `division` ADD CONSTRAINT `division_ibfk_1` FOREIGN KEY (`department_id`) REFERENCES `department` (`id`);
+
+ALTER TABLE `issue_assignments` ADD CONSTRAINT `issue_assignments_ibfk_1` FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE, ADD CONSTRAINT `issue_assignments_ibfk_2` FOREIGN KEY (`requested_by_user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `issue_assignment_types` ADD CONSTRAINT `issue_assignment_types_ibfk_1` FOREIGN KEY (`issue_assignment_id`) REFERENCES `issue_assignments` (`id`) ON DELETE CASCADE, ADD CONSTRAINT `issue_assignment_types_ibfk_2` FOREIGN KEY (`issue_register_id`) REFERENCES `issue_register` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `issue_documents` ADD CONSTRAINT `issue_documents_ibfk_1` FOREIGN KEY (`issue_user_assignment_id`) REFERENCES `issue_user_assignments` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `issue_user_assignments` ADD CONSTRAINT `issue_user_assignments_ibfk_1` FOREIGN KEY (`issue_assignment_id`) REFERENCES `issue_assignments` (`id`) ON DELETE CASCADE, ADD CONSTRAINT `issue_user_assignments_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `job_role` ADD CONSTRAINT `job_role_ibfk_1` FOREIGN KEY (`department_id`) REFERENCES `department` (`id`) ON DELETE SET NULL;
+
+ALTER TABLE `project_request_reference` ADD CONSTRAINT `project_request_reference_ibfk_1` FOREIGN KEY (`project_id`) REFERENCES `project_type` (`id`) ON DELETE CASCADE, ADD CONSTRAINT `project_request_reference_ibfk_2` FOREIGN KEY (`request_id`) REFERENCES `request_type` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `request_division_reference` ADD CONSTRAINT `request_division_reference_ibfk_1` FOREIGN KEY (`request_id`) REFERENCES `request_type` (`id`) ON DELETE CASCADE, ADD CONSTRAINT `request_division_reference_ibfk_2` FOREIGN KEY (`division_id`) REFERENCES `division` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `sales` ADD CONSTRAINT `sales_ibfk_1` FOREIGN KEY (`division_id`) REFERENCES `division` (`id`) ON DELETE SET NULL;
+
+ALTER TABLE `tasks` ADD CONSTRAINT `tasks_ibfk_2` FOREIGN KEY (`task_type_id`) REFERENCES `task_type` (`id`) ON DELETE CASCADE, ADD CONSTRAINT `tasks_ibfk_3` FOREIGN KEY (`work_request_id`) REFERENCES `work_requests` (`id`) ON DELETE CASCADE, ADD CONSTRAINT `tasks_ibfk_4` FOREIGN KEY (`request_type_id`) REFERENCES `request_type` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `task_assignments` ADD CONSTRAINT `task_assignments_ibfk_1` FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE, ADD CONSTRAINT `task_assignments_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `task_dependencies` ADD CONSTRAINT `task_dependencies_ibfk_1` FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE, ADD CONSTRAINT `task_dependencies_ibfk_2` FOREIGN KEY (`dependency_task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `task_documents` ADD CONSTRAINT `task_documents_ibfk_1` FOREIGN KEY (`task_assignment_id`) REFERENCES `task_assignments` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `task_project_reference` ADD CONSTRAINT `task_project_reference_ibfk_1` FOREIGN KEY (`task_id`) REFERENCES `task_type` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `users` ADD CONSTRAINT `users_ibfk_1` FOREIGN KEY (`designation_id`) REFERENCES `designation` (`id`) ON DELETE SET NULL;
+
+ALTER TABLE `user_divisions` ADD CONSTRAINT `user_divisions_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE, ADD CONSTRAINT `user_divisions_ibfk_2` FOREIGN KEY (`division_id`) REFERENCES `division` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `work_requests` ADD CONSTRAINT `work_requests_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE, ADD CONSTRAINT `work_requests_ibfk_2` FOREIGN KEY (`request_type_id`) REFERENCES `request_type` (`id`) ON DELETE CASCADE, ADD CONSTRAINT `work_requests_ibfk_3` FOREIGN KEY (`project_id`) REFERENCES `project_type` (`id`) ON DELETE SET NULL;
+
+ALTER TABLE `work_request_documents` ADD CONSTRAINT `work_request_documents_ibfk_1` FOREIGN KEY (`work_request_id`) REFERENCES `work_requests` (`id`) ON DELETE CASCADE;
+
+ALTER TABLE `work_request_managers` ADD CONSTRAINT `work_request_managers_ibfk_1` FOREIGN KEY (`work_request_id`) REFERENCES `work_requests` (`id`) ON DELETE CASCADE, ADD CONSTRAINT `work_request_managers_ibfk_2` FOREIGN KEY (`manager_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+-- ========================================================
+-- END OF MIGRATION SQL
+-- ========================================================
 COMMIT;
 
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+SET FOREIGN_KEY_CHECKS=1;
