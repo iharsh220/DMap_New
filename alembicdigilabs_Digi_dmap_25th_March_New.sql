@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Mar 20, 2026 at 10:12 PM
+-- Generation Time: Mar 25, 2026 at 10:40 AM
 -- Server version: 11.4.10-MariaDB
 -- PHP Version: 8.4.18
 
@@ -1906,16 +1906,32 @@ CREATE TABLE `issue_assignments` (
   `review_stage` enum('not_started','manager_review','pm_review','change_requested','final_approved') DEFAULT 'not_started' COMMENT 'Review stage - not_started, manager_review, pm_review, change_requested, final_approved',
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `shared_with_client_at` datetime DEFAULT NULL COMMENT 'Date when issue was shared with client for review'
+  `shared_with_client_at` datetime DEFAULT NULL COMMENT 'Date when issue was shared with client for review',
+  `no_of_options_provided` int(11) DEFAULT 0 COMMENT 'Number of options provided for content work',
+  `no_of_words_written` int(11) DEFAULT 0 COMMENT 'Number of words written for content work',
+  `options_submitted` int(11) DEFAULT 0 COMMENT 'Number of options submitted',
+  `concept_work` tinyint(1) DEFAULT 0 COMMENT 'Concept work done - 0=no, 1=yes',
+  `resize_work` tinyint(1) DEFAULT 0 COMMENT 'Resize work done - 0=no, 1=yes',
+  `no_of_concepts` int(11) DEFAULT 0 COMMENT 'Number of concepts created',
+  `duration_minutes` int(11) DEFAULT 0 COMMENT 'Duration in minutes',
+  `duration_seconds` int(11) DEFAULT 0 COMMENT 'Duration in seconds',
+  `product_shoot` tinyint(1) DEFAULT 0 COMMENT 'Product shoot done - 0=no, 1=yes',
+  `no_of_products_shot` int(11) DEFAULT 0 COMMENT 'Number of products shot',
+  `shoot_setup` tinyint(1) DEFAULT 0 COMMENT 'Shoot setup done - 0=no, 1=yes',
+  `no_of_resize` int(11) DEFAULT 0 COMMENT 'Number of resize operations',
+  `responsive_screen` tinyint(1) DEFAULT 0 COMMENT 'Responsive screen work done - 0=no, 1=yes',
+  `no_of_responsive_screen` int(11) DEFAULT 0 COMMENT 'Number of responsive screens',
+  `comments` text DEFAULT NULL COMMENT 'Optional comments when submitting/completing an issue'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `issue_assignments`
 --
 
-INSERT INTO `issue_assignments` (`id`, `issue_id`, `task_id`, `requested_by_user_id`, `assignment_type`, `version`, `description`, `deadline`, `intimate_team`, `intimate_client`, `task_count`, `start_date`, `end_date`, `link`, `status`, `review`, `review_stage`, `created_at`, `updated_at`, `shared_with_client_at`) VALUES
-(16, NULL, 85, 20, 'mod', 'V2', 'change kar k de', '2026-03-20', 1, 1, 45365, '2026-03-18', '2026-03-18', NULL, 'completed', 'approved', 'final_approved', '2026-03-18 10:46:16', '2026-03-20 16:15:39', NULL),
-(17, 16, 85, 20, 'mod', 'V3', 'dfnbftn', '2026-03-19', 1, 1, 2334, '2026-03-18', '2026-03-18', NULL, 'completed', 'approved', 'final_approved', '2026-03-18 11:07:13', '2026-03-20 16:15:39', NULL);
+INSERT INTO `issue_assignments` (`id`, `issue_id`, `task_id`, `requested_by_user_id`, `assignment_type`, `version`, `description`, `deadline`, `intimate_team`, `intimate_client`, `task_count`, `start_date`, `end_date`, `link`, `status`, `review`, `review_stage`, `created_at`, `updated_at`, `shared_with_client_at`, `no_of_options_provided`, `no_of_words_written`, `options_submitted`, `concept_work`, `resize_work`, `no_of_concepts`, `duration_minutes`, `duration_seconds`, `product_shoot`, `no_of_products_shot`, `shoot_setup`, `no_of_resize`, `responsive_screen`, `no_of_responsive_screen`, `comments`) VALUES
+(16, NULL, 85, 20, 'mod', 'V2', 'change kar k de', '2026-03-20', 1, 1, 45365, '2026-03-18', '2026-03-18', NULL, 'completed', 'approved', 'final_approved', '2026-03-18 10:46:16', '2026-03-21 06:21:38', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(17, 16, 85, 20, 'mod', 'V3', 'dfnbftn', '2026-03-19', 1, 1, 2334, '2026-03-18', '2026-03-18', NULL, 'completed', 'approved', 'final_approved', '2026-03-18 11:07:13', '2026-03-21 06:21:38', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(18, NULL, 95, 20, 'mod', 'V2', 'Ye sab karke bhej wapas', '2026-03-31', 1, 1, 2, '2026-03-24', '2026-03-24', 'wetransfer.com/dsafsdf/as', 'completed', 'approved', 'final_approved', '2026-03-24 09:39:40', '2026-03-24 12:04:35', '2026-03-24 10:18:04', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL);
 
 -- --------------------------------------------------------
 
@@ -1940,7 +1956,13 @@ INSERT INTO `issue_assignment_types` (`id`, `issue_assignment_id`, `issue_regist
 (27, 16, 19, '2026-03-18 10:46:16', '2026-03-18 10:46:16'),
 (28, 16, 26, '2026-03-18 10:46:16', '2026-03-18 10:46:16'),
 (29, 17, 18, '2026-03-18 11:07:13', '2026-03-18 11:07:13'),
-(30, 17, 16, '2026-03-18 11:07:13', '2026-03-18 11:07:13');
+(30, 17, 16, '2026-03-18 11:07:13', '2026-03-18 11:07:13'),
+(31, 18, 1, '2026-03-24 09:39:40', '2026-03-24 09:39:40'),
+(32, 18, 3, '2026-03-24 09:39:40', '2026-03-24 09:39:40'),
+(33, 18, 10, '2026-03-24 09:39:40', '2026-03-24 09:39:40'),
+(34, 18, 11, '2026-03-24 09:39:40', '2026-03-24 09:39:40'),
+(35, 18, 13, '2026-03-24 09:39:40', '2026-03-24 09:39:40'),
+(36, 18, 22, '2026-03-24 09:39:40', '2026-03-24 09:39:40');
 
 -- --------------------------------------------------------
 
@@ -2039,7 +2061,8 @@ CREATE TABLE `issue_user_assignments` (
 
 INSERT INTO `issue_user_assignments` (`id`, `issue_assignment_id`, `user_id`, `created_at`, `updated_at`) VALUES
 (11, 16, 19, '2026-03-18 10:48:26', '2026-03-18 10:48:26'),
-(12, 17, 19, '2026-03-18 11:07:44', '2026-03-18 11:07:44');
+(12, 17, 19, '2026-03-18 11:07:44', '2026-03-18 11:07:44'),
+(13, 18, 30, '2026-03-24 09:55:39', '2026-03-24 09:55:39');
 
 -- --------------------------------------------------------
 
@@ -2362,18 +2385,49 @@ CREATE TABLE `tasks` (
   `review_stage` enum('not_started','manager_review','pm_review','change_requested','final_approved') DEFAULT 'not_started' COMMENT 'Current review stage - not_started, manager_review, pm_review, change_requested, final_approved',
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `shared_with_client_at` datetime DEFAULT NULL COMMENT 'Date when task was shared with client for review'
+  `shared_with_client_at` datetime DEFAULT NULL COMMENT 'Date when task was shared with client for review',
+  `no_of_options_provided` int(11) DEFAULT 0 COMMENT 'Number of options provided for content work',
+  `no_of_words_written` int(11) DEFAULT 0 COMMENT 'Number of words written for content work',
+  `options_submitted` int(11) DEFAULT 0 COMMENT 'Number of options submitted',
+  `concept_work` tinyint(1) DEFAULT 0 COMMENT 'Concept work done - 0=no, 1=yes',
+  `resize_work` tinyint(1) DEFAULT 0 COMMENT 'Resize work done - 0=no, 1=yes',
+  `no_of_concepts` int(11) DEFAULT 0 COMMENT 'Number of concepts created',
+  `duration_minutes` int(11) DEFAULT 0 COMMENT 'Duration in minutes',
+  `duration_seconds` int(11) DEFAULT 0 COMMENT 'Duration in seconds',
+  `product_shoot` tinyint(1) DEFAULT 0 COMMENT 'Product shoot done - 0=no, 1=yes',
+  `no_of_products_shot` int(11) DEFAULT 0 COMMENT 'Number of products shot',
+  `shoot_setup` tinyint(1) DEFAULT 0 COMMENT 'Shoot setup done - 0=no, 1=yes',
+  `no_of_resize` int(11) DEFAULT 0 COMMENT 'Number of resize operations',
+  `responsive_screen` tinyint(1) DEFAULT 0 COMMENT 'Responsive screen work done - 0=no, 1=yes',
+  `no_of_responsive_screen` int(11) DEFAULT 0 COMMENT 'Number of responsive screens',
+  `comments` text DEFAULT NULL COMMENT 'Optional comments when submitting/completing a task'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `tasks`
 --
 
-INSERT INTO `tasks` (`id`, `task_name`, `description`, `request_type_id`, `task_type_id`, `work_request_id`, `deadline`, `status`, `version`, `assignment_type`, `intimate_team`, `intimate_client`, `task_count`, `link`, `start_date`, `end_date`, `review`, `review_stage`, `created_at`, `updated_at`, `shared_with_client_at`) VALUES
-(82, 'testing issue register', 'testing', 4, 75, 165, '2026-03-31', 'completed', 'V1', 'new', 1, 1, 32, NULL, '2026-03-18', '2026-03-18', 'approved', 'final_approved', '2026-03-18 09:23:57', '2026-03-20 16:15:39', NULL),
-(84, 'testing issue register', 'testing 0078', 4, 75, 165, '2026-03-25', 'completed', 'V1', 'new', 1, 1, 1, 'https://.com', '2026-03-18', '2026-03-20', 'approved', 'final_approved', '2026-03-18 10:18:42', '2026-03-20 16:15:39', '2026-03-20 13:04:14'),
-(85, 'testing issue register123', 'testing 00099988', 4, 77, 165, '2026-03-20', 'completed', 'V1', 'new', 1, 1, 1, NULL, '2026-03-18', '2026-03-18', 'approved', 'final_approved', '2026-03-18 10:20:41', '2026-03-20 16:15:39', NULL),
-(86, 'testing issue register', 'chalna aee jayesh bhaay', 4, 78, 165, '2026-03-24', 'completed', 'V1', 'new', 1, 1, 1, NULL, '2026-03-20', '2026-03-20', 'approved', 'final_approved', '2026-03-20 06:54:16', '2026-03-20 16:15:39', '2026-03-20 12:45:24');
+INSERT INTO `tasks` (`id`, `task_name`, `description`, `request_type_id`, `task_type_id`, `work_request_id`, `deadline`, `status`, `version`, `assignment_type`, `intimate_team`, `intimate_client`, `task_count`, `link`, `start_date`, `end_date`, `review`, `review_stage`, `created_at`, `updated_at`, `shared_with_client_at`, `no_of_options_provided`, `no_of_words_written`, `options_submitted`, `concept_work`, `resize_work`, `no_of_concepts`, `duration_minutes`, `duration_seconds`, `product_shoot`, `no_of_products_shot`, `shoot_setup`, `no_of_resize`, `responsive_screen`, `no_of_responsive_screen`, `comments`) VALUES
+(82, 'testing issue register', 'testing', 4, 75, 165, '2026-03-31', 'completed', 'V1', 'new', 1, 1, 32, NULL, '2026-03-18', '2026-03-18', 'approved', 'final_approved', '2026-03-18 09:23:57', '2026-03-21 06:21:38', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(84, 'testing issue register', 'testing 0078', 4, 75, 165, '2026-03-25', 'completed', 'V1', 'new', 1, 1, 1, 'https://.com', '2026-03-18', '2026-03-20', 'approved', 'final_approved', '2026-03-18 10:18:42', '2026-03-21 06:21:38', '2026-03-20 13:04:14', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(85, 'testing issue register123', 'testing 00099988', 4, 77, 165, '2026-03-20', 'completed', 'V1', 'new', 1, 1, 1, NULL, '2026-03-18', '2026-03-18', 'approved', 'final_approved', '2026-03-18 10:20:41', '2026-03-21 06:21:38', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(86, 'testing issue register', 'chalna aee jayesh bhaay', 4, 78, 165, '2026-03-24', 'completed', 'V1', 'new', 1, 1, 1, NULL, '2026-03-20', '2026-03-20', 'approved', 'final_approved', '2026-03-20 06:54:16', '2026-03-21 06:21:38', '2026-03-20 12:45:24', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(89, 'submission model', 'test', 4, 76, 166, '2026-03-31', 'in_progress', 'V1', 'new', 1, 0, 0, NULL, '2026-03-24', NULL, 'pending', 'not_started', '2026-03-21 06:53:10', '2026-03-23 18:31:00', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(90, 'submission model', 'testing for more', 4, 75, 166, '2026-03-27', 'completed', 'V1', 'new', 1, 0, 2, 'https://github.com/Nikhil-Nadkar', '2026-03-23', '2026-03-23', 'pending', 'manager_review', '2026-03-21 06:57:26', '2026-03-23 06:23:49', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, NULL),
+(91, 'submission model11', 'restr', 4, 77, 166, '2026-03-27', 'completed', 'V1', 'new', 1, 0, 1, 'https://jayesh.com', '2026-03-21', '2026-03-21', 'pending', 'manager_review', '2026-03-21 06:59:26', '2026-03-21 07:55:19', NULL, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, NULL),
+(92, 'Task 01A', ' Test Pro 001 Web', 4, 74, 167, '2026-03-27', 'in_progress', 'V1', 'new', 1, 0, 0, NULL, '2026-03-24', NULL, 'pending', 'not_started', '2026-03-23 05:10:44', '2026-03-23 18:31:00', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(93, 'Task 01B', 'Test Pro 001 Web', 4, 75, 167, '2026-03-31', 'completed', 'V1', 'new', 1, 0, 2, NULL, '2026-03-24', '2026-03-24', 'pending', 'manager_review', '2026-03-23 05:11:10', '2026-03-24 10:35:48', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, NULL),
+(94, 'Task 01C', 'Test Pro 001 Web', 4, 77, 167, '2026-03-26', 'completed', 'V1', 'new', 1, 1, 1, 'https://2837377281.com', '2026-03-23', '2026-03-23', 'approved', 'final_approved', '2026-03-23 05:11:33', '2026-03-23 09:30:46', '2026-03-23 09:18:40', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(95, 'Task 01 - test-video-animation ', 'test-video-animation ', 2, 45, 171, '2026-03-31', 'completed', 'V1', 'new', 1, 1, 2, NULL, '2026-03-24', '2026-03-24', 'approved', 'final_approved', '2026-03-24 06:12:02', '2026-03-24 12:04:35', '2026-03-24 09:17:12', 0, 0, 0, 0, 1, 0, 2, 10, 0, 0, 0, 1, 0, 0, NULL),
+(96, 'Task 02 - test-video-animation', 'test-video-animation ', 2, 47, 171, '2026-04-16', 'completed', 'V1', 'new', 1, 1, 2, 'https://alembicdigilabs.com/petal/docmycin/', '2026-03-24', '2026-03-24', 'approved', 'final_approved', '2026-03-24 06:12:30', '2026-03-24 12:04:35', '2026-03-24 09:36:03', 0, 0, 0, 1, 0, 1, 5, 34, 0, 0, 0, 0, 0, 0, NULL),
+(97, 'Task 1 - test-graphic-va', 'sadfgh', 1, 1, 170, '2026-04-30', 'pending', 'V1', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-03-24 06:26:28', '2026-03-24 08:42:04', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(98, 'Task 2 - test-graphic-va', 'ascdv', 3, 72, 170, NULL, 'pending', 'V1', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-03-24 06:27:54', '2026-03-24 08:42:04', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(99, 'Task 01 - test-web', 'test-web', 3, 71, 169, NULL, 'pending', 'V1', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-03-24 06:42:45', '2026-03-24 09:07:51', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(100, 'Task 02 - test-web', 'test-web', 2, 54, 169, NULL, 'pending', 'V1', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-03-24 06:43:13', '2026-03-24 09:07:51', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(101, 'Task 03 - test-web', 'test-web', 1, 44, 169, NULL, 'pending', 'V1', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-03-24 06:43:42', '2026-03-24 09:07:51', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(102, 'Task 04 - test-web', 'test-web', 4, 74, 169, '2026-04-15', 'pending', 'V1', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-03-24 06:44:09', '2026-03-24 09:07:51', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(103, 'Task 05 - test-web', 'test-web', 4, 75, 169, '2026-04-20', 'pending', 'V1', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-03-24 06:44:35', '2026-03-24 09:07:51', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(104, 'Task 06 - test-web', 'test-web', 4, 77, 169, '2026-04-07', 'pending', 'V1', 'new', 1, 0, 0, NULL, NULL, NULL, 'pending', 'not_started', '2026-03-24 06:44:56', '2026-03-24 09:07:51', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL);
 
 -- --------------------------------------------------------
 
@@ -2397,7 +2451,23 @@ INSERT INTO `task_assignments` (`id`, `task_id`, `user_id`, `created_at`, `updat
 (88, 82, 19, '2026-03-18 09:23:57', '2026-03-18 09:23:57'),
 (90, 84, 19, '2026-03-18 10:18:42', '2026-03-18 10:18:42'),
 (91, 85, 19, '2026-03-18 10:20:41', '2026-03-18 10:20:41'),
-(92, 86, 19, '2026-03-20 06:54:16', '2026-03-20 06:54:16');
+(92, 86, 19, '2026-03-20 06:54:16', '2026-03-20 06:54:16'),
+(95, 89, 19, '2026-03-21 06:53:10', '2026-03-21 06:53:10'),
+(96, 90, 19, '2026-03-21 06:57:26', '2026-03-21 06:57:26'),
+(97, 91, 19, '2026-03-21 06:59:26', '2026-03-21 06:59:26'),
+(98, 92, 19, '2026-03-23 05:10:44', '2026-03-23 05:10:44'),
+(99, 93, 19, '2026-03-23 05:11:10', '2026-03-23 05:11:10'),
+(100, 94, 19, '2026-03-23 05:11:33', '2026-03-23 05:11:33'),
+(101, 95, 30, '2026-03-24 06:12:02', '2026-03-24 06:12:02'),
+(102, 96, 23, '2026-03-24 06:12:30', '2026-03-24 06:12:30'),
+(103, 97, 62, '2026-03-24 06:26:28', '2026-03-24 06:26:28'),
+(104, 98, 27, '2026-03-24 06:27:54', '2026-03-24 06:27:54'),
+(105, 99, 27, '2026-03-24 06:42:45', '2026-03-24 06:42:45'),
+(106, 100, 23, '2026-03-24 06:43:13', '2026-03-24 06:43:13'),
+(107, 101, 24, '2026-03-24 06:43:42', '2026-03-24 06:43:42'),
+(108, 102, 19, '2026-03-24 06:44:09', '2026-03-24 06:44:09'),
+(109, 103, 19, '2026-03-24 06:44:35', '2026-03-24 06:44:35'),
+(110, 104, 19, '2026-03-24 06:44:56', '2026-03-24 06:44:56');
 
 -- --------------------------------------------------------
 
@@ -2440,7 +2510,9 @@ CREATE TABLE `task_documents` (
 INSERT INTO `task_documents` (`id`, `task_assignment_id`, `document_name`, `document_path`, `document_type`, `document_size`, `version`, `status`, `review`, `intimate_client`, `uploaded_at`) VALUES
 (28, 88, '1000153746.png', '/digilabs/uat/dmap/api//uploads/testing_issue_register/testing issue register/Harsh Gohil/V1/1000153746.png-1773828058196-532388463.png', 'image/png', 208007, 'V1', 'uploaded', 'approved', 1, '2026-03-18 10:00:58'),
 (29, 91, 'WAA-Day_V3.jpg', '/digilabs/uat/dmap/api//uploads/testing_issue_register/testing issue register123/Harsh Gohil/V1/WAA_Day_V3.jpg-1773829319771-861030348.jpg', 'image/jpeg', 630893, 'V1', 'uploaded', 'approved', 1, '2026-03-18 10:21:59'),
-(30, 92, 'Page_2.gif', '/digilabs/uat/dmap/api//uploads/testing_issue_register/testing issue register/Harsh Gohil/V1/Page_2.gif-1773989849845-552228670.gif', 'image/gif', 5154703, 'V1', 'uploaded', 'approved', 1, '2026-03-20 06:57:29');
+(30, 92, 'Page_2.gif', '/digilabs/uat/dmap/api//uploads/testing_issue_register/testing issue register/Harsh Gohil/V1/Page_2.gif-1773989849845-552228670.gif', 'image/gif', 5154703, 'V1', 'uploaded', 'approved', 1, '2026-03-20 06:57:29'),
+(33, 101, 'Ovigyn Q10 IPad Demo Video.mp4', '/digilabs/uat/dmap/api//uploads/test_video_animation/Task 01 - test-video-animation /Mahesh Morye/V1/Ovigyn_Q10_IPad_Demo_Video.mp4-1774343677509-360856647.mp4', 'video/mp4', 24237416, 'V1', 'uploaded', 'approved', 1, '2026-03-24 09:14:37'),
+(36, 99, 'Monster Video Oct 2025.mp4.mp4', '/digilabs/uat/dmap/api//uploads/Test_Pro_001_Web/Task 01B/Harsh Gohil/V1/Monster_Video_Oct_2025.mp4.mp4-1774348548548-53166807.mp4', 'video/mp4', 83964272, 'V1', 'uploaded', 'pending', 0, '2026-03-24 10:35:49');
 
 -- --------------------------------------------------------
 
@@ -2810,7 +2882,16 @@ INSERT INTO `task_review_history` (`id`, `task_id`, `reviewer_id`, `reviewer_typ
 (35, 85, 20, 'project_manager', 'approved', 'PM approved the issue', 'pm_review', 'final_approved', '2026-03-18 11:11:31', '2026-03-18 11:11:31'),
 (36, 86, 23, 'manager', 'approved', NULL, 'manager_review', 'pm_review', '2026-03-20 06:58:21', '2026-03-20 06:58:21'),
 (37, 84, 23, 'manager', 'change_request', 'dgnhr', 'manager_review', 'manager_review', '2026-03-20 08:12:40', '2026-03-20 08:12:40'),
-(38, 84, 23, 'manager', 'approved', NULL, 'manager_review', 'pm_review', '2026-03-20 12:48:10', '2026-03-20 12:48:10');
+(38, 84, 23, 'manager', 'approved', NULL, 'manager_review', 'pm_review', '2026-03-20 12:48:10', '2026-03-20 12:48:10'),
+(39, 94, 23, 'manager', 'change_request', 'Acha banake de re', 'manager_review', 'manager_review', '2026-03-23 07:01:12', '2026-03-23 07:01:12'),
+(40, 94, 23, 'manager', 'approved', NULL, 'manager_review', 'pm_review', '2026-03-23 09:00:26', '2026-03-23 09:00:26'),
+(41, 95, 23, 'manager', 'change_request', 'Ache se banake de wapas.', 'manager_review', 'manager_review', '2026-03-24 09:09:14', '2026-03-24 09:09:14'),
+(42, 95, 23, 'manager', 'approved', NULL, 'manager_review', 'pm_review', '2026-03-24 09:17:09', '2026-03-24 09:17:09'),
+(43, 96, 23, 'manager', 'approved', NULL, 'manager_review', 'pm_review', '2026-03-24 09:35:53', '2026-03-24 09:35:53'),
+(44, 95, 20, 'project_manager', 'change_request', 'New issue request created - V2', 'final_approved', 'change_requested', '2026-03-24 09:39:40', '2026-03-24 09:39:40'),
+(45, 93, 23, 'manager', 'change_request', 'Ache se kar bhai!', 'manager_review', 'manager_review', '2026-03-24 10:00:10', '2026-03-24 10:00:10'),
+(46, 95, 23, 'manager', 'approved', NULL, 'manager_review', 'pm_review', '2026-03-24 10:03:27', '2026-03-24 10:03:27'),
+(47, 95, 20, 'project_manager', 'approved', 'PM approved the issue', 'pm_review', 'final_approved', '2026-03-24 10:19:29', '2026-03-24 10:19:29');
 
 -- --------------------------------------------------------
 
@@ -2897,7 +2978,7 @@ INSERT INTO `task_type` (`id`, `task_type`, `description`, `quantification`, `cr
 (63, 'Emailers', 'Creative Copywriting + Brand Communication Strategy', 'No. of emailers written', '2025-12-30 08:41:10', '2025-12-30 08:41:10'),
 (64, 'Speech Write-up', 'Creative Copywriting + Brand Communication Strategy', 'No. of speeches written', '2025-12-30 08:41:10', '2025-12-30 08:41:10'),
 (65, 'Social Media Content', 'Creative Copywriting + Brand Communication Strategy', 'No. of content written', '2025-12-30 08:41:10', '2025-12-30 08:41:10'),
-(66, 'Graphic Content', 'Creative Copywriting + Brand Communication Strategy', 'No. of content written', '2025-12-30 08:41:10', '2025-12-30 08:41:10'),
+(66, 'Artwork Content', 'Creative Copywriting + Brand Communication Strategy', 'No. of content written', '2025-12-30 08:41:10', '2026-03-24 10:15:02'),
 (67, 'Video Scripts', 'Creative Copywriting + Brand Communication Strategy', 'No. of script written', '2025-12-30 08:41:10', '2025-12-30 08:41:10'),
 (68, 'Storyboarding', 'Creative Copywriting + Brand Communication Strategy', 'No. of story written', '2025-12-30 08:41:10', '2025-12-30 08:41:10'),
 (69, 'Festival Content', 'Creative Copywriting + Brand Communication Strategy', 'No. of content written', '2025-12-30 08:41:10', '2025-12-30 08:41:10'),
@@ -2968,18 +3049,18 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `name`, `email`, `phone`, `password`, `department_id`, `job_role_id`, `location_id`, `designation_id`, `email_verified_status`, `latest_verification_token`, `account_status`, `last_login`, `login_attempts`, `lock_until`, `password_changed_at`, `password_expires_at`, `created_at`, `updated_at`) VALUES
 (1, 'System Admin', 'admin@alembic.co.in', '8080302041', '$2a$12$/.rT3avNPO1l0ZjqSRS/Ru09mKVNuIRSLaHjBDeMwLHscVLq1ETY6', 2, 1, 1, NULL, 1, NULL, 'active', '2025-11-12 06:04:52', 0, NULL, '2025-11-12 06:04:52', '2026-02-10 06:04:52', '2025-11-12 06:04:52', '2025-11-12 06:04:52'),
-(19, 'Harsh Gohil', 'harsh.gohil@alembic.co.in', '8080302041', '$2a$12$EUpyWKG8MR6IkRag7k8QU.5hMFIlQMyPCQcEt15GSvAQW8UwPIjwG', 9, 4, 1, 20, 1, NULL, 'active', '2026-03-20 14:20:25', 0, NULL, '2026-01-09 05:26:17', '2026-03-12 05:32:58', '2025-12-12 05:31:42', '2026-03-20 14:20:25'),
-(20, 'Nikhil Nadkar', 'nikhil.nadkar@alembic.co.in', '8625977399', '$2a$10$N7p0mMj0XiyhBgFrY8KvTeoOZXy5yhSc2GZZlMdtviShczaQcTLvG', 1, 6, 1, 11, 1, NULL, 'active', '2026-03-18 09:17:55', 0, NULL, '2025-12-12 06:04:27', '2026-03-12 06:04:27', '2025-12-12 06:02:43', '2026-03-18 09:17:55'),
+(19, 'Harsh Gohil', 'harsh.gohil@alembic.co.in', '8080302041', '$2a$12$EUpyWKG8MR6IkRag7k8QU.5hMFIlQMyPCQcEt15GSvAQW8UwPIjwG', 9, 4, 1, 20, 1, NULL, 'active', '2026-03-24 09:56:04', 0, NULL, '2026-01-09 05:26:17', '2026-03-12 05:32:58', '2025-12-12 05:31:42', '2026-03-24 09:56:04'),
+(20, 'Nikhil Nadkar', 'nikhil.nadkar@alembic.co.in', '8625977399', '$2a$10$N7p0mMj0XiyhBgFrY8KvTeoOZXy5yhSc2GZZlMdtviShczaQcTLvG', 1, 6, 1, 11, 1, NULL, 'active', '2026-03-24 10:40:59', 0, NULL, '2025-12-12 06:04:27', '2026-03-12 06:04:27', '2025-12-12 06:02:43', '2026-03-24 10:40:59'),
 (21, 'Kiran Thekootu', 'kiran.thekootu@alembic.co.in', '9028268048', '$2a$10$y/pO8.4sMEfFXMpZL3na/OQH1YdBc/X/C1TFF./uQx.kGXlUKBcsS', 9, 3, 1, 17, 1, NULL, 'active', '2026-03-10 09:01:39', 0, NULL, '2025-12-12 11:31:52', '2026-03-12 11:31:52', '2025-12-12 10:18:11', '2026-03-10 09:01:39'),
-(23, 'Mohanish Mohan Padwal', 'mohanish.padwal@alembic.co.in', '09773359332', '$2a$10$AOZOUF.2nL6xqEuzanyhmeWdvx9WAAL1xynW3pCotHhFH.w3nWVfW', 9, 2, 1, 16, 1, NULL, 'active', '2026-03-20 16:01:46', 0, NULL, '2025-12-12 11:53:26', '2026-03-12 11:53:26', '2025-12-12 11:52:18', '2026-03-20 16:01:46'),
-(24, 'Bhagwan Parab', 'bhagwan.parab@alembic.co.in', '1234567890', '$2a$10$2XIulHDrk2Im5mZeQjLLuOYHADiB/2EINYZSX5vHiEAJYDDXZC69i', 9, 2, 1, 16, 1, NULL, 'active', '2026-01-08 10:16:34', 0, NULL, '2025-12-14 04:38:04', '2026-03-14 04:38:04', '2025-12-14 04:31:39', '2026-01-08 10:16:34'),
+(23, 'Mohanish Mohan Padwal', 'mohanish.padwal@alembic.co.in', '09773359332', '$2a$10$AOZOUF.2nL6xqEuzanyhmeWdvx9WAAL1xynW3pCotHhFH.w3nWVfW', 9, 2, 1, 16, 1, NULL, 'active', '2026-03-24 08:52:07', 0, NULL, '2025-12-12 11:53:26', '2026-03-12 11:53:26', '2025-12-12 11:52:18', '2026-03-24 08:52:07'),
+(24, 'Bhagwan Parab', 'bhagwan.parab@alembic.co.in', '1234567890', '$2a$12$meZmaR2NeR4bg3ox2FOTNulQ0K5IIWFsDbHh4yB8c.3H8iLYGae3W', 9, 2, 1, 16, 1, NULL, 'active', '2026-03-24 07:52:13', 0, NULL, '2025-12-14 04:38:04', '2026-03-14 04:38:04', '2025-12-14 04:31:39', '2026-03-24 07:52:13'),
 (25, 'Navneet Pathak', 'navneet.dpathak@alembic.co.in', '1234567890', '$2a$10$wGYowJV5gVFzoNClx15eHugTJMyDhW2gxrX6t2V/7VbunKgtd5Elm', 9, 4, 1, 20, 1, NULL, 'active', NULL, 0, NULL, '2025-12-14 04:39:21', '2026-03-14 04:39:21', '2025-12-14 04:31:56', '2025-12-14 04:39:21'),
 (26, 'Reshma Bastav', 'reshma.bastav@alembic.co.in', '1234567890', '$2a$10$ivzYIQLQfac/CCPjnrPJYul6b29va/Ux2b6I.FfvYutcUXXR6H9zy', 9, 4, 1, 20, 1, NULL, 'active', '2026-01-08 09:34:40', 0, NULL, '2025-12-14 04:40:18', '2026-03-14 04:40:18', '2025-12-14 04:32:07', '2026-01-08 09:34:40'),
 (27, 'Vikram Rai', 'vikramr.rai@alembic.co.in', '1234567890', '$2a$10$b3PR0RPWM0GmJPUR.4kB9O0saawBEBL9kxivbnzwY8IKi3sbYqHQO', 9, 2, 1, 16, 1, NULL, 'active', NULL, 0, NULL, '2025-12-14 04:41:23', '2026-03-14 04:41:23', '2025-12-14 04:32:17', '2025-12-14 04:41:23'),
 (28, 'Divya Raval', 'divya.iraval@alembic.co.in', '1234567890', '$2a$10$nml3wGBIR/PieYeTFVCSgut3wrI510QFdoU5u8xfa46FCf6p0ser6', 9, 4, 1, 20, 1, NULL, 'active', NULL, 1, NULL, '2025-12-14 04:42:20', '2026-03-14 04:42:20', '2025-12-14 04:32:26', '2026-01-06 04:09:13'),
-(29, 'Vinisha Chadala', 'vinisha.chadala@alembic.co.in', '1234567890', '$2a$10$g1TEpra8L50gQpQd6j.v3eg9x1YWFfnybw3gyg0tytG3EYDLDGkHu', 9, 4, 1, 20, 1, NULL, 'active', NULL, 0, NULL, '2025-12-14 04:42:43', '2026-03-14 04:42:43', '2025-12-14 04:32:33', '2025-12-14 04:42:43'),
-(30, 'Mahesh Morye', 'mahesh.morye@alembic.co.in', '1234567890', '$2a$10$a1JVnJq1Sf3QpE78DNwBNugdz.WPZcsi7EYNVjQkvtY03yq.EM622', 9, 4, 1, 20, 1, NULL, 'active', '2026-01-09 02:53:16', 0, NULL, '2025-12-14 04:43:19', '2026-03-14 04:43:19', '2025-12-14 04:32:42', '2026-01-09 02:53:16'),
-(31, 'Prashant Khade', 'prashant.khade@alembic.co.in', '1234567890', '$2a$10$mRmXTEho4.qtSInLK5c/FOQa.mc7.sk15bagCwCA1OWm/3Id/9gva', 9, 4, 1, 20, 1, NULL, 'active', NULL, 0, NULL, '2025-12-14 04:43:46', '2026-03-14 04:43:46', '2025-12-14 04:32:49', '2025-12-14 04:43:46'),
+(29, 'Vinisha Chadala', 'vinisha.chadala@alembic.co.in', '1234567890', '$2a$12$ERvLxjz.4NVUmLt19rs3kO6gtIZC0EwwGhbhNibXF1..2LCT.PR72', 9, 4, 1, 20, 1, NULL, 'active', '2026-03-24 05:54:50', 0, NULL, '2025-12-14 04:42:43', '2026-03-14 04:42:43', '2025-12-14 04:32:33', '2026-03-24 05:54:50'),
+(30, 'Mahesh Morye', 'mahesh.morye@alembic.co.in', '1234567890', '$2a$10$a1JVnJq1Sf3QpE78DNwBNugdz.WPZcsi7EYNVjQkvtY03yq.EM622', 9, 4, 1, 20, 1, NULL, 'active', '2026-03-24 08:46:19', 0, NULL, '2025-12-14 04:43:19', '2026-03-14 04:43:19', '2025-12-14 04:32:42', '2026-03-24 08:46:19'),
+(31, 'Prashant Khade', 'prashant.khade@alembic.co.in', '1234567890', '$2a$12$VeHjeRYiQ5CiuHXzeh6oneItPThudWytsPF0zAKG7anYRMZiw3U3C', 9, 4, 1, 20, 1, NULL, 'active', NULL, 0, NULL, '2025-12-14 04:43:46', '2026-03-14 04:43:46', '2025-12-14 04:32:49', '2026-03-24 05:39:54'),
 (32, 'Arvind Jha', 'arvind.jha@alembic.co.in', '1234567890', '$2a$10$vExiN38pEpNMrBlADsZ5ceIVtGi5F1Jolhsj9tJQ/fMkSz/0tDTMK', 1, 5, 1, 8, 1, NULL, 'active', NULL, 0, NULL, '2025-12-14 04:44:59', '2026-03-14 04:44:59', '2025-12-14 04:32:55', '2025-12-14 04:44:59'),
 (33, 'Paresh Sable', 'paresh.sable@alembic.co.in', '1234567890', '$2a$10$hdtG4e3EwW9gKWTiUloEn.1VDplMYBQtAJduPshVoRGpSP0C0/v/K', 1, 5, 1, 8, 1, NULL, 'active', NULL, 0, NULL, '2025-12-14 04:46:15', '2026-03-14 04:46:15', '2025-12-14 04:33:02', '2025-12-14 04:46:15'),
 (34, 'Prasad Jagadale', 'prasad.jagadale@alembic.co.in', '1234567890', '$2a$10$lI6mGlM3VG714/K75D56kO5jMAub1tt85M1HuXQhWVjATVK2ozKWq', 1, 5, 1, 8, 1, NULL, 'active', NULL, 0, NULL, '2025-12-14 04:49:23', '2026-03-14 04:49:23', '2025-12-14 04:33:12', '2025-12-14 04:49:23'),
@@ -3005,7 +3086,7 @@ INSERT INTO `users` (`id`, `name`, `email`, `phone`, `password`, `department_id`
 (59, 'Shivam Singh', 'shivam.gsingh@alembic.co.in', '8956999916', '$2a$10$fH37CVILCUE/p/QqcGFe3OGUabv.rixwBbTscvRx2OwqjUsZ/hCyi', 1, 6, 1, 14, 1, NULL, 'active', '2026-01-08 08:53:19', 0, NULL, '2026-01-08 08:53:06', '2026-04-08 08:53:06', '2026-01-08 08:48:49', '2026-01-08 08:53:19'),
 (60, 'Sumeet Paradkar', 'sumeet.paradkar@alembic.co.in', '9867422974', '$2a$10$dcB6Vco5ISuB4KA0jp6Vr.Y07d6Xl956DmuvQqfRYNkfDgHMpVzAu', 1, 6, 1, 12, 1, NULL, 'active', '2026-01-08 09:08:01', 0, NULL, '2026-01-08 09:07:33', '2026-04-08 09:07:33', '2026-01-08 09:04:47', '2026-01-08 09:08:01'),
 (61, 'Vivek Vishwakarma', 'vivek.v@alembic.co.in', '9821778497', '$2a$10$HAx5TgErf2LT4ThVvxvEcOck8xq2iDHNZn/Fm1cfM4TugPdt3TkHO', 9, 4, 1, 18, 1, NULL, 'active', '2026-01-08 09:59:24', 0, NULL, '2026-01-08 09:59:13', '2026-04-08 09:59:13', '2026-01-08 09:12:50', '2026-01-08 09:59:24'),
-(62, 'Angana Prakash Patil', 'angana.patil@alembic.co.in', '8591157125', '$2a$10$MS.FGF3ijl4REvUPejFbOedAEPNfvRRAtNC73w9BC3Vyy0E9gYCO6', 9, 4, 1, 20, 1, NULL, 'active', '2026-01-08 10:02:19', 0, NULL, '2026-01-08 10:02:09', '2026-04-08 10:02:09', '2026-01-08 10:01:03', '2026-01-08 10:02:19'),
+(62, 'Angana Prakash Patil', 'angana.patil@alembic.co.in', '8591157125', '$2a$12$wV.SuFXpWZIIrqI./9yHmub/H.w6NIkyypgIZCg.xzikKSJYPGCsi', 9, 4, 1, 20, 1, NULL, 'active', '2026-03-24 06:23:54', 0, NULL, '2026-01-08 10:02:09', '2026-04-08 10:02:09', '2026-01-08 10:01:03', '2026-03-24 06:23:54'),
 (63, 'Pooja Kirpekar', 'pooja.kirpekar@alembic.co.in', '9930115920', '$2a$10$6hoaAb.EicmP3Y31gfNTS.ALyxmOXMmPwyjedtcI3AgPtfbkVaUIK', 8, 2, 1, 16, 1, NULL, 'active', '2026-01-08 10:46:05', 0, NULL, '2026-01-08 10:45:37', '2026-04-08 10:45:37', '2026-01-08 10:43:56', '2026-01-08 10:46:05'),
 (64, 'Lopamudra Chakraborty', 'Lopamudra.c@alembic.co.in', '9693294111', '$2a$10$9k.O6cgdMcHtLISqTc4TqePToBrqtSyTxhgZeDqP4fphVLW6BoSsS', 1, 6, 1, 11, 1, NULL, 'active', '2026-01-09 03:57:40', 0, NULL, '2026-01-09 03:57:15', '2026-04-09 03:57:15', '2026-01-09 03:54:07', '2026-01-09 03:57:40'),
 (65, 'Jayesh Mishra', 'jayesh.mishra@alembic.co.in', '8080302041', '$2a$12$EUpyWKG8MR6IkRag7k8QU.5hMFIlQMyPCQcEt15GSvAQW8UwPIjwG', 9, 4, 1, 20, 1, NULL, 'active', NULL, 0, NULL, '2026-02-25 06:00:00', '2026-05-25 06:00:00', '2026-02-25 06:00:00', '2026-02-25 06:00:00'),
@@ -3103,7 +3184,14 @@ CREATE TABLE `work_requests` (
 --
 
 INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `request_type_id`, `project_id`, `description`, `about_project`, `priority`, `status`, `requested_at`, `remarks`, `created_at`, `updated_at`) VALUES
-(165, 20, 'testing issue register', 'test issue register', 4, 28, 'r  wrbvbbvd sdbvsbdhhhh h vsbfvbf vbsivkbs  sdvbsbdb sdvb ksbdkv sdvbksb', '{\"output_devices\":[\"Desktop\"],\"target_audience\":[\"Alembic HO\"]}', 'low', 'assigned', '2026-03-18 09:17:29', '', '2026-03-18 09:17:29', '2026-03-20 14:47:31');
+(165, 20, 'testing issue register', 'test issue register', 4, 28, 'r  wrbvbbvd sdbvsbdhhhh h vsbfvbf vbsivkbs  sdvbsbdb sdvb ksbdkv sdvbksb', '{\"output_devices\":[\"Desktop\"],\"target_audience\":[\"Alembic HO\"]}', 'low', 'completed', '2026-03-18 09:17:29', '', '2026-03-18 09:17:29', '2026-03-21 06:21:38'),
+(166, 23, 'submission model', 'test issue register', 4, 18, 'gh wd ef t rg g fg vc  fg ghhy ', '{\"output_devices\":[],\"target_audience\":[\"Field Representatives\"]}', 'low', 'in_progress', '2026-03-21 06:52:19', '', '2026-03-21 06:52:19', '2026-03-23 18:31:00'),
+(167, 20, 'Test Pro 001 Web', 'Banana', 4, 17, 'Describe the project with minimum of 10 words. If you know.', '{\"output_devices\":[\"iPad 10\",\"iPad 9\"],\"target_audience\":[\"Doctors\"]}', 'critical', 'in_progress', '2026-03-23 05:05:33', '', '2026-03-23 05:05:33', '2026-03-23 18:31:00'),
+(168, 20, 'Test Pro 002 Multiple Issue Close', 'Apple', 4, 22, 'Tell us about your project ( minimum 10 words )', '{\"output_devices\":[\"iPad 9\",\"iPad 10\"],\"target_audience\":[\"Chemists\",\"Doctors\"]}', 'high', 'pending', '2026-03-23 05:09:24', '', '2026-03-23 05:09:24', '2026-03-23 05:09:24'),
+(169, 20, 'test-web', 'test', 4, 22, 'dfbsj d bjfds fdsjbfdjsf dsbfjds fcdjfbdsfj cds bcjds fcjf jdnvcna ', '{\"output_devices\":[\"Desktop\",\"iPad 10\"],\"target_audience\":[\"Doctors\",\"Chemists\"]}', 'medium', 'assigned', '2026-03-24 05:53:26', '', '2026-03-24 05:53:26', '2026-03-24 09:07:51'),
+(170, 20, 'test-graphic-va', 'test', 1, 1, 'dfchfdsvf   bjfbds cbd cdsjbcds cnjds dscjd cdnvdnfv jdfvdb dn d vdmv fdbjv df nb', '{\"output_devices\":[\"iPad 10\",\"iPad 9\"],\"target_audience\":[\"Chemists\",\"Alembic HO\"]}', 'high', 'assigned', '2026-03-24 05:54:17', '', '2026-03-24 05:54:17', '2026-03-24 08:42:04'),
+(171, 20, 'test-video-animation', 'test', 2, 11, 'vfbv vfbv fvbhjvn vfjdb vjbfv df vbfjdf vadf vad vjad v', '{\"output_devices\":[\"iPad 10\",\"Desktop\",\"iPad 9\"],\"target_audience\":[\"Alembic HO\",\"Doctors\"]}', 'critical', 'assigned', '2026-03-24 05:55:32', '', '2026-03-24 05:55:32', '2026-03-24 06:23:37'),
+(172, 20, 'test', 'Test Brand', 4, 20, 'fdgsrfe gvg rgreg gr gregreg rgr ger gregregre  grfg g reg gr', '{\"output_devices\":[\"Mobile\"],\"target_audience\":[\"Chemists\"]}', 'low', 'pending', '2026-03-24 06:52:46', '', '2026-03-24 06:52:46', '2026-03-24 06:52:46');
 
 -- --------------------------------------------------------
 
@@ -3121,6 +3209,26 @@ CREATE TABLE `work_request_documents` (
   `status` enum('uploading','uploaded','failed') DEFAULT 'uploading',
   `uploaded_at` timestamp NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `work_request_documents`
+--
+
+INSERT INTO `work_request_documents` (`id`, `work_request_id`, `document_name`, `document_path`, `document_type`, `document_size`, `status`, `uploaded_at`) VALUES
+(263, 167, 'GERD Campaign_2_C2C.ai', '/digilabs/uat/dmap/api//uploads/Test_Pro_001_Web/GERD_Campaign_2_C2C.ai-1774242333909-967591824.ai', 'application/postscript', 30247909, 'uploaded', '2026-03-23 05:05:33'),
+(264, 167, 'GERD Campaign_2_C2C.pdf', '/digilabs/uat/dmap/api//uploads/Test_Pro_001_Web/GERD_Campaign_2_C2C.pdf-1774242333939-653079695.pdf', 'application/pdf', 29873671, 'uploaded', '2026-03-23 05:05:34'),
+(265, 168, 'ALCARE AM FY24-25  Monthly Corporate Incentive.pdf', '/digilabs/uat/dmap/api//uploads/Test_Pro_002_Multiple_Issue_Close/ALCARE_AM_FY24_25__Monthly_Corporate_Incentive.pdf-1774242564302-793343483.pdf', 'application/pdf', 1756994, 'uploaded', '2026-03-23 05:09:24'),
+(266, 168, 'ALCARE MR FY24-25  Monthly Corporate Incentive.pdf', '/digilabs/uat/dmap/api//uploads/Test_Pro_002_Multiple_Issue_Close/ALCARE_MR_FY24_25__Monthly_Corporate_Incentive.pdf-1774242564311-517111029.pdf', 'application/pdf', 1696244, 'uploaded', '2026-03-23 05:09:24'),
+(267, 168, 'ALCARE RM ZM FY24-25 Corporate Incentive.pdf', '/digilabs/uat/dmap/api//uploads/Test_Pro_002_Multiple_Issue_Close/ALCARE_RM_ZM_FY24_25_Corporate_Incentive.pdf-1774242564317-883227429.pdf', 'application/pdf', 1617520, 'uploaded', '2026-03-23 05:09:24'),
+(268, 168, 'ELENA AM FY24-25  Monthly Corporate Incentive.pdf', '/digilabs/uat/dmap/api//uploads/Test_Pro_002_Multiple_Issue_Close/ELENA_AM_FY24_25__Monthly_Corporate_Incentive.pdf-1774242564323-617447134.pdf', 'application/pdf', 1758170, 'uploaded', '2026-03-23 05:09:24'),
+(269, 168, 'ELENA MR FY24-25  Monthly Corporate Incentive.pdf', '/digilabs/uat/dmap/api//uploads/Test_Pro_002_Multiple_Issue_Close/ELENA_MR_FY24_25__Monthly_Corporate_Incentive.pdf-1774242564328-864392713.pdf', 'application/pdf', 1696311, 'uploaded', '2026-03-23 05:09:24'),
+(270, 168, 'ELENA RM ZM FY24-25 Corporate Incentive.pdf', '/digilabs/uat/dmap/api//uploads/Test_Pro_002_Multiple_Issue_Close/ELENA_RM_ZM_FY24_25_Corporate_Incentive.pdf-1774242564335-94144625.pdf', 'application/pdf', 1618034, 'uploaded', '2026-03-23 05:09:24'),
+(271, 171, 'my-image1772692738514.png', '/digilabs/uat/dmap/api//uploads/test_video_animation/my_image1772692738514.png-1774331732813-440506990.png', 'image/png', 713670, 'uploaded', '2026-03-24 05:55:32'),
+(272, 171, 'my-image1772692444412.png', '/digilabs/uat/dmap/api//uploads/test_video_animation/my_image1772692444412.png-1774331732823-213651670.png', 'image/png', 713670, 'uploaded', '2026-03-24 05:55:32'),
+(273, 171, 'corium_womens_day_photoframer.sql', '/digilabs/uat/dmap/api//uploads/test_video_animation/corium_womens_day_photoframer.sql-1774331732830-463282608.sql', 'application/octet-stream', 4952, 'uploaded', '2026-03-24 05:55:32'),
+(274, 171, 'Data.xlsx', '/digilabs/uat/dmap/api//uploads/test_video_animation/Data.xlsx-1774331732836-202082449.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 4110, 'uploaded', '2026-03-24 05:55:32'),
+(275, 171, 'my-image1772685659144.png', '/digilabs/uat/dmap/api//uploads/test_video_animation/my_image1772685659144.png-1774331732843-491568711.png', 'image/png', 762710, 'uploaded', '2026-03-24 05:55:32'),
+(276, 171, 'poster.png', '/digilabs/uat/dmap/api//uploads/test_video_animation/poster.png-1774331732851-152815391.png', 'image/png', 383546, 'uploaded', '2026-03-24 05:55:32');
 
 -- --------------------------------------------------------
 
@@ -3142,7 +3250,19 @@ CREATE TABLE `work_request_managers` (
 
 INSERT INTO `work_request_managers` (`id`, `work_request_id`, `manager_id`, `created_at`, `updated_at`) VALUES
 (208, 165, 21, '2026-03-18 09:17:29', '2026-03-18 09:17:29'),
-(209, 165, 23, '2026-03-18 09:17:29', '2026-03-18 09:17:29');
+(209, 165, 23, '2026-03-18 09:17:29', '2026-03-18 09:17:29'),
+(210, 166, 21, '2026-03-21 06:52:19', '2026-03-21 06:52:19'),
+(211, 166, 23, '2026-03-21 06:52:19', '2026-03-21 06:52:19'),
+(212, 167, 21, '2026-03-23 05:05:33', '2026-03-23 05:05:33'),
+(213, 167, 23, '2026-03-23 05:05:33', '2026-03-23 05:05:33'),
+(214, 168, 21, '2026-03-23 05:09:24', '2026-03-23 05:09:24'),
+(215, 168, 23, '2026-03-23 05:09:24', '2026-03-23 05:09:24'),
+(216, 169, 21, '2026-03-24 05:53:26', '2026-03-24 05:53:26'),
+(217, 169, 23, '2026-03-24 05:53:26', '2026-03-24 05:53:26'),
+(218, 170, 24, '2026-03-24 05:54:17', '2026-03-24 05:54:17'),
+(219, 171, 23, '2026-03-24 05:55:32', '2026-03-24 05:55:32'),
+(220, 172, 21, '2026-03-24 06:52:46', '2026-03-24 06:52:46'),
+(221, 172, 23, '2026-03-24 06:52:46', '2026-03-24 06:52:46');
 
 --
 -- Indexes for dumped tables
@@ -3446,13 +3566,13 @@ ALTER TABLE `division`
 -- AUTO_INCREMENT for table `issue_assignments`
 --
 ALTER TABLE `issue_assignments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT for table `issue_assignment_types`
 --
 ALTER TABLE `issue_assignment_types`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
 
 --
 -- AUTO_INCREMENT for table `issue_documents`
@@ -3470,7 +3590,7 @@ ALTER TABLE `issue_register`
 -- AUTO_INCREMENT for table `issue_user_assignments`
 --
 ALTER TABLE `issue_user_assignments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `job_role`
@@ -3518,13 +3638,13 @@ ALTER TABLE `sales`
 -- AUTO_INCREMENT for table `tasks`
 --
 ALTER TABLE `tasks`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=89;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=105;
 
 --
 -- AUTO_INCREMENT for table `task_assignments`
 --
 ALTER TABLE `task_assignments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=95;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=111;
 
 --
 -- AUTO_INCREMENT for table `task_dependencies`
@@ -3536,7 +3656,7 @@ ALTER TABLE `task_dependencies`
 -- AUTO_INCREMENT for table `task_documents`
 --
 ALTER TABLE `task_documents`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
 
 --
 -- AUTO_INCREMENT for table `task_project_reference`
@@ -3548,7 +3668,7 @@ ALTER TABLE `task_project_reference`
 -- AUTO_INCREMENT for table `task_review_history`
 --
 ALTER TABLE `task_review_history`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=39;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
 
 --
 -- AUTO_INCREMENT for table `task_type`
@@ -3572,19 +3692,19 @@ ALTER TABLE `user_divisions`
 -- AUTO_INCREMENT for table `work_requests`
 --
 ALTER TABLE `work_requests`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=166;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=173;
 
 --
 -- AUTO_INCREMENT for table `work_request_documents`
 --
 ALTER TABLE `work_request_documents`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=263;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=277;
 
 --
 -- AUTO_INCREMENT for table `work_request_managers`
 --
 ALTER TABLE `work_request_managers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=210;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=222;
 
 --
 -- Constraints for dumped tables
