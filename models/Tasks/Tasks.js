@@ -180,6 +180,11 @@ const Tasks = sequelize.define('Tasks', {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,
   },
+  comments: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'Optional comments when submitting/completing a task',
+  },
 }, {
   tableName: 'tasks',
   timestamps: true,

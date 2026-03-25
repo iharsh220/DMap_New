@@ -187,6 +187,11 @@ const IssueAssignments = sequelize.define('IssueAssignments', {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,
   },
+  comments: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'Optional comments when submitting/completing an issue',
+  },
 }, {
   tableName: 'issue_assignments',
   timestamps: true,

@@ -883,6 +883,7 @@ const submitTask = async (req, res) => {
             link, 
             work_request_id, 
             start_date,
+            comments,
             // Content Work fields
             no_of_options_provided,
             no_of_words_written,
@@ -1053,6 +1054,11 @@ const submitTask = async (req, res) => {
 
             if (link) {
                 taskUpdateData.link = link;
+            }
+
+            // Add comments if provided
+            if (comments) {
+                taskUpdateData.comments = comments;
             }
 
             // Add Content Work fields if provided
@@ -1907,6 +1913,7 @@ const submitIssue = async (req, res) => {
             link, 
             description, 
             task_count,
+            comments,
             // Content Work fields
             no_of_options_provided,
             no_of_words_written,
@@ -2021,6 +2028,11 @@ const submitIssue = async (req, res) => {
 
             if (task_count) {
                 issueUpdateData.task_count = parseInt(task_count, 10);
+            }
+
+            // Add comments if provided
+            if (comments) {
+                issueUpdateData.comments = comments;
             }
 
             // Add Content Work fields if provided
