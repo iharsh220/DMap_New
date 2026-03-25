@@ -4607,6 +4607,8 @@ const assignIssueToUser = async (req, res) => {
 
 // Complete all tasks and issues for a work request
 const completeAllTasksAndIssues = async (req, res) => {
+    const transaction = await require('../../models').sequelize.transaction();
+    
     try {
         const { work_request_id } = req.body;
         
@@ -4627,7 +4629,7 @@ const completeAllTasksAndIssues = async (req, res) => {
             });
         }
 
-        // Check if work request exists and is assigned to the manager
+        // Check if work request exists
         const workRequest = await WorkRequests.findByPk(workRequestId);
         if (!workRequest) {
             return res.status(404).json({
@@ -4636,7 +4638,8 @@ const completeAllTasksAndIssues = async (req, res) => {
             });
         }
 
-        // Check if the manager is assigned to this work request
+        // Check if the user is either the creator of the work request OR a manager assigned to it
+        const isCreator = workRequest.user_id === manager_id;
         const managerAssignment = await WorkRequestManagers.findOne({
             where: {
                 work_request_id: workRequestId,
@@ -4644,10 +4647,10 @@ const completeAllTasksAndIssues = async (req, res) => {
             }
         });
 
-        if (!managerAssignment) {
-            return res.status(404).json({
+        if (!isCreator && !managerAssignment) {
+            return res.status(403).json({
                 success: false,
-                error: 'Work request not found or not assigned to you'
+                error: 'You are not authorized to complete this work request'
             });
         }
 
@@ -4673,7 +4676,8 @@ const completeAllTasksAndIssues = async (req, res) => {
                 review_stage: 'final_approved'
             },
             {
-                where: { id: taskIds }
+                where: { id: taskIds },
+                transaction
             }
         );
 
@@ -4696,10 +4700,14 @@ const completeAllTasksAndIssues = async (req, res) => {
                     review_stage: 'final_approved'
                 },
                 {
-                    where: { id: issueIds }
+                    where: { id: issueIds },
+                    transaction
                 }
             );
         }
+
+        // Commit the transaction
+        await transaction.commit();
 
         // Get user details who created the work request
         const requestCreator = await User.findByPk(workRequest.user_id, {
@@ -4763,6 +4771,7 @@ const completeAllTasksAndIssues = async (req, res) => {
         });
 
     } catch (error) {
+        await transaction.rollback();
         console.error('Error completing all tasks and issues:', error);
         return res.status(500).json({
             success: false,

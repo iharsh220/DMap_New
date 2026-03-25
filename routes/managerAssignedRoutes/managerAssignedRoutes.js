@@ -45,6 +45,6 @@ router.get('/:id/analytics', authenticateToken, checkRole([1, 2, 3]), getTaskAna
 router.post('/:id/assign-tasks', authenticateToken, checkRole([1, 2, 3]), assignTasksToUsers); // Send task assignment notifications to users
 
 // Complete all tasks and issues for a work request
-router.put('/complete', authenticateToken, checkRole([1, 2, 3]), completeAllTasksAndIssues); // Complete all tasks and issues for a work request
+router.put('/complete', authenticateToken, completeAllTasksAndIssues); // Complete all tasks and issues for a work request
 
 module.exports = router;
