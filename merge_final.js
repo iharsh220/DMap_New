@@ -156,12 +156,25 @@ for (let i = 0; i < oldLines.length; i++) {
     }
     
     if (line.includes('INSERT INTO')) {
+        // If we were already in an INSERT and didn't close it, save it first
+        if (inInsert && insertLines.length > 0) {
+            let fullInsert = insertLines.join('\n');
+            fullInsert = addMissingColumns(fullInsert, currentTable);
+            if (fullInsert.includes('INSERT INTO')) {
+                allInserts.push({
+                    table: currentTable,
+                    sql: fullInsert
+                });
+            }
+        }
         inInsert = true;
         insertLines = [line];
     }
     else if (inInsert) {
         insertLines.push(line);
-        if (line.trim().endsWith(';')) {
+        // Check for end of INSERT - either ends with ; or is the last line
+        const trimmedLine = line.trim();
+        if (trimmedLine.endsWith(';') || i === oldLines.length - 1) {
             let fullInsert = insertLines.join('\n');
             fullInsert = addMissingColumns(fullInsert, currentTable);
             
@@ -174,6 +187,18 @@ for (let i = 0; i < oldLines.length; i++) {
             inInsert = false;
             insertLines = [];
         }
+    }
+}
+
+// Handle any remaining unclosed INSERT statements
+if (inInsert && insertLines.length > 0) {
+    let fullInsert = insertLines.join('\n');
+    fullInsert = addMissingColumns(fullInsert, currentTable);
+    if (fullInsert.includes('INSERT INTO')) {
+        allInserts.push({
+            table: currentTable,
+            sql: fullInsert
+        });
     }
 }
 

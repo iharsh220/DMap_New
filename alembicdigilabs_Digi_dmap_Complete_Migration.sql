@@ -3167,7 +3167,8 @@ INSERT INTO `tasks` (`id`, `task_name`, `description`, `request_type_id`, `task_
 (800, 'GERISTICKERS - FORMULA 1 THEMED - ', 'DYNAMIC STICKERS ', 2, 54, 823, '2026-03-31', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-25 04:37:14', '2026-03-25 04:37:16', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
 (801, 'WHD - Volume Matters Patient Awareness Videos ', 'Volume Matters Patient Awareness Videos ', 4, 81, 807, '2026-03-31', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-25 04:38:27', '2026-03-25 04:38:50', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
 (802, 'Zenovi  April month artwork', 'Festival flyer', 1, 12, 826, '2026-04-30', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-25 06:25:43', '2026-03-25 06:25:46', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
-(803, 'Pharma VA pages animation', 'Cloff oral Pages', 2, 47, 635, '2026-03-26', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-25 06:40:46', '2026-03-25 06:40:48', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL);
+(803, 'Pharma VA pages animation', 'Cloff oral Pages', 2, 47, 635, '2026-03-26', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-25 06:40:46', '2026-03-25 06:40:48', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL),
+(804, 'GENERIC LB - All brand ', 'LBL', 1, 3, 832, '2026-03-31', 'pending', 1, 0, NULL, NULL, NULL, '2026-03-25 09:30:45', '2026-03-25 09:30:49', 'V1', 'new', 0, 'pending', 'not_started', NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL);
 
 -- --------------------------------------------------------
 -- Dumping data for table `task_assignments`
@@ -3828,7 +3829,8 @@ INSERT INTO `task_assignments` (`id`, `task_id`, `user_id`, `created_at`, `updat
 (997, 800, 30, '2026-03-25 04:37:14', '2026-03-25 04:37:14'),
 (1000, 801, 45, '2026-03-25 04:38:50', '2026-03-25 04:38:50'),
 (1001, 802, 62, '2026-03-25 06:25:43', '2026-03-25 06:25:43'),
-(1002, 803, 92, '2026-03-25 06:40:46', '2026-03-25 06:40:46');
+(1002, 803, 92, '2026-03-25 06:40:46', '2026-03-25 06:40:46'),
+(1003, 804, 50, '2026-03-25 09:30:45', '2026-03-25 09:30:45');
 
 -- --------------------------------------------------------
 -- Dumping data for table `task_dependencies`
@@ -5166,7 +5168,7 @@ INSERT INTO `users` (`id`, `name`, `email`, `phone`, `password`, `department_id`
 (130, NULL, 'SFA@alembic.co.in', NULL, NULL, NULL, NULL, NULL, NULL, 1, NULL, 'pending', NULL, 0, NULL, NULL, NULL, '2026-01-27 12:31:02', '2026-01-27 12:31:26'),
 (131, 'Mayur Purankar', 'mayur.purankar@alembic.co.in', '9284795727', '$2a$10$YFffSUra/K7zO0HVjsjUMuMhevyXEZWwcJY3Mu246Qr4qN0srY1hi', 1, 6, 1, 12, 1, NULL, 'active', '2026-02-24 06:39:52', 0, NULL, '2026-01-28 04:30:36', '2026-04-28 04:30:36', '2026-01-28 04:07:29', '2026-02-24 06:39:52'),
 (132, 'Hrushikesha Sahu', 'hrushikesha.s@alembic.co.in', '9437930972', '$2a$12$KH5Ci5nHz29/GoUfaYeNFOq4N.GKK1TeFDZD67273/73PCgZW.QkK', 1, 6, 1, 10, 1, NULL, 'active', '2026-03-23 10:23:44', 0, NULL, '2026-03-17 06:50:39', '2026-04-28 04:33:03', '2026-01-28 04:31:04', '2026-03-23 10:23:44'),
-(134, 'Dr. Amit Karmankar', 'amit.karmankar@alembic.co.in', '8149772109', '$2a$10$gbdBbMlx1nEAgkqwjyB/rOdUv1GSGrfd4UOnB9yt4sfDKfWqDAOcu', 1, 6, 1, 9, 1, NULL, 'active', '2026-03-18 04:59:03', 0, NULL, '2026-01-29 04:33:46', '2026-04-29 04:33:46', '2026-01-29 04:29:50', '2026-03-18 04:59:03'),
+(134, 'Dr. Amit Karmankar', 'amit.karmankar@alembic.co.in', '8149772109', '$2a$10$gbdBbMlx1nEAgkqwjyB/rOdUv1GSGrfd4UOnB9yt4sfDKfWqDAOcu', 1, 6, 1, 9, 1, NULL, 'active', '2026-03-25 09:17:04', 0, NULL, '2026-01-29 04:33:46', '2026-04-29 04:33:46', '2026-01-29 04:29:50', '2026-03-25 09:17:04'),
 (135, 'Puja Niwas', 'puja.niwas@alembic.co.in', '9990864854', '$2a$10$t4gstogs4OR9psuRnkNMAOoT8lOYZi3YbM7zHJrbL8DExz3HAYtUG', 1, 6, 1, 10, 1, NULL, 'active', '2026-03-10 07:57:48', 0, NULL, '2026-01-29 04:53:46', '2026-04-29 04:53:46', '2026-01-29 04:51:29', '2026-03-10 07:57:48'),
 (136, 'SATYAM PRASAD MAHTO', 'satyam.mmahto@alembic.co.in', '9082096462', '$2a$10$EpRjJ8FXo1N7mKdug2YVGu8UboRtjVpntIOAlc4/PSICmEHrhKrbS', 1, 6, 1, 11, 1, NULL, 'active', '2026-03-20 08:57:54', 0, NULL, '2026-01-29 06:32:45', '2026-04-29 06:32:45', '2026-01-29 06:29:41', '2026-03-20 08:57:54'),
 (137, 'Akshada Jadhav', 'akshada.jadhav@alembic.co.in', '9324523611', '$2a$10$JsQop.7qIk3UFTZc7dekZeQdDHnrH0gtFJijDg8Ci5KtVgz98MZ8e', 1, 6, 1, 13, 1, NULL, 'active', '2026-03-13 09:02:52', 0, NULL, '2026-01-29 06:50:28', '2026-04-29 06:50:28', '2026-01-29 06:48:25', '2026-03-13 09:02:52'),
@@ -5988,7 +5990,8 @@ INSERT INTO `work_requests` (`id`, `user_id`, `project_name`, `brand`, `request_
 (829, 81, 'Generic LB - FORTAFEN group', 'FORTAFEN', 1, 1, 'Want to refresh the design of the older LB ( I\'ll provide the older one ), \r\nremove the MRP Column from the table mentioned on the older LB & use all the information from older LB.', '{\"output_devices\":[\"Mobile\",\"Print\"],\"target_audience\":[\"Field Representatives\"]}', 'high', 'pending', '2026-03-25 06:22:56', '', '2026-03-25 06:22:56', '2026-03-25 06:22:56'),
 (830, 179, 'Award write up', 'NA', 3, 16, 'award receiving write up which was received by supply chain department', '{\"output_devices\":[\"Desktop\"],\"target_audience\":[\"Alembic HO\"]}', 'low', 'pending', '2026-03-25 06:29:11', '', '2026-03-25 06:29:11', '2026-03-25 06:29:11'),
 (831, 105, 'MOXOFT VA', 'MOXOFT , MOXOFT D , MOXOFT LP', 1, 1, 'The VA outline and layout are already finalized. We only need to update a few scientific pointers and incorporate some new elements to improve clarity and visual impact. Please present the points as short, crisp statements with key numbers highlighted for quick readability. Add clean, concept-based visuals where relevant while maintaining the existing layout and overall clinical look.', '{\"output_devices\":[\"iPad 10\",\"iPad 9\"],\"target_audience\":[\"Doctors\",\"Field Representatives\"]}', 'medium', 'pending', '2026-03-25 06:39:31', '', '2026-03-25 06:39:31', '2026-03-25 06:39:31'),
-(832, 81, 'GENERIC LB - All brand ', 'all brand ', 1, 1, 'LB text will be attched, front & back need to design ', '{\"output_devices\":[\"Mobile\",\"Print\"],\"target_audience\":[\"Field Representatives\"]}', 'high', 'pending', '2026-03-25 07:11:49', '', '2026-03-25 07:11:49', '2026-03-25 07:11:49');
+(832, 81, 'GENERIC LB - All brand ', 'all brand ', 1, 1, 'LB text will be attched, front & back need to design ', '{\"output_devices\":[\"Mobile\",\"Print\"],\"target_audience\":[\"Field Representatives\"]}', 'high', 'assigned', '2026-03-25 07:11:49', '', '2026-03-25 07:11:49', '2026-03-25 09:30:49'),
+(833, 134, 'Dairy product LBL', 'Alvite M 25kg, Ascal Gold 20 lit, Khurak 15 kg', 1, 1, 'We want 4 page LBL for dairy division promotion brochure', '{\"output_devices\":[\"Print\"],\"target_audience\":[\"Others\"]}', 'high', 'pending', '2026-03-25 09:20:50', '', '2026-03-25 09:20:50', '2026-03-25 09:20:50');
 
 -- --------------------------------------------------------
 -- Dumping data for table `work_request_documents`
@@ -7056,7 +7059,8 @@ INSERT INTO `work_request_managers` (`id`, `work_request_id`, `manager_id`, `cre
 (990, 830, 27, '2026-03-25 06:29:11', '2026-03-25 06:29:11'),
 (991, 830, 23, '2026-03-25 06:29:11', '2026-03-25 06:29:11'),
 (992, 831, 24, '2026-03-25 06:39:31', '2026-03-25 06:39:31'),
-(993, 832, 24, '2026-03-25 07:11:49', '2026-03-25 07:11:49');
+(993, 832, 24, '2026-03-25 07:11:49', '2026-03-25 07:11:49'),
+(994, 833, 24, '2026-03-25 09:20:50', '2026-03-25 09:20:50');
 
 -- ========================================================
 -- FOREIGN KEY CONSTRAINTS
