@@ -647,11 +647,33 @@ const getTaskById = async (req, res) => {
                     where: { id: { [Op.in]: userIds } }, // Allow current user or team members for managers
                     attributes: ['id', 'name', 'email'],
                     through: { attributes: ['created_at'] },
-                    required: true // This ensures the task must be assigned to the user or their team
+                    required: true, // This ensures the task must be assigned to the user or their team
+                    include: [
+                        {
+                            model: UserDivisions,
+                            as: 'userDivisions',
+                            attributes: ['division_id'],
+                            include: [
+                                {
+                                    model: Division,
+                                    as: 'division',
+                                    attributes: ['id', 'title']
+                                }
+                            ]
+                        }
+                    ]
                 },
                 {
                     model: RequestType,
-                    attributes: ['id', 'request_type', 'description']
+                    attributes: ['id', 'request_type', 'description'],
+                    include: [
+                        {
+                            model: Division,
+                            as: 'Divisions',
+                            attributes: ['id', 'title'],
+                            through: { attributes: [] }
+                        }
+                    ]
                 },
                 {
                     model: TaskType,
@@ -737,6 +759,25 @@ const getTaskById = async (req, res) => {
         // Flatten documents from all task assignments
         taskResult.dataValues.documents = (taskResult.taskAssignments || []).flatMap(ta => ta.taskDocuments || []);
         delete taskResult.dataValues.taskAssignments;
+
+        // Extract division from RequestType (task's request_type_id)
+        let taskDivision = null;
+        if (taskResult.RequestType && taskResult.RequestType.Divisions && taskResult.RequestType.Divisions.length > 0) {
+            taskDivision = taskResult.RequestType.Divisions[0];
+        }
+        taskResult.dataValues.division = taskDivision;
+
+        // Add division to each assigned user
+        if (taskResult.assignedUsers && taskResult.assignedUsers.length > 0) {
+            taskResult.assignedUsers = taskResult.assignedUsers.map(user => {
+                const userDivision = user.userDivisions && user.userDivisions.length > 0
+                    ? user.userDivisions[0].division
+                    : null;
+                user.dataValues.division = userDivision;
+                delete user.dataValues.userDivisions;
+                return user;
+            });
+        }
 
         res.json({
             success: true,
