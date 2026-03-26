@@ -1070,6 +1070,16 @@ const deferWorkRequest = async (req, res) => {
         }
 
         if (reason === 'insufficient_details' && message) {
+            // Update work request status and remarks to insufficient_details
+            const updateResult = await workRequestService.updateById(id, {
+                // status: 'insufficient_details',
+                remarks: 'insufficient_details'
+            });
+
+            if (!updateResult.success) {
+                return res.status(500).json({ success: false, error: 'Failed to update work request' });
+            }
+
             // Send email to user
             const user = workRequest.users;
             const currentUser = req.user;
