@@ -22,9 +22,9 @@ const getAdminData = async (req, res) => {
                 wr.id AS work_request_id,
                 COALESCE(wr.project_name, 'N/A') AS project_name,
                 COALESCE(rt.request_type, 'N/A') AS project_type,
-                COALESCE(rdiv.title, 'N/A') AS requester_division,
+                COALESCE(GROUP_CONCAT(DISTINCT rdiv.title SEPARATOR ', '), 'N/A') AS requester_division,
                 COALESCE(ru.name, 'N/A') AS requester_name,
-                COALESCE(mdiv.title, 'N/A') AS manager_division,
+                COALESCE(tdiv.title, 'N/A') AS user_division,
                 COALESCE(GROUP_CONCAT(DISTINCT mu.name ORDER BY mu.name SEPARATOR ', '), 'N/A') AS manager_name,
                 1 AS project_count,
                 COUNT(DISTINCT t.id) AS task_count,
@@ -48,9 +48,14 @@ const getAdminData = async (req, res) => {
             LEFT JOIN division rdiv ON rud.division_id = rdiv.id
             LEFT JOIN work_request_managers wrm ON wr.id = wrm.work_request_id
             LEFT JOIN users mu ON wrm.manager_id = mu.id
-            LEFT JOIN request_division_reference rdr ON rt.id = rdr.request_id
-            LEFT JOIN division mdiv ON rdr.division_id = mdiv.id
             LEFT JOIN tasks t ON wr.id = t.work_request_id
+            LEFT JOIN task_type tt ON t.task_type_id = tt.id
+            LEFT JOIN task_project_reference tpr ON tt.id = tpr.task_id
+            LEFT JOIN project_type pt ON tpr.project_id = pt.id
+            LEFT JOIN project_request_reference prr ON pt.id = prr.project_id
+            LEFT JOIN request_type rt2 ON prr.request_id = rt2.id
+            LEFT JOIN request_division_reference rdr2 ON rt2.id = rdr2.request_id
+            LEFT JOIN division tdiv ON rdr2.division_id = tdiv.id
         `;
 
         if (whereClauses.length > 0) {
@@ -62,9 +67,7 @@ const getAdminData = async (req, res) => {
                 wr.id, 
                 wr.project_name, 
                 rt.request_type,
-                rdiv.title, 
                 ru.name, 
-                mdiv.title,
                 wr.requested_at
         `;
 
@@ -98,18 +101,20 @@ const getTaskDetailsData = async (req, res) => {
                 wr.id AS work_request_id,
                 COALESCE(wr.project_name, 'N/A') AS project_name,
                 COALESCE(rt.request_type, 'N/A') AS project_type,
-                COALESCE(rdiv.title, 'N/A') AS requester_division,
+                COALESCE(GROUP_CONCAT(DISTINCT rdiv.title SEPARATOR ', '), 'N/A') AS requester_division,
                 COALESCE(ru.name, 'N/A') AS requester_name,
-                COALESCE(mdiv.title, 'N/A') AS manager_division,
+                COALESCE(tdiv.title, 'N/A') AS user_division,
                 COALESCE(GROUP_CONCAT(DISTINCT mu.name ORDER BY mu.name SEPARATOR ', '), 'N/A') AS manager_name,
                 t.id AS task_id,
                 t.task_name,
                 tt.task_type,
-                COALESCE(au.name, 'N/A') AS creative_user,
-                1 AS task_count,
+                COALESCE(GROUP_CONCAT(DISTINCT au.name SEPARATOR ', '), 'N/A') AS creative_user,
+                COUNT(DISTINCT ta.id) AS task_count,
                 t.task_count AS no_of_work_pages,
-                COALESCE(t.start_date, 'N/A') AS task_start_date,
-                COALESCE(t.end_date, 'N/A') AS task_end_date,
+                COALESCE(DATE_FORMAT(wr.requested_at, '%Y-%m-%d'), 'N/A') AS request_date,
+                COALESCE(wr.priority, 'N/A') AS scale,
+                COALESCE(DATE_FORMAT(t.start_date, '%Y-%m-%d'), 'N/A') AS task_start_date,
+                COALESCE(DATE_FORMAT(t.end_date, '%Y-%m-%d'), 'N/A') AS task_end_date,
                 CASE
                     WHEN t.start_date IS NULL AND t.end_date IS NULL THEN 'upcoming'
                     WHEN t.start_date IS NOT NULL AND t.end_date IS NOT NULL THEN 'completed'
@@ -119,13 +124,17 @@ const getTaskDetailsData = async (req, res) => {
             LEFT JOIN work_requests wr ON t.work_request_id = wr.id
             LEFT JOIN request_type rt ON wr.request_type_id = rt.id
             LEFT JOIN task_type tt ON t.task_type_id = tt.id
+            LEFT JOIN task_project_reference tpr ON tt.id = tpr.task_id
+            LEFT JOIN project_type pt ON tpr.project_id = pt.id
+            LEFT JOIN project_request_reference prr ON pt.id = prr.project_id
+            LEFT JOIN request_type rt2 ON prr.request_id = rt2.id
+            LEFT JOIN request_division_reference rdr2 ON rt2.id = rdr2.request_id
+            LEFT JOIN division tdiv ON rdr2.division_id = tdiv.id
             LEFT JOIN users ru ON wr.user_id = ru.id
             LEFT JOIN user_divisions rud ON ru.id = rud.user_id
             LEFT JOIN division rdiv ON rud.division_id = rdiv.id
             LEFT JOIN work_request_managers wrm ON wr.id = wrm.work_request_id
             LEFT JOIN users mu ON wrm.manager_id = mu.id
-            LEFT JOIN request_division_reference rdr ON rt.id = rdr.request_id
-            LEFT JOIN division mdiv ON rdr.division_id = mdiv.id
             LEFT JOIN task_assignments ta ON t.id = ta.task_id
             LEFT JOIN users au ON ta.user_id = au.id
         `;
@@ -134,7 +143,7 @@ const getTaskDetailsData = async (req, res) => {
             query += ` WHERE ${whereClauses.join(' AND ')}`;
         }
 
-        query += ` GROUP BY wr.id, wr.project_name, rt.request_type, rdiv.title, ru.name, mdiv.title, t.id, t.task_name, tt.task_type, au.name ORDER BY t.id DESC`;
+        query += ` GROUP BY wr.id, wr.project_name, rt.request_type, ru.name, t.id, t.task_name, tt.task_type, t.task_count, t.start_date, t.end_date, wr.requested_at, wr.priority ORDER BY t.id DESC`;
 
         const results = await sequelize.query(query, {
             replacements,
