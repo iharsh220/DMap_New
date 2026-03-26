@@ -230,7 +230,12 @@ const getAssignedTasks = async (req, res) => {
             attributes: { exclude: [] },
             limit: req.pagination.limit,
             offset: req.pagination.offset,
-            order: [['deadline', 'ASC']] // Sort by deadline ascending by default
+            order: [
+                // First sort by status: in_progress first, then others
+                [Tasks.sequelize.literal('CASE WHEN `Tasks`.`status` = \'in_progress\' THEN 0 ELSE 1 END'), 'ASC'],
+                // Then sort by deadline ascending
+                ['deadline', 'ASC']
+            ]
         });
 
         // Sort WorkRequestManagers by nested manager ID ascending (23 then 27)
