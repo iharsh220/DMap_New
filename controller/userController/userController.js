@@ -28,7 +28,7 @@ require('dotenv').config();
 const getAssignedTasks = async (req, res) => {
     try {
         const user_id = req.user.id;
-        const { status, deadline } = req.query; // Get status and deadline filters from query params
+        const { status, deadline, review, review_stages } = req.query; // Get status, deadline, review, and review_stages filters from query params
 
         // Check if user is manager (job_role_id = 2)
         const isManager = req.user.jobRole && req.user.jobRole.id === 2;
@@ -122,6 +122,54 @@ const getAssignedTasks = async (req, res) => {
             // Default: show pending tasks (not yet accepted)
             whereCondition.status = 'pending';
             whereCondition.intimate_team = 1;
+        }
+
+        // Handle multiple comma-separated review values
+        if (review) {
+            const reviewArray = review.split(',').map(r => r.trim());
+
+            // Validate review values
+            const validReviews = ['pending', 'approved', 'change_request'];
+            const invalidReviews = reviewArray.filter(r => !validReviews.includes(r));
+
+            if (invalidReviews.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Invalid review values: ${invalidReviews.join(', ')}. Valid values are: ${validReviews.join(', ')}`
+                });
+            }
+
+            // If multiple reviews, use OR condition
+            if (reviewArray.length > 1) {
+                whereCondition.review = { [Op.in]: reviewArray };
+            } else {
+                // Single review
+                whereCondition.review = reviewArray[0];
+            }
+        }
+
+        // Handle multiple comma-separated review_stages values
+        if (review_stages) {
+            const reviewStageArray = review_stages.split(',').map(rs => rs.trim());
+
+            // Validate review_stage values
+            const validReviewStages = ['not_started', 'manager_review', 'pm_review', 'change_requested', 'final_approved'];
+            const invalidReviewStages = reviewStageArray.filter(rs => !validReviewStages.includes(rs));
+
+            if (invalidReviewStages.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Invalid review_stage values: ${invalidReviewStages.join(', ')}. Valid values are: ${validReviewStages.join(', ')}`
+                });
+            }
+
+            // If multiple review_stages, use OR condition
+            if (reviewStageArray.length > 1) {
+                whereCondition.review_stage = { [Op.in]: reviewStageArray };
+            } else {
+                // Single review_stage
+                whereCondition.review_stage = reviewStageArray[0];
+            }
         }
 
         // Apply deadline filter

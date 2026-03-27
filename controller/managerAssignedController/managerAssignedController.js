@@ -238,8 +238,81 @@ const getAssignedWorkRequests = async (req, res) => {
         TaskAssignments.belongsTo(Tasks, { foreignKey: 'task_id' });
 
         const manager_id = req.user.id;
+        const { status, review, review_stages } = req.query; // Get status, review, and review_stages filters from query params
 
         let where = { status: { [Op.ne]: 'draft' } };
+
+        // Handle multiple comma-separated status values
+        if (status) {
+            const statusArray = status.split(',').map(s => s.trim());
+
+            // Validate status values
+            const validStatuses = ['assigned', 'pending', 'accepted', 'in_progress', 'completed', 'rejected', 'deferred'];
+            const invalidStatuses = statusArray.filter(s => !validStatuses.includes(s));
+
+            if (invalidStatuses.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Invalid status values: ${invalidStatuses.join(', ')}. Valid values are: ${validStatuses.join(', ')}`
+                });
+            }
+
+            // If multiple statuses, use OR condition
+            if (statusArray.length > 1) {
+                where.status = { [Op.in]: statusArray };
+            } else {
+                // Single status
+                where.status = statusArray[0];
+            }
+        }
+
+        // Handle multiple comma-separated review values
+        if (review) {
+            const reviewArray = review.split(',').map(r => r.trim());
+
+            // Validate review values
+            const validReviews = ['pending', 'approved', 'change_request'];
+            const invalidReviews = reviewArray.filter(r => !validReviews.includes(r));
+
+            if (invalidReviews.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Invalid review values: ${invalidReviews.join(', ')}. Valid values are: ${validReviews.join(', ')}`
+                });
+            }
+
+            // If multiple reviews, use OR condition
+            if (reviewArray.length > 1) {
+                where.review = { [Op.in]: reviewArray };
+            } else {
+                // Single review
+                where.review = reviewArray[0];
+            }
+        }
+
+        // Handle multiple comma-separated review_stages values
+        if (review_stages) {
+            const reviewStageArray = review_stages.split(',').map(rs => rs.trim());
+
+            // Validate review_stage values
+            const validReviewStages = ['not_started', 'manager_review', 'pm_review', 'change_requested', 'final_approved'];
+            const invalidReviewStages = reviewStageArray.filter(rs => !validReviewStages.includes(rs));
+
+            if (invalidReviewStages.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Invalid review_stage values: ${invalidReviewStages.join(', ')}. Valid values are: ${validReviewStages.join(', ')}`
+                });
+            }
+
+            // If multiple review_stages, use OR condition
+            if (reviewStageArray.length > 1) {
+                where.review_stage = { [Op.in]: reviewStageArray };
+            } else {
+                // Single review_stage
+                where.review_stage = reviewStageArray[0];
+            }
+        }
 
         // Apply filters
         if (req.filters) {
@@ -560,7 +633,7 @@ const getAssignedWorkRequestById = async (req, res) => {
                                         },
                                         {
                                             model: TaskDocuments,
-                                            attributes: ['id', 'document_name', 'document_path','document_size', 'uploaded_at', 'status', 'version', 'review']
+                                            attributes: ['id', 'document_name', 'document_path', 'document_size', 'uploaded_at', 'status', 'version', 'review']
                                         }
                                     ]
                                 },
@@ -3430,9 +3503,9 @@ const reviewTask = async (req, res) => {
                 const taskAssignments = await TaskAssignments.findAll({
                     where: { task_id: taskId }
                 });
-                
+
                 const taskAssignmentIds = taskAssignments.map(ta => ta.id);
-                
+
                 // Delete all documents for these task assignments
                 if (taskAssignmentIds.length > 0) {
                     await TaskDocuments.destroy({
@@ -3638,9 +3711,9 @@ const reviewTask = async (req, res) => {
                 const issueUserAssignments = await IssueUserAssignments.findAll({
                     where: { issue_assignment_id: issueId }
                 });
-                
+
                 const issueUserAssignmentIds = issueUserAssignments.map(iua => iua.id);
-                
+
                 // Delete all documents for these issue user assignments
                 if (issueUserAssignmentIds.length > 0) {
                     await IssueDocuments.destroy({
@@ -4618,10 +4691,10 @@ const assignIssueToUser = async (req, res) => {
 // Complete all tasks and issues for a work request
 const completeAllTasksAndIssues = async (req, res) => {
     const transaction = await require('../../models').sequelize.transaction();
-    
+
     try {
         const { work_request_id } = req.body;
-        
+
         const manager_id = req.user.id;
 
         if (!work_request_id) {

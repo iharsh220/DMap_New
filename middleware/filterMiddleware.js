@@ -3,7 +3,7 @@ const filterMiddleware = (req, res, next) => {
 
     // Extract filter parameters from query
     Object.keys(req.query).forEach(key => {
-        if (!['page', 'limit', 'search', 'searchFields', 'sort', 'order'].includes(key)) {
+        if (!['page', 'limit', 'search', 'searchFields', 'sort', 'order', 'status', 'deadline', 'review', 'review_stages'].includes(key)) {
             let value = req.query[key];
             if (typeof value === 'string' && value.includes(',')) {
                 value = value.split(',').map(s => s.trim());
