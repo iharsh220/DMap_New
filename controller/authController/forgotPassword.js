@@ -1,6 +1,7 @@
 const CrudService = require('../../services/crudService');
 const { User, Sales } = require('../../models');
 const { sendMail } = require('../../services/mailService');
+const { renderTemplate } = require('../../services/templateService');
 const { generatePasswordResetToken } = require('../../middleware/jwtMiddleware');
 const fs = require('fs');
 const path = require('path');
@@ -75,10 +76,8 @@ const forgotPassword = async (req, res) => {
         // Send email
         const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
 
-        // Read email template
-        const templatePath = path.join(__dirname, '../../email-templates/passwordReset.html');
-        let htmlTemplate = fs.readFileSync(templatePath, 'utf8');
-        htmlTemplate = htmlTemplate.replace(/{{resetUrl}}/g, resetUrl);
+        // Render email template using the template service
+        const htmlTemplate = renderTemplate('passwordReset', { resetUrl });
 
         await sendMail({
             to: user.email || user.email_id,
