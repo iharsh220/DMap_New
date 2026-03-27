@@ -359,6 +359,266 @@ const createWorkRequest = async (req, res) => {
     }
 };
 
+// Update work request by ID
+const updateWorkRequest = async (req, res) => {
+    const transaction = await require('../../models').sequelize.transaction();
+
+    try {
+        const workRequestId = parseInt(req.params.id, 10);
+        if (isNaN(workRequestId)) {
+            return res.status(400).json({ success: false, error: 'Invalid work request ID' });
+        }
+
+        const user_id = req.user.id;
+
+        // Find the work request
+        const workRequest = await WorkRequests.findByPk(workRequestId, {
+            include: [{
+                model: WorkRequestManagers,
+                attributes: ['id', 'manager_id']
+            }]
+        });
+
+        if (!workRequest) {
+            return res.status(404).json({ success: false, error: 'Work request not found' });
+        }
+
+        // Check if user is the creator or a manager
+        const isCreator = workRequest.user_id === user_id;
+        const isManager = workRequest.WorkRequestManagers && workRequest.WorkRequestManagers.some(wm => wm.manager_id === user_id);
+
+        if (!isCreator && !isManager) {
+            return res.status(403).json({ success: false, error: 'You do not have permission to update this work request' });
+        }
+
+        // Extract update fields from request body
+        let { project_name, brand, request_type_id, project_id, description, about_project, priority, remarks, status, document_ids } = req.body;
+
+        // Build update data object
+        const updateData = {};
+
+        if (project_name !== undefined) updateData.project_name = project_name;
+        if (brand !== undefined) updateData.brand = brand;
+        if (request_type_id !== undefined) updateData.request_type_id = request_type_id;
+        if (project_id !== undefined) updateData.project_id = project_id;
+        if (description !== undefined) updateData.description = description;
+        if (priority !== undefined) updateData.priority = priority;
+        if (remarks !== undefined) updateData.remarks = remarks;
+        if (status !== undefined) updateData.status = status;
+
+        // Validate about_project JSON structure if provided
+        if (about_project !== undefined) {
+            try {
+                let aboutProjectData;
+
+                // Handle different input formats
+                if (typeof about_project === 'string') {
+                    // Clean the string first (remove extra whitespace/newlines)
+                    const cleanString = about_project.trim();
+                    aboutProjectData = JSON.parse(cleanString);
+                } else if (typeof about_project === 'object') {
+                    aboutProjectData = about_project;
+                } else {
+                    throw new Error('Invalid format');
+                }
+
+                // Validate structure - should have output_devices and target_audience
+                if (!aboutProjectData.output_devices || !aboutProjectData.target_audience) {
+                    await transaction.rollback();
+                    return res.status(400).json({
+                        success: false,
+                        error: 'about_project must contain output_devices and target_audience arrays'
+                    });
+                }
+
+                // Validate that arrays are not empty
+                if (!Array.isArray(aboutProjectData.output_devices) || !Array.isArray(aboutProjectData.target_audience)) {
+                    await transaction.rollback();
+                    return res.status(400).json({
+                        success: false,
+                        error: 'output_devices and target_audience must be arrays'
+                    });
+                }
+
+                // Store as JSON string
+                updateData.about_project = JSON.stringify(aboutProjectData);
+            } catch (error) {
+                await transaction.rollback();
+                return res.status(400).json({
+                    success: false,
+                    error: 'Invalid JSON format for about_project'
+                });
+            }
+        }
+
+        // Update the work request
+        if (Object.keys(updateData).length > 0) {
+            await workRequest.update(updateData, { transaction });
+        }
+
+        // Handle document deletion - remove documents that are not in document_ids array
+        if (document_ids !== undefined) {
+            // Parse document_ids if it's a string
+            let keepDocumentIds = [];
+            if (typeof document_ids === 'string') {
+                try {
+                    keepDocumentIds = JSON.parse(document_ids);
+                } catch (e) {
+                    keepDocumentIds = document_ids.split(',').map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id));
+                }
+            } else if (Array.isArray(document_ids)) {
+                keepDocumentIds = document_ids.map(id => parseInt(id, 10)).filter(id => !isNaN(id));
+            }
+
+            // Get existing documents for this work request
+            const existingDocuments = await WorkRequestDocuments.findAll({
+                where: { work_request_id: workRequestId },
+                transaction
+            });
+
+            // Find documents to delete (not in keepDocumentIds)
+            const documentsToDelete = existingDocuments.filter(doc => !keepDocumentIds.includes(doc.id));
+
+            // Delete documents that are not in the keep list
+            for (const doc of documentsToDelete) {
+                // Delete file from filesystem if it exists
+                if (doc.document_path) {
+                    try {
+                        const filePath = doc.document_path.replace(`${process.env.BASE_ROUTE}/`, '');
+                        if (fs.existsSync(filePath)) {
+                            fs.unlinkSync(filePath);
+                        }
+                    } catch (fileError) {
+                        console.error(`Failed to delete file ${doc.document_path}:`, fileError);
+                    }
+                }
+                // Delete document from database
+                await doc.destroy({ transaction });
+            }
+        }
+
+        // Handle file uploads
+        const documents = [];
+
+        if (req.files && req.files.documents) {
+            const files = Array.isArray(req.files.documents) ? req.files.documents : [req.files.documents];
+            for (const file of files) {
+                // Generate unique filename for each file
+                const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+                const filename = file.name.replace(/[^a-zA-Z0-9.]/g, '_') + '-' + uniqueSuffix + path.extname(file.name);
+
+                // Create unique temp directory for this file to avoid conflicts
+                const tempDir = path.join('temp', 'uploads', uniqueSuffix);
+                if (!fs.existsSync(tempDir)) {
+                    fs.mkdirSync(tempDir, { recursive: true });
+                }
+
+                // Save file to temp location
+                const tempFilename = `${filename}`;
+                const tempFilepath = path.join(tempDir, tempFilename);
+                await file.mv(tempFilepath);
+
+                const documentData = {
+                    work_request_id: workRequestId,
+                    document_name: file.name,
+                    document_path: `${process.env.BASE_ROUTE}/uploads/${req.projectName}/${filename}`,
+                    document_type: file.mimetype,
+                    document_size: file.size,
+                    status: 'uploading',
+                    uploaded_at: new Date()
+                };
+
+                const docResult = await WorkRequestDocuments.create(documentData, { transaction });
+                documents.push(docResult);
+
+                // Move file synchronously instead of using queue
+                try {
+                    // Ensure upload directory exists
+                    if (!fs.existsSync(req.uploadPath)) {
+                        fs.mkdirSync(req.uploadPath, { recursive: true });
+                    }
+
+                    const finalFilepath = path.join(req.uploadPath, filename);
+                    fs.renameSync(tempFilepath, finalFilepath);
+
+                    // Update document status to uploaded
+                    await WorkRequestDocuments.update(
+                        { status: 'uploaded' },
+                        { where: { id: docResult.id }, transaction }
+                    );
+
+                    // Clean up temp directory
+                    try {
+                        fs.rmdirSync(tempDir);
+                    } catch (cleanupError) {
+                        console.error('Failed to cleanup temp directory:', cleanupError);
+                    }
+
+                } catch (uploadError) {
+                    console.error(`Failed to upload file ${filename}:`, uploadError);
+
+                    // Update document status to failed
+                    await WorkRequestDocuments.update(
+                        { status: 'failed' },
+                        { where: { id: docResult.id }, transaction }
+                    );
+
+                    // Clean up temp directory
+                    try {
+                        if (fs.existsSync(tempDir)) {
+                            fs.rmSync(tempDir, { recursive: true, force: true });
+                        }
+                    } catch (cleanupError) {
+                        console.error('Failed to cleanup temp directory on error:', cleanupError);
+                    }
+
+                    throw uploadError;
+                }
+            }
+        }
+
+        await transaction.commit();
+
+        // Fetch updated work request with associations
+        const updatedWorkRequest = await WorkRequests.findByPk(workRequestId, {
+            include: [
+                { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
+                { model: RequestType, attributes: { exclude: ['created_at', 'updated_at'] } },
+                {
+                    model: WorkRequestManagers, attributes: { exclude: ['created_at', 'updated_at'] }, include: [
+                        {
+                            model: User, as: 'manager', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] }, include: [
+                                { model: Department, as: 'Department', attributes: { exclude: ['created_at', 'updated_at'] } },
+                                { model: Division, as: 'Divisions', attributes: { exclude: ['created_at', 'updated_at'] }, through: { attributes: [] } },
+                                { model: JobRole, as: 'JobRole', attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } },
+                                { model: Location, as: 'Location', attributes: { exclude: ['created_at', 'updated_at'] } }
+                            ]
+                        }
+                    ]
+                },
+                { model: WorkRequestDocuments, attributes: { exclude: ['created_at', 'updated_at'] } }
+            ]
+        });
+
+        res.json({
+            success: true,
+            data: {
+                workRequest: updatedWorkRequest,
+                documents: documents
+            },
+            message: 'Work request updated successfully'
+        });
+    } catch (error) {
+        await transaction.rollback();
+        console.error('Error updating work request:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            message: 'Failed to update work request'
+        });
+    }
+};
+
 const getMyWorkRequests = async (req, res) => {
     try {
         const user_id = req.user.id;
@@ -1561,6 +1821,7 @@ const getMyTaskRequests = async (req, res) => {
 
 module.exports = {
     createWorkRequest,
+    updateWorkRequest,
     getMyWorkRequests,
     getMyTaskRequests,
     getWorkRequestById,

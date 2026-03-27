@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createWorkRequest, getMyWorkRequests, getMyTaskRequests, getWorkRequestById, getProjectTypesByRequestType, getAboutProjectOptions, getDivisionWorkRequests, getDivisionWorkRequestById, getUserDashboardStats, pmApproveTask } = require('../../controller/workRequestController/workRequestController');
+const { createWorkRequest, updateWorkRequest, getMyWorkRequests, getMyTaskRequests, getWorkRequestById, getProjectTypesByRequestType, getAboutProjectOptions, getDivisionWorkRequests, getDivisionWorkRequestById, getUserDashboardStats, pmApproveTask } = require('../../controller/workRequestController/workRequestController');
 const { authenticateToken } = require('../../middleware/jwtMiddleware');
 const filterMiddleware = require('../../middleware/filterMiddleware');
 const paginationMiddleware = require('../../middleware/paginationMiddleware');
@@ -49,5 +49,20 @@ router.post('/', authenticateToken, (req, res, next) => {
 
     next();
 }, createWorkRequest);
+
+// PUT /work-requests/:id - Update work request by ID
+router.put('/:id', authenticateToken, (req, res, next) => {
+    req.projectName = req.body.project_name?.replace(/[^a-zA-Z0-9]/g, '_') || 'Unknown';
+
+    // Set upload path
+    req.uploadPath = path.join('uploads', req.projectName);
+
+    // Create directory if it doesn't exist
+    if (!fs.existsSync(req.uploadPath)) {
+        fs.mkdirSync(req.uploadPath, { recursive: true });
+    }
+
+    next();
+}, updateWorkRequest);
 
 module.exports = router;
