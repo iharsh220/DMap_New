@@ -231,9 +231,7 @@ const getAssignedTasks = async (req, res) => {
             limit: req.pagination.limit,
             offset: req.pagination.offset,
             order: [
-                // First sort by status: in_progress first, then others
-                [Tasks.sequelize.literal('CASE WHEN `Tasks`.`status` = \'in_progress\' THEN 0 ELSE 1 END'), 'ASC'],
-                // Then sort by deadline descending (latest deadline first)
+                // Always sort by deadline descending (latest deadline first)
                 ['deadline', 'DESC']
             ]
         });
