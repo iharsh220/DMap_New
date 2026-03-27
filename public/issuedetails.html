@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Task Details Admin Panel</title>
+    <title>Issue Details Admin Panel</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
@@ -43,15 +43,15 @@
                     <div class="col-12"><label class="form-label">Requester Name</label><input type="text" class="form-control" id="filterRequesterName"></div>
                     <div class="col-12"><label class="form-label">User Division</label><input type="text" class="form-control" id="filterUserDivision"></div>
                     <div class="col-12"><label class="form-label">Manager Name</label><input type="text" class="form-control" id="filterManagerName"></div>
-                    <div class="col-12"><label class="form-label">Task ID</label><input type="text" class="form-control" id="filterTaskID"></div>
-                    <div class="col-12"><label class="form-label">Task Name</label><input type="text" class="form-control" id="filterTaskName"></div>
-                    <div class="col-12"><label class="form-label">Task Type</label><input type="text" class="form-control" id="filterTaskType"></div>
-                    <div class="col-12"><label class="form-label">Creative User</label><input type="text" class="form-control" id="filterCreativeUser"></div>
-                    <div class="col-12"><label class="form-label">Task Count</label><input type="number" class="form-control" id="filterTaskCount"></div>
+                    <div class="col-12"><label class="form-label">Issue ID</label><input type="text" class="form-control" id="filterIssueID"></div>
+                    <div class="col-12"><label class="form-label">Description</label><input type="text" class="form-control" id="filterDescription"></div>
+                    <div class="col-12"><label class="form-label">Version</label><input type="text" class="form-control" id="filterVersion"></div>
+                    <div class="col-12"><label class="form-label">Assignment Type</label><select class="form-control" id="filterAssignmentType"><option value="">All</option><option value="new">New</option><option value="mod">Modification</option></select></div>
+                    <div class="col-12"><label class="form-label">Assigned User</label><input type="text" class="form-control" id="filterAssignedUser"></div>
                     <div class="col-12"><label class="form-label">No of Work Pages</label><input type="number" class="form-control" id="filterNoOfWorkPages"></div>
-                    <div class="col-12"><label class="form-label">Task Status</label><select class="form-control" id="filterTaskStatus"><option value="">All</option><option value="upcoming">Upcoming</option><option value="ongoing">Ongoing</option><option value="completed">Completed</option></select></div>
                     <div class="col-12"><label class="form-label">Scale</label><input type="text" class="form-control" id="filterScale"></div>
                     <div class="col-12"><label class="form-label">Request Date</label><input type="text" class="form-control" id="filterRequestDate"></div>
+                    <div class="col-12"><label class="form-label">Issue Status</label><select class="form-control" id="filterIssueStatus"><option value="">All</option><option value="upcoming">Upcoming</option><option value="ongoing">Ongoing</option><option value="completed">Completed</option></select></div>
                 </div>
             </div>
             <div class="clear-filters-btn">
@@ -61,16 +61,38 @@
         <div class="flex-grow-1" id="mainContent">
             <div class="container-fluid pt-3">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h3>Task Details Admin Panel</h3>
+                    <h3>Issue Details Admin Panel</h3>
                     <div>
                         <a href="/digilabs/dmap/api/datatable/admin/projectsdetails" class="btn btn-outline-primary me-2">Projects</a>
-                        <a href="/digilabs/dmap/api/datatable/admin/issuedetails" class="btn btn-outline-primary me-2">Issues</a>
+                        <a href="/digilabs/dmap/api/datatable/admin/taskdetails" class="btn btn-outline-primary me-2">Tasks</a>
                         <button class="btn btn-outline-primary" id="toggleSidebar">Filters</button>
                     </div>
                 </div>
                 <div class="datatable-wrapper">
-                    <table id="taskDetailsTable" class="table table-bordered table-striped w-100">
-                        <thead><tr><th>Work Request ID</th><th>Project Name</th><th>Project Type</th><th>Requester Division</th><th>Requester Name</th><th>User Division</th><th>Manager Name</th><th>Task ID</th><th>Task Name</th><th>Task Type</th><th>Creative User</th><th>Task Count</th><th>No of Work Pages</th><th>Scale</th><th>Request Date</th><th>Task Start Date</th><th>Task End Date</th><th>Task Status</th></tr></thead>
+                    <table id="issueDetailsTable" class="table table-bordered table-striped w-100">
+                        <thead><tr>
+                            <th>Work Request ID</th>
+                            <th>Project Name</th>
+                            <th>Project Type</th>
+                            <th>Requester Division</th>
+                            <th>Requester Name</th>
+                            <th>User Division</th>
+                            <th>Manager Name</th>
+                            <th>Task ID</th>
+                            <th>Task Name</th>
+                            <th>Task Type</th>
+                            <th>Issue ID</th>
+                            <th>Description</th>
+                            <th>Version</th>
+                            <th>Assignment Type</th>
+                            <th>Assigned User</th>
+                            <th>No of Work Pages</th>
+                            <th>Scale</th>
+                            <th>Request Date</th>
+                            <th>Issue Start Date</th>
+                            <th>Issue End Date</th>
+                            <th>Issue Status</th>
+                        </tr></thead>
                         <tbody></tbody>
                     </table>
                 </div>
@@ -87,8 +109,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script>
         $(document).ready(function() {
-            var table = $('#taskDetailsTable').DataTable({
-                ajax: { url: '/digilabs/dmap/api/datatable/admin/taskdetails/data', dataSrc: 'data' },
+            var table = $('#issueDetailsTable').DataTable({
+                ajax: { url: '/digilabs/dmap/api/datatable/admin/issuedetails/data', dataSrc: 'data' },
                 columns: [
                     { data: 'work_request_id' },
                     { data: 'project_name' },
@@ -100,14 +122,17 @@
                     { data: 'task_id' },
                     { data: 'task_name' },
                     { data: 'task_type' },
-                    { data: 'creative_user' },
-                    { data: 'task_count' },
+                    { data: 'issue_id' },
+                    { data: 'description' },
+                    { data: 'version' },
+                    { data: 'assignment_type' },
+                    { data: 'assigned_user' },
                     { data: 'no_of_work_pages' },
                     { data: 'scale' },
                     { data: 'request_date' },
-                    { data: 'task_start_date' },
-                    { data: 'task_end_date' },
-                    { data: 'task_status', render: function(data) {
+                    { data: 'issue_start_date' },
+                    { data: 'issue_end_date' },
+                    { data: 'issue_status', render: function(data) {
                         var cls = '';
                         if (data == 'upcoming') cls = 'status-upcoming';
                         else if (data == 'ongoing') cls = 'status-ongoing';
@@ -118,12 +143,29 @@
                 pageLength: 20, lengthMenu: [[20, 50, 100, -1], [20, 50, 100, 'All']], dom: 'lBfrtip',
                 scrollX: true, scrollY: '55vh', scrollCollapse: true,
                 buttons: [
-                    { extend: 'excel', text: '<i class="bi bi-file-earmark-excel"></i>', className: 'btn btn-success btn-sm', titleAttr: 'Export to Excel', filename: function() { return 'task_details_' + new Date().toISOString().slice(0, 10); } },
-                    { extend: 'csv', text: '<i class="bi bi-filetype-csv"></i>', className: 'btn btn-secondary btn-sm', titleAttr: 'Export to CSV', filename: function() { return 'task_details_' + new Date().toISOString().slice(0, 10); } }
+                    { extend: 'excel', text: '<i class="bi bi-file-earmark-excel"></i>', className: 'btn btn-success btn-sm', titleAttr: 'Export to Excel', filename: function() { return 'issue_details_' + new Date().toISOString().slice(0, 10); } },
+                    { extend: 'csv', text: '<i class="bi bi-filetype-csv"></i>', className: 'btn btn-secondary btn-sm', titleAttr: 'Export to CSV', filename: function() { return 'issue_details_' + new Date().toISOString().slice(0, 10); } }
                 ],
                 initComplete: function() {
                     var api = this.api();
-                    var filterMap = { 0: '#filterWorkRequestID', 1: '#filterProjectName', 2: '#filterProjectType', 3: '#filterRequesterDivision', 4: '#filterRequesterName', 5: '#filterUserDivision', 6: '#filterManagerName', 7: '#filterTaskID', 8: '#filterTaskName', 9: '#filterTaskType', 10: '#filterCreativeUser', 11: '#filterTaskCount', 12: '#filterNoOfWorkPages', 15: '#filterScale', 16: '#filterRequestDate', 17: '#filterTaskStatus' };
+                    var filterMap = { 
+                        0: '#filterWorkRequestID', 
+                        1: '#filterProjectName', 
+                        2: '#filterProjectType', 
+                        3: '#filterRequesterDivision', 
+                        4: '#filterRequesterName', 
+                        5: '#filterUserDivision', 
+                        6: '#filterManagerName', 
+                        7: '#filterIssueID', 
+                        8: '#filterDescription', 
+                        9: '#filterVersion', 
+                        10: '#filterAssignmentType', 
+                        11: '#filterAssignedUser', 
+                        12: '#filterNoOfWorkPages', 
+                        14: '#filterScale', 
+                        15: '#filterRequestDate', 
+                        16: '#filterIssueStatus' 
+                    };
                     api.columns().every(function(i) {
                         $(filterMap[i]).on('keyup change', function() { col.search(this.value).draw(); });
                     });
@@ -131,8 +173,9 @@
             });
             $('#toggleSidebar').click(function() { $('#sidebar').css('transform', 'translateX(0)'); $('#mainContent').css('margin-left', '300px'); });
             $('#closeSidebar').click(function() { $('#sidebar').css('transform', 'translateX(-100%)'); $('#mainContent').css('margin-left', '0'); });
-            $('#clearFilters').click(function() { $('#sidebar input').val(''); $('#sidebar select').val(''); table.search('').columns().search('').draw(); table.ajax.url('/digilabs/dmap/api/datatable/admin/taskdetails/data').load(); });
+            $('#clearFilters').click(function() { $('#sidebar input').val(''); $('#sidebar select').val(''); table.search('').columns().search('').draw(); table.ajax.url('/digilabs/dmap/api/datatable/admin/issuedetails/data').load(); });
         });
     </script>
 </body>
+
 </html>

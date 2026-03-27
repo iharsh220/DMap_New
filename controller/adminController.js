@@ -158,6 +158,84 @@ const getTaskDetailsData = async (req, res) => {
     }
 };
 
+const getIssueDetailsData = async (req, res) => {
+    try {
+        const { issueStatus } = req.query;
+
+        const replacements = {};
+        const whereClauses = [];
+
+        if (issueStatus) {
+            whereClauses.push('ia.status = :issueStatus');
+            replacements.issueStatus = issueStatus;
+        }
+
+        let query = `
+            SELECT
+                wr.id AS work_request_id,
+                COALESCE(wr.project_name, 'N/A') AS project_name,
+                COALESCE(rt.request_type, 'N/A') AS project_type,
+                COALESCE(GROUP_CONCAT(DISTINCT rdiv.title SEPARATOR ', '), 'N/A') AS requester_division,
+                COALESCE(ru.name, 'N/A') AS requester_name,
+                COALESCE(tdiv.title, 'N/A') AS user_division,
+                COALESCE(GROUP_CONCAT(DISTINCT mu.name ORDER BY mu.name SEPARATOR ', '), 'N/A') AS manager_name,
+                ia.id AS issue_id,
+                t.id AS task_id,
+                t.task_name,
+                tt.task_type,
+                ia.description,
+                ia.version,
+                ia.task_count AS no_of_work_pages,
+                COALESCE(DATE_FORMAT(wr.requested_at, '%Y-%m-%d'), 'N/A') AS request_date,
+                COALESCE(wr.priority, 'N/A') AS scale,
+                COALESCE(DATE_FORMAT(ia.start_date, '%Y-%m-%d'), 'N/A') AS issue_start_date,
+                COALESCE(DATE_FORMAT(ia.end_date, '%Y-%m-%d'), 'N/A') AS issue_end_date,
+                CASE
+                    WHEN ia.start_date IS NULL AND ia.end_date IS NULL THEN 'upcoming'
+                    WHEN ia.start_date IS NOT NULL AND ia.end_date IS NOT NULL THEN 'completed'
+                    ELSE 'ongoing'
+                END AS issue_status,
+                ia.assignment_type,
+                COALESCE(GROUP_CONCAT(DISTINCT au.name SEPARATOR ', '), 'N/A') AS assigned_user
+            FROM issue_assignments ia
+            LEFT JOIN tasks t ON ia.task_id = t.id
+            LEFT JOIN work_requests wr ON t.work_request_id = wr.id
+            LEFT JOIN request_type rt ON wr.request_type_id = rt.id
+            LEFT JOIN task_type tt ON t.task_type_id = tt.id
+            LEFT JOIN task_project_reference tpr ON tt.id = tpr.task_id
+            LEFT JOIN project_type pt ON tpr.project_id = pt.id
+            LEFT JOIN project_request_reference prr ON pt.id = prr.project_id
+            LEFT JOIN request_type rt2 ON prr.request_id = rt2.id
+            LEFT JOIN request_division_reference rdr2 ON rt2.id = rdr2.request_id
+            LEFT JOIN division tdiv ON rdr2.division_id = tdiv.id
+            LEFT JOIN users ru ON wr.user_id = ru.id
+            LEFT JOIN user_divisions rud ON ru.id = rud.user_id
+            LEFT JOIN division rdiv ON rud.division_id = rdiv.id
+            LEFT JOIN work_request_managers wrm ON wr.id = wrm.work_request_id
+            LEFT JOIN users mu ON wrm.manager_id = mu.id
+            LEFT JOIN issue_user_assignments iua ON ia.id = iua.issue_assignment_id
+            LEFT JOIN users au ON iua.user_id = au.id
+        `;
+
+        if (whereClauses.length > 0) {
+            query += ` WHERE ${whereClauses.join(' AND ')}`;
+        }
+
+        query += ` GROUP BY wr.id, wr.project_name, rt.request_type, ru.name, ia.id, ia.description, ia.version, ia.task_count, ia.start_date, ia.end_date, ia.assignment_type, t.id, t.task_name, tt.task_type, wr.requested_at, wr.priority ORDER BY ia.id DESC`;
+
+        const results = await sequelize.query(query, {
+            replacements,
+            type: sequelize.QueryTypes.SELECT
+        });
+
+        res.json({ data: results });
+
+    } catch (error) {
+        console.error('Error fetching issue details data:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
 const getTasksForWorkRequest = async (req, res) => {
     try {
         const { workRequestId } = req.params;
@@ -189,5 +267,6 @@ const getTasksForWorkRequest = async (req, res) => {
 module.exports = {
     getAdminData,
     getTaskDetailsData,
+    getIssueDetailsData,
     getTasksForWorkRequest
 };
