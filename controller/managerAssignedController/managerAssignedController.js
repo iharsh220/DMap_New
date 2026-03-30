@@ -484,7 +484,7 @@ const getAssignedWorkRequestById = async (req, res) => {
                     { model: WorkRequestDocuments, attributes: { exclude: ['created_at', 'updated_at'] } },
                     {
                         model: Tasks,
-                        attributes: ['id', 'task_name', 'description', 'request_type_id', 'task_type_id', 'work_request_id', 'deadline', 'status', 'version', 'assignment_type', 'intimate_team', 'intimate_client', 'task_count', 'link', 'start_date', 'end_date', 'review', 'review_stage', 'created_at', 'updated_at'],
+                        attributes: ['id', 'task_name', 'description', 'request_type_id', 'task_type_id', 'work_request_id', 'deadline', 'status', 'version', 'assignment_type', 'intimate_team', 'intimate_client', 'task_count', 'link', 'start_date', 'end_date', 'review', 'review_stage', 'created_at', 'updated_at', 'shared_with_client_at'],
                         include: [
                             {
                                 model: TaskAssignments,
@@ -4517,6 +4517,7 @@ const getIssueAssignments = async (req, res) => {
                 description: issue.task.TaskType.description
             } : null,
             task_type_name: issue.task && issue.task.TaskType ? issue.task.TaskType.task_type : null,
+            task_type_id: issue.task ? issue.task.task_type_id : null,
             deadline: issue.deadline,
             issue_deadline: issue.deadline,
             task: issue.task ? {
@@ -4652,9 +4653,9 @@ const assignIssueToUser = async (req, res) => {
             where: { issue_assignment_id, user_id }
         });
 
-        if (existingAssignment) {
-            return res.status(400).json({ success: false, error: 'User is already assigned to this issue' });
-        }
+        // if (existingAssignment) {
+        //     return res.status(400).json({ success: false, error: 'User is already assigned to this issue' });
+        // }
 
         // Create the assignment in issue_user_assignments
         const issueUserAssignment = await IssueUserAssignments.create({
