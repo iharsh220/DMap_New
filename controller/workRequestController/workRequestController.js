@@ -484,9 +484,30 @@ const updateWorkRequest = async (req, res) => {
                 // Delete file from filesystem if it exists
                 if (doc.document_path) {
                     try {
-                        const filePath = doc.document_path.replace(`${process.env.BASE_ROUTE}/`, '');
-                        if (fs.existsSync(filePath)) {
-                            fs.unlinkSync(filePath);
+                        // Construct the full file path - the document_path contains the base route
+                        // We need to construct the path relative to project root
+                        let filePath = doc.document_path;
+                        
+                        // If the path starts with BASE_ROUTE, remove it
+                        if (filePath.startsWith(process.env.BASE_ROUTE)) {
+                            filePath = filePath.replace(process.env.BASE_ROUTE, '');
+                        }
+                        
+                        // Also remove leading slash if present
+                        if (filePath.startsWith('/')) {
+                            filePath = filePath.substring(1);
+                        }
+                        
+                        // Construct full path from project root
+                        const fullFilePath = path.join(__dirname, '../../', filePath);
+                        
+                        console.log(`Attempting to delete file: ${fullFilePath}`);
+                        
+                        if (fs.existsSync(fullFilePath)) {
+                            fs.unlinkSync(fullFilePath);
+                            console.log(`Successfully deleted file: ${fullFilePath}`);
+                        } else {
+                            console.log(`File not found, skipping deletion: ${fullFilePath}`);
                         }
                     } catch (fileError) {
                         console.error(`Failed to delete file ${doc.document_path}:`, fileError);
@@ -628,10 +649,22 @@ const getMyWorkRequests = async (req, res) => {
 
         // Apply filters
         if (req.filters) {
-            // Handle status as comma-separated string
-            if (req.filters.status && typeof req.filters.status === 'string') {
-                const statuses = req.filters.status.split(',').map(s => s.trim());
-                where.status = { [Op.in]: statuses };
+            // Handle status as comma-separated string or array
+            if (req.filters.status) {
+                let statuses;
+                if (typeof req.filters.status === 'string') {
+                    statuses = req.filters.status.split(',').map(s => s.trim());
+                } else if (Array.isArray(req.filters.status)) {
+                    statuses = req.filters.status;
+                } else {
+                    statuses = [req.filters.status];
+                }
+                
+                // Only apply status filter if user explicitly provided it
+                if (statuses.length > 0) {
+                    where.status = { [Op.in]: statuses };
+                }
+                
                 // Remove status from req.filters to avoid overriding
                 const { status, ...otherFilters } = req.filters;
                 where = { ...where, ...otherFilters };

@@ -2809,7 +2809,7 @@ const getUserTask = async (req, res) => {
         }
 
         // Check if the user is a creative user (job_role_id = 4) or creative lead (job_role_id = 3)
-        if (user.job_role_id !== 4 && user.job_role_id !== 3) {
+        if (user.job_role_id !== 4 && user.job_role_id !== 3 && user.job_role_id !== 2 && user.job_role_id !== 1) {
             return res.status(403).json({ success: false, error: 'User is not a creative user or creative lead' });
         }
 
@@ -2844,7 +2844,7 @@ const getUserTask = async (req, res) => {
         // Build where condition for tasks
         let taskWhereCondition = {};
 
-        // Apply status filter if provided
+        // Apply status filter from query parameter if provided
         if (status) {
             const statusArray = status.split(',').map(s => s.trim());
 
@@ -2865,13 +2865,36 @@ const getUserTask = async (req, res) => {
             }
         }
 
-        // Apply filters from middleware
-        if (req.filters) {
-            taskWhereCondition = { ...taskWhereCondition, ...req.filters };
+        // Apply filters from middleware (only if explicitly provided)
+        if (req.filters && Object.keys(req.filters).length > 0) {
+            // Handle status from req.filters if provided
+            if (req.filters.status) {
+                let statusFilter = req.filters.status;
+                if (typeof statusFilter === 'string') {
+                    statusFilter = statusFilter.split(',').map(s => s.trim());
+                } else if (!Array.isArray(statusFilter)) {
+                    statusFilter = [statusFilter];
+                }
+                if (statusFilter.length > 0) {
+                    taskWhereCondition.status = { [Op.in]: statusFilter };
+                }
+            }
+            // Apply other filters
+            const { status: _, ...otherFilters } = req.filters;
+            taskWhereCondition = { ...taskWhereCondition, ...otherFilters };
         }
 
-        // Add intimate_team = 1 filter
-        taskWhereCondition.intimate_team = 1;
+        // Only add intimate_team = 1 filter when status filter is applied
+        // This ensures all tasks are shown by default, and filtered when status is specified
+        const hasStatusFilter = status || (req.filters && req.filters.status);
+        if (hasStatusFilter) {
+            // Only apply intimate_team filter when status is explicitly provided
+            if (!taskWhereCondition.status || 
+                (taskWhereCondition.status !== 'completed' && 
+                 !(taskWhereCondition.status && taskWhereCondition.status[Op.in] && taskWhereCondition.status[Op.in].includes('completed')))) {
+                taskWhereCondition.intimate_team = 1;
+            }
+        }
 
         const tasks = await TaskAssignments.findAll({
             where: { user_id: user_id },
@@ -2895,7 +2918,8 @@ const getUserTask = async (req, res) => {
                         {
                             model: IssueAssignments,
                             as: 'issueAssignments',
-                            where: { intimate_team: 1 },
+                            // Don't filter by intimate_team by default - show all issues
+                            required: false,
                             include: [
                                 {
                                     model: IssueAssignmentTypes,
@@ -2987,7 +3011,29 @@ const getUserTask = async (req, res) => {
                     project_name: taskData.WorkRequests.project_name,
                     brand: taskData.WorkRequests.brand,
                     status: taskData.WorkRequests.status
-                } : null
+                } : null,
+                issues: taskData.issueAssignments && taskData.issueAssignments.length > 0 
+                    ? taskData.issueAssignments.map(issue => ({
+                        id: issue.id,
+                        issue_id: issue.issue_id,
+                        version: issue.version,
+                        description: issue.description,
+                        status: issue.status,
+                        deadline: issue.deadline,
+                        requester: issue.requester ? {
+                            id: issue.requester.id,
+                            name: issue.requester.name,
+                            email: issue.requester.email
+                        } : null,
+                        issue_types: issue.issueTypeLinks && issue.issueTypeLinks.length > 0
+                            ? issue.issueTypeLinks.map(itl => ({
+                                id: itl.id,
+                                change_issue_type: itl.issueRegister?.change_issue_type,
+                                description: itl.issueRegister?.description
+                            }))
+                            : []
+                    }))
+                    : []
             };
         }).filter(task => task !== null);
 

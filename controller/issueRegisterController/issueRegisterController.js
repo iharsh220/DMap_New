@@ -1,4 +1,6 @@
 const { Op } = require('sequelize');
+const { sendMail } = require('../../services/mailService');
+const { renderTemplate } = require('../../services/templateService');
 const {
     IssueRegister,
     ChangeIssueTasktype,
@@ -30,7 +32,7 @@ const getIssueRegisterByTaskId = async (req, res) => {
     try {
         const task_id = req.params.task_id;
         const issue_id = req.params.issue_id;
-        
+
         let taskId = null;
 
         // If issue_id is provided, get the task_id from the issue
@@ -40,8 +42,8 @@ const getIssueRegisterByTaskId = async (req, res) => {
                 return res.status(400).json({ success: false, error: 'Invalid issue ID' });
             }
 
-            const issueAssignment = await IssueAssignments.findByPk(issueIdNum, { 
-                attributes: ['id', 'task_id'] 
+            const issueAssignment = await IssueAssignments.findByPk(issueIdNum, {
+                attributes: ['id', 'task_id']
             });
 
             if (!issueAssignment) {
@@ -85,13 +87,13 @@ const getIssueRegisterByTaskId = async (req, res) => {
             attributes: ['id', 'change_issue_type', 'description', 'quantification']
         });
 
-        res.json({ 
-            success: true, 
-            data: { 
-                task: { id: task.id, task_name: task.task_name, task_type_id: task.task_type_id }, 
-                issue_registers: issueRegisters 
-            }, 
-            message: 'Issue register data retrieved successfully' 
+        res.json({
+            success: true,
+            data: {
+                task: { id: task.id, task_name: task.task_name, task_type_id: task.task_type_id },
+                issue_registers: issueRegisters
+            },
+            message: 'Issue register data retrieved successfully'
         });
     } catch (error) {
         console.error('Error fetching issue register data:', error);
@@ -102,7 +104,7 @@ const getIssueRegisterByTaskId = async (req, res) => {
 // Create issue assignment
 const createIssueAssignment = async (req, res) => {
     const transaction = await require('../../models').sequelize.transaction();
-    
+
     try {
         const { task_id, issue_id, requested_by_user_id, assignment_type, version, description, deadline, start_date, end_date, link, task_count = 0, intimate_team = 0, intimate_client = 0, issue_register_ids = [] } = req.body;
 
@@ -114,10 +116,188 @@ const createIssueAssignment = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Missing required fields: requested_by_user_id, assignment_type, version' });
         }
 
-        if (task_id) {
-            const task = await Tasks.findByPk(task_id);
-            if (!task) return res.status(404).json({ success: false, error: 'Task not found' });
-            if (task.intimate_client !== 1) return res.status(400).json({ success: false, error: 'Task does not have intimate_client enabled' });
+        // Function to get root task from issue chain with depth limit
+        const getRootTask = async (issueId, depth = 0) => {
+            if (depth >= 10) return null; // Limit to 10 levels max
+
+            const issue = await IssueAssignments.findByPk(issueId, {
+                attributes: ['id', 'issue_id', 'task_id', 'version', 'description']
+            });
+
+            if (!issue) return null;
+
+            // If this issue has a task_id, it's the root
+            if (issue.task_id) {
+                return {
+                    taskId: issue.task_id,
+                    issueChain: [{ id: issue.id, version: issue.version, description: issue.description }]
+                };
+            }
+
+            // If this issue has a parent issue, recurse
+            if (issue.issue_id) {
+                const parentResult = await getRootTask(issue.issue_id, depth + 1);
+                if (parentResult) {
+                    parentResult.issueChain.unshift({ id: issue.id, version: issue.version, description: issue.description });
+                    return parentResult;
+                }
+            }
+
+            return null;
+        };
+
+        if (task_id || issue_id) {
+            let taskWorkRequestId = null;
+            let taskDetails = null;
+            let issueChain = [];
+            let rootTaskId = null;
+
+            if (task_id) {
+                // New issue on task - send to task's managers
+                const task = await Tasks.findByPk(task_id, {
+                    attributes: ['id', 'work_request_id']
+                });
+                if (!task) return res.status(404).json({ success: false, error: 'Task not found' });
+                if (task.intimate_client !== 1) return res.status(400).json({ success: false, error: 'Task does not have intimate_client enabled' });
+
+                // Check if task already has 10 issues - don't allow more
+                const existingIssueCount = await IssueAssignments.count({
+                    where: { task_id: task_id }
+                });
+                if (existingIssueCount >= 10) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Maximum issue limit (10) reached for this task. Cannot create more issues.'
+                    });
+                }
+
+                taskWorkRequestId = task.work_request_id;
+                rootTaskId = task_id;
+
+                // Get task details
+                taskDetails = await Tasks.findByPk(task_id, {
+                    include: [
+                        { model: WorkRequests, attributes: ['id', 'project_name', 'brand'] },
+                        { model: TaskType, attributes: ['id', 'task_type'] }
+                    ]
+                });
+            } else if (issue_id) {
+                // New issue on issue - get root task and issue chain
+                const rootResult = await getRootTask(issue_id);
+                if (!rootResult) return res.status(404).json({ success: false, error: 'Could not find root task for this issue chain' });
+
+                rootTaskId = rootResult.taskId;
+                issueChain = rootResult.issueChain;
+
+                // Check if chain already has 10 issues - don't allow more
+                if (issueChain.length >= 10) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Maximum issue chain limit (10) reached. Cannot create more nested issues.'
+                    });
+                }
+
+                // Get the task details
+                const task = await Tasks.findByPk(rootTaskId, {
+                    attributes: ['id', 'work_request_id']
+                });
+                if (!task) return res.status(404).json({ success: false, error: 'Root task not found' });
+                taskWorkRequestId = task.work_request_id;
+
+                taskDetails = await Tasks.findByPk(rootTaskId, {
+                    include: [
+                        { model: WorkRequests, attributes: ['id', 'project_name', 'brand'] },
+                        { model: TaskType, attributes: ['id', 'task_type'] }
+                    ]
+                });
+            }
+
+            if (taskWorkRequestId) {
+                // Get work request managers
+                const workRequestManagers = await WorkRequestManagers.findAll({
+                    where: { work_request_id: taskWorkRequestId },
+                    include: [
+                        {
+                            model: User,
+                            as: 'manager',
+                            attributes: ['id', 'name', 'email']
+                        }
+                    ]
+                });
+
+                // Send emails to all creative managers
+                if (workRequestManagers.length > 0) {
+                    const managerEmails = [];
+                    const emailPromises = [];
+
+                    // Get requester name
+                    const requester = await User.findByPk(requested_by_user_id, { attributes: ['name'] });
+
+                    // Get current issue details
+                    let currentIssueDetails = null;
+                    if (issue_id) {
+                        currentIssueDetails = await IssueAssignments.findByPk(issue_id, {
+                            attributes: ['id', 'version', 'description']
+                        });
+                    }
+
+                    for (const wrm of workRequestManagers) {
+                        if (wrm.manager && wrm.manager.email) {
+                            managerEmails.push(wrm.manager.email);
+
+                            // Build issue chain string for email
+                            let issueChainText = '';
+                            if (issueChain.length > 0) {
+                                issueChainText = issueChain.map((issue, idx) =>
+                                    `${'  '.repeat(idx + 1)}Issue #${issue.id} (${issue.version}): ${issue.description?.substring(0, 50) || 'N/A'}...`
+                                ).join('\n');
+                            }
+
+                            // Render email template
+                            const htmlContent = renderTemplate('issueAssignmentNotification', {
+                                task_id: rootTaskId,
+                                task_name: taskDetails?.task_name || 'N/A',
+                                issue_id: issueAssignment.id,
+                                task_type: taskDetails?.TaskType?.task_type || 'N/A',
+                                project_name: taskDetails?.WorkRequest?.project_name || 'N/A',
+                                brand: taskDetails?.WorkRequest?.brand || 'N/A',
+                                priority: 'Normal',
+                                request_type: 'Issue',
+                                issue_version: version,
+                                assigned_by: requester?.name || 'N/A',
+                                created_at: new Date().toLocaleString(),
+                                issue_description: description || 'No description provided',
+                                manager_name: wrm.manager.name,
+                                // Issue chain info
+                                is_issue_on_issue: issueChain.length > 0,
+                                issue_chain: issueChainText,
+                                parent_issue_id: currentIssueDetails?.id || null,
+                                parent_issue_version: currentIssueDetails?.version || null,
+                                parent_issue_description: currentIssueDetails?.description || null,
+                                issue_chain_depth: issueChain.length
+                            });
+
+                            // Queue email
+                            const subject = issueChain.length > 0
+                                ? `Issue on Issue - ${taskDetails?.task_name || 'Task'} (Chain: ${issueChain.length} issues)`
+                                : `Issue Assignment - ${taskDetails?.task_name || 'Task'}`;
+
+                            emailPromises.push(sendMail({
+                                to: wrm.manager.email,
+                                subject: subject,
+                                html: htmlContent
+                            }));
+                        }
+                    }
+
+                    // Execute all email promises in parallel
+                    await Promise.all(emailPromises).catch(err => {
+                        console.error('Error sending emails to managers:', err);
+                    });
+
+                    console.log('Issue assignment emails sent to:', managerEmails.join(', '));
+                }
+            }
         }
 
         if (issue_id) {
@@ -148,7 +328,7 @@ const createIssueAssignment = async (req, res) => {
 
         if (task_id) {
             await Tasks.update({ review: 'change_request' }, { where: { id: task_id }, transaction });
-            
+
             // Create review history entry when new issue is created for a task
             await TaskReviewHistory.create({
                 task_id: task_id,
@@ -164,7 +344,7 @@ const createIssueAssignment = async (req, res) => {
         // If issue_id is provided, update the parent issue's review to 'change_request'
         if (issue_id) {
             await IssueAssignments.update({ review: 'change_request' }, { where: { id: issue_id }, transaction });
-            
+
             // Get the task_id from the parent issue to create history
             const parentIssue = await IssueAssignments.findByPk(issue_id, { attributes: ['task_id'] });
             if (parentIssue && parentIssue.task_id) {
@@ -223,7 +403,7 @@ const getIssueAssignmentsWithTaskDetails = async (req, res) => {
     try {
         const { task_id, status } = req.query;
         let whereCondition = {};
-        
+
         if (task_id) whereCondition.task_id = parseInt(task_id);
         if (status) whereCondition.status = status;
 
@@ -259,12 +439,12 @@ const getIssueAssignmentsWithTaskDetails = async (req, res) => {
             where: { task_id: { [Op.in]: taskIds } }
         });
         const allTaskAssignmentIds = allTaskAssignments.map(ta => ta.id);
-        
+
         let taskDocumentsMap = {};
         if (allTaskAssignmentIds.length > 0) {
-            const docs = await TaskDocuments.findAll({ 
+            const docs = await TaskDocuments.findAll({
                 where: { task_assignment_id: { [Op.in]: allTaskAssignmentIds } },
-                attributes: ['id', 'document_name', 'document_path', 'document_type', 'document_size', 'version', 'status', 'review', 'intimate_client', 'task_assignment_id'] 
+                attributes: ['id', 'document_name', 'document_path', 'document_type', 'document_size', 'version', 'status', 'review', 'intimate_client', 'task_assignment_id']
             });
             docs.forEach(doc => {
                 if (!taskDocumentsMap[doc.task_assignment_id]) {
@@ -282,7 +462,7 @@ const getIssueAssignmentsWithTaskDetails = async (req, res) => {
                 where: { request_id: { [Op.in]: requestTypeIds } }
             });
             const divisionIds = [...new Set(requestDivisionRefs.map(ref => ref.division_id))];
-            
+
             if (divisionIds.length > 0) {
                 const divisionManagers = await UserDivisions.findAll({
                     where: { division_id: { [Op.in]: divisionIds } },
@@ -320,35 +500,35 @@ const getIssueAssignmentsWithTaskDetails = async (req, res) => {
 
         // Build result: Task -> issues
         const result = [];
-        
+
         for (const task of tasks) {
             // Get all issue assignments for this task
             const taskIssueAssignments = issueAssignments.filter(ia => ia.task_id === task.id);
-            
+
             // Process issue types for each issue assignment
             const issues = taskIssueAssignments.map(issueAssignment => {
-                const issueTypes = issueAssignment.issueTypeLinks ? issueAssignment.issueTypeLinks.map(itl => ({ 
-                    id: itl.id, 
-                    issue_register_id: itl.issue_register_id, 
-                    change_issue_type: itl.issueRegister ? itl.issueRegister.change_issue_type : null, 
-                    issue_description: itl.issueRegister ? itl.issueRegister.description : null, 
-                    issue_quantification: itl.issueRegister ? itl.issueRegister.quantification : null 
+                const issueTypes = issueAssignment.issueTypeLinks ? issueAssignment.issueTypeLinks.map(itl => ({
+                    id: itl.id,
+                    issue_register_id: itl.issue_register_id,
+                    change_issue_type: itl.issueRegister ? itl.issueRegister.change_issue_type : null,
+                    issue_description: itl.issueRegister ? itl.issueRegister.description : null,
+                    issue_quantification: itl.issueRegister ? itl.issueRegister.quantification : null
                 })) : [];
-                
-                const userAssignments = issueAssignment.userAssignments ? issueAssignment.userAssignments.map(ua => ({ 
-                    id: ua.id, 
-                    issue_assignment_id: ua.issue_assignment_id, 
-                    user_id: ua.user_id, 
-                    user: ua.user ? { 
-                        id: ua.user.id, 
-                        name: ua.user.name, 
-                        email: ua.user.email, 
-                        job_role_id: ua.user.job_role_id, 
-                        role_title: ua.user.JobRole ? ua.user.JobRole.role_title : null, 
-                        designation_name: ua.user.Designation ? ua.user.Designation.designation_name : null, 
-                        department_name: ua.user.Department ? ua.user.Department.department_name : null, 
-                        location_name: ua.user.Location ? ua.user.Location.location_name : null 
-                    } : null 
+
+                const userAssignments = issueAssignment.userAssignments ? issueAssignment.userAssignments.map(ua => ({
+                    id: ua.id,
+                    issue_assignment_id: ua.issue_assignment_id,
+                    user_id: ua.user_id,
+                    user: ua.user ? {
+                        id: ua.user.id,
+                        name: ua.user.name,
+                        email: ua.user.email,
+                        job_role_id: ua.user.job_role_id,
+                        role_title: ua.user.JobRole ? ua.user.JobRole.role_title : null,
+                        designation_name: ua.user.Designation ? ua.user.Designation.designation_name : null,
+                        department_name: ua.user.Department ? ua.user.Department.department_name : null,
+                        location_name: ua.user.Location ? ua.user.Location.location_name : null
+                    } : null
                 })) : [];
 
                 return {
@@ -417,30 +597,30 @@ const getIssueAssignmentsWithTaskDetails = async (req, res) => {
             }
 
             // Process dependencies
-            const dependencies = task.dependencies ? task.dependencies.map(dep => ({ 
-                id: dep.id, 
-                dependency_task_id: dep.dependency_task_id, 
-                dependency_task: dep.dependencyTask ? { 
-                    id: dep.dependencyTask.id, 
-                    task_name: dep.dependencyTask.task_name, 
-                    status: dep.dependencyTask.status 
-                } : null 
+            const dependencies = task.dependencies ? task.dependencies.map(dep => ({
+                id: dep.id,
+                dependency_task_id: dep.dependency_task_id,
+                dependency_task: dep.dependencyTask ? {
+                    id: dep.dependencyTask.id,
+                    task_name: dep.dependencyTask.task_name,
+                    status: dep.dependencyTask.status
+                } : null
             })) : [];
-            
+
             // Process review history
-            const reviewHistory = task.reviewHistory ? task.reviewHistory.map(rh => ({ 
-                id: rh.id, 
-                reviewer_id: rh.reviewer_id, 
-                reviewer_type: rh.reviewer_type, 
-                action: rh.action, 
-                comments: rh.comments, 
-                previous_stage: rh.previous_stage, 
-                new_stage: rh.new_stage, 
-                reviewer: rh.reviewer ? { 
-                    id: rh.reviewer.id, 
-                    name: rh.reviewer.name, 
-                    email: rh.reviewer.email 
-                } : null 
+            const reviewHistory = task.reviewHistory ? task.reviewHistory.map(rh => ({
+                id: rh.id,
+                reviewer_id: rh.reviewer_id,
+                reviewer_type: rh.reviewer_type,
+                action: rh.action,
+                comments: rh.comments,
+                previous_stage: rh.previous_stage,
+                new_stage: rh.new_stage,
+                reviewer: rh.reviewer ? {
+                    id: rh.reviewer.id,
+                    name: rh.reviewer.name,
+                    email: rh.reviewer.email
+                } : null
             })) : [];
 
             result.push({

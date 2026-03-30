@@ -17,7 +17,11 @@ const {
     IssueRegister,
     IssueUserAssignments,
     IssueDocuments,
-    Division
+    Division,
+    TaskProjectReference,
+    ProjectRequestReference,
+    RequestDivisionReference,
+    ProjectType
 } = require('../../models');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
@@ -723,7 +727,43 @@ const getTaskById = async (req, res) => {
                 },
                 {
                     model: TaskType,
-                    attributes: ['id', 'task_type', 'description', 'quantification']
+                    attributes: ['id', 'task_type', 'description', 'quantification'],
+                    include: [
+                        {
+                            model: ProjectType,
+                            as: 'ProjectTypes',
+                            through: {
+                                model: TaskProjectReference,
+                                as: 'TaskProjectReference',
+                                attributes: ['id', 'task_id', 'project_id']
+                            },
+                            attributes: ['id', 'project_type', 'description'],
+                            include: [
+                                {
+                                    model: RequestType,
+                                    as: 'RequestTypes',
+                                    through: {
+                                        model: ProjectRequestReference,
+                                        as: 'ProjectRequestReference',
+                                        attributes: ['id', 'project_id', 'request_id']
+                                    },
+                                    attributes: ['id', 'request_type', 'description'],
+                                    include: [
+                                        {
+                                            model: Division,
+                                            as: 'Divisions',
+                                            through: {
+                                                model: RequestDivisionReference,
+                                                as: 'RequestDivisionReference',
+                                                attributes: ['id', 'request_id', 'division_id']
+                                            },
+                                            attributes: ['id', 'title']
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
                 },
                 {
                     model: WorkRequests,
@@ -806,12 +846,29 @@ const getTaskById = async (req, res) => {
         taskResult.dataValues.documents = (taskResult.taskAssignments || []).flatMap(ta => ta.taskDocuments || []);
         delete taskResult.dataValues.taskAssignments;
 
-        // Extract division from RequestType (task's request_type_id)
+        // Extract division from TaskType chain: task_type -> task_project_reference -> project_type -> project_request_reference -> request_type -> request_division_reference -> division
         let taskDivision = null;
-        if (taskResult.RequestType && taskResult.RequestType.Divisions && taskResult.RequestType.Divisions.length > 0) {
-            taskDivision = taskResult.RequestType.Divisions[0];
+        
+        if (taskResult.TaskType && taskResult.TaskType.ProjectTypes && taskResult.TaskType.ProjectTypes.length > 0) {
+            for (const projectType of taskResult.TaskType.ProjectTypes) {
+                if (projectType.RequestTypes && projectType.RequestTypes.length > 0) {
+                    for (const requestType of projectType.RequestTypes) {
+                        if (requestType.Divisions && requestType.Divisions.length > 0) {
+                            taskDivision = requestType.Divisions[0];
+                            break;
+                        }
+                    }
+                }
+                if (taskDivision) break;
+            }
         }
         taskResult.dataValues.division = taskDivision;
+
+        // Also keep the division from RequestType (task's request_type_id) as fallback
+        if (!taskDivision && taskResult.RequestType && taskResult.RequestType.Divisions && taskResult.RequestType.Divisions.length > 0) {
+            taskDivision = taskResult.RequestType.Divisions[0];
+            taskResult.dataValues.division = taskDivision;
+        }
 
         // Add division to each assigned user
         if (taskResult.assignedUsers && taskResult.assignedUsers.length > 0) {
