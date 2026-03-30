@@ -158,7 +158,6 @@ const createIssueAssignment = async (req, res) => {
                     attributes: ['id', 'work_request_id']
                 });
                 if (!task) return res.status(404).json({ success: false, error: 'Task not found' });
-                if (task.intimate_client !== 1) return res.status(400).json({ success: false, error: 'Task does not have intimate_client enabled' });
 
                 // Check if task already has 10 issues - don't allow more
                 const existingIssueCount = await IssueAssignments.count({
@@ -211,99 +210,11 @@ const createIssueAssignment = async (req, res) => {
                     ]
                 });
             }
-
-            if (taskWorkRequestId) {
-                // Get work request managers
-                const workRequestManagers = await WorkRequestManagers.findAll({
-                    where: { work_request_id: taskWorkRequestId },
-                    include: [
-                        {
-                            model: User,
-                            as: 'manager',
-                            attributes: ['id', 'name', 'email']
-                        }
-                    ]
-                });
-
-                // Send emails to all creative managers
-                if (workRequestManagers.length > 0) {
-                    const managerEmails = [];
-                    const emailPromises = [];
-
-                    // Get requester name
-                    const requester = await User.findByPk(requested_by_user_id, { attributes: ['name'] });
-
-                    // Get current issue details
-                    let currentIssueDetails = null;
-                    if (issue_id) {
-                        currentIssueDetails = await IssueAssignments.findByPk(issue_id, {
-                            attributes: ['id', 'version', 'description']
-                        });
-                    }
-
-                    for (const wrm of workRequestManagers) {
-                        if (wrm.manager && wrm.manager.email) {
-                            managerEmails.push(wrm.manager.email);
-
-                            // Build issue chain string for email
-                            let issueChainText = '';
-                            if (issueChain.length > 0) {
-                                issueChainText = issueChain.map((issue, idx) =>
-                                    `${'  '.repeat(idx + 1)}Issue #${issue.id} (${issue.version}): ${issue.description?.substring(0, 50) || 'N/A'}...`
-                                ).join('\n');
-                            }
-
-                            // Render email template
-                            const htmlContent = renderTemplate('issueAssignmentNotification', {
-                                task_id: rootTaskId,
-                                task_name: taskDetails?.task_name || 'N/A',
-                                issue_id: issueAssignment.id,
-                                task_type: taskDetails?.TaskType?.task_type || 'N/A',
-                                project_name: taskDetails?.WorkRequest?.project_name || 'N/A',
-                                brand: taskDetails?.WorkRequest?.brand || 'N/A',
-                                priority: 'Normal',
-                                request_type: 'Issue',
-                                issue_version: version,
-                                assigned_by: requester?.name || 'N/A',
-                                created_at: new Date().toLocaleString(),
-                                issue_description: description || 'No description provided',
-                                manager_name: wrm.manager.name,
-                                // Issue chain info
-                                is_issue_on_issue: issueChain.length > 0,
-                                issue_chain: issueChainText,
-                                parent_issue_id: currentIssueDetails?.id || null,
-                                parent_issue_version: currentIssueDetails?.version || null,
-                                parent_issue_description: currentIssueDetails?.description || null,
-                                issue_chain_depth: issueChain.length
-                            });
-
-                            // Queue email
-                            const subject = issueChain.length > 0
-                                ? `Issue on Issue - ${taskDetails?.task_name || 'Task'} (Chain: ${issueChain.length} issues)`
-                                : `Issue Assignment - ${taskDetails?.task_name || 'Task'}`;
-
-                            emailPromises.push(sendMail({
-                                to: wrm.manager.email,
-                                subject: subject,
-                                html: htmlContent
-                            }));
-                        }
-                    }
-
-                    // Execute all email promises in parallel
-                    await Promise.all(emailPromises).catch(err => {
-                        console.error('Error sending emails to managers:', err);
-                    });
-
-                    console.log('Issue assignment emails sent to:', managerEmails.join(', '));
-                }
-            }
         }
 
         if (issue_id) {
             const existingIssue = await IssueAssignments.findByPk(issue_id);
             if (!existingIssue) return res.status(404).json({ success: false, error: 'Parent issue not found' });
-            if (existingIssue.intimate_client !== 1) return res.status(400).json({ success: false, error: 'Parent issue does not have intimate_client enabled' });
         }
 
         const changeType = task_id ? 'task' : 'issue';

@@ -655,8 +655,9 @@ const getTaskById = async (req, res) => {
         // Check if user is manager (job_role_id = 2)
         const isManager = req.user.jobRole && req.user.jobRole.id === 2;
 
-        // Get single task with full details - only if assigned to current user and intimate_team = 1
+        // Get single task with full details
         let userIds = [req.user.id]; // Start with current user
+        let includeAssignedUsersFilter = true;
 
         if (isManager) {
             // Get divisions the manager belongs to
@@ -684,20 +685,22 @@ const getTaskById = async (req, res) => {
 
                 const teamUserIds = teamUsers.map(tu => tu.User.id);
                 userIds = userIds.concat(teamUserIds);
+
+                // Managers should have access to all tasks in their division - don't filter by assigned users
+                includeAssignedUsersFilter = false;
             }
         }
 
         const taskResult = await Tasks.findOne({
-            // where: { id: taskId, intimate_team: 1 },
             where: { id: taskId },
             include: [
                 {
                     model: User,
                     as: 'assignedUsers',
-                    where: { id: { [Op.in]: userIds } }, // Allow current user or team members for managers
+                    where: includeAssignedUsersFilter ? { id: { [Op.in]: userIds } } : undefined,
                     attributes: ['id', 'name', 'email'],
                     through: { attributes: ['created_at'] },
-                    required: true, // This ensures the task must be assigned to the user or their team
+                    required: includeAssignedUsersFilter,
                     include: [
                         {
                             model: UserDivisions,
