@@ -4413,7 +4413,7 @@ const getIssueAssignments = async (req, res) => {
                 {
                     model: Tasks,
                     as: 'task',
-                    attributes: ['id', 'task_name', 'work_request_id', 'deadline', 'status'],
+                    attributes: ['id', 'task_name', 'work_request_id', 'deadline', 'status', 'task_type_id'],
                     include: [
                         {
                             model: WorkRequests,
@@ -4427,18 +4427,33 @@ const getIssueAssignments = async (req, res) => {
                                 {
                                     model: RequestType,
                                     attributes: ['id', 'request_type']
+                                },
+                                {
+                                    model: WorkRequestManagers,
+                                    attributes: ['id', 'manager_id'],
+                                    include: [
+                                        {
+                                            model: User,
+                                            as: 'manager',
+                                            attributes: ['id', 'name', 'email']
+                                        }
+                                    ]
                                 }
                             ]
                         },
                         {
-                            model: TaskAssignments,
-                            include: [
-                                {
-                                    model: User,
-                                    attributes: ['id', 'name', 'email']
-                                }
-                            ]
-                        }
+                            model: TaskType,
+                            attributes: ['id', 'task_type', 'description']
+                        },
+                        // {
+                        //     model: TaskAssignments,
+                        //     include: [
+                        //         {
+                        //             model: User,
+                        //             attributes: ['id', 'name', 'email']
+                        //         }
+                        //     ]
+                        // }
                     ]
                 },
                 {
@@ -4496,12 +4511,23 @@ const getIssueAssignments = async (req, res) => {
             review_stage: issue.review_stage,
             created_at: issue.created_at,
             updated_at: issue.updated_at,
+            task_type: issue.task && issue.task.TaskType ? {
+                id: issue.task.TaskType.id,
+                task_type: issue.task.TaskType.task_type,
+                description: issue.task.TaskType.description
+            } : null,
             task: issue.task ? {
                 id: issue.task.id,
                 task_name: issue.task.task_name,
                 work_request_id: issue.task.work_request_id,
                 deadline: issue.task.deadline,
                 status: issue.task.status,
+                task_type_id: issue.task.task_type_id,
+                task_type: issue.task.TaskType ? {
+                    id: issue.task.TaskType.id,
+                    task_type: issue.task.TaskType.task_type,
+                    description: issue.task.TaskType.description
+                } : null,
                 taskAssignments: issue.task.TaskAssignments ? issue.task.TaskAssignments.map(ta => ({
                     id: ta.id,
                     user_id: ta.user_id,
@@ -4525,7 +4551,13 @@ const getIssueAssignments = async (req, res) => {
                     requestType: issue.task.WorkRequest.RequestType ? {
                         id: issue.task.WorkRequest.RequestType.id,
                         request_type: issue.task.WorkRequest.RequestType.request_type
-                    } : null
+                    } : null,
+                    managers: issue.task.WorkRequest.WorkRequestManagers ? issue.task.WorkRequest.WorkRequestManagers.map(wm => ({
+                        id: wm.manager_id,
+                        name: wm.manager ? wm.manager.name : null,
+                        email: wm.manager ? wm.manager.email : null
+                    })) : [],
+                    deadline: issue.task.deadline
                 } : null
             } : null,
             requester: issue.requester ? {
