@@ -4266,9 +4266,9 @@ const acceptIssueRequest = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Issue request is already accepted by manager' });
         }
 
-        if (issueAssignment.status !== 'm_pending') {
-            return res.status(400).json({ success: false, error: 'Only m_pending issue requests can be accepted' });
-        }
+        // if (issueAssignment.status !== 'm_pending') {
+        //     return res.status(400).json({ success: false, error: 'Only m_pending issue requests can be accepted' });
+        // }
 
         // Update status to m_accepted (manager accepted)
         await IssueAssignments.update({ status: 'm_accepted' }, { where: { id } });
@@ -4516,6 +4516,9 @@ const getIssueAssignments = async (req, res) => {
                 task_type: issue.task.TaskType.task_type,
                 description: issue.task.TaskType.description
             } : null,
+            task_type_name: issue.task && issue.task.TaskType ? issue.task.TaskType.task_type : null,
+            deadline: issue.deadline,
+            issue_deadline: issue.deadline,
             task: issue.task ? {
                 id: issue.task.id,
                 task_name: issue.task.task_name,
@@ -4528,6 +4531,7 @@ const getIssueAssignments = async (req, res) => {
                     task_type: issue.task.TaskType.task_type,
                     description: issue.task.TaskType.description
                 } : null,
+                task_type_name: issue.task.TaskType ? issue.task.TaskType.task_type : null,
                 taskAssignments: issue.task.TaskAssignments ? issue.task.TaskAssignments.map(ta => ({
                     id: ta.id,
                     user_id: ta.user_id,
@@ -4557,7 +4561,7 @@ const getIssueAssignments = async (req, res) => {
                         name: wm.manager ? wm.manager.name : null,
                         email: wm.manager ? wm.manager.email : null
                     })) : [],
-                    deadline: issue.task.deadline
+                    deadline: null
                 } : null
             } : null,
             requester: issue.requester ? {
