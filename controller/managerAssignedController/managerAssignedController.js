@@ -4370,6 +4370,43 @@ const getIssueAssignments = async (req, res) => {
             where.review = review;
         }
 
+        // Get manager's divisions
+        const managerDivisions = await UserDivisions.findAll({
+            where: { user_id: manager_id },
+            attributes: ['division_id']
+        });
+
+        const managerDivisionIds = managerDivisions.map(md => md.division_id);
+
+        if (managerDivisionIds.length === 0) {
+            return res.json({
+                success: true,
+                data: [],
+                message: 'No divisions assigned to this manager'
+            });
+        }
+
+        // Get all active creative users (job_role_id = 4) and creative leads (job_role_id = 3) in manager's divisions
+        const usersInManagerDivisions = await UserDivisions.findAll({
+            where: { division_id: { [Op.in]: managerDivisionIds } },
+            include: [
+                {
+                    model: User,
+                    where: {
+                        account_status: 'active',
+                        job_role_id: { [Op.in]: [3, 4] } // Creative Lead (3) and Creative User (4)
+                    },
+                    attributes: ['id', 'name', 'email', 'job_role_id']
+                }
+            ],
+            attributes: []
+        });
+
+        // Get user IDs including the manager themselves (since manager also works as creative user)
+        const userIdsInDivisions = usersInManagerDivisions.map(ud => ud.User.id);
+        userIdsInDivisions.push(manager_id); // Include manager's own ID
+        const uniqueUserIds = [...new Set(userIdsInDivisions)];
+
         // Get all work requests assigned to this manager
         const workRequestsAssignedToManager = await WorkRequestManagers.findAll({
             where: { manager_id: manager_id },
@@ -4403,7 +4440,8 @@ const getIssueAssignments = async (req, res) => {
             });
         }
 
-        // Get issue assignments with filters from manager's work requests only
+        // Get issue assignments with filters from manager's work requests
+        // Only show issues assigned to users in manager's divisions or the manager themselves
         const issueAssignments = await IssueAssignments.findAll({
             where: {
                 ...where,
@@ -4444,16 +4482,7 @@ const getIssueAssignments = async (req, res) => {
                         {
                             model: TaskType,
                             attributes: ['id', 'task_type', 'description']
-                        },
-                        // {
-                        //     model: TaskAssignments,
-                        //     include: [
-                        //         {
-                        //             model: User,
-                        //             attributes: ['id', 'name', 'email']
-                        //         }
-                        //     ]
-                        // }
+                        }
                     ]
                 },
                 {
@@ -4475,6 +4504,10 @@ const getIssueAssignments = async (req, res) => {
                 {
                     model: IssueUserAssignments,
                     as: 'userAssignments',
+                    where: {
+                        user_id: { [Op.in]: uniqueUserIds }
+                    },
+                    required: false,
                     include: [
                         {
                             model: User,
@@ -4498,6 +4531,7 @@ const getIssueAssignments = async (req, res) => {
             issue_id: issue.issue_id,
             version: issue.version,
             description: issue.description,
+            // Issue deadline - shown at top level for easy access
             deadline: issue.deadline,
             start_date: issue.start_date,
             end_date: issue.end_date,
@@ -4511,6 +4545,7 @@ const getIssueAssignments = async (req, res) => {
             review_stage: issue.review_stage,
             created_at: issue.created_at,
             updated_at: issue.updated_at,
+            // Task type from the linked task - shown at top level for easy access
             task_type: issue.task && issue.task.TaskType ? {
                 id: issue.task.TaskType.id,
                 task_type: issue.task.TaskType.task_type,
@@ -4518,30 +4553,21 @@ const getIssueAssignments = async (req, res) => {
             } : null,
             task_type_name: issue.task && issue.task.TaskType ? issue.task.TaskType.task_type : null,
             task_type_id: issue.task ? issue.task.task_type_id : null,
-            deadline: issue.deadline,
-            issue_deadline: issue.deadline,
             task: issue.task ? {
                 id: issue.task.id,
                 task_name: issue.task.task_name,
                 work_request_id: issue.task.work_request_id,
+                // Task deadline
                 deadline: issue.task.deadline,
                 status: issue.task.status,
                 task_type_id: issue.task.task_type_id,
+                // Task type info at task level
                 task_type: issue.task.TaskType ? {
                     id: issue.task.TaskType.id,
                     task_type: issue.task.TaskType.task_type,
                     description: issue.task.TaskType.description
                 } : null,
                 task_type_name: issue.task.TaskType ? issue.task.TaskType.task_type : null,
-                taskAssignments: issue.task.TaskAssignments ? issue.task.TaskAssignments.map(ta => ({
-                    id: ta.id,
-                    user_id: ta.user_id,
-                    user: ta.User ? {
-                        id: ta.User.id,
-                        name: ta.User.name,
-                        email: ta.User.email
-                    } : null
-                })) : [],
                 workRequest: issue.task.WorkRequest ? {
                     id: issue.task.WorkRequest.id,
                     project_name: issue.task.WorkRequest.project_name,
@@ -4561,8 +4587,7 @@ const getIssueAssignments = async (req, res) => {
                         id: wm.manager_id,
                         name: wm.manager ? wm.manager.name : null,
                         email: wm.manager ? wm.manager.email : null
-                    })) : [],
-                    deadline: null
+                    })) : []
                 } : null
             } : null,
             requester: issue.requester ? {
