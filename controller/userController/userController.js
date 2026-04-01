@@ -32,14 +32,27 @@ require('dotenv').config();
 const getAssignedTasks = async (req, res) => {
     try {
         const user_id = req.user.id;
-        const { status, deadline, review, review_stages } = req.query; // Get status, deadline, review, and review_stages filters from query params
+        const { status, deadline, review, review_stages, assigned_to } = req.query; // Get status, deadline, review, review_stages, and assigned_to filters from query params
 
         // Check if user is manager (job_role_id = 2)
         const isManager = req.user.jobRole && req.user.jobRole.id === 2;
 
         let userIds = [user_id]; // Start with current user
 
-        if (isManager) {
+        // If assigned_to is 'self', only show tasks assigned to the current user
+        // AND the work request must have this user as a manager in WorkRequestManagers
+        let selfWorkRequestIds = [];
+        if (assigned_to === 'self') {
+            userIds = [user_id];
+            
+            // Get work requests where the current user is a manager
+            const managedWorkRequests = await WorkRequestManagers.findAll({
+                where: { manager_id: user_id },
+                attributes: ['work_request_id']
+            });
+            
+            selfWorkRequestIds = managedWorkRequests.map(wrm => wrm.work_request_id);
+        } else if (isManager) {
             // Get divisions the manager belongs to
             const managerDivisions = await UserDivisions.findAll({
                 where: { user_id: user_id },
@@ -67,7 +80,7 @@ const getAssignedTasks = async (req, res) => {
                 userIds = userIds.concat(teamUserIds);
             }
         } else {
-            // Check if user is in department 9
+            // Non-manager users: Check if user is in department 9
             const isInDepartment9 = req.user.department && req.user.department.id === 9;
             if (!isInDepartment9) {
                 return res.status(403).json({
@@ -126,6 +139,11 @@ const getAssignedTasks = async (req, res) => {
             // Default: show pending tasks (not yet accepted)
             whereCondition.status = 'pending';
             whereCondition.intimate_team = 1;
+        }
+
+        // Apply work_request_id filter for 'self' - only show tasks from work requests where user is a manager
+        if (assigned_to === 'self' && selfWorkRequestIds.length > 0) {
+            whereCondition.work_request_id = { [Op.in]: selfWorkRequestIds };
         }
 
         // Handle multiple comma-separated review values
