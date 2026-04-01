@@ -3,224 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Work Request Submitted Successfully - D-Map</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f8f9fa;
-            color: #333;
-            line-height: 1.6;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .header {
-            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-            color: white;
-            padding: 40px 30px;
-            text-align: center;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 28px;
-            font-weight: 600;
-        }
-        .content {
-            padding: 40px 30px;
-        }
-        .welcome-message {
-            font-size: 18px;
-            font-weight: 500;
-            color: #2c3e50;
-            margin-bottom: 20px;
-        }
-        .success {
-            background-color: #d4edda;
-            border: 1px solid #c3e6cb;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 20px 0;
-            color: #155724;
-        }
-        .info {
-            background-color: #d1ecf1;
-            border: 1px solid #bee5eb;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 20px 0;
-            color: #0c5460;
-        }
-        .features-list {
-            background-color: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 25px 0;
-        }
-        .features-list ul {
-            margin: 0;
-            padding-left: 20px;
-        }
-        .features-list li {
-            margin-bottom: 8px;
-            color: #495057;
-        }
-        .support {
-            background-color: #e9ecef;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 25px 0;
-            text-align: center;
-        }
-        .support a {
-            color: #007bff;
-            text-decoration: none;
-            font-weight: 500;
-        }
-        .action-button {
-            display: inline-block;
-            background-color: #007bff;
-            color: white !important;
-            padding: 12px 24px;
-            text-decoration: none;
-            border-radius: 6px;
-            font-weight: 500;
-            margin: 10px 0;
-        }
-        .footer {
-            background-color: #f8f9fa;
-            padding: 20px 30px;
-            text-align: center;
-            font-size: 12px;
-            color: #6c757d;
-            border-top: 1px solid #dee2e6;
-        }
-        .footer p {
-            margin: 0;
-        }
-        .logo-section {
-            background-color: #ffffff;
-            padding: 15px;
-            text-align: center;
-            border-bottom: 3px solid #007bff;
-        }
-        .logo-section img {
-            max-height: 50px;
-            width: auto;
-        }
-        .banner-section {
-            width: 100%;
-            max-height: 200px;
-            overflow: hidden;
-        }
-        .banner-section img {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
-        @media (max-width: 600px) {
-            .container {
-                margin: 10px;
-                border-radius: 8px;
-            }
-            .header, .content, .footer {
-                padding: 20px;
-            }
-            .header h1 {
-                font-size: 24px;
-            }
-        }
+    <title>Work Request Submitted - D-Map</title>
+    <!--[if mso]>
+    <style type="text/css">
+        body, table, td {font-family: Arial, Helvetica, sans-serif !important;}
     </style>
+    <![endif]-->
 </head>
-<body>
-    <div class="container">
-        <div class="banner-section">
-            <img src="{{banner_base64}}" alt="D-Map Banner">
-        </div>
-        
-        <div class="logo-section">
-            <img src="{{logo_base64}}" alt="Alembic Logo">
-        </div>
-
-        <div class="header">
-            <h1>Work Request Submitted Successfully</h1>
-        </div>
-        <div class="content">
-            <div class="welcome-message">
-                Work Request Submitted Successfully
-            </div>
-
-            <div class="success">
-                <strong>Your work request has been submitted successfully!</strong><br>
-                We have assigned it to the appropriate manager for review and processing.
-            </div>
-
-            <div class="info">
-                <strong>Assigned Manager:</strong>
-                <ul>
-                    <li><strong>Manager Name:</strong> {{manager_name}}</li>
-                    <li><strong>Email:</strong> {{manager_email}}</li>
-                    <li><strong>Department:</strong> {{manager_department}}</li>
-                    <li><strong>Division:</strong> {{manager_division}}</li>
-                    <li><strong>Job Role:</strong> {{manager_job_role}}</li>
-                    <li><strong>Location:</strong> {{manager_location}}</li>
-                </ul>
-            </div>
-
-            <div class="info">
-                <strong>Work Request Details:</strong>
-                <ul>
-                    <li><strong>Project Name:</strong> {{project_name}}</li>
-                    <li><strong>Brand:</strong> {{brand}}</li>
-                    <li><strong>Request Type:</strong> {{request_type_type}} - {{request_type_category}}</li>
-                    <li><strong>Priority:</strong> {{priority}}</li>
-                    <li><strong>Division:</strong> {{division_name}}</li>
-                    <li><strong>Request ID:</strong> #{{request_id}}</li>
-                    <li><strong>Request Date:</strong> {{request_date}}</li>
-                </ul>
-            </div>
-
-            <div class="features-list">
-                <p><strong>Project Details:</strong></p>
-                <p>{{project_details}}</p>
-            </div>
-
-            <div class="info">
-                <strong>Status:</strong> Request sent to manager for assignment<br>
-                <strong>Current Priority:</strong> {{priority_capitalized}}
-            </div>
-
-            <p><strong>What happens next?</strong></p>
-            <div class="features-list">
-                <ul>
-                    <li>Your request has been sent to the appropriate division manager</li>
-                    <li>The manager will review your request and either accept it for assignment or suggest modifications</li>
-                    <li>You'll receive updates on the status of your request</li>
-                    <li>If the manager accepts your request, they will begin work and provide you with updates</li>
-                    <li>You can contact the manager directly if you need to provide additional information</li>
-                </ul>
-            </div>
-
-            <div style="text-align: center;">
-                <a href="{{frontend_url}}/dashboard" class="action-button">
-                    Track Your Request
-                </a>
-            </div>
-
-            <div class="support">
-                <p>Questions or need assistance? Track your request status in your dashboard or reach out to our support team at <a href="mailto:support@alembicdigilabs.com">support@alembicdigilabs.com</a></p>
-            </div>
-        </div>
-        <div class="footer">
-            <p>This is an automated message from D-Map. Please do not reply to this email.</p>
-            <p>&copy; 2026 Alembic Digital Labs. All rights reserved.</p>
-        </div>
-    </div>
+<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f4f4f4; padding: 20px 0;">
+        <tr>
+            <td align="center">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="background-color: #ffffff; max-width: 600px;">
+                    
+                    <!-- Header -->
+                    <tr>
+                        <td style="background-color: #007bff; padding: 25px 20px; text-align: center;">
+                            <h1 style="color: #ffffff; font-size: 22px; font-weight: 600; margin: 0; font-family: Arial, Helvetica, sans-serif;">Work Request Submitted</h1>
+                        </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 30px 25px;">
+                            <h2 style="color: #2c3e50; font-size: 20px; font-weight: 600; margin: 0 0 15px 0;">Work Request Submitted Successfully</h2>
+                            
+                            <p style="margin: 0 0 15px 0; color: #333333;">Dear <strong>{{user_name}}</strong>,</p>
+                            
+                            <p style="margin: 0 0 15px 0; color: #333333;">Your work request has been submitted successfully. Please find the details below:</p>
+                            
+                            <div style="background-color: #d4edda; border-left: 4px solid #28a745; padding: 15px 20px; margin: 20px 0;">
+                                <strong>Status:</strong> Work Request Submitted<br>
+                                <strong>Request ID:</strong> #{{request_id}}
+                            </div>
+                            
+                            <div style="background-color: #f8f9fa; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                                <h3 style="margin-top: 0; color: #2c3e50; font-size: 16px; font-weight: 600;">Work Request Details</h3>
+                                <table style="width: 100%; border-collapse: collapse;">
+                                    <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057; width: 40%;">Project Name:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{project_name}}</td></tr>
+                                    <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Brand:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{brand}}</td></tr>
+                                    <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Request Type:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{request_type}}</td></tr>
+                                    <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Priority:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{priority}}</td></tr>
+                                    <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Submitted At:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{submitted_at}}</td></tr>
+                                </table>
+                            </div>
+                            
+                            <div style="background-color: #f8f9fa; border-left: 4px solid #007bff; padding: 15px 20px; margin: 20px 0;">
+                                <p style="margin: 0;"><strong>Project Details:</strong> {{project_details}}</p>
+                            </div>
+                            
+                            <div style="background-color: #f8f9fa; border-left: 4px solid #007bff; padding: 15px 20px; margin: 20px 0;">
+                                <p style="margin: 0;"><strong>Next Steps:</strong> Your work request is now pending review by the manager. You will be notified once it's accepted.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    
+                    <!-- Banner Image at Bottom -->
+                    <tr>
+                        <td style="padding: 0;">
+                            <a href="{{frontend_url}}">
+                                <img src="{{banner_base64}}" alt="D-Map Banner" width="600" style="display: block; width: 100%; max-width: 600px; height: auto; border: 0;">
+                            </a>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f8f9fa; padding: 25px 20px; text-align: center; border-top: 1px solid #e9ecef;">
+                            <p style="margin: 5px 0; font-size: 12px; color: #6c757d;">This is an automated message from D-Map. Please do not reply to this email.</p>
+                            <p style="margin: 5px 0; font-size: 12px; color: #6c757d;">&copy; 2026 Alembic Digital Labs. All rights reserved.</p>
+                            <p style="margin: 10px 0 0 0; font-size: 12px;">
+                                <a href="{{frontend_url}}" style="color: #007bff; text-decoration: none;">Visit D-Map</a> | 
+                                <a href="mailto:support@alembicdigilabs.com" style="color: #007bff; text-decoration: none;">Support</a>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>

@@ -851,7 +851,7 @@ const getTaskById = async (req, res) => {
 
         // Extract division from TaskType chain: task_type -> task_project_reference -> project_type -> project_request_reference -> request_type -> request_division_reference -> division
         let taskDivision = null;
-        
+
         if (taskResult.TaskType && taskResult.TaskType.ProjectTypes && taskResult.TaskType.ProjectTypes.length > 0) {
             for (const projectType of taskResult.TaskType.ProjectTypes) {
                 if (projectType.RequestTypes && projectType.RequestTypes.length > 0) {
@@ -1029,11 +1029,11 @@ const acceptTask = async (req, res) => {
 const submitTask = async (req, res) => {
     try {
         const user_id = req.user.id;
-        const { 
-            task_id, 
-            task_count, 
-            link, 
-            work_request_id, 
+        const {
+            task_id,
+            task_count,
+            link,
+            work_request_id,
             start_date,
             comments,
             // Content Work fields
@@ -1383,6 +1383,7 @@ const submitTask = async (req, res) => {
                 priority: workRequest.priority,
                 request_id: workRequest.id,
                 completed_at: completedAt,
+                task_id: task.id,
                 task_name: task.task_name,
                 description: task.description,
                 completed_by: user.name,
@@ -2061,9 +2062,9 @@ const acceptIssue = async (req, res) => {
 const submitIssue = async (req, res) => {
     try {
         const issueId = parseInt(req.params.issueId, 10);
-        const { 
-            link, 
-            description, 
+        const {
+            link,
+            description,
             task_count,
             comments,
             // Content Work fields

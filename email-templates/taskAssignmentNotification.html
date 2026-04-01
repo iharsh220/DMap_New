@@ -9,34 +9,8 @@
         body, table, td {font-family: Arial, Helvetica, sans-serif !important;}
     </style>
     <![endif]-->
-    <style>
-        body { margin: 0; padding: 0; background-color: #f4f4f4; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .email-container { max-width: 600px; margin: 0 auto; }
-        .banner img { width: 100%; max-width: 600px; height: auto; display: block; }
-        .logo-section { background-color: #ffffff; padding: 20px; text-align: center; border-bottom: 3px solid #007bff; }
-        .logo-section img { height: 50px; width: auto; }
-        .header { background-color: #007bff; padding: 25px 20px; text-align: center; }
-        .header h1 { color: #ffffff; font-size: 22px; font-weight: 600; margin: 0; }
-        .content { padding: 30px 25px; }
-        .content h2 { color: #2c3e50; font-size: 20px; font-weight: 600; margin: 0 0 15px 0; }
-        .info-box { background-color: #f8f9fa; border-left: 4px solid #007bff; padding: 15px 20px; margin: 20px 0; }
-        .success-box { background-color: #d4edda; border-left: 4px solid #28a745; padding: 15px 20px; margin: 20px 0; }
-        .details-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-        .details-table td { padding: 10px 15px; border-bottom: 1px solid #e9ecef; }
-        .details-table td:first-child { font-weight: 600; color: #495057; width: 40%; }
-        .task-item { background-color: #f8f9fa; padding: 15px; margin: 10px 0; border-radius: 6px; border: 1px solid #e9ecef; }
-        .btn { display: inline-block; background-color: #007bff; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 15px 0; }
-        .btn-success { background-color: #28a745; }
-        .footer { background-color: #f8f9fa; padding: 25px 20px; text-align: center; border-top: 1px solid #e9ecef; }
-        .footer p { margin: 5px 0; font-size: 12px; color: #6c757d; }
-        .footer a { color: #007bff; text-decoration: none; }
-        @media only screen and (max-width: 600px) {
-            .content { padding: 20px 15px !important; }
-            .header h1 { font-size: 20px !important; }
-        }
-    </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f4f4f4;">
+<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
     <div style="display: none; font-size: 1px; color: #fefefe; line-height: 1px; max-height: 0; max-width: 0; opacity: 0; overflow: hidden;">
         You have been assigned new tasks. Please review and start working on them.
     </div>
@@ -45,7 +19,58 @@
         <tr>
             <td align="center">
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="background-color: #ffffff; max-width: 600px;">
-                    <!-- Banner -->
+                    
+                    <!-- Header -->
+                    <tr>
+                        <td style="background-color: #007bff; padding: 25px 20px; text-align: center;">
+                            <h1 style="color: #ffffff; font-size: 22px; font-weight: 600; margin: 0; font-family: Arial, Helvetica, sans-serif;">Task Assigned</h1>
+                        </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 30px 25px;">
+                            <h2 style="color: #2c3e50; font-size: 20px; font-weight: 600; margin: 0 0 15px 0;">New Task Assignment</h2>
+                            
+                            <div style="background-color: #d4edda; border-left: 4px solid #28a745; padding: 15px 20px; margin: 20px 0;">
+                                <strong>Congratulations!</strong><br>
+                                You have been assigned new tasks. Please review and start working on them.
+                            </div>
+                            
+                            <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                                <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057; width: 40%;">Project Name:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{project_name}}</td></tr>
+                                <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Brand:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{brand}}</td></tr>
+                                <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Request Type:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{request_type}}</td></tr>
+                                <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Priority:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{priority}}</td></tr>
+                                <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Request ID:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">#{{request_id}}</td></tr>
+                                <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Assigned At:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{assigned_at}}</td></tr>
+                            </table>
+                            
+                            <h3 style="color: #2c3e50; font-size: 16px; font-weight: 600; margin: 25px 0 10px 0;">Your Assigned Tasks:</h3>
+                            {{#each tasks}}
+                            <div style="background-color: #f8f9fa; padding: 15px; margin: 10px 0; border-radius: 6px; border: 1px solid #e9ecef;">
+                                <strong style="color: #007bff;">{{task_name}}</strong><br>
+                                {{#if description}}{{description}}<br>{{/if}}
+                                {{#if deadline}}<strong>Deadline:</strong> {{deadline}}{{/if}}
+                            </div>
+                            {{/each}}
+                            
+                            <div style="background-color: #f8f9fa; border-left: 4px solid #007bff; padding: 15px 20px; margin: 20px 0;">
+                                <strong>Status:</strong> Tasks assigned and ready to start<br>
+                                <strong>Next Steps:</strong> Begin working on your assigned tasks
+                            </div>
+                            
+                            <div style="text-align: center;">
+                                <a href="{{frontend_url}}/dashboard" style="display: inline-block; background-color: #007bff; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 15px 0;">View Your Tasks</a>
+                            </div>
+                            
+                            <div style="background-color: #f8f9fa; padding: 15px; margin: 20px 0; border-radius: 6px; text-align: center;">
+                                <strong>Questions?</strong> Contact your manager or email <a href="mailto:support@alembicdigilabs.com" style="color: #007bff;">support@alembicdigilabs.com</a>
+                            </div>
+                        </td>
+                    </tr>
+                    
+                    <!-- Banner Image at Bottom -->
                     <tr>
                         <td style="padding: 0;">
                             <a href="{{frontend_url}}">
@@ -54,66 +79,15 @@
                         </td>
                     </tr>
                     
-                    <!-- Logo -->
-                    <tr>
-                        <td style="background-color: #ffffff; padding: 20px; text-align: center; border-bottom: 3px solid #007bff;">
-                            <img src="{{logo_base64}}" alt="Alembic Logo" height="50" style="display: inline-block; height: 50px; width: auto; border: 0;">
-                        </td>
-                    </tr>
-                    
-                    <!-- Header -->
-                    <tr>
-                        <td style="background-color: #007bff; padding: 25px 20px; text-align: center;">
-                            <h1 style="color: #ffffff; font-size: 22px; font-weight: 600; margin: 0;">Task Assigned</h1>
-                        </td>
-                    </tr>
-                    
-                    <!-- Content -->
-                    <td class="content" style="padding: 30px 25px;">
-                        <h2>New Task Assignment</h2>
-                        
-                        <div class="success-box" style="background-color: #d4edda; border-left: 4px solid #28a745; padding: 15px 20px; margin: 20px 0;">
-                            <strong>Congratulations!</strong><br>
-                            You have been assigned new tasks. Please review and start working on them.
-                        </div>
-                        
-                        <table class="details-table" style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-                            <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;"><strong>Project Name:</strong></td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{project_name}}</td></tr>
-                            <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;"><strong>Brand:</strong></td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{brand}}</td></tr>
-                            <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;"><strong>Request Type:</strong></td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{request_type}}</td></tr>
-                            <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;"><strong>Priority:</strong></td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{priority}}</td></tr>
-                            <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;"><strong>Request ID:</strong></td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">#{{request_id}}</td></tr>
-                            <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;"><strong>Assigned At:</strong></td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{assigned_at}}</td></tr>
-                        </table>
-                        
-                        <h3 style="color: #2c3e50; font-size: 16px; font-weight: 600; margin: 25px 0 10px 0;">Your Assigned Tasks:</h3>
-                        {{#each tasks}}
-                        <div class="task-item" style="background-color: #f8f9fa; padding: 15px; margin: 10px 0; border-radius: 6px; border: 1px solid #e9ecef;">
-                            <strong style="color: #007bff;">{{task_name}}</strong><br>
-                            {{#if description}}{{description}}<br>{{/if}}
-                            {{#if deadline}}<strong>Deadline:</strong> {{deadline}}{{/if}}
-                        </div>
-                        {{/each}}
-                        
-                        <div class="info-box" style="background-color: #f8f9fa; border-left: 4px solid #007bff; padding: 15px 20px; margin: 20px 0;">
-                            <strong>Status:</strong> Tasks assigned and ready to start<br>
-                            <strong>Next Steps:</strong> Begin working on your assigned tasks
-                        </div>
-                        
-                        <div style="text-align: center;">
-                            <a href="{{frontend_url}}/dashboard" class="btn" style="display: inline-block; background-color: #007bff; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 15px 0;">View Your Tasks</a>
-                        </div>
-                        
-                        <div style="background-color: #f8f9fa; padding: 15px; margin: 20px 0; border-radius: 6px; text-align: center;">
-                            <strong>Questions?</strong> Contact your manager or email <a href="mailto:support@alembicdigilabs.com" style="color: #007bff;">support@alembicdigilabs.com</a>
-                        </div>
-                    </td>
-                    
                     <!-- Footer -->
                     <tr>
-                        <td class="footer" style="background-color: #f8f9fa; padding: 25px 20px; text-align: center; border-top: 1px solid #e9ecef;">
+                        <td style="background-color: #f8f9fa; padding: 25px 20px; text-align: center; border-top: 1px solid #e9ecef;">
                             <p style="margin: 5px 0; font-size: 12px; color: #6c757d;">This is an automated message from D-Map. Please do not reply to this email.</p>
                             <p style="margin: 5px 0; font-size: 12px; color: #6c757d;">&copy; 2026 Alembic Digital Labs. All rights reserved.</p>
+                            <p style="margin: 10px 0 0 0; font-size: 12px;">
+                                <a href="{{frontend_url}}" style="color: #007bff; text-decoration: none;">Visit D-Map</a> | 
+                                <a href="mailto:support@alembicdigilabs.com" style="color: #007bff; text-decoration: none;">Support</a>
+                            </p>
                         </td>
                     </tr>
                 </table>

@@ -3,205 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Email Verification - D-Map</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f8f9fa;
-            color: #333;
-            line-height: 1.6;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 40px 30px;
-            text-align: center;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 28px;
-            font-weight: 600;
-        }
-        .content {
-            padding: 40px 30px;
-        }
-        .welcome-message {
-            font-size: 18px;
-            font-weight: 500;
-            color: #2c3e50;
-            margin-bottom: 20px;
-        }
-        .action-button {
-            display: inline-block;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            text-decoration: none;
-            padding: 15px 30px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 16px;
-            margin: 20px 0;
-            transition: transform 0.2s ease;
-        }
-        .action-button:hover {
-            transform: translateY(-2px);
-        }
-        .warning {
-            background-color: #fff3cd;
-            border: 1px solid #ffeaa7;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 20px 0;
-            color: #856404;
-        }
-        .alternative-link {
-            background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 6px;
-            padding: 12px;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            word-break: break-all;
-            margin: 15px 0;
-            color: #495057;
-        }
-        .features-list {
-            background-color: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 25px 0;
-        }
-        .features-list ul {
-            margin: 0;
-            padding-left: 20px;
-        }
-        .features-list li {
-            margin-bottom: 8px;
-            color: #495057;
-        }
-        .support {
-            background-color: #e9ecef;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 25px 0;
-            text-align: center;
-        }
-        .support a {
-            color: #667eea;
-            text-decoration: none;
-            font-weight: 500;
-        }
-        .footer {
-            background-color: #f8f9fa;
-            padding: 20px 30px;
-            text-align: center;
-            font-size: 12px;
-            color: #6c757d;
-            border-top: 1px solid #dee2e6;
-        }
-        .footer p {
-            margin: 0;
-        }
-        .logo-section {
-            background-color: #ffffff;
-            padding: 15px;
-            text-align: center;
-            border-bottom: 3px solid #667eea;
-        }
-        .logo-section img {
-            max-height: 50px;
-            width: auto;
-        }
-        .banner-section {
-            width: 100%;
-            max-height: 200px;
-            overflow: hidden;
-        }
-        .banner-section img {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
-        @media (max-width: 600px) {
-            .container {
-                margin: 10px;
-                border-radius: 8px;
-            }
-            .header, .content, .footer {
-                padding: 20px;
-            }
-            .header h1 {
-                font-size: 24px;
-            }
-        }
+    <title>Verify Your Email - D-Map</title>
+    <!--[if mso]>
+    <style type="text/css">
+        body, table, td {font-family: Arial, Helvetica, sans-serif !important;}
     </style>
+    <![endif]-->
 </head>
-<body>
-    <div class="container">
-        <div class="banner-section">
-            <img src="{{banner_base64}}" alt="D-Map Banner">
-        </div>
-        
-        <div class="logo-section">
-            <img src="{{logo_base64}}" alt="Alembic Logo">
-        </div>
-
-        <div class="header">
-            <h1>Welcome to D-Map</h1>
-        </div>
-
-        <div class="content">
-            <div class="welcome-message">
-                Welcome to D-Map! We're excited to have you join our platform.
-            </div>
-
-            <p>To complete your registration and start exploring all the features D-Map has to offer, please verify your email address by clicking the button below:</p>
-
-            <div style="text-align: center;">
-                <a href="{{verificationUrl}}" class="action-button">
-                    Verify My Email Address
-                </a>
-            </div>
-
-            <div class="warning">
-                <strong>Security Notice:</strong> This verification link will expire in 24 hours for your security. If you didn't request this registration, please ignore this email.
-            </div>
-
-            <p>If the button above doesn't work, you can also copy and paste this link into your browser:</p>
-
-            <div class="alternative-link">
-                {{verificationUrl}}
-            </div>
-
-            <div class="features-list">
-                <p><strong>Once verified, you'll be able to:</strong></p>
-                <ul>
-                    <li>Access your personalized dashboard</li>
-                    <li>Manage your profile and preferences</li>
-                    <li>Explore advanced mapping features</li>
-                    <li>Collaborate with your team</li>
-                </ul>
-            </div>
-
-            <div class="support">
-                <p>Need help? Contact our support team at <a href="mailto:support@alembicdigilabs.com">support@alembicdigilabs.com</a></p>
-            </div>
-        </div>
-
-        <div class="footer">
-            <p>This is an automated message from D-Map. Please do not reply to this email.</p>
-            <p>&copy; 2026 Alembic Digital Labs. All rights reserved.</p>
-        </div>
-    </div>
+<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f4f4f4; padding: 20px 0;">
+        <tr>
+            <td align="center">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="background-color: #ffffff; max-width: 600px;">
+                    
+                    <!-- Header -->
+                    <tr>
+                        <td style="background-color: #007bff; padding: 25px 20px; text-align: center;">
+                            <h1 style="color: #ffffff; font-size: 22px; font-weight: 600; margin: 0; font-family: Arial, Helvetica, sans-serif;">Verify Your Email</h1>
+                        </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 30px 25px;">
+                            <h2 style="color: #2c3e50; font-size: 20px; font-weight: 600; margin: 0 0 15px 0;">Email Verification</h2>
+                            
+                            <p style="margin: 0 0 15px 0; color: #333333;">Dear <strong>{{user_name}}</strong>,</p>
+                            
+                            <p style="margin: 0 0 15px 0; color: #333333;">Thank you for registering with D-Map. Please verify your email address by clicking the button below:</p>
+                            
+                            <div style="text-align: center; margin: 30px 0;">
+                                <a href="{{verification_link}}" style="display: inline-block; background-color: #28a745; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600;">Verify Email</a>
+                            </div>
+                            
+                            <div style="background-color: #f8f9fa; border-left: 4px solid #007bff; padding: 15px 20px; margin: 20px 0;">
+                                <p style="margin: 0;"><strong>Note:</strong> This verification link will expire in 24 hours.</p>
+                            </div>
+                            
+                            <p style="margin: 15px 0; color: #333333;">If you did not create an account, please ignore this email.</p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Banner Image at Bottom -->
+                    <tr>
+                        <td style="padding: 0;">
+                            <a href="{{frontend_url}}">
+                                <img src="{{banner_base64}}" alt="D-Map Banner" width="600" style="display: block; width: 100%; max-width: 600px; height: auto; border: 0;">
+                            </a>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f8f9fa; padding: 25px 20px; text-align: center; border-top: 1px solid #e9ecef;">
+                            <p style="margin: 5px 0; font-size: 12px; color: #6c757d;">This is an automated message from D-Map. Please do not reply to this email.</p>
+                            <p style="margin: 5px 0; font-size: 12px; color: #6c757d;">&copy; 2026 Alembic Digital Labs. All rights reserved.</p>
+                            <p style="margin: 10px 0 0 0; font-size: 12px;">
+                                <a href="{{frontend_url}}" style="color: #007bff; text-decoration: none;">Visit D-Map</a> | 
+                                <a href="mailto:support@alembicdigilabs.com" style="color: #007bff; text-decoration: none;">Support</a>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>

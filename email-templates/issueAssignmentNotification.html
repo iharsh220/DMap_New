@@ -3,241 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>New Issue Assignment - D-Map</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f8f9fa;
-            color: #333;
-            line-height: 1.6;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .header {
-            background: linear-gradient(135deg, #dc3545 0%, #a71d2a 100%);
-            color: rgb(43, 39, 39);
-            padding: 40px 30px;
-            text-align: center;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 28px;
-            font-weight: 600;
-        }
-        .content {
-            padding: 40px 30px;
-        }
-        .welcome-message {
-            font-size: 18px;
-            font-weight: 500;
-            color: #2c3e50;
-            margin-bottom: 20px;
-        }
-        .info-box {
-            background-color: #f8f9fa;
-            border-left: 4px solid #dc3545;
-            border-radius: 4px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-        .info-row {
-            display: flex;
-            margin-bottom: 10px;
-        }
-        .info-label {
-            font-weight: 600;
-            width: 140px;
-            flex-shrink: 0;
-            color: #555;
-        }
-        .info-value {
-            color: #333;
-        }
-        .issue-section {
-            background-color: #fff3cd;
-            border: 1px solid #ffc107;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-        .issue-section h3 {
-            margin-top: 0;
-            color: #856404;
-        }
-        .issue-item {
-            background-color: #fff;
-            border-radius: 4px;
-            padding: 15px;
-            margin-bottom: 10px;
-        }
-        .issue-item:last-child {
-            margin-bottom: 0;
-        }
-        .issue-type {
-            font-weight: 600;
-            color: #856404;
-            margin-bottom: 5px;
-        }
-        .issue-description {
-            color: #666;
-            font-size: 14px;
-        }
-        .users-section {
-            background-color: #d1ecf1;
-            border: 1px solid #bee5eb;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-        .users-section h3 {
-            margin-top: 0;
-            color: #0c5460;
-        }
-        .user-item {
-            display: inline-block;
-            background-color: #fff;
-            border-radius: 4px;
-            padding: 8px 12px;
-            margin: 4px;
-            font-size: 14px;
-        }
-        .footer {
-            background-color: #f8f9fa;
-            padding: 20px 30px;
-            text-align: center;
-            color: #666;
-            font-size: 14px;
-        }
-        .footer a {
-            color: #007bff;
-            text-decoration: none;
-        }
-        .logo-section {
-            background-color: #ffffff;
-            padding: 20px 30px;
-            text-align: center;
-            border-bottom: 1px solid #e9ecef;
-        }
-        .logo-section img {
-            max-height: 60px;
-            width: auto;
-        }
-        .banner-section {
-            width: 100%;
-            max-height: 200px;
-            overflow: hidden;
-        }
-        .banner-section img {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
+    <title>Issue Assignment - D-Map</title>
+    <!--[if mso]>
+    <style type="text/css">
+        body, table, td {font-family: Arial, Helvetica, sans-serif !important;}
     </style>
+    <![endif]-->
 </head>
-<body>
-    <div class="container">
-        <div class="logo-section">
-            <img src="{{logo_base64}}" alt="Alembic Logo">
-        </div>
-        
-        <div class="banner-section">
-            <img src="{{banner_base64}}" alt="D-Map Banner">
-        </div>
+<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f4f4f4; padding: 20px 0;">
+        <tr>
+            <td align="center">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="background-color: #ffffff; max-width: 600px;">
+                    
+                    <!-- Header -->
+                    <tr>
+                        <td style="background-color: #007bff; padding: 25px 20px; text-align: center;">
+                            <h1 style="color: #ffffff; font-size: 22px; font-weight: 600; margin: 0; font-family: Arial, Helvetica, sans-serif;">Issue Assignment</h1>
+                        </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 30px 25px;">
+                            <h2 style="color: #2c3e50; font-size: 20px; font-weight: 600; margin: 0 0 15px 0;">New Issue Assignment</h2>
+                            
+                            <div style="background-color: #d4edda; border-left: 4px solid #28a745; padding: 15px 20px; margin: 20px 0;">
+                                <strong>Congratulations!</strong><br>
+                                You have been assigned a new issue. Please review and start working on it.
+                            </div>
+                            
+                            <div style="background-color: #f8f9fa; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                                <h3 style="margin-top: 0; color: #2c3e50; font-size: 16px; font-weight: 600;">Issue Details</h3>
+                                <table style="width: 100%; border-collapse: collapse;">
+                                    <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057; width: 40%;">Task Name:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{task_name}}</td></tr>
+                                    <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Task ID:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{task_id}}</td></tr>
+                                    <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Issue ID:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{issue_id}}</td></tr>
+                                    <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Issue Version:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{issue_version}}</td></tr>
+                                    <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Issue Description:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{issue_description}}</td></tr>
+                                    <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Task Type:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{task_type}}</td></tr>
+                                    <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Project:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{project_name}}</td></tr>
+                                    <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Brand:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{brand}}</td></tr>
+                                    <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Priority:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{priority}}</td></tr>
+                                    <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Request Type:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{request_type}}</td></tr>
+                                    <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Created At:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{created_at}}</td></tr>
+                                </table>
+                            </div>
 
-        <div class="header">
-            <h1>🔔 New Issue Assignment</h1>
-        </div>
-        
-        <div class="content">
-            <div class="welcome-message">
-                Hello <strong>{{manager_name}}</strong>,
-            </div>
-            
-            <p>A new issue has been assigned to a task you're managing. Please review the details below:</p>
-            
-            <div class="info-box">
-                <div class="info-row">
-                    <span class="info-label">Task ID:</span>
-                    <span class="info-value">#{{task_id}}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Task Name:</span>
-                    <span class="info-value">{{task_name}}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Issue ID:</span>
-                    <span class="info-value">#{{issue_id}}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Task Type:</span>
-                    <span class="info-value">{{task_type}}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Project Name:</span>
-                    <span class="info-value">{{project_name}}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Brand:</span>
-                    <span class="info-value">{{brand}}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Priority:</span>
-                    <span class="info-value">{{priority}}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Request Type:</span>
-                    <span class="info-value">{{request_type}}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Issue Version:</span>
-                    <span class="info-value">{{issue_version}}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Assigned By:</span>
-                    <span class="info-value">{{assigned_by}}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Created Date:</span>
-                    <span class="info-value">{{created_at}}</span>
-                </div>
-            </div>
-            
-            <div class="issue-section">
-                <h3>📋 Issue Details</h3>
-                <p><strong>Description:</strong> {{issue_description}}</p>
-                
-                <h4>Issue Registers:</h4>
-                {{#issue_registers}}
-                <div class="issue-item">
-                    <div class="issue-type">{{change_issue_type}}</div>
-                    <div class="issue-description">{{description}}</div>
-                    {{#quantification}}<div class="issue-description"><strong>Quantification:</strong> {{quantification}}</div>{{/quantification}}
-                </div>
-                {{/issue_registers}}
-            </div>
-            
-            <div class="users-section">
-                <h3>👥 Assigned Users</h3>
-                {{#assigned_users}}
-                <span class="user-item">{{name}} ({{email}})</span>
-                {{/assigned_users}}
-            </div>
-            
-            <p>Please take necessary action on this issue assignment.</p>
-        </div>
-        
-        <div class="footer">
-            <p>This is an automated notification from <strong>D-Map</strong> System.</p>
-            <p>© 2024 Digilabs. All rights reserved.</p>
-        </div>
-    </div>
+                            {{#if issue_registers.length}}
+                            <div style="background-color: #e8f4fd; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                                <h3 style="margin-top: 0; color: #007bff; font-size: 16px; font-weight: 600;">Issue Registers</h3>
+                                {{#each issue_registers}}
+                                <div style="background-color: #ffffff; border: 1px solid #ddd; border-radius: 5px; padding: 10px 15px; margin: 10px 0;">
+                                    <strong>{{this.change_issue_type}}</strong><br>
+                                    {{this.description}}
+                                </div>
+                                {{/each}}
+                            </div>
+                            {{/if}}
+
+                            <div style="background-color: #f8f9fa; border-left: 4px solid #007bff; padding: 15px 20px; margin: 20px 0;">
+                                <strong>Assigned By:</strong> {{assigned_by}}<br>
+                                <strong>Assigned At:</strong> {{assigned_at}}
+                            </div>
+                            
+                            <div style="text-align: center;">
+                                <a href="{{frontend_url}}/dashboard" style="display: inline-block; background-color: #007bff; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 15px 0;">View Issue</a>
+                            </div>
+                        </td>
+                    </tr>
+                    
+                    <!-- Banner Image at Bottom -->
+                    <tr>
+                        <td style="padding: 0;">
+                            <a href="{{frontend_url}}">
+                                <img src="{{banner_base64}}" alt="D-Map Banner" width="600" style="display: block; width: 100%; max-width: 600px; height: auto; border: 0;">
+                            </a>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f8f9fa; padding: 25px 20px; text-align: center; border-top: 1px solid #e9ecef;">
+                            <p style="margin: 5px 0; font-size: 12px; color: #6c757d;">This is an automated message from D-Map. Please do not reply to this email.</p>
+                            <p style="margin: 5px 0; font-size: 12px; color: #6c757d;">&copy; 2026 Alembic Digital Labs. All rights reserved.</p>
+                            <p style="margin: 10px 0 0 0; font-size: 12px;">
+                                <a href="{{frontend_url}}" style="color: #007bff; text-decoration: none;">Visit D-Map</a> | 
+                                <a href="mailto:support@alembicdigilabs.com" style="color: #007bff; text-decoration: none;">Support</a>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>
