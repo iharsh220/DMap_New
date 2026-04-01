@@ -238,7 +238,7 @@ const getAssignedWorkRequests = async (req, res) => {
         TaskAssignments.belongsTo(Tasks, { foreignKey: 'task_id' });
 
         const manager_id = req.user.id;
-        const { status, review, review_stages } = req.query; // Get status, review, and review_stages filters from query params
+        const { status, review, review_stages, user_id, user_name } = req.query; // Get status, review, review_stages, user_id, and user_name filters from query params
 
         let where = { status: { [Op.ne]: 'draft' } };
 
@@ -311,6 +311,42 @@ const getAssignedWorkRequests = async (req, res) => {
             } else {
                 // Single review_stage
                 where.review_stage = reviewStageArray[0];
+            }
+        }
+
+        // Handle user_id filter
+        if (user_id) {
+            const userIdInt = parseInt(user_id, 10);
+            if (isNaN(userIdInt)) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Invalid user_id. Must be a valid integer'
+                });
+            }
+            where.user_id = userIdInt;
+        }
+
+        // Handle user_name filter (search by user name)
+        if (user_name) {
+            // Find users matching the name
+            const matchingUsers = await User.findAll({
+                where: {
+                    name: { [Op.like]: `%${user_name}%` }
+                },
+                attributes: ['id']
+            });
+
+            if (matchingUsers.length > 0) {
+                const userIds = matchingUsers.map(u => u.id);
+                where.user_id = { [Op.in]: userIds };
+            } else {
+                // No matching users found, return empty result
+                return res.json({
+                    success: true,
+                    data: [],
+                    pagination: req.pagination,
+                    message: 'No work requests found for the specified user name'
+                });
             }
         }
 
