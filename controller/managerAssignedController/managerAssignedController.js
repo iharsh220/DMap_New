@@ -2304,7 +2304,7 @@ const assignTasksToUsers = async (req, res) => {
         const workRequest = workRequestResult.data[0];
 
         // Check if work request is accepted
-        if (workRequest.status !== 'accepted' && workRequest.status !== 'assigned') {
+        if (workRequest.status !== 'accepted' && workRequest.status !== 'assigned' && workRequest.status !== 'in_progress') {
             return res.status(400).json({
                 success: false,
                 error: 'Work request must be accepted before sending task notifications'
@@ -3215,10 +3215,21 @@ const updateTask = async (req, res) => {
         }
 
         // Update user assignment if user_id is provided
+        let userChanged = false;
+        let previousUserId = null;
+        
         if (user_id !== undefined) {
+            // Get current user_id before any changes
+            if (task.TaskAssignments && task.TaskAssignments.length > 0) {
+                previousUserId = task.TaskAssignments[0].user_id;
+            }
+            
             if (user_id === null || user_id === '') {
                 // Remove all assignments for this task
                 await TaskAssignments.destroy({ where: { task_id: taskId } });
+                if (previousUserId !== null) {
+                    userChanged = true;
+                }
             } else {
                 // Validate user_id
                 const userIdInt = parseInt(user_id, 10);
@@ -3248,6 +3259,11 @@ const updateTask = async (req, res) => {
                     });
                 }
 
+                // Check if user_id is different from previous
+                if (previousUserId !== userIdInt) {
+                    userChanged = true;
+                }
+
                 // Check if assignment already exists
                 const existingAssignment = await TaskAssignments.findOne({
                     where: { task_id: taskId, user_id: userIdInt }
@@ -3261,6 +3277,11 @@ const updateTask = async (req, res) => {
                     await TaskAssignments.create({ task_id: taskId, user_id: userIdInt });
                 }
             }
+        }
+
+        // If user was changed, update task status to pending
+        if (userChanged) {
+            await Tasks.update({ status: 'pending' }, { where: { id: taskId } });
         }
 
         // Fetch updated task with assignments
