@@ -1509,7 +1509,7 @@ const createTask = async (req, res) => {
         const workRequest = workRequestResult.data[0];
 
         // Check if work request is accepted
-        if (workRequest.status !== 'accepted' && workRequest.status !== 'assigned') {
+        if (workRequest.status !== 'accepted' && workRequest.status !== 'assigned' && workRequest.status !== 'in_progress') {
             return res.status(400).json({
                 success: false,
                 error: 'Work request must be accepted before creating tasks'
@@ -2925,9 +2925,9 @@ const getUserTask = async (req, res) => {
         const hasStatusFilter = status || (req.filters && req.filters.status);
         if (hasStatusFilter) {
             // Only apply intimate_team filter when status is explicitly provided
-            if (!taskWhereCondition.status || 
-                (taskWhereCondition.status !== 'completed' && 
-                 !(taskWhereCondition.status && taskWhereCondition.status[Op.in] && taskWhereCondition.status[Op.in].includes('completed')))) {
+            if (!taskWhereCondition.status ||
+                (taskWhereCondition.status !== 'completed' &&
+                    !(taskWhereCondition.status && taskWhereCondition.status[Op.in] && taskWhereCondition.status[Op.in].includes('completed')))) {
                 taskWhereCondition.intimate_team = 1;
             }
         }
@@ -3048,7 +3048,7 @@ const getUserTask = async (req, res) => {
                     brand: taskData.WorkRequests.brand,
                     status: taskData.WorkRequests.status
                 } : null,
-                issues: taskData.issueAssignments && taskData.issueAssignments.length > 0 
+                issues: taskData.issueAssignments && taskData.issueAssignments.length > 0
                     ? taskData.issueAssignments.map(issue => ({
                         id: issue.id,
                         issue_id: issue.issue_id,
