@@ -36,7 +36,7 @@ try {
     const { to, cc, subject, text, html } = job.data;
 
     const mailOptions = {
-      from: process.env.EMAIL_USER,
+      from: 'D-Map Support <' + process.env.EMAIL_USER + '>',
       to,
       cc,
       subject,
