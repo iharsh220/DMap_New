@@ -265,14 +265,12 @@ const createWorkRequest = async (req, res) => {
         // Send notification emails
         if (isdraft === 'false' && req.user && allAssignees.length > 0) {
             // Prepare assignee details for user email
-            const assigneeDetails = allAssignees.map((a, index) =>
-                `${a.JobRole?.role_title || 'Assignee'} ${index + 1}: ${a.name} (${a.email})`
-            ).join(', ');
+            const assigneeNames = allAssignees.map(a => a.name).join(', ');
             const firstAssignee = allAssignees[0];
 
             // Email to user (confirmation)
             const userEmailHtml = renderTemplate('workRequestUserConfirmation', {
-                manager_name: assigneeDetails,
+                manager_name: assigneeNames,
                 manager_department: firstAssignee.Department?.department_name || 'N/A',
                 manager_division: firstAssignee.Divisions && firstAssignee.Divisions.length > 0 ? firstAssignee.Divisions[0].title : 'N/A',
                 manager_job_role: firstAssignee.JobRole?.role_title || 'N/A',
@@ -306,6 +304,17 @@ const createWorkRequest = async (req, res) => {
             const managerEmails = managers.map(m => m.email);
             const leadEmails = creativeLeads.map(l => l.email);
 
+            // Fetch full user details for the email
+            const fullUserDetails = await User.findByPk(req.user.id, {
+                include: [
+                    { model: Department, attributes: ['id', 'department_name'] },
+                    { model: Division, as: 'Divisions', attributes: ['id', 'title'], through: { attributes: [] } },
+                    { model: JobRole, attributes: ['id', 'role_title'] },
+                    { model: Location, attributes: ['id', 'location_name'] },
+                    { model: Designation, attributes: ['id', 'designation_name'] }
+                ]
+            });
+
             const managerEmailHtml = renderTemplate('workRequestManagerNotification', {
                 project_name: result.data.project_name,
                 brand: result.data.brand || 'Not specified',
@@ -321,13 +330,13 @@ const createWorkRequest = async (req, res) => {
                     hour: '2-digit',
                     minute: '2-digit'
                 }),
-                user_name: req.user.name,
-                user_email: req.user.email,
-                user_department: req.user.department?.department_name || 'Not specified',
-                user_division: req.user.divisions && req.user.divisions.length > 0 ? req.user.divisions[0].title : 'Not specified',
-                user_job_role: req.user.jobRole?.role_title || 'Not specified',
-                user_location: req.user.location?.location_name || 'Not specified',
-                user_designation: req.user.designation?.designation_name || 'Not specified',
+                user_name: fullUserDetails?.name || req.user.name,
+                user_email: fullUserDetails?.email || req.user.email,
+                user_department: fullUserDetails?.Department?.department_name || 'Not specified',
+                user_division: fullUserDetails?.Divisions && fullUserDetails.Divisions.length > 0 ? fullUserDetails.Divisions[0].title : 'Not specified',
+                user_job_role: fullUserDetails?.JobRole?.role_title || 'Not specified',
+                user_location: fullUserDetails?.Location?.location_name || 'Not specified',
+                user_designation: fullUserDetails?.Designation?.designation_name || 'Not specified',
                 about_project: result.data.about_project ? JSON.parse(result.data.about_project) : null,
                 priority_capitalized: result.data.priority.charAt(0).toUpperCase() + result.data.priority.slice(1),
                 frontend_url: process.env.FRONTEND_URL
@@ -1521,44 +1530,46 @@ const getUserDashboardStats = async (req, res) => {
             }
         });
 
-        // 4. Find creative manager for this request type
-        const managerAssignment = await WorkRequestManagers.findOne({
+        // 4. Find creative manager for this request type from the divisions linked to this request type
+        // Get managers from the divisions linked to this request type
+        const userDivisions = await UserDivisions.findAll({
+            where: { division_id: { [Op.in]: divisionIds } },
             include: [{
-                model: WorkRequests,
-                where: {
-                    request_type_id: request_type_id,
-                    // status: { [Op.in]: ['accepted', 'in_progress'] }
-                },
-                attributes: []
-            }, {
                 model: User,
-                as: 'manager',
                 where: {
                     job_role_id: 2, // Creative Manager
                     account_status: 'active'
                 },
-                include: [
-                    { model: Department, as: 'Department', attributes: ['id', 'department_name'] },
-                    { model: Division, as: 'Divisions', attributes: ['id', 'title'] },
-                    { model: JobRole, as: 'JobRole', attributes: ['id', 'role_title'] },
-                    { model: Location, as: 'Location', attributes: ['id', 'location_name'] }
-                ]
+                required: true
             }],
             limit: 1
         });
 
         let creativeManagerInfo = null;
-        if (managerAssignment && managerAssignment.manager) {
-            const manager = managerAssignment.manager;
-            creativeManagerInfo = {
-                id: manager.id,
-                name: manager.name,
-                email: manager.email,
-                department: manager.Department?.department_name,
-                division: divisions.length > 0 ? divisions[0].title : null, // Use request type's division
-                job_role: manager.JobRole?.role_title,
-                location: manager.Location?.location_name
-            };
+        if (userDivisions && userDivisions.length > 0 && userDivisions[0].User) {
+            const manager = userDivisions[0].User;
+            // Fetch full manager details
+            const fullManagerDetails = await User.findByPk(manager.id, {
+                include: [
+                    { model: Department, as: 'Department', attributes: ['id', 'department_name'] },
+                    { model: Division, as: 'Divisions', attributes: ['id', 'title'] },
+                    { model: JobRole, as: 'JobRole', attributes: ['id', 'role_title'] },
+                    { model: Location, as: 'Location', attributes: ['id', 'location_name'] }
+                ],
+                attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] }
+            });
+            
+            if (fullManagerDetails) {
+                creativeManagerInfo = {
+                    id: fullManagerDetails.id,
+                    name: fullManagerDetails.name,
+                    email: fullManagerDetails.email,
+                    department: fullManagerDetails.Department?.department_name,
+                    division: divisions.length > 0 ? divisions[0].title : null,
+                    job_role: fullManagerDetails.JobRole?.role_title,
+                    location: fullManagerDetails.Location?.location_name
+                };
+            }
         }
 
         res.json({

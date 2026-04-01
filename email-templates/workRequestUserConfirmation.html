@@ -7,13 +7,15 @@
     <!--[if mso]>
     <style type="text/css">
         body, table, td {font-family: Arial, Helvetica, sans-serif !important;}
+        table {border-collapse: collapse;}
+        td {padding: 0;}
     </style>
     <![endif]-->
 </head>
 <body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
-    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f4f4f4; padding: 20px 0;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f4f4f4;">
         <tr>
-            <td align="center">
+            <td align="center" style="padding: 20px 0;">
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="background-color: #ffffff; max-width: 600px;">
                     
                     <!-- Header -->
@@ -26,35 +28,71 @@
                     <!-- Content -->
                     <tr>
                         <td style="padding: 30px 25px;">
-                            <h2 style="color: #2c3e50; font-size: 20px; font-weight: 600; margin: 0 0 15px 0;">Work Request Submitted Successfully</h2>
+                            <h2 style="color: #2c3e50; font-size: 20px; font-weight: 600; margin: 0 0 15px 0; font-family: Arial, Helvetica, sans-serif;">Work Request Submitted Successfully</h2>
                             
-                            <p style="margin: 0 0 15px 0; color: #333333;">Dear <strong>{{user_name}}</strong>,</p>
+                            <p style="margin: 0 0 15px 0; color: #333333; font-family: Arial, Helvetica, sans-serif;">Dear <strong>{{user_name}}</strong>,</p>
                             
-                            <p style="margin: 0 0 15px 0; color: #333333;">Your work request has been submitted successfully. Please find the details below:</p>
+                            <p style="margin: 0 0 15px 0; color: #333333; font-family: Arial, Helvetica, sans-serif;">Your work request has been submitted successfully. Please find the details below:</p>
                             
-                            <div style="background-color: #d4edda; border-left: 4px solid #28a745; padding: 15px 20px; margin: 20px 0;">
-                                <strong>Status:</strong> Work Request Submitted<br>
-                                <strong>Request ID:</strong> #{{request_id}}
-                            </div>
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #d4edda; border-left: 4px solid #28a745; margin: 20px 0;">
+                                <tr>
+                                    <td style="padding: 15px 20px;">
+                                        <strong style="font-family: Arial, Helvetica, sans-serif;">Status:</strong> Work Request Submitted<br>
+                                        <strong style="font-family: Arial, Helvetica, sans-serif;">Request ID:</strong> #{{request_id}}
+                                    </td>
+                                </tr>
+                            </table>
                             
-                            <div style="background-color: #f8f9fa; border-radius: 8px; padding: 20px; margin: 20px 0;">
-                                <h3 style="margin-top: 0; color: #2c3e50; font-size: 16px; font-weight: 600;">Work Request Details</h3>
-                                <table style="width: 100%; border-collapse: collapse;">
-                                    <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057; width: 40%;">Project Name:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{project_name}}</td></tr>
-                                    <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Brand:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{brand}}</td></tr>
-                                    <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Request Type:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{request_type}}</td></tr>
-                                    <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Priority:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{priority}}</td></tr>
-                                    <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Submitted At:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{submitted_at}}</td></tr>
-                                </table>
-                            </div>
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f8f9fa; margin: 20px 0;">
+                                <tr>
+                                    <td style="padding: 20px;">
+                                        <h3 style="margin-top: 0; color: #2c3e50; font-size: 16px; font-weight: 600; font-family: Arial, Helvetica, sans-serif;">Work Request Details</h3>
+                                        <table style="width: 100%; border-collapse: collapse; font-family: Arial, Helvetica, sans-serif;">
+                                            <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057; width: 40%;">Project Name:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{project_name}}</td></tr>
+                                            <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Brand:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{brand}}</td></tr>
+                                            <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Request Type:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{request_type_type}}</td></tr>
+                                            <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Priority:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{priority}}</td></tr>
+                                            <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Submitted At:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{request_date}}</td></tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
                             
-                            <div style="background-color: #f8f9fa; border-left: 4px solid #007bff; padding: 15px 20px; margin: 20px 0;">
-                                <p style="margin: 0;"><strong>Project Details:</strong> {{project_details}}</p>
-                            </div>
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f8f9fa; border-left: 4px solid #007bff; margin: 20px 0;">
+                                <tr>
+                                    <td style="padding: 15px 20px; font-family: Arial, Helvetica, sans-serif;">
+                                        <p style="margin: 0;"><strong>Assigned To:</strong> {{manager_name}}</p>
+                                        <p style="margin: 5px 0 0 0;"><strong>Department:</strong> {{manager_department}}</p>
+                                        <p style="margin: 5px 0 0 0;"><strong>Division:</strong> {{manager_division}}</p>
+                                        <p style="margin: 5px 0 0 0;"><strong>Job Role:</strong> {{manager_job_role}}</p>
+                                        <p style="margin: 5px 0 0 0;"><strong>Location:</strong> {{manager_location}}</p>
+                                    </td>
+                                </tr>
+                            </table>
                             
-                            <div style="background-color: #f8f9fa; border-left: 4px solid #007bff; padding: 15px 20px; margin: 20px 0;">
-                                <p style="margin: 0;"><strong>Next Steps:</strong> Your work request is now pending review by the manager. You will be notified once it's accepted.</p>
-                            </div>
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f8f9fa; border-left: 4px solid #007bff; margin: 20px 0;">
+                                <tr>
+                                    <td style="padding: 15px 20px; font-family: Arial, Helvetica, sans-serif;">
+                                        <p style="margin: 0;"><strong>Project Details:</strong> {{project_details}}</p>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f8f9fa; border-left: 4px solid #007bff; margin: 20px 0;">
+                                <tr>
+                                    <td style="padding: 15px 20px; font-family: Arial, Helvetica, sans-serif;">
+                                        <p style="margin: 0;"><strong>Priority:</strong> {{priority_capitalized}}</p>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f8f9fa; border-left: 4px solid #007bff; margin: 20px 0;">
+                                <tr>
+                                    <td style="padding: 15px 20px; font-family: Arial, Helvetica, sans-serif;">
+                                        <p style="margin: 0;"><strong>Next Steps:</strong> Your work request is now pending review by the manager. You will be notified once it's accepted.</p>
+                                    </td>
+                                </tr>
+                            </table>
                         </td>
                     </tr>
                     
@@ -70,9 +108,9 @@
                     <!-- Footer -->
                     <tr>
                         <td style="background-color: #f8f9fa; padding: 25px 20px; text-align: center; border-top: 1px solid #e9ecef;">
-                            <p style="margin: 5px 0; font-size: 12px; color: #6c757d;">This is an automated message from D-Map. Please do not reply to this email.</p>
-                            <p style="margin: 5px 0; font-size: 12px; color: #6c757d;">&copy; 2026 Alembic Digital Labs. All rights reserved.</p>
-                            <p style="margin: 10px 0 0 0; font-size: 12px;">
+                            <p style="margin: 5px 0; font-size: 12px; color: #6c757d; font-family: Arial, Helvetica, sans-serif;">This is an automated message from D-Map. Please do not reply to this email.</p>
+                            <p style="margin: 5px 0; font-size: 12px; color: #6c757d; font-family: Arial, Helvetica, sans-serif;">&copy; 2026 Alembic Digital Labs. All rights reserved.</p>
+                            <p style="margin: 10px 0 0 0; font-size: 12px; font-family: Arial, Helvetica, sans-serif;">
                                 <a href="{{frontend_url}}" style="color: #007bff; text-decoration: none;">Visit D-Map</a> | 
                                 <a href="mailto:support@alembicdigilabs.com" style="color: #007bff; text-decoration: none;">Support</a>
                             </p>
