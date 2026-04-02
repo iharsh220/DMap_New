@@ -38,6 +38,7 @@
                 <div class="row g-3">
                     <div class="col-12"><label class="form-label">Work Request ID</label><input type="text" class="form-control" id="filterWorkRequestID"></div>
                     <div class="col-12"><label class="form-label">Project Name</label><input type="text" class="form-control" id="filterProjectName"></div>
+                    <div class="col-12"><label class="form-label">Request Type</label><input type="text" class="form-control" id="filterRequestType"></div>
                     <div class="col-12"><label class="form-label">Project Type</label><input type="text" class="form-control" id="filterProjectType"></div>
                     <div class="col-12"><label class="form-label">Requester Division</label><input type="text" class="form-control" id="filterRequesterDivision"></div>
                     <div class="col-12"><label class="form-label">Requester Name</label><input type="text" class="form-control" id="filterRequesterName"></div>
@@ -70,7 +71,7 @@
                 </div>
                 <div class="datatable-wrapper">
                     <table id="taskDetailsTable" class="table table-bordered table-striped w-100">
-                        <thead><tr><th>Work Request ID</th><th>Project Name</th><th>Project Type</th><th>Requester Division</th><th>Requester Name</th><th>User Division</th><th>Manager Name</th><th>Task ID</th><th>Task Name</th><th>Task Type</th><th>Creative User</th><th>Task Count</th><th>No of Work Pages</th><th>Scale</th><th>Request Date</th><th>Task Start Date</th><th>Task End Date</th><th>Task Status</th></tr></thead>
+                        <thead><tr><th>Work Request ID</th><th>Project Name</th><th>Request Type</th><th>Project Type</th><th>Requester Division</th><th>Requester Name</th><th>User Division</th><th>Manager Name</th><th>Task ID</th><th>Task Name</th><th>Task Type</th><th>Creative User</th><th>Task Count</th><th>No of Work Pages</th><th>Scale</th><th>Request Date</th><th>Task Start Date</th><th>Task End Date</th><th>Task Status</th></tr></thead>
                         <tbody></tbody>
                     </table>
                 </div>
@@ -92,6 +93,7 @@
                 columns: [
                     { data: 'work_request_id' },
                     { data: 'project_name' },
+                    { data: 'request_type' },
                     { data: 'project_type' },
                     { data: 'requester_division' },
                     { data: 'requester_name' },
@@ -123,7 +125,7 @@
                 ],
                 initComplete: function() {
                     var api = this.api();
-                    var filterMap = { 0: '#filterWorkRequestID', 1: '#filterProjectName', 2: '#filterProjectType', 3: '#filterRequesterDivision', 4: '#filterRequesterName', 5: '#filterUserDivision', 6: '#filterManagerName', 7: '#filterTaskID', 8: '#filterTaskName', 9: '#filterTaskType', 10: '#filterCreativeUser', 11: '#filterTaskCount', 12: '#filterNoOfWorkPages', 15: '#filterScale', 16: '#filterRequestDate', 17: '#filterTaskStatus' };
+                    var filterMap = { 0: '#filterWorkRequestID', 1: '#filterProjectName', 2: '#filterRequestType', 3: '#filterProjectType', 4: '#filterRequesterDivision', 5: '#filterRequesterName', 6: '#filterUserDivision', 7: '#filterManagerName', 8: '#filterTaskID', 9: '#filterTaskName', 10: '#filterTaskType', 11: '#filterCreativeUser', 12: '#filterTaskCount', 13: '#filterNoOfWorkPages', 16: '#filterScale', 17: '#filterRequestDate', 18: '#filterTaskStatus' };
                     api.columns().every(function(i) {
                         $(filterMap[i]).on('keyup change', function() { col.search(this.value).draw(); });
                     });
