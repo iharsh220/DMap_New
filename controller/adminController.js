@@ -21,7 +21,7 @@ const getAdminData = async (req, res) => {
             SELECT
                 wr.id AS work_request_id,
                 COALESCE(wr.project_name, 'N/A') AS project_name,
-                COALESCE(GROUP_CONCAT(DISTINCT pt.project_type SEPARATOR ', '), 'N/A') AS project_type,
+                COALESCE(pt.project_type, 'N/A') AS project_type,
                 COALESCE(rt.request_type, 'N/A') AS request_type,
                 COALESCE(GROUP_CONCAT(DISTINCT rdiv.title SEPARATOR ', '), 'N/A') AS requester_division,
                 COALESCE(ru.name, 'N/A') AS requester_name,
@@ -44,15 +44,13 @@ const getAdminData = async (req, res) => {
                 END AS project_status
             FROM work_requests wr
             LEFT JOIN request_type rt ON wr.request_type_id = rt.id
+            LEFT JOIN project_type pt ON wr.project_id = pt.id
             LEFT JOIN users ru ON wr.user_id = ru.id
             LEFT JOIN user_divisions rud ON ru.id = rud.user_id
             LEFT JOIN division rdiv ON rud.division_id = rdiv.id
             LEFT JOIN work_request_managers wrm ON wr.id = wrm.work_request_id
             LEFT JOIN users mu ON wrm.manager_id = mu.id
             LEFT JOIN tasks t ON wr.id = t.work_request_id
-            LEFT JOIN task_type tt ON t.task_type_id = tt.id
-            LEFT JOIN task_project_reference tpr ON tt.id = tpr.task_id
-            LEFT JOIN project_type pt ON tpr.project_id = pt.id
             LEFT JOIN request_division_reference rdr ON rt.id = rdr.request_id
             LEFT JOIN division udiv ON rdr.division_id = udiv.id
         `;
