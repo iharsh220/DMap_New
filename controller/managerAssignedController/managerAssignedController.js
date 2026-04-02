@@ -314,7 +314,7 @@ const getAssignedWorkRequests = async (req, res) => {
             }
         }
 
-        // Handle user_id filter
+        // Handle user_id filter - filter by exact user ID
         if (user_id) {
             const userIdInt = parseInt(user_id, 10);
             if (isNaN(userIdInt)) {
@@ -326,9 +326,9 @@ const getAssignedWorkRequests = async (req, res) => {
             where.user_id = userIdInt;
         }
 
-        // Handle user_name filter (search by user name)
+        // Handle user_name filter - filter by user name (search by name)
         if (user_name) {
-            // Find users matching the name
+            // Find users matching the name (case-insensitive search)
             const matchingUsers = await User.findAll({
                 where: {
                     name: { [Op.like]: `%${user_name}%` }
@@ -4929,6 +4929,17 @@ const completeAllTasksAndIssues = async (req, res) => {
             }
         );
 
+        // Also update the work_request status to 'completed'
+        const workRequestUpdateResult = await WorkRequests.update(
+            {
+                status: 'completed'
+            },
+            {
+                where: { id: workRequestId },
+                transaction
+            }
+        );
+
         // Find all issue_assignments linked to these tasks
         const issueAssignments = await IssueAssignments.findAll({
             where: {
@@ -5014,7 +5025,8 @@ const completeAllTasksAndIssues = async (req, res) => {
             message: 'All tasks and issues completed successfully',
             data: {
                 tasks_updated: tasksUpdateResult[0],
-                issues_updated: issuesUpdateResult[0]
+                issues_updated: issuesUpdateResult[0],
+                work_request_updated: workRequestUpdateResult[0]
             }
         });
 
