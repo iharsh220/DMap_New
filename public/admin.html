@@ -45,6 +45,9 @@
                     <div class="col-12"><label class="form-label">Manager Name</label><input type="text" class="form-control" id="filterManagerName"></div>
                     <div class="col-12"><label class="form-label">Project Count</label><input type="number" class="form-control" id="filterProjectCount"></div>
                     <div class="col-12"><label class="form-label">Task Count</label><input type="number" class="form-control" id="filterTaskCount"></div>
+                    <div class="col-12"><label class="form-label">Project Request Date</label><input type="date" class="form-control" id="filterProjectRequestDate"></div>
+                    <div class="col-12"><label class="form-label">Project Start Date</label><input type="date" class="form-control" id="filterProjectStartDate"></div>
+                    <div class="col-12"><label class="form-label">Project End Date</label><input type="date" class="form-control" id="filterProjectEndDate"></div>
                     <div class="col-12"><label class="form-label">Project Status</label><select class="form-control" id="filterProjectStatus"><option value="">All</option><option value="upcoming">Upcoming</option><option value="ongoing">Ongoing</option><option value="completed">Completed</option></select></div>
                 </div>
             </div>
@@ -64,7 +67,7 @@
                 </div>
                 <div class="datatable-wrapper">
                     <table id="workRequestsTable" class="table table-bordered table-striped w-100">
-                        <thead><tr><th>Work Request ID</th><th>Project Name</th><th>Project Type</th><th>Requester Division</th><th>Requester Name</th><th>User Division</th><th>Manager Name</th><th>Project Count</th><th>Task Count</th><th>Project Status</th></tr></thead>
+                        <thead><tr><th>Work Request ID</th><th>Project Name</th><th>Project Type</th><th>Requester Division</th><th>Requester Name</th><th>User Division</th><th>Manager Name</th><th>Project Count</th><th>Task Count</th><th>Project Request Date</th><th>Project Start Date</th><th>Project End Date</th><th>Project Status</th></tr></thead>
                         <tbody></tbody>
                     </table>
                 </div>
@@ -93,6 +96,9 @@
                     { data: 'manager_name' },
                     { data: 'project_count' },
                     { data: 'task_count' },
+                    { data: 'project_request_date_filter', render: function(data, type, row) { return row.project_request_date || ''; }},
+                    { data: 'project_start_date_filter', render: function(data, type, row) { return row.project_start_date || ''; }},
+                    { data: 'project_end_date_filter', render: function(data, type, row) { return row.project_end_date || ''; }},
                     { data: 'project_status', render: function(data) {
                         var cls = '';
                         if (data == 'upcoming') cls = 'status-upcoming';
@@ -109,9 +115,11 @@
                 ],
                 initComplete: function() {
                     var api = this.api();
-                    var filterMap = { 0: '#filterWorkRequestID', 1: '#filterProjectName', 2: '#filterProjectType', 3: '#filterRequesterDivision', 4: '#filterRequesterName', 5: '#filterUserDivision', 6: '#filterManagerName', 7: '#filterProjectCount', 8: '#filterTaskCount', 9: '#filterProjectStatus' };
+                    var filterMap = { 0: '#filterWorkRequestID', 1: '#filterProjectName', 2: '#filterProjectType', 3: '#filterRequesterDivision', 4: '#filterRequesterName', 5: '#filterUserDivision', 6: '#filterManagerName', 7: '#filterProjectCount', 8: '#filterTaskCount', 9: '#filterProjectRequestDate', 10: '#filterProjectStartDate', 11: '#filterProjectEndDate', 12: '#filterProjectStatus' };
                     api.columns().every(function(i) {
-                        $(filterMap[i]).on('keyup change', function() { col.search(this.value).draw(); });
+                        if (filterMap[i]) {
+                            $(filterMap[i]).on('keyup change', function() { api.column(i).search(this.value).draw(); });
+                        }
                     });
                 }
             });

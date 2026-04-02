@@ -24,18 +24,26 @@ const getAdminData = async (req, res) => {
                 COALESCE(rt.request_type, 'N/A') AS project_type,
                 COALESCE(GROUP_CONCAT(DISTINCT rdiv.title SEPARATOR ', '), 'N/A') AS requester_division,
                 COALESCE(ru.name, 'N/A') AS requester_name,
-                COALESCE(tdiv.title, 'N/A') AS user_division,
+                COALESCE(GROUP_CONCAT(DISTINCT udiv.title SEPARATOR ', '), 'N/A') AS user_division,
                 COALESCE(GROUP_CONCAT(DISTINCT mu.name ORDER BY mu.name SEPARATOR ', '), 'N/A') AS manager_name,
                 1 AS project_count,
                 COUNT(DISTINCT t.id) AS task_count,
                 DATE_FORMAT(wr.requested_at, '%d/%m/%Y') AS project_request_date,
-                COALESCE(MIN(t.start_date), 'N/A') AS project_start_date,
+                DATE_FORMAT(wr.requested_at, '%Y-%m-%d') AS project_request_date_filter,
+                COALESCE(DATE_FORMAT(MIN(t.start_date), '%d/%m/%Y'), 'N/A') AS project_start_date,
+                COALESCE(DATE_FORMAT(MIN(t.start_date), '%Y-%m-%d'), '') AS project_start_date_filter,
                 COALESCE(
                     CASE 
-                        WHEN COUNT(DISTINCT t.id) = COUNT(DISTINCT CASE WHEN t.end_date IS NOT NULL THEN t.id END) THEN MAX(t.end_date) 
+                        WHEN COUNT(DISTINCT t.id) = COUNT(DISTINCT CASE WHEN t.end_date IS NOT NULL THEN t.id END) THEN DATE_FORMAT(MAX(t.end_date), '%d/%m/%Y') 
                         ELSE NULL 
                     END, 'N/A'
                 ) AS project_end_date,
+                COALESCE(
+                    CASE 
+                        WHEN COUNT(DISTINCT t.id) = COUNT(DISTINCT CASE WHEN t.end_date IS NOT NULL THEN t.id END) THEN DATE_FORMAT(MAX(t.end_date), '%Y-%m-%d') 
+                        ELSE NULL 
+                    END, ''
+                ) AS project_end_date_filter,
                 CASE
                     WHEN MIN(t.start_date) IS NULL AND COUNT(DISTINCT CASE WHEN t.end_date IS NOT NULL THEN t.id END) = 0 THEN 'upcoming'
                     WHEN MIN(t.start_date) IS NOT NULL AND COUNT(DISTINCT t.id) = COUNT(DISTINCT CASE WHEN t.end_date IS NOT NULL THEN t.id END) THEN 'completed'
@@ -49,13 +57,8 @@ const getAdminData = async (req, res) => {
             LEFT JOIN work_request_managers wrm ON wr.id = wrm.work_request_id
             LEFT JOIN users mu ON wrm.manager_id = mu.id
             LEFT JOIN tasks t ON wr.id = t.work_request_id
-            LEFT JOIN task_type tt ON t.task_type_id = tt.id
-            LEFT JOIN task_project_reference tpr ON tt.id = tpr.task_id
-            LEFT JOIN project_type pt ON tpr.project_id = pt.id
-            LEFT JOIN project_request_reference prr ON pt.id = prr.project_id
-            LEFT JOIN request_type rt2 ON prr.request_id = rt2.id
-            LEFT JOIN request_division_reference rdr2 ON rt2.id = rdr2.request_id
-            LEFT JOIN division tdiv ON rdr2.division_id = tdiv.id
+            LEFT JOIN request_division_reference rdr ON rt.id = rdr.request_id
+            LEFT JOIN division udiv ON rdr.division_id = udiv.id
         `;
 
         if (whereClauses.length > 0) {
