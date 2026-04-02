@@ -96,9 +96,9 @@
                     { data: 'manager_name' },
                     { data: 'project_count' },
                     { data: 'task_count' },
-                    { data: 'project_request_date_filter', render: function(data, type, row) { return row.project_request_date || ''; }},
-                    { data: 'project_start_date_filter', render: function(data, type, row) { return row.project_start_date || ''; }},
-                    { data: 'project_end_date_filter', render: function(data, type, row) { return row.project_end_date || ''; }},
+                    { data: 'project_request_date' },
+                    { data: 'project_start_date' },
+                    { data: 'project_end_date' },
                     { data: 'project_status', render: function(data) {
                         var cls = '';
                         if (data == 'upcoming') cls = 'status-upcoming';

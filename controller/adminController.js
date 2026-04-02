@@ -28,13 +28,13 @@ const getAdminData = async (req, res) => {
                 COALESCE(GROUP_CONCAT(DISTINCT mu.name ORDER BY mu.name SEPARATOR ', '), 'N/A') AS manager_name,
                 1 AS project_count,
                 COUNT(DISTINCT t.id) AS task_count,
-                DATE_FORMAT(wr.requested_at, '%d/%m/%Y') AS project_request_date,
+                DATE_FORMAT(wr.requested_at, '%Y-%m-%d') AS project_request_date,
                 DATE_FORMAT(wr.requested_at, '%Y-%m-%d') AS project_request_date_filter,
-                COALESCE(DATE_FORMAT(MIN(t.start_date), '%d/%m/%Y'), 'N/A') AS project_start_date,
+                COALESCE(DATE_FORMAT(MIN(t.start_date), '%Y-%m-%d'), 'N/A') AS project_start_date,
                 COALESCE(DATE_FORMAT(MIN(t.start_date), '%Y-%m-%d'), '') AS project_start_date_filter,
                 COALESCE(
                     CASE 
-                        WHEN COUNT(DISTINCT t.id) = COUNT(DISTINCT CASE WHEN t.end_date IS NOT NULL THEN t.id END) THEN DATE_FORMAT(MAX(t.end_date), '%d/%m/%Y') 
+                        WHEN COUNT(DISTINCT t.id) = COUNT(DISTINCT CASE WHEN t.end_date IS NOT NULL THEN t.id END) THEN DATE_FORMAT(MAX(t.end_date), '%Y-%m-%d') 
                         ELSE NULL 
                     END, 'N/A'
                 ) AS project_end_date,
