@@ -731,6 +731,22 @@ const getMyWorkRequests = async (req, res) => {
                                     attributes: ['id', 'task_name']
                                 }
                             ]
+                        },
+                        {
+                            model: IssueAssignments,
+                            as: 'issueAssignments',
+                            include: [
+                                {
+                                    model: IssueUserAssignments,
+                                    as: 'userAssignments',
+                                    include: [
+                                        {
+                                            model: IssueDocuments,
+                                            as: 'documents'
+                                        }
+                                    ]
+                                }
+                            ]
                         }
                     ]
                 }
