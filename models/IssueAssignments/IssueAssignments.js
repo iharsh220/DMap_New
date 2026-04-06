@@ -179,12 +179,6 @@ const IssueAssignments = sequelize.define('IssueAssignments', {
     defaultValue: 0,
     comment: 'Number of responsive screens',
   },
-  no_of_resize_job: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    defaultValue: 0,
-    comment: 'Number of resize jobs',
-  },
   created_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,
