@@ -3218,13 +3218,13 @@ const updateTask = async (req, res) => {
         // Update user assignment if user_id is provided
         let userChanged = false;
         let previousUserId = null;
-        
+
         if (user_id !== undefined) {
             // Get current user_id before any changes
             if (task.TaskAssignments && task.TaskAssignments.length > 0) {
                 previousUserId = task.TaskAssignments[0].user_id;
             }
-            
+
             if (user_id === null || user_id === '') {
                 // Remove all assignments for this task
                 await TaskAssignments.destroy({ where: { task_id: taskId } });
@@ -3928,7 +3928,7 @@ const shareForClientReview = async (req, res) => {
         const { work_request_id, task_ids, issue_ids, document_ids } = req.body;
 
         // Check if either task_ids or issue_ids is provided
-        if ((!task_ids || !Array.isArray(task_ids) || task_ids.length === 0) && 
+        if ((!task_ids || !Array.isArray(task_ids) || task_ids.length === 0) &&
             (!issue_ids || !Array.isArray(issue_ids) || issue_ids.length === 0)) {
             return res.status(400).json({
                 success: false,
@@ -4221,7 +4221,7 @@ const shareForClientReview = async (req, res) => {
             project_name: workRequest.project_name || 'N/A',
             brand: workRequest.brand || 'N/A',
             work_request_id: workRequest.id,
-            deadline: itemsToShare.length > 0 && itemsToShare[0].deadline 
+            deadline: itemsToShare.length > 0 && itemsToShare[0].deadline
                 ? new Date(itemsToShare[0].deadline).toLocaleDateString('en-IN', {
                     year: 'numeric',
                     month: 'long',
