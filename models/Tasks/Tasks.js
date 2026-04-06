@@ -160,12 +160,6 @@ const Tasks = sequelize.define('Tasks', {
     defaultValue: 0,
     comment: 'Number of resize operations',
   },
-  no_of_resize_job: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    defaultValue: 0,
-    comment: 'Number of resize jobs to be done',
-  },
   // Responsive work fields
   responsive_screen: {
     type: DataTypes.TINYINT(1),
@@ -177,6 +171,12 @@ const Tasks = sequelize.define('Tasks', {
     allowNull: true,
     defaultValue: 0,
     comment: 'Number of responsive screens',
+  },
+  no_of_resize_job: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: 0,
+    comment: 'Number of resize jobs',
   },
   created_at: {
     type: DataTypes.DATE,

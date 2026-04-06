@@ -1072,8 +1072,7 @@ const submitTask = async (req, res) => {
             no_of_resize,
             // Responsive work fields
             responsive_screen,
-            no_of_responsive_screen,
-            no_of_resize_job
+            no_of_responsive_screen
         } = req.body;
 
         // Validate required parameters
@@ -1271,9 +1270,6 @@ const submitTask = async (req, res) => {
             // Video/Web work fields
             if (no_of_resize !== undefined) {
                 taskUpdateData.no_of_resize = parseInt(no_of_resize, 10) || 0;
-            }
-            if (no_of_resize_job !== undefined) {
-                taskUpdateData.no_of_resize_job = parseInt(no_of_resize_job, 10) || 0;
             }
             // Responsive work fields
             if (responsive_screen !== undefined) {
@@ -2107,8 +2103,7 @@ const submitIssue = async (req, res) => {
             no_of_resize,
             // Responsive work fields
             responsive_screen,
-            no_of_responsive_screen,
-            no_of_resize_job
+            no_of_responsive_screen
         } = req.body;
         const user_id = req.user.id;
 
@@ -2250,9 +2245,6 @@ const submitIssue = async (req, res) => {
             // Video/Web work fields
             if (no_of_resize !== undefined) {
                 issueUpdateData.no_of_resize = parseInt(no_of_resize, 10) || 0;
-            }
-            if (no_of_resize_job !== undefined) {
-                issueUpdateData.no_of_resize_job = parseInt(no_of_resize_job, 10) || 0;
             }
             // Responsive work fields
             if (responsive_screen !== undefined) {
