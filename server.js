@@ -23,7 +23,7 @@ app.set('trust proxy', 1);
 
 // --- SOCKET.IO SETUP ---
 const io = socketIo(server, {
-    path: '/digilabs/dmap/api/socket.io', // This must match the client "path" option
+    path: '/digilabs/uat/dmap/api/socket.io', // This must match the client "path" option
     cors: {
         origin: "*", // Allow all origins
         methods: ["GET", "POST"],
