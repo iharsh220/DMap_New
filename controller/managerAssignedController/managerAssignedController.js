@@ -3925,13 +3925,14 @@ const reviewTask = async (req, res) => {
 const shareForClientReview = async (req, res) => {
     try {
         const manager_id = req.user.id;
-        const { work_request_id, task_id, issue_id, document_ids } = req.body;
+        const { work_request_id, task_ids, issue_ids, document_ids } = req.body;
 
-        // Check if either task_id or issue_id is provided
-        if (!task_id && !issue_id) {
+        // Check if either task_ids or issue_ids is provided
+        if ((!task_ids || !Array.isArray(task_ids) || task_ids.length === 0) && 
+            (!issue_ids || !Array.isArray(issue_ids) || issue_ids.length === 0)) {
             return res.status(400).json({
                 success: false,
-                error: 'Either task_id or issue_id is required'
+                error: 'Either task_ids (array) or issue_ids (array) is required'
             });
         }
 
@@ -3980,300 +3981,283 @@ const shareForClientReview = async (req, res) => {
             });
         }
 
-        // Handle task sharing if task_id is provided
-        if (task_id) {
-            const taskId = parseInt(task_id, 10);
-            if (isNaN(taskId)) {
-                return res.status(400).json({ success: false, error: 'Invalid task ID' });
-            }
+        // Collect all items to share and their documents
+        const itemsToShare = [];
+        let allDocuments = [];
 
-            // Get the task details
-            const task = await Tasks.findOne({
-                where: { id: taskId, work_request_id: work_request_id },
-                include: [
-                    {
-                        model: User,
-                        as: 'assignedUsers',
-                        attributes: ['id', 'name', 'email'],
-                        through: { attributes: [] }
-                    },
-                    {
-                        model: IssueAssignments,
-                        as: 'issueAssignments',
-                        include: [
-                            {
-                                model: IssueAssignmentTypes,
-                                as: 'issueTypeLinks',
-                                include: [
-                                    {
-                                        model: IssueRegister,
-                                        as: 'issueRegister',
-                                        attributes: ['id', 'change_issue_type', 'description']
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                ]
-            });
+        // Handle task sharing if task_ids is provided
+        if (task_ids && Array.isArray(task_ids) && task_ids.length > 0) {
+            for (const taskId of task_ids) {
+                const taskIdInt = parseInt(taskId, 10);
+                if (isNaN(taskIdInt)) {
+                    return res.status(400).json({ success: false, error: 'Invalid task ID: ' + taskId });
+                }
 
-            if (!task) {
-                return res.status(404).json({
-                    success: false,
-                    error: 'Task not found or does not belong to this work request'
-                });
-            }
-
-            // Check if task is in correct stage for client review
-            if (task.review_stage !== 'pm_review') {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Task must be in pm_review stage to share with client. Current stage: ' + (task.review_stage || 'not_started')
-                });
-            }
-
-            // Get documents if document_ids provided
-            let documents = [];
-            if (document_ids && document_ids.length > 0) {
-                const taskDocuments = await TaskDocuments.findAll({
-                    where: {
-                        id: { [Op.in]: document_ids },
-                        task_assignment_id: {
-                            [Op.in]: (await TaskAssignments.findAll({
-                                where: { task_id: taskId },
-                                attributes: ['id']
-                            })).map(ta => ta.id)
+                // Get the task details
+                const task = await Tasks.findOne({
+                    where: { id: taskIdInt, work_request_id: work_request_id },
+                    include: [
+                        {
+                            model: User,
+                            as: 'assignedUsers',
+                            attributes: ['id', 'name', 'email'],
+                            through: { attributes: [] }
+                        },
+                        {
+                            model: IssueAssignments,
+                            as: 'issueAssignments',
+                            include: [
+                                {
+                                    model: IssueAssignmentTypes,
+                                    as: 'issueTypeLinks',
+                                    include: [
+                                        {
+                                            model: IssueRegister,
+                                            as: 'issueRegister',
+                                            attributes: ['id', 'change_issue_type', 'description']
+                                        }
+                                    ]
+                                }
+                            ]
                         }
-                    },
-                    attributes: ['id', 'document_name', 'document_path']
+                    ]
                 });
-                documents = taskDocuments;
-            }
 
-            // Update intimate_client to 1 (shared with client for review)
-            // Also set the shared_with_client_at date
-            await Tasks.update(
-                { intimate_client: 1, shared_with_client_at: new Date() },
-                { where: { id: taskId } }
-            );
+                if (!task) {
+                    return res.status(404).json({
+                        success: false,
+                        error: 'Task not found or does not belong to this work request: ' + taskId
+                    });
+                }
 
-            // Update intimate_client to 1 for the documents that are being shared
-            if (document_ids && document_ids.length > 0) {
-                await TaskDocuments.update(
-                    { intimate_client: 1 },
-                    { where: { id: { [Op.in]: document_ids } } }
-                );
-            }
+                // Check if task is in correct stage for client review
+                if (task.review_stage !== 'pm_review') {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Task must be in pm_review stage to share with client. Current stage: ' + (task.review_stage || 'not_started') + ' for task: ' + taskId
+                    });
+                }
 
-            // Send email to client
-            const html = renderTemplate('clientReviewNotification', {
-                client_name: client.name,
-                manager_name: manager.name,
-                manager_email: manager.email,
-                task_name: task.task_name,
-                task_id: task.id,
-                project_name: workRequest.project_name || 'N/A',
-                brand: workRequest.brand || 'N/A',
-                work_request_id: workRequest.id,
-                deadline: task.deadline ? new Date(task.deadline).toLocaleDateString('en-IN', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                }) : 'Not set',
-                documents: documents.map(doc => ({
-                    document_name: doc.document_name,
-                    document_path: doc.document_path
-                })),
-                frontend_url: process.env.FRONTEND_URL
-            });
+                // Get task assignment IDs for document lookup
+                const taskAssignments = await TaskAssignments.findAll({
+                    where: { task_id: taskIdInt },
+                    attributes: ['id']
+                });
+                const taskAssignmentIds = taskAssignments.map(ta => ta.id);
 
-            await sendMail({
-                to: client.email,
-                subject: `Task Ready for Review - ${task.task_name}`,
-                html
-            });
+                // Get documents for this task
+                let taskDocuments = [];
+                if (document_ids && document_ids.length > 0 && taskAssignmentIds.length > 0) {
+                    taskDocuments = await TaskDocuments.findAll({
+                        where: {
+                            id: { [Op.in]: document_ids },
+                            task_assignment_id: { [Op.in]: taskAssignmentIds }
+                        },
+                        attributes: ['id', 'document_name', 'document_path']
+                    });
+                }
 
-            return res.json({
-                success: true,
-                data: {
+                // If no specific document_ids provided, get all approved documents for the task
+                if ((!document_ids || document_ids.length === 0) && taskAssignmentIds.length > 0) {
+                    taskDocuments = await TaskDocuments.findAll({
+                        where: {
+                            task_assignment_id: { [Op.in]: taskAssignmentIds }
+                        },
+                        attributes: ['id', 'document_name', 'document_path']
+                    });
+                }
+
+                itemsToShare.push({
                     type: 'task',
-                    task: {
-                        id: task.id,
-                        task_name: task.task_name,
-                        review_stage: task.review_stage
-                    },
-                    work_request: {
-                        id: workRequest.id,
-                        project_name: workRequest.project_name
-                    },
-                    client: {
-                        id: client.id,
-                        name: client.name,
-                        email: client.email
-                    },
-                    documents: documents,
-                    email_sent: true
-                },
-                message: 'Task shared with client for review successfully'
-            });
+                    id: task.id,
+                    name: task.task_name,
+                    deadline: task.deadline
+                });
+
+                allDocuments = [...allDocuments, ...taskDocuments];
+
+                // Update intimate_client to 1 (shared with client for review)
+                // Also set the shared_with_client_at date
+                await Tasks.update(
+                    { intimate_client: 1, shared_with_client_at: new Date() },
+                    { where: { id: taskIdInt } }
+                );
+
+                // Update intimate_client to 1 for the documents that are being shared
+                if (taskDocuments.length > 0) {
+                    await TaskDocuments.update(
+                        { intimate_client: 1 },
+                        { where: { id: { [Op.in]: taskDocuments.map(d => d.id) } } }
+                    );
+                }
+            }
         }
 
-        // Handle issue sharing if issue_id is provided
-        if (issue_id) {
-            const issueId = parseInt(issue_id, 10);
-            if (isNaN(issueId)) {
-                return res.status(400).json({ success: false, error: 'Invalid issue ID' });
-            }
+        // Handle issue sharing if issue_ids is provided
+        if (issue_ids && Array.isArray(issue_ids) && issue_ids.length > 0) {
+            for (const issueId of issueIds) {
+                const issueIdInt = parseInt(issueId, 10);
+                if (isNaN(issueIdInt)) {
+                    return res.status(400).json({ success: false, error: 'Invalid issue ID: ' + issueId });
+                }
 
-            // Get the issue details
-            const issueAssignment = await IssueAssignments.findByPk(issueId, {
-                include: [
-                    {
-                        model: Tasks,
-                        as: 'task',
-                        attributes: ['id', 'task_name', 'work_request_id'],
-                        where: { work_request_id: work_request_id }
-                    },
-                    {
-                        model: IssueUserAssignments,
-                        as: 'userAssignments',
-                        include: [
-                            {
-                                model: User,
-                                as: 'user',
-                                attributes: ['id', 'name', 'email']
-                            }
-                        ]
-                    },
-                    {
-                        model: IssueAssignmentTypes,
-                        as: 'issueTypeLinks',
-                        include: [
-                            {
-                                model: IssueRegister,
-                                as: 'issueRegister',
-                                attributes: ['id', 'change_issue_type', 'description']
-                            }
-                        ]
-                    },
-                    {
-                        model: User,
-                        as: 'requester',
-                        attributes: ['id', 'name', 'email']
-                    }
-                ]
-            });
-
-            if (!issueAssignment) {
-                return res.status(404).json({
-                    success: false,
-                    error: 'Issue not found or does not belong to this work request'
-                });
-            }
-
-            // Check if issue is in correct stage for client review
-            if (issueAssignment.review_stage !== 'pm_review') {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Issue must be in pm_review stage to share with client. Current stage: ' + (issueAssignment.review_stage || 'not_started')
-                });
-            }
-
-            // Get documents if document_ids provided
-            let documents = [];
-            if (document_ids && document_ids.length > 0) {
-                const issueDocuments = await IssueDocuments.findAll({
-                    where: {
-                        id: { [Op.in]: document_ids },
-                        issue_user_assignment_id: {
-                            [Op.in]: (await IssueUserAssignments.findAll({
-                                where: { issue_assignment_id: issueId },
-                                attributes: ['id']
-                            })).map(iua => iua.id)
+                // Get the issue details
+                const issueAssignment = await IssueAssignments.findByPk(issueIdInt, {
+                    include: [
+                        {
+                            model: Tasks,
+                            as: 'task',
+                            attributes: ['id', 'task_name', 'work_request_id'],
+                            where: { work_request_id: work_request_id }
+                        },
+                        {
+                            model: IssueUserAssignments,
+                            as: 'userAssignments',
+                            include: [
+                                {
+                                    model: User,
+                                    as: 'user',
+                                    attributes: ['id', 'name', 'email']
+                                }
+                            ]
+                        },
+                        {
+                            model: IssueAssignmentTypes,
+                            as: 'issueTypeLinks',
+                            include: [
+                                {
+                                    model: IssueRegister,
+                                    as: 'issueRegister',
+                                    attributes: ['id', 'change_issue_type', 'description']
+                                }
+                            ]
+                        },
+                        {
+                            model: User,
+                            as: 'requester',
+                            attributes: ['id', 'name', 'email']
                         }
-                    },
-                    attributes: ['id', 'document_name', 'document_path']
+                    ]
                 });
-                documents = issueDocuments;
-            }
 
-            // Update intimate_client to 1 (shared with client for review)
-            // Also set the shared_with_client_at date
-            await IssueAssignments.update(
-                { intimate_client: 1, shared_with_client_at: new Date() },
-                { where: { id: issueId } }
-            );
+                if (!issueAssignment) {
+                    return res.status(404).json({
+                        success: false,
+                        error: 'Issue not found or does not belong to this work request: ' + issueId
+                    });
+                }
 
-            // Update intimate_client to 1 for the documents that are being shared
-            if (document_ids && document_ids.length > 0) {
-                await IssueDocuments.update(
-                    { intimate_client: 1 },
-                    { where: { id: { [Op.in]: document_ids } } }
+                // Check if issue is in correct stage for client review
+                if (issueAssignment.review_stage !== 'pm_review') {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Issue must be in pm_review stage to share with client. Current stage: ' + (issueAssignment.review_stage || 'not_started') + ' for issue: ' + issueId
+                    });
+                }
+
+                // Get issue user assignment IDs for document lookup
+                const issueUserAssignments = await IssueUserAssignments.findAll({
+                    where: { issue_assignment_id: issueIdInt },
+                    attributes: ['id']
+                });
+                const issueUserAssignmentIds = issueUserAssignments.map(iua => iua.id);
+
+                // Get documents for this issue
+                let issueDocuments = [];
+                if (document_ids && document_ids.length > 0 && issueUserAssignmentIds.length > 0) {
+                    issueDocuments = await IssueDocuments.findAll({
+                        where: {
+                            id: { [Op.in]: document_ids },
+                            issue_user_assignment_id: { [Op.in]: issueUserAssignmentIds }
+                        },
+                        attributes: ['id', 'document_name', 'document_path']
+                    });
+                }
+
+                // If no specific document_ids provided, get all documents for the issue
+                if ((!document_ids || document_ids.length === 0) && issueUserAssignmentIds.length > 0) {
+                    issueDocuments = await IssueDocuments.findAll({
+                        where: {
+                            issue_user_assignment_id: { [Op.in]: issueUserAssignmentIds }
+                        },
+                        attributes: ['id', 'document_name', 'document_path']
+                    });
+                }
+
+                itemsToShare.push({
+                    type: 'issue',
+                    id: issueAssignment.id,
+                    name: issueAssignment.version ? `Issue ${issueAssignment.version}` : `Issue ${issueAssignment.id}`,
+                    description: issueAssignment.description,
+                    deadline: issueAssignment.deadline
+                });
+
+                allDocuments = [...allDocuments, ...issueDocuments];
+
+                // Update intimate_client to 1 (shared with client for review)
+                // Also set the shared_with_client_at date
+                await IssueAssignments.update(
+                    { intimate_client: 1, shared_with_client_at: new Date() },
+                    { where: { id: issueIdInt } }
                 );
+
+                // Update intimate_client to 1 for the documents that are being shared
+                if (issueDocuments.length > 0) {
+                    await IssueDocuments.update(
+                        { intimate_client: 1 },
+                        { where: { id: { [Op.in]: issueDocuments.map(d => d.id) } } }
+                    );
+                }
             }
+        }
 
-            // Get issue registers for email
-            const issueRegisters = issueAssignment.issueTypeLinks ?
-                issueAssignment.issueTypeLinks.map(link => ({
-                    change_issue_type: link.issueRegister?.change_issue_type || 'N/A',
-                    description: link.issueRegister?.description || 'No description'
-                })) : [];
-
-            // Send email to client
-            const html = renderTemplate('clientReviewNotification', {
-                client_name: client.name,
-                manager_name: manager.name,
-                manager_email: manager.email,
-                task_name: issueAssignment.version ? `Issue ${issueAssignment.version}` : 'Issue',
-                task_id: issueAssignment.id,
-                project_name: workRequest.project_name || 'N/A',
-                brand: workRequest.brand || 'N/A',
-                work_request_id: workRequest.id,
-                deadline: issueAssignment.deadline ? new Date(issueAssignment.deadline).toLocaleDateString('en-IN', {
+        // Send email to client with all items and documents
+        const html = renderTemplate('clientReviewNotification', {
+            client_name: client.name,
+            manager_name: manager.name,
+            manager_email: manager.email,
+            task_name: itemsToShare.map(item => item.name).join(', '),
+            task_id: itemsToShare.length > 0 ? itemsToShare[0].id : null,
+            project_name: workRequest.project_name || 'N/A',
+            brand: workRequest.brand || 'N/A',
+            work_request_id: workRequest.id,
+            deadline: itemsToShare.length > 0 && itemsToShare[0].deadline 
+                ? new Date(itemsToShare[0].deadline).toLocaleDateString('en-IN', {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric'
                 }) : 'Not set',
-                documents: documents.map(doc => ({
-                    document_name: doc.document_name,
-                    document_path: doc.document_path
-                })),
-                issue_description: issueAssignment.description,
-                issue_registers: issueRegisters,
-                frontend_url: process.env.FRONTEND_URL
-            });
+            documents: allDocuments.map(doc => ({
+                document_name: doc.document_name,
+                document_path: doc.document_path
+            })),
+            frontend_url: process.env.FRONTEND_URL
+        });
 
-            await sendMail({
-                to: client.email,
-                subject: `Issue Ready for Review - ${issueAssignment.version || 'Issue ' + issueAssignment.id}`,
-                html
-            });
+        await sendMail({
+            to: client.email,
+            subject: `Review Request - ${itemsToShare.map(item => item.name).join(', ')}`,
+            html
+        });
 
-            return res.json({
-                success: true,
-                data: {
-                    type: 'issue',
-                    issue: {
-                        id: issueAssignment.id,
-                        version: issueAssignment.version,
-                        description: issueAssignment.description,
-                        review_stage: issueAssignment.review_stage
-                    },
-                    work_request: {
-                        id: workRequest.id,
-                        project_name: workRequest.project_name
-                    },
-                    client: {
-                        id: client.id,
-                        name: client.name,
-                        email: client.email
-                    },
-                    documents: documents,
-                    email_sent: true
+        return res.json({
+            success: true,
+            data: {
+                items: itemsToShare,
+                work_request: {
+                    id: workRequest.id,
+                    project_name: workRequest.project_name
                 },
-                message: 'Issue shared with client for review successfully'
-            });
-        }
+                client: {
+                    id: client.id,
+                    name: client.name,
+                    email: client.email
+                },
+                documents: allDocuments,
+                email_sent: true
+            },
+            message: 'Items shared with client for review successfully'
+        });
     } catch (error) {
         console.error('Error sharing for client review:', error);
         res.status(500).json({
