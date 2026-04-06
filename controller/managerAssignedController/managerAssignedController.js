@@ -4539,6 +4539,16 @@ const getIssueAssignments = async (req, res) => {
                         {
                             model: TaskType,
                             attributes: ['id', 'task_type', 'description']
+                        },
+                        {
+                            model: TaskAssignments,
+                            attributes: ['id', 'user_id'],
+                            include: [
+                                {
+                                    model: User,
+                                    attributes: ['id', 'name', 'email']
+                                }
+                            ]
                         }
                     ]
                 },
@@ -4625,6 +4635,16 @@ const getIssueAssignments = async (req, res) => {
                     description: issue.task.TaskType.description
                 } : null,
                 task_type_name: issue.task.TaskType ? issue.task.TaskType.task_type : null,
+                // Include assigned users from the task
+                assignedUsers: issue.task.TaskAssignments ? issue.task.TaskAssignments.map(ta => ({
+                    id: ta.id,
+                    user_id: ta.user_id,
+                    user: ta.User ? {
+                        id: ta.User.id,
+                        name: ta.User.name,
+                        email: ta.User.email
+                    } : null
+                })) : [],
                 workRequest: issue.task.WorkRequest ? {
                     id: issue.task.WorkRequest.id,
                     project_name: issue.task.WorkRequest.project_name,
