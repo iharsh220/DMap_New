@@ -1221,6 +1221,7 @@ const deferWorkRequest = async (req, res) => {
                 project_name: workRequest.project_name,
                 brand: workRequest.brand,
                 message: message,
+                request_id: workRequest.id,
                 request_date: new Date(workRequest.created_at).toLocaleDateString('en-IN', {
                     year: 'numeric',
                     month: 'long',
