@@ -400,6 +400,11 @@ const updateWorkRequest = async (req, res) => {
             return res.status(403).json({ success: false, error: 'You do not have permission to update this work request' });
         }
 
+        // If the creator (client) is updating, update requested_at to current time
+        if (isCreator) {
+            updateData.requested_at = new Date();
+        }
+
         // Extract update fields from request body
         let { project_name, brand, request_type_id, project_id, description, about_project, priority, remarks, status, document_ids } = req.body;
 
