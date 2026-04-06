@@ -60,11 +60,15 @@ const renderTemplate = (templateName, data) => {
   // Compile the template with Handlebars
   const template = handlebars.compile(templateSource);
 
-  // Inject base64 images into the template data
+  // Get frontend URL from environment variable with fallback
+  const frontendUrl = process.env.FRONTEND_URL || 'https://dmap.alembicdigilabs.com';
+
+  // Inject base64 images and frontend URL into the template data
   const templateData = {
     ...data,
     logo_base64: getLogoBase64(),
-    banner_base64: getBannerBase64()
+    banner_base64: getBannerBase64(),
+    frontend_url: data.frontend_url || frontendUrl
   };
 
   // Render the template with data
