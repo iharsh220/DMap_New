@@ -4095,7 +4095,7 @@ const shareForClientReview = async (req, res) => {
 
         // Handle issue sharing if issue_ids is provided
         if (issue_ids && Array.isArray(issue_ids) && issue_ids.length > 0) {
-            for (const issueId of issueIds) {
+            for (const issueId of issue_ids) {
                 const issueIdInt = parseInt(issueId, 10);
                 if (isNaN(issueIdInt)) {
                     return res.status(400).json({ success: false, error: 'Invalid issue ID: ' + issueId });
