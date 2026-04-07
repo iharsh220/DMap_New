@@ -52,6 +52,8 @@ const getAssignedTasks = async (req, res) => {
             });
 
             selfWorkRequestIds = managedWorkRequests.map(wrm => wrm.work_request_id);
+        } else if (assigned_to === 'myTask') {
+
         } else if (isManager) {
             // Get divisions the manager belongs to
             const managerDivisions = await UserDivisions.findAll({
