@@ -3925,7 +3925,7 @@ const reviewTask = async (req, res) => {
 const shareForClientReview = async (req, res) => {
     try {
         const manager_id = req.user.id;
-        const { work_request_id, task_ids, issue_ids, document_ids } = req.body;
+        const { work_request_id, task_ids, issue_ids, task_document_ids, issue_document_ids } = req.body;
 
         // Check if either task_ids or issue_ids is provided
         if ((!task_ids || !Array.isArray(task_ids) || task_ids.length === 0) &&
@@ -4047,18 +4047,18 @@ const shareForClientReview = async (req, res) => {
 
                 // Get documents for this task
                 let taskDocuments = [];
-                if (document_ids && document_ids.length > 0 && taskAssignmentIds.length > 0) {
+                if (task_document_ids && task_document_ids.length > 0 && taskAssignmentIds.length > 0) {
                     taskDocuments = await TaskDocuments.findAll({
                         where: {
-                            id: { [Op.in]: document_ids },
+                            id: { [Op.in]: task_document_ids },
                             task_assignment_id: { [Op.in]: taskAssignmentIds }
                         },
                         attributes: ['id', 'document_name', 'document_path']
                     });
                 }
 
-                // If no specific document_ids provided, get all approved documents for the task
-                if ((!document_ids || document_ids.length === 0) && taskAssignmentIds.length > 0) {
+                // If no specific task_document_ids provided, get all approved documents for the task
+                if ((!task_document_ids || task_document_ids.length === 0) && taskAssignmentIds.length > 0) {
                     taskDocuments = await TaskDocuments.findAll({
                         where: {
                             task_assignment_id: { [Op.in]: taskAssignmentIds }
@@ -4164,18 +4164,18 @@ const shareForClientReview = async (req, res) => {
 
                 // Get documents for this issue
                 let issueDocuments = [];
-                if (document_ids && document_ids.length > 0 && issueUserAssignmentIds.length > 0) {
+                if (issue_document_ids && issue_document_ids.length > 0 && issueUserAssignmentIds.length > 0) {
                     issueDocuments = await IssueDocuments.findAll({
                         where: {
-                            id: { [Op.in]: document_ids },
+                            id: { [Op.in]: issue_document_ids },
                             issue_user_assignment_id: { [Op.in]: issueUserAssignmentIds }
                         },
                         attributes: ['id', 'document_name', 'document_path']
                     });
                 }
 
-                // If no specific document_ids provided, get all documents for the issue
-                if ((!document_ids || document_ids.length === 0) && issueUserAssignmentIds.length > 0) {
+                // If no specific issue_document_ids provided, get all documents for the issue
+                if ((!issue_document_ids || issue_document_ids.length === 0) && issueUserAssignmentIds.length > 0) {
                     issueDocuments = await IssueDocuments.findAll({
                         where: {
                             issue_user_assignment_id: { [Op.in]: issueUserAssignmentIds }
