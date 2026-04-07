@@ -44,13 +44,13 @@ const getAssignedTasks = async (req, res) => {
         let selfWorkRequestIds = [];
         if (assigned_to === 'self') {
             userIds = [user_id];
-            
+
             // Get work requests where the current user is a manager
             const managedWorkRequests = await WorkRequestManagers.findAll({
                 where: { manager_id: user_id },
                 attributes: ['work_request_id']
             });
-            
+
             selfWorkRequestIds = managedWorkRequests.map(wrm => wrm.work_request_id);
         } else if (isManager) {
             // Get divisions the manager belongs to
@@ -113,7 +113,7 @@ const getAssignedTasks = async (req, res) => {
             const statusArray = status.split(',').map(s => s.trim());
 
             // Validate status values
-            const validStatuses = ['pending', 'accepted', 'in_progress', 'completed'];
+            const validStatuses = ['pending', 'accepted', 'assigned', 'in_progress', 'completed'];
             const invalidStatuses = statusArray.filter(s => !validStatuses.includes(s));
 
             if (invalidStatuses.length > 0) {
@@ -135,11 +135,8 @@ const getAssignedTasks = async (req, res) => {
                     whereCondition.intimate_team = 1;
                 }
             }
-        } else {
-            // Default: show pending tasks (not yet accepted)
-            whereCondition.status = 'pending';
-            whereCondition.intimate_team = 1;
         }
+        // If no status filter, show all tasks (no default filter applied)
 
         // Apply work_request_id filter for 'self' - only show tasks from work requests where user is a manager
         if (assigned_to === 'self' && selfWorkRequestIds.length > 0) {
