@@ -401,15 +401,15 @@ const updateWorkRequest = async (req, res) => {
         }
 
         // If the creator (client) is updating, update requested_at to current time
+        // Build update data object first
+        const updateData = {};
+        
         if (isCreator) {
             updateData.requested_at = new Date();
         }
 
         // Extract update fields from request body
         let { project_name, brand, request_type_id, project_id, description, about_project, priority, remarks, status, document_ids } = req.body;
-
-        // Build update data object
-        const updateData = {};
 
         if (project_name !== undefined) updateData.project_name = project_name;
         if (brand !== undefined) updateData.brand = brand;
