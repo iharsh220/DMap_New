@@ -4379,37 +4379,73 @@ const getIssueAssignments = async (req, res) => {
         // Build where condition
         let where = {};
 
-        // Apply status filter if provided
+        // Apply status filter if provided (supports comma-separated values)
         if (status) {
-            if (!validStatuses.includes(status)) {
+            const statusArray = status.split(',').map(s => s.trim());
+            
+            // Validate status values
+            const invalidStatuses = statusArray.filter(s => !validStatuses.includes(s));
+            
+            if (invalidStatuses.length > 0) {
                 return res.status(400).json({
                     success: false,
-                    error: `Invalid status. Allowed values: ${validStatuses.join(', ')}`
+                    error: `Invalid status values: ${invalidStatuses.join(', ')}. Valid values are: ${validStatuses.join(', ')}`
                 });
             }
-            where.status = status;
+            
+            // If multiple statuses, use OR condition
+            if (statusArray.length > 1) {
+                where.status = { [Op.in]: statusArray };
+            } else {
+                // Single status
+                where.status = statusArray[0];
+            }
         }
 
-        // Apply review_stage filter if provided
+        // Apply review_stage filter if provided (supports comma-separated values)
         if (review_stage) {
-            if (!validReviewStages.includes(review_stage)) {
+            const reviewStageArray = review_stage.split(',').map(rs => rs.trim());
+            
+            // Validate review_stage values
+            const invalidReviewStages = reviewStageArray.filter(rs => !validReviewStages.includes(rs));
+            
+            if (invalidReviewStages.length > 0) {
                 return res.status(400).json({
                     success: false,
-                    error: `Invalid review_stage. Allowed values: ${validReviewStages.join(', ')}`
+                    error: `Invalid review_stage values: ${invalidReviewStages.join(', ')}. Valid values are: ${validReviewStages.join(', ')}`
                 });
             }
-            where.review_stage = review_stage;
+            
+            // If multiple review_stages, use OR condition
+            if (reviewStageArray.length > 1) {
+                where.review_stage = { [Op.in]: reviewStageArray };
+            } else {
+                // Single review_stage
+                where.review_stage = reviewStageArray[0];
+            }
         }
 
-        // Apply review filter if provided
+        // Apply review filter if provided (supports comma-separated values)
         if (review) {
-            if (!validReviews.includes(review)) {
+            const reviewArray = review.split(',').map(r => r.trim());
+            
+            // Validate review values
+            const invalidReviews = reviewArray.filter(r => !validReviews.includes(r));
+            
+            if (invalidReviews.length > 0) {
                 return res.status(400).json({
                     success: false,
-                    error: `Invalid review. Allowed values: ${validReviews.join(', ')}`
+                    error: `Invalid review values: ${invalidReviews.join(', ')}. Valid values are: ${validReviews.join(', ')}`
                 });
             }
-            where.review = review;
+            
+            // If multiple reviews, use OR condition
+            if (reviewArray.length > 1) {
+                where.review = { [Op.in]: reviewArray };
+            } else {
+                // Single review
+                where.review = reviewArray[0];
+            }
         }
 
         // Get manager's divisions
