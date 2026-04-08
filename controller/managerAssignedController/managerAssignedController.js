@@ -4485,41 +4485,44 @@ const getIssueAssignments = async (req, res) => {
         userIdsInDivisions.push(manager_id); // Include manager's own ID
         const uniqueUserIds = [...new Set(userIdsInDivisions)];
 
-        // Get all work requests assigned to this manager
-        const workRequestsAssignedToManager = await WorkRequestManagers.findAll({
-            where: { manager_id: manager_id },
-            attributes: ['work_request_id']
-        });
-
-        const workRequestIds = workRequestsAssignedToManager.map(wrm => wrm.work_request_id);
-
-        if (workRequestIds.length === 0) {
-            return res.json({
-                success: true,
-                data: [],
-                message: 'No work requests assigned to this manager'
-            });
-        }
-
-        // Get all tasks from manager's assigned work requests
-        const tasksInWorkRequests = await Tasks.findAll({
+        // ✅ DIRECT & FAST WAY: Get all tasks that belong to manager's division via RequestType → Division
+        // Instead of going through WorkRequestManagers → Tasks (old slow path)
+        // Get all request types that are linked to manager's divisions
+        const requestTypesOfManagerDivisions = await RequestType.findAll({
+            include: [
+                {
+                    model: Division,
+                    through: { attributes: [] },
+                    where: { id: { [Op.in]: managerDivisionIds } },
+                    attributes: ['id']
+                }
+            ],
             attributes: ['id'],
-            where: { work_request_id: { [Op.in]: workRequestIds } },
             raw: true
         });
 
-        const taskIds = tasksInWorkRequests.map(t => t.id);
+        const requestTypeIds = requestTypesOfManagerDivisions.map(rt => rt.id);
+
+        // Get all tasks that use these request types
+        const tasksInManagerDivisions = await Tasks.findAll({
+            attributes: ['id'],
+            where: { request_type_id: { [Op.in]: requestTypeIds } },
+            raw: true
+        });
+
+        const taskIds = tasksInManagerDivisions.map(t => t.id);
 
         if (taskIds.length === 0) {
             return res.json({
                 success: true,
                 data: [],
-                message: 'No tasks found in your assigned work requests'
+                message: 'No tasks found in your division'
             });
         }
 
         // Get issue assignments with filters from manager's work requests
-        // Only show issues assigned to users in manager's divisions or the manager themselves
+        // Only show issues where current manager is assigned to the task's work request
+        // 🔒 Security: Only manager of the task's work request can view these issues
         const issueAssignments = await IssueAssignments.findAll({
             where: {
                 ...where,
