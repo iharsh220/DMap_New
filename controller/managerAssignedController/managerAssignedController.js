@@ -2071,7 +2071,7 @@ const getMyTeam = async (req, res) => {
                     {
                         model: User,
                         where: {
-                            id: { [Op.ne]: manager_id },
+                            // id: { [Op.ne]: manager_id },
                             // job_role_id: { [Op.in]: [3, 4] }, // Creative Lead and Creative User
                             account_status: 'active'
                         },
