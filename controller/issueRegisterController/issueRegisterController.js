@@ -290,6 +290,102 @@ const createIssueAssignment = async (req, res) => {
             ]
         });
 
+        // Send email notifications to relevant users
+        try {
+            // Get root task id
+            let targetTaskId = null;
+            if (task_id) {
+                targetTaskId = task_id;
+            } else if (issue_id) {
+                const rootResult = await getRootTask(issue_id);
+                if (rootResult) {
+                    targetTaskId = rootResult.taskId;
+                }
+            }
+
+            if (targetTaskId) {
+                // Get all assigned users for this task
+                const taskAssignedUsers = await Tasks.findByPk(targetTaskId, {
+                    include: [{
+                        model: User,
+                        as: 'assignedUsers',
+                        attributes: ['id', 'name', 'email'],
+                        through: { attributes: [] }
+                    }]
+                });
+
+                // Get task managers from request type divisions
+                const task = await Tasks.findByPk(targetTaskId, { attributes: ['request_type_id'] });
+                let managers = [];
+                
+                if (task && task.request_type_id) {
+                    const reqDivRefs = await RequestDivisionReference.findAll({
+                        where: { request_id: task.request_type_id }
+                    });
+                    
+                    const divisionIds = reqDivRefs.map(ref => ref.division_id);
+                    
+                    if (divisionIds.length > 0) {
+                        const divisionManagers = await UserDivisions.findAll({
+                            where: { division_id: { [Op.in]: divisionIds } },
+                            include: [{
+                                model: User,
+                                where: { job_role_id: 2, account_status: 'active' },
+                                attributes: ['id', 'name', 'email']
+                            }]
+                        });
+                        
+                        managers = divisionManagers.filter(dm => dm.User).map(dm => dm.User);
+                    }
+                }
+
+                // Collect all unique email recipients (ONLY MANAGERS)
+                const allRecipients = [];
+                
+                // Add ONLY managers, not task assigned users
+                managers.forEach(manager => {
+                    if (manager.email && !allRecipients.find(r => r.email === manager.email)) {
+                        allRecipients.push(manager);
+                    }
+                });
+                // console.log(allRecipients);
+                // Send single email with all managers in TO field
+                if (allRecipients.length > 0) {
+                    const taskDetails = await Tasks.findByPk(targetTaskId, {
+                        include: [
+                            { model: WorkRequests, attributes: ['id', 'project_name'] },
+                            { model: TaskType, attributes: ['task_type'] }
+                        ]
+                    });
+
+                    const emailData = {
+                        issue_version: createdIssueAssignment.version,
+                        issue_description: createdIssueAssignment.description,
+                        task_name: taskDetails?.task_name || 'Unknown Task',
+                        project_name: taskDetails?.WorkRequest?.project_name || 'Unknown Project',
+                        task_type: taskDetails?.TaskType?.task_type || 'Unknown Type',
+                        requested_by: createdIssueAssignment.requester?.name || 'System',
+                        issue_link: `${process.env.FRONTEND_URL || 'https://dmap.alembicdigilabs.com'}/issuedetails/${createdIssueAssignment.id}`
+                    };
+
+                    const emailHtml = renderTemplate('issueAssignmentNotification', emailData);
+
+                    // Collect all manager emails into single comma separated list
+                    const managerEmails = allRecipients.map(recipient => recipient.email).join(', ');
+
+                    // Send one single email to all managers together
+                    await sendMail({
+                        to: managerEmails,
+                        subject: `New Issue Created: ${createdIssueAssignment.version} - ${taskDetails?.task_name || 'Task'}`,
+                        html: emailHtml
+                    });
+                }
+            }
+        } catch (emailError) {
+            console.error('Error sending issue assignment emails:', emailError);
+            // Do not fail the request if email fails
+        }
+
         res.status(201).json({ success: true, data: { ...createdIssueAssignment.toJSON(), change_type: changeType }, message: 'Issue assignment created successfully' });
     } catch (error) {
         await transaction.rollback();
