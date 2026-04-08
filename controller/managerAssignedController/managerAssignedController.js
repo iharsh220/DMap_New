@@ -4276,10 +4276,15 @@ const acceptIssueRequest = async (req, res) => {
         }
         const manager_id = req.user.id;
 
-        // Check if issue assignment exists and manager has access
+        // ✅ SIMPLE DIRECT METHOD as requested:
+        // 1. Get issue with task only
         const issueAssignment = await IssueAssignments.findByPk(id, {
             include: [
-                { model: Tasks, as: 'task', attributes: ['id', 'task_name', 'work_request_id'] },
+                { 
+                    model: Tasks, 
+                    as: 'task', 
+                    attributes: ['id', 'task_name', 'work_request_id', 'request_type_id']
+                },
                 { model: User, as: 'requester', attributes: ['id', 'name', 'email'] }
             ]
         });
@@ -4288,53 +4293,65 @@ const acceptIssueRequest = async (req, res) => {
             return res.status(404).json({ success: false, error: 'Issue assignment not found' });
         }
 
-        // Verify manager has access through the task's work request
-        if (issueAssignment.task && issueAssignment.task.work_request_id) {
-            const workRequestManager = await WorkRequestManagers.findOne({
-                where: {
-                    work_request_id: issueAssignment.task.work_request_id,
-                    manager_id: manager_id
-                }
-            });
-
-            if (!workRequestManager) {
-                return res.status(403).json({ success: false, error: 'You are not authorized to accept this issue request' });
-            }
-        } else {
+        if (!issueAssignment.task) {
             return res.status(400).json({ success: false, error: 'Issue assignment is not linked to a valid task' });
+        }
+
+        const task = issueAssignment.task;
+
+        // 2. Check if current user is manager for this task's request_type
+        // Get divisions from task's request_type
+        const requestType = await RequestType.findByPk(task.request_type_id, {
+            include: [{ model: Division, through: { attributes: [] }, attributes: ['id'] }]
+        });
+
+        if (!requestType) {
+            return res.status(400).json({ success: false, error: 'Invalid request type for this task' });
+        }
+
+        const divisionIds = requestType.Divisions?.map(d => d.id) || [];
+
+        // 3. Check if current manager belongs to any of these divisions
+        const managerDivision = await UserDivisions.findOne({
+            where: {
+                user_id: manager_id,
+                division_id: { [Op.in]: divisionIds }
+            }
+        });
+
+        if (!managerDivision) {
+            return res.status(403).json({ 
+                success: false, 
+                error: 'You are not authorized to accept this issue request. Only division managers for this task can accept.' 
+            });
         }
 
         if (issueAssignment.status === 'm_accepted') {
             return res.status(400).json({ success: false, error: 'Issue request is already accepted by manager' });
         }
 
-        // if (issueAssignment.status !== 'm_pending') {
-        //     return res.status(400).json({ success: false, error: 'Only m_pending issue requests can be accepted' });
-        // }
-
-        // Update status to m_accepted (manager accepted)
+        // Update status to m_accepted
         await IssueAssignments.update({ status: 'm_accepted' }, { where: { id } });
 
         // Get work request details for email
         let workRequest = null;
-        if (issueAssignment.task && issueAssignment.task.work_request_id) {
-            workRequest = await WorkRequests.findByPk(issueAssignment.task.work_request_id, {
-                attributes: ['id', 'project_name', 'brand'],
-                include: [{ model: RequestType, attributes: ['id', 'request_type'] }]
+        if (task.work_request_id) {
+            workRequest = await WorkRequests.findByPk(task.work_request_id, {
+                attributes: ['id', 'project_name', 'brand']
             });
         }
 
-        // Send email to the requester
+        // Send email notification
         const requester = issueAssignment.requester;
         if (requester) {
             const html = renderTemplate('issueAcceptanceNotification', {
                 user_name: requester.name,
                 issue_version: issueAssignment.version,
                 issue_description: issueAssignment.description,
-                task_name: issueAssignment.task ? issueAssignment.task.task_name : 'N/A',
+                task_name: task.task_name,
                 project_name: workRequest ? workRequest.project_name : 'N/A',
                 brand: workRequest ? workRequest.brand : 'N/A',
-                request_type: workRequest && workRequest.RequestType ? workRequest.RequestType.request_type : 'N/A',
+                request_type: requestType.request_type,
                 accepted_at: new Date().toLocaleDateString('en-IN', {
                     year: 'numeric',
                     month: 'long',
@@ -4345,16 +4362,23 @@ const acceptIssueRequest = async (req, res) => {
                 frontend_url: process.env.FRONTEND_URL
             });
 
-            const mailOptions = {
+            await sendMail({
                 to: requester.email,
                 subject: 'Issue Request Accepted',
                 html
-            };
-
-            await sendMail(mailOptions);
+            });
         }
 
-        res.json({ success: true, message: 'Issue request accepted successfully' });
+        res.json({ 
+            success: true, 
+            message: 'Issue request accepted successfully',
+            data: {
+                task_id: task.id,
+                request_type_id: task.request_type_id,
+                division_ids: divisionIds,
+                authorized_manager: manager_id
+            }
+        });
     } catch (error) {
         console.error('Error accepting issue request:', error);
         res.status(500).json({ success: false, error: error.message });
