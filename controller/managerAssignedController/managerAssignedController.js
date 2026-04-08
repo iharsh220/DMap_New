@@ -3943,16 +3943,89 @@ const shareForClientReview = async (req, res) => {
             });
         }
 
-        // Verify manager has access to this work request
+        // ✅ Check access directly from task/issue instead of work request
+        let hasAccess = false;
+        let divisionIds = [];
+
+        // First check access from task_ids if provided
+        if (task_ids && Array.isArray(task_ids) && task_ids.length > 0) {
+            const taskId = parseInt(task_ids[0], 10);
+            if (!isNaN(taskId)) {
+                const task = await Tasks.findByPk(taskId, {
+                    attributes: ['id', 'request_type_id']
+                });
+                
+                if (task && task.request_type_id) {
+                    const requestType = await RequestType.findByPk(task.request_type_id, {
+                        include: [{ model: Division, through: { attributes: [] }, attributes: ['id'] }]
+                    });
+                    
+                    if (requestType) {
+                        divisionIds = requestType.Divisions?.map(d => d.id) || [];
+                    }
+                }
+            }
+        }
+
+        // If no division from task, check from issue_ids
+        if (divisionIds.length === 0 && issue_ids && Array.isArray(issue_ids) && issue_ids.length > 0) {
+            const issueId = parseInt(issue_ids[0], 10);
+            if (!isNaN(issueId)) {
+                const issue = await IssueAssignments.findByPk(issueId, {
+                    include: [{ model: Tasks, as: 'task', attributes: ['id', 'request_type_id'] }]
+                });
+                
+                if (issue && issue.task && issue.task.request_type_id) {
+                    const requestType = await RequestType.findByPk(issue.task.request_type_id, {
+                        include: [{ model: Division, through: { attributes: [] }, attributes: ['id'] }]
+                    });
+                    
+                    if (requestType) {
+                        divisionIds = requestType.Divisions?.map(d => d.id) || [];
+                    }
+                }
+            }
+        }
+
+        // Check if manager is in any of these divisions
+        if (divisionIds.length > 0) {
+            const managerDivision = await UserDivisions.findOne({
+                where: {
+                    user_id: manager_id,
+                    division_id: { [Op.in]: divisionIds }
+                }
+            });
+            
+            if (managerDivision) {
+                hasAccess = true;
+            }
+        }
+
+        // Fallback: Check work request manager access if still no access
+        if (!hasAccess) {
+            const workRequestManager = await WorkRequestManagers.findOne({
+                where: {
+                    work_request_id: work_request_id,
+                    manager_id: manager_id
+                }
+            });
+            
+            if (workRequestManager) {
+                hasAccess = true;
+            }
+        }
+
+        if (!hasAccess) {
+            return res.status(403).json({
+                success: false,
+                error: 'You are not authorized to share this. Only division manager of this task/issue can share for client review.'
+            });
+        }
+
+        // Get work request details now
         const workRequest = await WorkRequests.findOne({
             where: { id: work_request_id },
             include: [
-                {
-                    model: WorkRequestManagers,
-                    where: { manager_id: manager_id },
-                    required: true,
-                    attributes: []
-                },
                 {
                     model: User,
                     as: 'users',
@@ -3964,7 +4037,7 @@ const shareForClientReview = async (req, res) => {
         if (!workRequest) {
             return res.status(404).json({
                 success: false,
-                error: 'Work request not found or you do not have access to it'
+                error: 'Work request not found'
             });
         }
 
