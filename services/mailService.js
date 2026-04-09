@@ -32,22 +32,27 @@ let mailWorker = null;
 // Always start the worker (fix for non-clustered apps)
 try {
   mailWorker = new Worker('mail-queue', async (job) => {
-    console.log(`Processing mail job ${job.id} for ${job.data.to}`);
-    const { to, cc, subject, text, html } = job.data;
+    console.log(`✅ PROCESSING MAIL JOB ${job.id} for ${job.data.to}`);
+    try {
+      const { to, cc, subject, text, html } = job.data;
 
-    const mailOptions = {
-      from: 'D-Map Alerts <' + process.env.EMAIL_USER + '>',
-      to,
-      cc,
-      subject,
-      text,
-      html
-    };
+      const mailOptions = {
+        from: 'D-Map Alerts <' + process.env.EMAIL_USER + '>',
+        to,
+        cc,
+        subject,
+        text,
+        html
+      };
 
-    console.log(`Sending email to ${to} with subject: ${subject}`);
-    const result = await transporter.sendMail(mailOptions);
-    // console.log(`Mail sent successfully for job ${job.id} to ${job.data.to}`, result);
-    return result;
+      console.log(`📤 SENDING EMAIL NOW to ${to}`);
+      const result = await transporter.sendMail(mailOptions);
+      console.log(`✅ MAIL SENT SUCCESSFULLY: ${result.response}`);
+      return result;
+    } catch (sendErr) {
+      console.error(`❌ FAILED TO SEND MAIL JOB ${job.id}:`, sendErr.message);
+      throw sendErr;
+    }
   }, {
     connection: {
       host: process.env.REDIS_HOST || 'localhost',
@@ -95,9 +100,9 @@ const sendMail = async (mailData) => {
     console.error('Mail queue not initialized!');
     throw new Error('Mail queue not available');
   }
-  
+
   console.log('Adding mail job to queue:', mailData.to, 'Subject:', mailData.subject);
-  
+
   try {
     await mailQueue.add('send-mail', mailData);
     console.log('Mail job added to queue successfully');
