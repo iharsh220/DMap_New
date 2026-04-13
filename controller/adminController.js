@@ -392,7 +392,12 @@ const getWorkRequestTasksData = async (req, res) => {
                 ia.start_date AS issue_start_date,
                 ia.end_date AS issue_end_date,
                 ia.link AS issue_link,
-                ia.status AS issue_status,
+                CASE
+                    WHEN ia.id IS NULL THEN NULL
+                    WHEN ia.start_date IS NULL AND ia.end_date IS NULL THEN 'upcoming'
+                    WHEN ia.start_date IS NOT NULL AND ia.end_date IS NOT NULL THEN 'completed'
+                    ELSE 'ongoing'
+                END AS issue_status,
                 ia.review AS issue_review,
                 ia.review_stage AS issue_review_stage,
                 ia.no_of_options_provided AS issue_no_of_options_provided,

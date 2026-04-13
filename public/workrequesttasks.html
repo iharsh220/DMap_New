@@ -16,6 +16,10 @@
         .dataTables_scrollBody { overflow-y: auto !important; overflow-x: auto !important; }
         table.dataTable thead th, table.dataTable tbody td { white-space: nowrap; font-size: 11px; padding: 4px 7px; }
         .dt-buttons { float: right; }
+        .status-badge { padding: 3px 6px; border-radius: 4px; font-size: 10px; font-weight: 500; }
+        .status-upcoming { background-color: #fff3cd; color: #856404; }
+        .status-ongoing { background-color: #d1ecf1; color: #0c5460; }
+        .status-completed { background-color: #d4edda; color: #155724; }
         .nav-tabs .nav-link.active { font-weight: 600; }
     </style>
 </head>
@@ -61,7 +65,21 @@
                 var columns = [];
                 if(response.data && response.data.length > 0) {
                     Object.keys(response.data[0]).forEach(function(key) {
-                        columns.push({ data: key, title: key, defaultContent: '-' });
+                        columns.push({ 
+                            data: key, 
+                            title: key, 
+                            defaultContent: '-',
+                            render: function(data, type, row) {
+                                if((key == 'work_request_status' || key == 'task_status' || key == 'issue_status') && data) {
+                                    var cls = '';
+                                    if (data == 'upcoming') cls = 'status-upcoming';
+                                    else if (data == 'ongoing') cls = 'status-ongoing';
+                                    else if (data == 'completed') cls = 'status-completed';
+                                    return '<span class="status-badge ' + cls + '">' + data + '</span>';
+                                }
+                                return data;
+                            }
+                        });
                     });
                 }
                 

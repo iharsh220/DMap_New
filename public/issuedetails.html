@@ -44,30 +44,7 @@
 
             <div class="datatable-wrapper">
                 <table id="issueDetailsTable" class="table table-bordered table-striped w-100">
-                    <thead><tr>
-                        <th>Work Request ID</th>
-                        <th>Project Name</th>
-                        <th>Request Type</th>
-                        <th>Project Type</th>
-                        <th>Requester Division</th>
-                        <th>Requester Name</th>
-                        <th>User Division</th>
-                        <th>Manager Name</th>
-                        <th>Task ID</th>
-                        <th>Task Name</th>
-                        <th>Task Type</th>
-                        <th>Issue ID</th>
-                        <th>Description</th>
-                        <th>Version</th>
-                        <th>Assignment Type</th>
-                        <th>Assigned User</th>
-                        <th>No of Work Pages</th>
-                        <th>Scale</th>
-                        <th>Request Date</th>
-                        <th>Issue Start Date</th>
-                        <th>Issue End Date</th>
-                        <th>Issue Status</th>
-                    </tr></thead>
+                    <thead id="tableHead"></thead>
                     <tbody></tbody>
                 </table>
             </div>
@@ -84,60 +61,54 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script>
         $(document).ready(function() {
-            $('#issueDetailsTable').DataTable({
-                ajax: { url: './issuedetails/data', dataSrc: 'data' },
-                columns: [
-                    { data: 'work_request_id' },
-                    { data: 'project_name' },
-                    { data: 'request_type' },
-                    { data: 'project_type' },
-                    { data: 'requester_division' },
-                    { data: 'requester_name' },
-                    { data: 'user_division' },
-                    { data: 'manager_name' },
-                    { data: 'task_id' },
-                    { data: 'task_name' },
-                    { data: 'task_type' },
-                    { data: 'issue_id' },
-                    { data: 'description' },
-                    { data: 'version' },
-                    { data: 'assignment_type' },
-                    { data: 'assigned_user' },
-                    { data: 'no_of_work_pages' },
-                    { data: 'scale' },
-                    { data: 'request_date' },
-                    { data: 'issue_start_date' },
-                    { data: 'issue_end_date' },
-                    { data: 'issue_status', render: function(data) {
-                        var cls = '';
-                        if (data == 'upcoming') cls = 'status-upcoming';
-                        else if (data == 'ongoing') cls = 'status-ongoing';
-                        else if (data == 'completed') cls = 'status-completed';
-                        return '<span class="status-badge ' + cls + '">' + (data || '') + '</span>';
-                    }}
-                ],
-                pageLength: 25,
-                lengthMenu: [[25, 50, 100, 200, -1], [25, 50, 100, 200, 'All']],
-                dom: 'lBfrtip',
-                scrollX: true,
-                scrollY: '60vh',
-                scrollCollapse: true,
-                buttons: [
-                    { extend: 'excel', text: '<i class="bi bi-file-earmark-excel"></i>', className: 'btn btn-success btn-sm', titleAttr: 'Export to Excel', filename: function() { return 'issue_details_' + new Date().toISOString().slice(0, 10); } },
-                    { extend: 'csv', text: '<i class="bi bi-filetype-csv"></i>', className: 'btn btn-secondary btn-sm', titleAttr: 'Export to CSV', filename: function() { return 'issue_details_' + new Date().toISOString().slice(0, 10); } }
-                ],
-                initComplete: function () {
-                    this.api().columns().every( function () {
-                        var column = this;
-                        var input = $('<input type="text" class="form-control form-control-sm" placeholder="Filter" style="width:100%;font-size:10px;padding:2px 4px;margin-top:2px;" />')
-                            .appendTo( $(column.header()) )
-                            .on( 'keyup change clear', function () {
-                                if ( column.search() !== this.value ) {
-                                    column.search( this.value ).draw();
+            $.getJSON('./issuedetails/data', function(response) {
+                var columns = [];
+                if(response.data && response.data.length > 0) {
+                    Object.keys(response.data[0]).forEach(function(key) {
+                        columns.push({ 
+                            data: key, 
+                            title: key, 
+                            defaultContent: '-',
+                            render: function(data, type, row) {
+                                if(key == 'issue_status' && data) {
+                                    var cls = '';
+                                    if (data == 'upcoming') cls = 'status-upcoming';
+                                    else if (data == 'ongoing') cls = 'status-ongoing';
+                                    else if (data == 'completed') cls = 'status-completed';
+                                    return '<span class="status-badge ' + cls + '">' + data + '</span>';
                                 }
-                            });
+                                return data;
+                            }
+                        });
                     });
                 }
+                
+                var table = $('#issueDetailsTable').DataTable({
+                    data: response.data,
+                    columns: columns,
+                    pageLength: 25,
+                    lengthMenu: [[25, 50, 100, 200, -1], [25, 50, 100, 200, 'All']],
+                    dom: 'lBfrtip',
+                    scrollX: true,
+                    scrollY: '60vh',
+                    scrollCollapse: true,
+                    buttons: [
+                        { extend: 'excel', text: '<i class="bi bi-file-earmark-excel"></i>', className: 'btn btn-success btn-sm', titleAttr: 'Export to Excel', filename: function() { return 'issue_details_' + new Date().toISOString().slice(0, 10); } },
+                        { extend: 'csv', text: '<i class="bi bi-filetype-csv"></i>', className: 'btn btn-secondary btn-sm', titleAttr: 'Export to CSV', filename: function() { return 'issue_details_' + new Date().toISOString().slice(0, 10); } }
+                    ],
+                    initComplete: function () {
+                        this.api().columns().every( function () {
+                            var column = this;
+                            var input = $('<input type="text" class="form-control form-control-sm" placeholder="Filter" style="width:100%;font-size:10px;padding:2px 4px;margin-top:2px;" />')
+                                .appendTo( $(column.header()) )
+                                .on( 'keyup change clear', function () {
+                                    if ( column.search() !== this.value ) {
+                                        column.search( this.value ).draw();
+                                    }
+                                });
+                        });
+                    }
+                });
             });
         });
     </script>
