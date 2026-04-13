@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - Work Requests</title>
+    <title>Admin - Projects</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
@@ -14,67 +14,43 @@
         #mainContent { height: 100vh; overflow: hidden; }
         .datatable-wrapper { background: #fff; padding: 15px; border-radius: 6px; height: calc(100vh - 110px); display: flex; flex-direction: column; }
         .dataTables_scrollBody { overflow-y: auto !important; overflow-x: auto !important; }
-        table.dataTable thead th, table.dataTable tbody td { white-space: nowrap; font-size: 12px; }
+        table.dataTable thead th, table.dataTable tbody td { white-space: nowrap; font-size: 11px; padding: 4px 7px; }
         .dt-buttons { float: right; }
-        .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+        .status-badge { padding: 3px 6px; border-radius: 4px; font-size: 10px; font-weight: 500; }
         .status-upcoming { background-color: #fff3cd; color: #856404; }
         .status-ongoing { background-color: #d1ecf1; color: #0c5460; }
         .status-completed { background-color: #d4edda; color: #155724; }
-        .sidebar-header { position: sticky; top: 0; background: #f8f9fa; z-index: 1; padding: 1rem; margin: -1rem -1rem 1rem -1rem; border-bottom: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center; }
-        .sidebar-header h5 { margin: 0; font-size: 1.1rem; font-weight: 600; }
-        .sidebar-header .btn { padding: 0.4rem 0.6rem; font-size: 1rem; }
-        .clear-filters-btn { position: sticky; bottom: 0; background: #f8f9fa; padding: 1rem; margin: 1rem -1rem -1rem -1rem; border-top: 1px solid #dee2e6; z-index: 1; }
+        .nav-tabs .nav-link.active { font-weight: 600; }
     </style>
 </head>
 
 <body>
-    <div class="d-flex">
-        <div class="bg-light border-end" id="sidebar" style="width:300px;height:100vh;position:fixed;left:0;top:0;transform:translateX(-100%);transition:.3s;z-index:1000;overflow-y:auto;">
-            <div class="sidebar-header">
-                <h5>Filters</h5>
-                <button class="btn btn-sm btn-outline-secondary" id="closeSidebar"><i class="bi bi-x-lg"></i></button>
-            </div>
-            <div style="padding: 0 1rem;">
-                <div class="row g-3">
-                    <div class="col-12"><label class="form-label">Work Request ID</label><input type="text" class="form-control" id="filterWorkRequestID"></div>
-                    <div class="col-12"><label class="form-label">Project Name</label><input type="text" class="form-control" id="filterProjectName"></div>
-                    <div class="col-12"><label class="form-label">Request Type</label><input type="text" class="form-control" id="filterRequestType"></div>
-                    <div class="col-12"><label class="form-label">Project Type</label><input type="text" class="form-control" id="filterProjectType"></div>
-                    <div class="col-12"><label class="form-label">Requester Division</label><input type="text" class="form-control" id="filterRequesterDivision"></div>
-                    <div class="col-12"><label class="form-label">Requester Name</label><input type="text" class="form-control" id="filterRequesterName"></div>
-                    <div class="col-12"><label class="form-label">User Division</label><input type="text" class="form-control" id="filterUserDivision"></div>
-                    <div class="col-12"><label class="form-label">Manager Name</label><input type="text" class="form-control" id="filterManagerName"></div>
-                    <div class="col-12"><label class="form-label">Project Count</label><input type="number" class="form-control" id="filterProjectCount"></div>
-                    <div class="col-12"><label class="form-label">Task Count</label><input type="number" class="form-control" id="filterTaskCount"></div>
-                    <div class="col-12"><label class="form-label">Project Request Date</label><input type="date" class="form-control" id="filterProjectRequestDate"></div>
-                    <div class="col-12"><label class="form-label">Project Start Date</label><input type="date" class="form-control" id="filterProjectStartDate"></div>
-                    <div class="col-12"><label class="form-label">Project End Date</label><input type="date" class="form-control" id="filterProjectEndDate"></div>
-                    <div class="col-12"><label class="form-label">Project Status</label><select class="form-control" id="filterProjectStatus"><option value="">All</option><option value="upcoming">Upcoming</option><option value="ongoing">Ongoing</option><option value="completed">Completed</option></select></div>
-                </div>
-            </div>
-            <div class="clear-filters-btn">
-                <button class="btn btn-outline-secondary w-100" id="clearFilters"><i class="bi bi-arrow-counterclockwise me-2"></i>Clear Filters</button>
-            </div>
-        </div>
-        <div class="flex-grow-1" id="mainContent">
-            <div class="container-fluid pt-3">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h3>Work Requests Admin Panel</h3>
-                    <div>
-                        <a href="/digilabs/dmap/api/datatable/admin/taskdetails" class="btn btn-outline-primary me-2">Tasks</a>
-                        <a href="/digilabs/dmap/api/datatable/admin/issuedetails" class="btn btn-outline-primary me-2">Issues</a>
-                        <button class="btn btn-outline-primary" id="toggleSidebar">Filters</button>
-                    </div>
-                </div>
-                <div class="datatable-wrapper">
-                    <table id="workRequestsTable" class="table table-bordered table-striped w-100">
-                        <thead><tr><th>Work Request ID</th><th>Project Name</th><th>Request Type</th><th>Project Type</th><th>Requester Division</th><th>Requester Name</th><th>User Division</th><th>Manager Name</th><th>Project Count</th><th>Task Count</th><th>Project Request Date</th><th>Project Start Date</th><th>Project End Date</th><th>Project Status</th></tr></thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
+    <div class="flex-grow-1" id="mainContent">
+        <div class="container-fluid pt-3">
+            <ul class="nav nav-tabs mb-3">
+                <li class="nav-item">
+                    <a class="nav-link active" aria-current="page" href="./projectsdetails">Projects</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="./taskdetails">Tasks</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="./issuedetails">Issues</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="./workrequesttasks">Raw Data</a>
+                </li>
+            </ul>
+
+            <div class="datatable-wrapper">
+                <table id="workRequestsTable" class="table table-bordered table-striped w-100">
+                    <thead><tr><th>Work Request ID</th><th>Project Name</th><th>Request Type</th><th>Project Type</th><th>Requester Division</th><th>Requester Name</th><th>User Division</th><th>Manager Name</th><th>Project Count</th><th>Task Count</th><th>Project Request Date</th><th>Project Start Date</th><th>Project End Date</th><th>Project Status</th></tr></thead>
+                    <tbody></tbody>
+                </table>
             </div>
         </div>
     </div>
+
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
@@ -85,8 +61,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script>
         $(document).ready(function() {
-            var table = $('#workRequestsTable').DataTable({
-                ajax: { url: '/digilabs/dmap/api/datatable/admin/projectsdetails/data', dataSrc: 'data' },
+            $('#workRequestsTable').DataTable({
+                ajax: { url: './projectsdetails/data', dataSrc: 'data' },
                 columns: [
                     { data: 'work_request_id' },
                     { data: 'project_name' },
@@ -109,26 +85,19 @@
                         return '<span class="status-badge ' + cls + '">' + (data || '') + '</span>';
                     }}
                 ],
-                pageLength: 20, lengthMenu: [[20, 50, 100, -1], [20, 50, 100, 'All']], dom: 'lBfrtip',
-                scrollX: true, scrollY: '55vh', scrollCollapse: true,
+                pageLength: 25,
+                lengthMenu: [[25, 50, 100, 200, -1], [25, 50, 100, 200, 'All']],
+                dom: 'lBfrtip',
+                scrollX: true,
+                scrollY: '60vh',
+                scrollCollapse: true,
                 buttons: [
                     { extend: 'excel', text: '<i class="bi bi-file-earmark-excel"></i>', className: 'btn btn-success btn-sm', titleAttr: 'Export to Excel', filename: function() { return 'work_requests_' + new Date().toISOString().slice(0, 10); } },
                     { extend: 'csv', text: '<i class="bi bi-filetype-csv"></i>', className: 'btn btn-secondary btn-sm', titleAttr: 'Export to CSV', filename: function() { return 'work_requests_' + new Date().toISOString().slice(0, 10); } }
-                ],
-                initComplete: function() {
-                    var api = this.api();
-                    var filterMap = { 0: '#filterWorkRequestID', 1: '#filterProjectName', 2: '#filterRequestType', 3: '#filterProjectType', 4: '#filterRequesterDivision', 5: '#filterRequesterName', 6: '#filterUserDivision', 7: '#filterManagerName', 8: '#filterProjectCount', 9: '#filterTaskCount', 10: '#filterProjectRequestDate', 11: '#filterProjectStartDate', 12: '#filterProjectEndDate', 13: '#filterProjectStatus' };
-                    api.columns().every(function(i) {
-                        if (filterMap[i]) {
-                            $(filterMap[i]).on('keyup change', function() { api.column(i).search(this.value).draw(); });
-                        }
-                    });
-                }
+                ]
             });
-            $('#toggleSidebar').click(function() { $('#sidebar').css('transform', 'translateX(0)'); $('#mainContent').css('margin-left', '300px'); });
-            $('#closeSidebar').click(function() { $('#sidebar').css('transform', 'translateX(-100%)'); $('#mainContent').css('margin-left', '0'); });
-            $('#clearFilters').click(function() { $('#sidebar input').val(''); $('#sidebar select').val(''); table.search('').columns().search('').draw(); table.ajax.url('/digilabs/dmap/api/datatable/admin/projectsdetails/data').load(); });
         });
     </script>
 </body>
+
 </html>

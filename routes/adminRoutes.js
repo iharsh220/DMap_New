@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const path = require('path');
-const { getAdminData, getTaskDetailsData, getTasksForWorkRequest, getIssueDetailsData } = require('../controller/adminController');
+const { getAdminData, getTaskDetailsData, getTasksForWorkRequest, getIssueDetailsData, getWorkRequestTasksData } = require('../controller/adminController');
 
 // Serve admin panel HTML
 router.get('/admin/projectsdetails', (req, res) => {
@@ -18,6 +18,11 @@ router.get('/admin/issuedetails', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'issuedetails.html'));
 });
 
+// Serve workrequest tasks raw data HTML
+router.get('/admin/workrequesttasks', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'workrequesttasks.html'));
+});
+
 // API endpoint for project details data
 router.get('/admin/projectsdetails/data', getAdminData);
 
@@ -26,6 +31,9 @@ router.get('/admin/taskdetails/data', getTaskDetailsData);
 
 // API endpoint for issue details data
 router.get('/admin/issuedetails/data', getIssueDetailsData);
+
+// API endpoint for workrequest tasks raw data
+router.get('/admin/workrequesttasks/data', getWorkRequestTasksData);
 
 // API endpoint for tasks
 router.get('/admin/projectsdetails/tasks/:workRequestId', getTasksForWorkRequest);
