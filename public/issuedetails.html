@@ -125,7 +125,19 @@
                 buttons: [
                     { extend: 'excel', text: '<i class="bi bi-file-earmark-excel"></i>', className: 'btn btn-success btn-sm', titleAttr: 'Export to Excel', filename: function() { return 'issue_details_' + new Date().toISOString().slice(0, 10); } },
                     { extend: 'csv', text: '<i class="bi bi-filetype-csv"></i>', className: 'btn btn-secondary btn-sm', titleAttr: 'Export to CSV', filename: function() { return 'issue_details_' + new Date().toISOString().slice(0, 10); } }
-                ]
+                ],
+                initComplete: function () {
+                    this.api().columns().every( function () {
+                        var column = this;
+                        var input = $('<input type="text" class="form-control form-control-sm" placeholder="Filter" style="width:100%;font-size:10px;padding:2px 4px;margin-top:2px;" />')
+                            .appendTo( $(column.header()) )
+                            .on( 'keyup change clear', function () {
+                                if ( column.search() !== this.value ) {
+                                    column.search( this.value ).draw();
+                                }
+                            });
+                    });
+                }
             });
         });
     </script>
