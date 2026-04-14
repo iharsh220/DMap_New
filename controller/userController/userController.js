@@ -95,6 +95,16 @@ const getAssignedTasks = async (req, res) => {
         // Build where condition
         let whereCondition = {};
 
+        // By default exclude fully approved tasks unless explicitly requested
+        if (!review && !review_stages) {
+            whereCondition[Op.not] = [
+                {
+                    review: 'approved',
+                    review_stage: 'final_approved'
+                }
+            ];
+        }
+
         // Apply filters
         if (req.filters) {
             whereCondition = { ...whereCondition, ...req.filters };
