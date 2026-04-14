@@ -1071,7 +1071,9 @@ const submitTask = async (req, res) => {
             no_of_resize,
             // Responsive work fields
             responsive_screen,
-            no_of_responsive_screen
+            no_of_responsive_screen,
+            // Media count field
+            number_of_images_videos_audio
         } = req.body;
 
         // Validate required parameters
@@ -1276,6 +1278,11 @@ const submitTask = async (req, res) => {
             }
             if (no_of_responsive_screen !== undefined) {
                 taskUpdateData.no_of_responsive_screen = parseInt(no_of_responsive_screen, 10) || 0;
+            }
+            
+            // Media count field
+            if (number_of_images_videos_audio !== undefined) {
+                taskUpdateData.number_of_images_videos_audio = parseInt(number_of_images_videos_audio, 10) || 0;
             }
 
             console.log(`Updating task ${taskId} to completed...`);
@@ -2102,7 +2109,9 @@ const submitIssue = async (req, res) => {
             no_of_resize,
             // Responsive work fields
             responsive_screen,
-            no_of_responsive_screen
+            no_of_responsive_screen,
+            // Media count field
+            number_of_images_videos_audio
         } = req.body;
         const user_id = req.user.id;
 
@@ -2251,6 +2260,11 @@ const submitIssue = async (req, res) => {
             }
             if (no_of_responsive_screen !== undefined) {
                 issueUpdateData.no_of_responsive_screen = parseInt(no_of_responsive_screen, 10) || 0;
+            }
+            
+            // Media count field
+            if (number_of_images_videos_audio !== undefined) {
+                issueUpdateData.number_of_images_videos_audio = parseInt(number_of_images_videos_audio, 10) || 0;
             }
 
             console.log(`Updating issue ${issueId} to completed...`);
