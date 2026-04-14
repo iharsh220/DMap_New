@@ -420,7 +420,7 @@ const getAssignedWorkRequests = async (req, res) => {
             ],
             limit: req.pagination.limit,
             offset: req.pagination.offset,
-            order: [['created_at', 'DESC']]
+            order: [['requested_at', 'ASC']]
         });
 
         if (result.success) {
