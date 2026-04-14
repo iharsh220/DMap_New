@@ -187,7 +187,7 @@ const IssueAssignments = sequelize.define('IssueAssignments', {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,
   },
-  number_of_images_videos_audio: {
+  no_of_images_videos_audio: {
     type: DataTypes.INTEGER,
     allowNull: true,
     defaultValue: 0,
