@@ -2200,20 +2200,20 @@ const submitIssue = async (req, res) => {
             };
 
             // Validate that end_date is not before start_date
-            const existingStartDate = issueAssignment.start_date;
-            if (existingStartDate) {
-                const endDate = new Date(); // Current date/time when submitting
-                endDate.setHours(0, 0, 0, 0); // Set to start of day for comparison
-                const startDateOnly = new Date(existingStartDate);
-                startDateOnly.setHours(0, 0, 0, 0);
+            // const existingStartDate = issueAssignment.start_date;
+            // if (existingStartDate) {
+            //     const endDate = new Date(); // Current date/time when submitting
+            //     endDate.setHours(0, 0, 0, 0); // Set to start of day for comparison
+            //     const startDateOnly = new Date(existingStartDate);
+            //     startDateOnly.setHours(0, 0, 0, 0);
 
-                if (endDate < startDateOnly) {
-                    return res.status(400).json({
-                        success: false,
-                        error: 'End date cannot be before start date'
-                    });
-                }
-            }
+            //     if (endDate < startDateOnly) {
+            //         return res.status(400).json({
+            //             success: false,
+            //             error: 'End date cannot be before start date'
+            //         });
+            //     }
+            // }
 
             if (task_count) {
                 issueUpdateData.task_count = parseInt(task_count, 10);
