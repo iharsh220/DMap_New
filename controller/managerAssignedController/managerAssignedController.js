@@ -124,7 +124,7 @@ const getAssignableUsers = async (req, res) => {
             const workRequest = workRequestResult.data[0];
 
             // Check if work request is accepted
-            if (workRequest.status !== 'accepted' && workRequest.status !== 'assigned' && workRequest.status !== 'in_progress') {
+            if (workRequest.status !== 'accepted' && workRequest.status !== 'assigned' && workRequest.status !== 'in_progress' && workRequest.status !== 'completed') {
                 return res.status(400).json({
                     success: false,
                     error: 'Work request must be accepted before assigning users'
@@ -1508,6 +1508,16 @@ const createTask = async (req, res) => {
         }
 
         const workRequest = workRequestResult.data[0];
+
+        // If work request is completed, automatically change status back to accepted
+        if (workRequest.status === 'completed') {
+            await workRequestService.updateById(work_request_id, { status: 'accepted' });
+            // Refresh workRequest object after update
+            const updatedWorkRequest = await workRequestService.getById(work_request_id);
+            if (updatedWorkRequest.success) {
+                Object.assign(workRequest, updatedWorkRequest.data);
+            }
+        }
 
         // Check if work request is accepted
         if (workRequest.status !== 'accepted' && workRequest.status !== 'assigned' && workRequest.status !== 'in_progress') {
