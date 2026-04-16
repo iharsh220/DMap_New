@@ -74,11 +74,15 @@ const getAllDepartments = async (req, res) => {
                 // Sort divisions alphabetically before returning
                 divisions.sort((a, b) => a.title.localeCompare(b.title));
                 
+                // Sort designations alphabetically before returning
+                const designations = designationDepartments.map(dd => dd.designation).filter(Boolean);
+                designations.sort((a, b) => a.designation_name.localeCompare(b.designation_name));
+                
                 return {
                     id: dept.id,
                     name: dept.department_name,
                     division: divisions,
-                    designation: designationDepartments.map(dd => dd.designation).filter(Boolean)
+                    designation: designations
                 };
             })
         );
