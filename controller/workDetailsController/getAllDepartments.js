@@ -1,4 +1,5 @@
 const CrudService = require('../../services/crudService');
+const { Op } = require('sequelize');
 const { Department, Division, Designation, DesignationDepartment, JobRole, Location } = require('../../models');
 
 // Create service instances
@@ -15,15 +16,18 @@ const getAllDepartments = async (req, res) => {
                 {
                     model: Division,
                     as: 'divisions',
-                    attributes: ['id', 'title', 'description', 'state']
+                    attributes: ['id', 'title', 'description', 'state'],
+                    order: [['title', 'ASC']]
                 }
             ],
-            attributes: ['id', 'department_name', 'description', 'state']
+            attributes: ['id', 'department_name', 'description', 'state'],
+            order: [['department_name', 'ASC']]
         });
 
         // Get all locations
         const locationResult = await locationService.getAll({
-            attributes: ['id', 'location_name', 'type', 'description', 'state']
+            attributes: ['id', 'location_name', 'type', 'description', 'state'],
+            order: [['location_name', 'ASC']]
         });
 
         if (!departmentResult.success || !locationResult.success) {
@@ -45,15 +49,35 @@ const getAllDepartments = async (req, res) => {
                             as: 'designation',
                             attributes: ['id', 'designation_name', 'designation_category', 'state']
                         }
-                    ]
+                    ],
+                    order: [['designation', 'designation_name', 'ASC']]
                 });
 
                 const designationDepartments = designationResult.success ? designationResult.data : [];
+                
+                // If department name is Leadership, fetch ALL divisions except excluded ones
+                let divisions = dept.divisions || [];
+                if (dept.department_name && dept.department_name.toLowerCase().includes('leadership')) {
+                    const excludedTitles = ['Graphic', 'Video', 'Shoot', 'Content', 'Web Application'];
+                    const allDivisions = await Division.findAll({
+                        attributes: ['id', 'title', 'description', 'state'],
+                        where: {
+                            title: {
+                                [Op.notIn]: excludedTitles
+                            }
+                        },
+                        order: [['title', 'ASC']]
+                    });
+                    divisions = allDivisions || [];
+                }
 
+                // Sort divisions alphabetically before returning
+                divisions.sort((a, b) => a.title.localeCompare(b.title));
+                
                 return {
                     id: dept.id,
                     name: dept.department_name,
-                    division: dept.divisions || [],
+                    division: divisions,
                     designation: designationDepartments.map(dd => dd.designation).filter(Boolean)
                 };
             })
