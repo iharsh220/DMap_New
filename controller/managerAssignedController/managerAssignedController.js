@@ -4476,7 +4476,7 @@ const getIssueAssignments = async (req, res) => {
         TaskAssignments.belongsTo(User, { foreignKey: 'user_id' });
 
         const manager_id = req.user.id;
-        const { status, review_stage, review } = req.query;
+        const { status, review_stage, review, intimate_team } = req.query;
 
         // Define valid enum values
         const validStatuses = ['m_pending', 'u_pending', 'm_accepted', 'u_accepted', 'in_progress', 'completed', 'rejected', 'on_hold', 'cancelled'];
@@ -4485,6 +4485,18 @@ const getIssueAssignments = async (req, res) => {
 
         // Build where condition
         let where = {};
+
+        // Apply intimate_team filter if provided (only accept 0 or 1)
+        if (intimate_team !== undefined && intimate_team !== null && intimate_team !== '') {
+            const intimateTeamValue = parseInt(intimate_team, 10);
+            if (isNaN(intimateTeamValue) || (intimateTeamValue !== 0 && intimateTeamValue !== 1)) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Invalid intimate_team value. Allowed values are 0 or 1'
+                });
+            }
+            where.intimate_team = intimateTeamValue;
+        }
 
         // Apply status filter if provided (supports comma-separated values)
         if (status) {
