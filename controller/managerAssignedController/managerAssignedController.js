@@ -3964,12 +3964,12 @@ const shareForClientReview = async (req, res) => {
                 const task = await Tasks.findByPk(taskId, {
                     attributes: ['id', 'request_type_id']
                 });
-                
+
                 if (task && task.request_type_id) {
                     const requestType = await RequestType.findByPk(task.request_type_id, {
                         include: [{ model: Division, through: { attributes: [] }, attributes: ['id'] }]
                     });
-                    
+
                     if (requestType) {
                         divisionIds = requestType.Divisions?.map(d => d.id) || [];
                     }
@@ -3984,12 +3984,12 @@ const shareForClientReview = async (req, res) => {
                 const issue = await IssueAssignments.findByPk(issueId, {
                     include: [{ model: Tasks, as: 'task', attributes: ['id', 'request_type_id'] }]
                 });
-                
+
                 if (issue && issue.task && issue.task.request_type_id) {
                     const requestType = await RequestType.findByPk(issue.task.request_type_id, {
                         include: [{ model: Division, through: { attributes: [] }, attributes: ['id'] }]
                     });
-                    
+
                     if (requestType) {
                         divisionIds = requestType.Divisions?.map(d => d.id) || [];
                     }
@@ -4005,7 +4005,7 @@ const shareForClientReview = async (req, res) => {
                     division_id: { [Op.in]: divisionIds }
                 }
             });
-            
+
             if (managerDivision) {
                 hasAccess = true;
             }
@@ -4019,7 +4019,7 @@ const shareForClientReview = async (req, res) => {
                     manager_id: manager_id
                 }
             });
-            
+
             if (workRequestManager) {
                 hasAccess = true;
             }
@@ -4312,7 +4312,7 @@ const shareForClientReview = async (req, res) => {
                 }) : 'Not set',
             documents: allDocuments.map(doc => ({
                 document_name: doc.document_name,
-                document_path: doc.document_path
+                document_path: `${process.env.BACKEND_URL}/${doc.document_path}`
             })),
             frontend_url: process.env.FRONTEND_URL
         });
@@ -4363,9 +4363,9 @@ const acceptIssueRequest = async (req, res) => {
         // 1. Get issue with task only
         const issueAssignment = await IssueAssignments.findByPk(id, {
             include: [
-                { 
-                    model: Tasks, 
-                    as: 'task', 
+                {
+                    model: Tasks,
+                    as: 'task',
                     attributes: ['id', 'task_name', 'work_request_id', 'request_type_id']
                 },
                 { model: User, as: 'requester', attributes: ['id', 'name', 'email'] }
@@ -4403,9 +4403,9 @@ const acceptIssueRequest = async (req, res) => {
         });
 
         if (!managerDivision) {
-            return res.status(403).json({ 
-                success: false, 
-                error: 'You are not authorized to accept this issue request. Only division managers for this task can accept.' 
+            return res.status(403).json({
+                success: false,
+                error: 'You are not authorized to accept this issue request. Only division managers for this task can accept.'
             });
         }
 
@@ -4452,8 +4452,8 @@ const acceptIssueRequest = async (req, res) => {
             });
         }
 
-        res.json({ 
-            success: true, 
+        res.json({
+            success: true,
             message: 'Issue request accepted successfully',
             data: {
                 task_id: task.id,
@@ -4501,17 +4501,17 @@ const getIssueAssignments = async (req, res) => {
         // Apply status filter if provided (supports comma-separated values)
         if (status) {
             const statusArray = status.split(',').map(s => s.trim());
-            
+
             // Validate status values
             const invalidStatuses = statusArray.filter(s => !validStatuses.includes(s));
-            
+
             if (invalidStatuses.length > 0) {
                 return res.status(400).json({
                     success: false,
                     error: `Invalid status values: ${invalidStatuses.join(', ')}. Valid values are: ${validStatuses.join(', ')}`
                 });
             }
-            
+
             // If multiple statuses, use OR condition
             if (statusArray.length > 1) {
                 where.status = { [Op.in]: statusArray };
@@ -4524,17 +4524,17 @@ const getIssueAssignments = async (req, res) => {
         // Apply review_stage filter if provided (supports comma-separated values)
         if (review_stage) {
             const reviewStageArray = review_stage.split(',').map(rs => rs.trim());
-            
+
             // Validate review_stage values
             const invalidReviewStages = reviewStageArray.filter(rs => !validReviewStages.includes(rs));
-            
+
             if (invalidReviewStages.length > 0) {
                 return res.status(400).json({
                     success: false,
                     error: `Invalid review_stage values: ${invalidReviewStages.join(', ')}. Valid values are: ${validReviewStages.join(', ')}`
                 });
             }
-            
+
             // If multiple review_stages, use OR condition
             if (reviewStageArray.length > 1) {
                 where.review_stage = { [Op.in]: reviewStageArray };
@@ -4547,17 +4547,17 @@ const getIssueAssignments = async (req, res) => {
         // Apply review filter if provided (supports comma-separated values)
         if (review) {
             const reviewArray = review.split(',').map(r => r.trim());
-            
+
             // Validate review values
             const invalidReviews = reviewArray.filter(r => !validReviews.includes(r));
-            
+
             if (invalidReviews.length > 0) {
                 return res.status(400).json({
                     success: false,
                     error: `Invalid review values: ${invalidReviews.join(', ')}. Valid values are: ${validReviews.join(', ')}`
                 });
             }
-            
+
             // If multiple reviews, use OR condition
             if (reviewArray.length > 1) {
                 where.review = { [Op.in]: reviewArray };
