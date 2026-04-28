@@ -8,51 +8,101 @@ const getAdminData = async (req, res) => {
         const whereClauses = [];
 
         if (startDate) {
-            whereClauses.push('wr.requested_at >= :startDate');
+            whereClauses.push('wr.created_at >= :startDate');
             replacements.startDate = startDate;
         }
 
         if (endDate) {
-            whereClauses.push('wr.requested_at <= :endDate');
+            whereClauses.push('wr.created_at <= :endDate');
             replacements.endDate = endDate;
         }
 
         let query = `
             SELECT
-                wr.id AS work_request_id,
-                COALESCE(wr.project_name, 'N/A') AS project_name,
-                COALESCE(pt.project_type, 'N/A') AS project_type,
-                COALESCE(rt.request_type, 'N/A') AS request_type,
-                COALESCE(GROUP_CONCAT(DISTINCT rdiv.title SEPARATOR ', '), 'N/A') AS requester_division,
-                COALESCE(ru.name, 'N/A') AS requester_name,
-                COALESCE(GROUP_CONCAT(DISTINCT udiv.title SEPARATOR ', '), 'N/A') AS user_division,
-                COALESCE(GROUP_CONCAT(DISTINCT mu.name ORDER BY mu.name SEPARATOR ', '), 'N/A') AS manager_name,
-                1 AS project_count,
-                COUNT(DISTINCT t.id) AS task_count,
-                DATE_FORMAT(wr.requested_at, '%Y-%m-%d') AS project_request_date,
-                COALESCE(DATE_FORMAT(MIN(t.start_date), '%Y-%m-%d'), 'N/A') AS project_start_date,
+                wr.id                                                        AS work_request_id,
+                COALESCE(NULLIF(TRIM(wr.project_name), ''), 'N/A')          AS project_name,
+                COALESCE(NULLIF(TRIM(wr.brand), ''), 'N/A')                 AS brand,
+                COALESCE(NULLIF(TRIM(rt.request_type), ''), 'N/A')          AS request_type_name,
+                COALESCE(NULLIF(TRIM(rt.description), ''), 'N/A')           AS request_type_description,
+
                 COALESCE(
-                    CASE 
-                        WHEN COUNT(DISTINCT t.id) = COUNT(DISTINCT CASE WHEN t.end_date IS NOT NULL THEN t.id END) THEN DATE_FORMAT(MAX(t.end_date), '%Y-%m-%d') 
-                        ELSE NULL 
-                    END, 'N/A'
-                ) AS project_end_date,
+                    NULLIF(
+                        (SELECT GROUP_CONCAT(DISTINCT mu2.name ORDER BY mu2.name SEPARATOR ', ')
+                         FROM work_request_managers wrm2
+                         JOIN users mu2 ON mu2.id = wrm2.manager_id
+                         WHERE wrm2.work_request_id = wr.id),
+                    ''),
+                'N/A')                                                       AS digi_vertical_manager_name,
+
+                COALESCE(NULLIF(TRIM(ru.name), ''), 'N/A')                  AS project_requester_name,
+                COALESCE(NULLIF(TRIM(ru.email), ''), 'N/A')                 AS project_request_creator_email,
+                COALESCE(NULLIF(TRIM(ru.phone), ''), 'N/A')                 AS project_request_creator_phone,
+                COALESCE(NULLIF(TRIM(dept.department_name), ''), 'N/A')     AS project_request_creator_department,
+                COALESCE(NULLIF(TRIM(desig.designation_name), ''), 'N/A')   AS project_request_creator_designation,
+                COALESCE(NULLIF(TRIM(loc.location_name), ''), 'N/A')        AS project_request_creator_location,
+
+                COALESCE(NULLIF(TRIM(pt.project_type), ''), 'N/A')          AS project_type_name,
+                COALESCE(NULLIF(TRIM(pt.description), ''), 'N/A')           AS project_type_description,
+
+                COALESCE(NULLIF(TRIM(wr.priority), ''), 'N/A')              AS project_priority,
+
+                1                                                            AS project_count,
+                COUNT(DISTINCT t.id)                                         AS task_count,
+                COUNT(DISTINCT ia.id)                                        AS issue_task_count,
+                COALESCE(SUM(DISTINCT t.task_count), 0)                     AS task_no_of_work_pages,
+                COALESCE(SUM(DISTINCT ia.task_count), 0)                    AS issue_no_of_work_pages,
+
+                COALESCE(DATE_FORMAT(MIN(t.shared_with_client_at), '%d-%b-%Y %H:%i'), 'N/A')  AS project_requested_at_client,
+                COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A')               AS project_request_accept_at_cm,
+                COALESCE(DATE_FORMAT(MIN(t.start_date), '%d-%b-%Y %H:%i'), 'N/A')             AS project_start_date,
+                COALESCE(DATE_FORMAT(MAX(t.end_date), '%d-%b-%Y %H:%i'), 'N/A')               AS project_end_date,
+                COALESCE(DATE_FORMAT(MAX(t.deadline), '%d-%b-%Y %H:%i'), 'N/A')               AS project_deadline,
+
+                COALESCE(
+                    CASE
+                        WHEN COUNT(DISTINCT t.id) = 0 THEN 'N/A'
+                        WHEN SUM(CASE WHEN t.review = 'approved' THEN 1 ELSE 0 END) = COUNT(DISTINCT t.id) THEN 'approved'
+                        WHEN SUM(CASE WHEN t.review = 'change_request' THEN 1 ELSE 0 END) > 0 THEN 'change_request'
+                        ELSE 'pending'
+                    END,
+                'N/A')                                                       AS project_review,
+
+                COALESCE(
+                    CASE
+                        WHEN COUNT(DISTINCT t.id) = 0 THEN 'N/A'
+                        WHEN SUM(CASE WHEN t.review_stage = 'final_approved' THEN 1 ELSE 0 END) = COUNT(DISTINCT t.id) THEN 'final_approved'
+                        WHEN SUM(CASE WHEN t.review_stage = 'pm_review' THEN 1 ELSE 0 END) > 0 THEN 'pm_review'
+                        WHEN SUM(CASE WHEN t.review_stage = 'manager_review' THEN 1 ELSE 0 END) > 0 THEN 'manager_review'
+                        WHEN SUM(CASE WHEN t.review_stage = 'change_requested' THEN 1 ELSE 0 END) > 0 THEN 'change_requested'
+                        ELSE 'not_started'
+                    END,
+                'N/A')                                                       AS project_stage,
+
+                COALESCE(NULLIF(TRIM(wr.status), ''), 'N/A')                AS project_request_status,
+                COALESCE(DATE_FORMAT(wr.created_at, '%d-%b-%Y %H:%i'), 'N/A')  AS project_request_created_at,
+                COALESCE(DATE_FORMAT(wr.updated_at, '%d-%b-%Y %H:%i'), 'N/A')  AS project_updated_at,
+
+                COALESCE(NULLIF(TRIM(wr.remarks), ''), 'N/A')               AS project_digi_comments,
+                COALESCE(NULLIF(TRIM(wr.description), ''), 'N/A')           AS work_request_description,
+                COALESCE(NULLIF(TRIM(wr.about_project), ''), 'N/A')         AS about_project,
+
+                DATE_FORMAT(wr.created_at, '%M')                             AS month,
                 CASE
-                    WHEN MIN(t.start_date) IS NULL AND COUNT(DISTINCT CASE WHEN t.end_date IS NOT NULL THEN t.id END) = 0 THEN 'upcoming'
-                    WHEN MIN(t.start_date) IS NOT NULL AND COUNT(DISTINCT t.id) = COUNT(DISTINCT CASE WHEN t.end_date IS NOT NULL THEN t.id END) THEN 'completed'
-                    ELSE 'ongoing'
-                END AS project_status
+                    WHEN MONTH(wr.created_at) >= 4
+                        THEN CONCAT('FY ', YEAR(wr.created_at), '-', RIGHT(YEAR(wr.created_at) + 1, 2))
+                    ELSE
+                        CONCAT('FY ', YEAR(wr.created_at) - 1, '-', RIGHT(YEAR(wr.created_at), 2))
+                END                                                          AS fy
+
             FROM work_requests wr
-            LEFT JOIN request_type rt ON wr.request_type_id = rt.id
-            LEFT JOIN project_type pt ON wr.project_id = pt.id
-            LEFT JOIN users ru ON wr.user_id = ru.id
-            LEFT JOIN user_divisions rud ON ru.id = rud.user_id
-            LEFT JOIN division rdiv ON rud.division_id = rdiv.id
-            LEFT JOIN work_request_managers wrm ON wr.id = wrm.work_request_id
-            LEFT JOIN users mu ON wrm.manager_id = mu.id
-            LEFT JOIN tasks t ON wr.id = t.work_request_id
-            LEFT JOIN request_division_reference rdr ON rt.id = rdr.request_id
-            LEFT JOIN division udiv ON rdr.division_id = udiv.id
+            LEFT JOIN request_type rt          ON rt.id = wr.request_type_id
+            LEFT JOIN project_type pt          ON pt.id = wr.project_id
+            LEFT JOIN users ru                 ON ru.id = wr.user_id
+            LEFT JOIN department dept          ON dept.id = ru.department_id
+            LEFT JOIN designation desig        ON desig.id = ru.designation_id
+            LEFT JOIN location loc             ON loc.id = ru.location_id
+            LEFT JOIN tasks t                  ON t.work_request_id = wr.id
+            LEFT JOIN issue_assignments ia     ON ia.task_id = t.id
         `;
 
         if (whereClauses.length > 0) {
@@ -60,12 +110,29 @@ const getAdminData = async (req, res) => {
         }
 
         query += `
-            GROUP BY 
-                wr.id, 
-                wr.project_name, 
+            GROUP BY
+                wr.id,
+                wr.project_name,
+                wr.brand,
                 rt.request_type,
-                ru.name, 
-                wr.requested_at
+                rt.description,
+                ru.name,
+                ru.email,
+                ru.phone,
+                dept.department_name,
+                desig.designation_name,
+                loc.location_name,
+                pt.project_type,
+                pt.description,
+                wr.priority,
+                wr.requested_at,
+                wr.status,
+                wr.created_at,
+                wr.updated_at,
+                wr.remarks,
+                wr.description,
+                wr.about_project
+            ORDER BY wr.created_at DESC
         `;
 
         const results = await sequelize.query(query, {

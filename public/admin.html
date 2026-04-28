@@ -15,11 +15,23 @@
         .datatable-wrapper { background: #fff; padding: 15px; border-radius: 6px; height: calc(100vh - 110px); display: flex; flex-direction: column; }
         .dataTables_scrollBody { overflow-y: auto !important; overflow-x: auto !important; }
         table.dataTable thead th, table.dataTable tbody td { white-space: nowrap; font-size: 11px; padding: 4px 7px; }
+        .truncate-cell { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
         .dt-buttons { float: right; }
         .status-badge { padding: 3px 6px; border-radius: 4px; font-size: 10px; font-weight: 500; }
-        .status-upcoming { background-color: #fff3cd; color: #856404; }
-        .status-ongoing { background-color: #d1ecf1; color: #0c5460; }
-        .status-completed { background-color: #d4edda; color: #155724; }
+        .status-draft     { background-color: #e2e3e5; color: #383d41; }
+        .status-pending   { background-color: #fff3cd; color: #856404; }
+        .status-accepted  { background-color: #cce5ff; color: #004085; }
+        .status-assigned  { background-color: #d1ecf1; color: #0c5460; }
+        .status-in_progress { background-color: #d4edda; color: #155724; }
+        .status-completed { background-color: #155724; color: #fff; }
+        .status-rejected  { background-color: #f8d7da; color: #721c24; }
+        .review-approved  { background-color: #d4edda; color: #155724; }
+        .review-pending   { background-color: #fff3cd; color: #856404; }
+        .review-change_request { background-color: #f8d7da; color: #721c24; }
+        .priority-low     { background-color: #d4edda; color: #155724; }
+        .priority-medium  { background-color: #fff3cd; color: #856404; }
+        .priority-high    { background-color: #ffe5d0; color: #7d3c00; }
+        .priority-critical{ background-color: #f8d7da; color: #721c24; }
         .nav-tabs .nav-link.active { font-weight: 600; }
     </style>
 </head>
@@ -60,30 +72,95 @@
     <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.html5.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script>
+        const TRUNCATE_FIELDS = ['work_request_description', 'about_project', 'request_type_description', 'project_type_description', 'project_digi_comments'];
+
+        const COLUMN_HEADERS = {
+            work_request_id:                    'Work Request ID',
+            project_name:                       'Project Name',
+            brand:                              'Brand',
+            request_type_name:                  'Request Type',
+            request_type_description:           'Request Type Description',
+            digi_vertical_manager_name:         'Digi Vertical Manager Name',
+            project_requester_name:             'Project Requester Name',
+            project_request_creator_email:      'Requester Email',
+            project_request_creator_phone:      'Requester Phone',
+            project_request_creator_department: 'Requester Department',
+            project_request_creator_designation:'Requester Designation',
+            project_request_creator_location:   'Requester Location',
+            project_type_name:                  'Project Type',
+            project_type_description:           'Project Type Description',
+            project_priority:                   'Priority',
+            project_count:                      'Project Count',
+            task_count:                         'Task Count',
+            issue_task_count:                   'Issue Task Count',
+            task_no_of_work_pages:              'Task Work Pages',
+            issue_no_of_work_pages:             'Issue Work Pages',
+            project_requested_at_client:        'Requested At Client',
+            project_request_accept_at_cm:       'Accepted At CM',
+            project_start_date:                 'Project Start Date',
+            project_end_date:                   'Project End Date',
+            project_deadline:                   'Project Deadline',
+            project_review:                     'Project Review',
+            project_stage:                      'Project Stage',
+            project_request_status:             'Request Status',
+            project_request_created_at:         'Created At',
+            project_updated_at:                 'Updated At',
+            project_digi_comments:              'Digi Comments',
+            work_request_description:           'Work Request Description',
+            about_project:                      'About Project',
+            month:                              'Month',
+            fy:                                 'Financial Year'
+        };
+
+        const BADGE_FIELDS = {
+            project_request_status: {
+                draft:       'status-draft',
+                pending:     'status-pending',
+                accepted:    'status-accepted',
+                assigned:    'status-assigned',
+                in_progress: 'status-in_progress',
+                completed:   'status-completed',
+                rejected:    'status-rejected'
+            },
+            project_review: {
+                approved:       'review-approved',
+                pending:        'review-pending',
+                change_request: 'review-change_request'
+            },
+            project_priority: {
+                low:      'priority-low',
+                medium:   'priority-medium',
+                high:     'priority-high',
+                critical: 'priority-critical'
+            }
+        };
+
         $(document).ready(function() {
             $.getJSON('./projectsdetails/data', function(response) {
                 var columns = [];
-                if(response.data && response.data.length > 0) {
+                if (response.data && response.data.length > 0) {
                     Object.keys(response.data[0]).forEach(function(key) {
-                        columns.push({ 
-                            data: key, 
-                            title: key, 
-                            defaultContent: '-',
+                        columns.push({
+                            data: key,
+                            title: COLUMN_HEADERS[key] || key,
+                            defaultContent: 'N/A',
                             render: function(data, type, row) {
-                                if(key == 'project_status' && data) {
-                                    var cls = '';
-                                    if (data == 'upcoming') cls = 'status-upcoming';
-                                    else if (data == 'ongoing') cls = 'status-ongoing';
-                                    else if (data == 'completed') cls = 'status-completed';
+                                if (type !== 'display') return data;
+                                if (BADGE_FIELDS[key] && data && data !== 'N/A') {
+                                    var cls = BADGE_FIELDS[key][data] || '';
                                     return '<span class="status-badge ' + cls + '">' + data + '</span>';
                                 }
-                                return data;
+                                var val = data !== null && data !== undefined ? data : 'N/A';
+                                if (TRUNCATE_FIELDS.indexOf(key) !== -1) {
+                                    return '<div class="truncate-cell" title="' + String(val).replace(/"/g, '&quot;') + '">' + val + '</div>';
+                                }
+                                return val;
                             }
                         });
                     });
                 }
-                
-                var table = $('#workRequestsTable').DataTable({
+
+                $('#workRequestsTable').DataTable({
                     data: response.data,
                     columns: columns,
                     pageLength: 25,
@@ -93,22 +170,38 @@
                     scrollY: '60vh',
                     scrollCollapse: true,
                     buttons: [
-                        { extend: 'excel', text: '<i class="bi bi-file-earmark-excel"></i>', className: 'btn btn-success btn-sm', titleAttr: 'Export to Excel', filename: function() { return 'work_requests_' + new Date().toISOString().slice(0, 10); } },
-                        { extend: 'csv', text: '<i class="bi bi-filetype-csv"></i>', className: 'btn btn-secondary btn-sm', titleAttr: 'Export to CSV', filename: function() { return 'work_requests_' + new Date().toISOString().slice(0, 10); } }
+                        {
+                            extend: 'excel',
+                            text: '<i class="bi bi-file-earmark-excel"></i> Excel',
+                            className: 'btn btn-success btn-sm',
+                            titleAttr: 'Export to Excel',
+                            filename: function() { return 'projects_' + new Date().toISOString().slice(0, 10); },
+                            exportOptions: { columns: ':visible' }
+                        },
+                        {
+                            extend: 'csv',
+                            text: '<i class="bi bi-filetype-csv"></i> CSV',
+                            className: 'btn btn-secondary btn-sm',
+                            titleAttr: 'Export to CSV',
+                            filename: function() { return 'projects_' + new Date().toISOString().slice(0, 10); },
+                            exportOptions: { columns: ':visible' }
+                        }
                     ],
-                    initComplete: function () {
-                        this.api().columns().every( function () {
+                    initComplete: function() {
+                        this.api().columns().every(function() {
                             var column = this;
-                            var input = $('<input type="text" class="form-control form-control-sm" placeholder="Filter" style="width:100%;font-size:10px;padding:2px 4px;margin-top:2px;" />')
-                                .appendTo( $(column.header()) )
-                                .on( 'keyup change clear', function () {
-                                    if ( column.search() !== this.value ) {
-                                        column.search( this.value ).draw();
+                            $('<input type="text" class="form-control form-control-sm" placeholder="Filter" style="width:100%;font-size:10px;padding:2px 4px;margin-top:2px;" />')
+                                .appendTo($(column.header()))
+                                .on('keyup change clear', function() {
+                                    if (column.search() !== this.value) {
+                                        column.search(this.value).draw();
                                     }
                                 });
                         });
                     }
                 });
+            }).fail(function() {
+                console.error('Failed to load data from API');
             });
         });
     </script>
