@@ -15,11 +15,27 @@
         .datatable-wrapper { background: #fff; padding: 15px; border-radius: 6px; height: calc(100vh - 110px); display: flex; flex-direction: column; }
         .dataTables_scrollBody { overflow-y: auto !important; overflow-x: auto !important; }
         table.dataTable thead th, table.dataTable tbody td { white-space: nowrap; font-size: 11px; padding: 4px 7px; }
+        .truncate-cell { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
         .dt-buttons { float: right; }
         .status-badge { padding: 3px 6px; border-radius: 4px; font-size: 10px; font-weight: 500; }
-        .status-upcoming { background-color: #fff3cd; color: #856404; }
-        .status-ongoing { background-color: #d1ecf1; color: #0c5460; }
-        .status-completed { background-color: #d4edda; color: #155724; }
+        .status-draft       { background-color: #e2e3e5; color: #383d41; }
+        .status-pending     { background-color: #fff3cd; color: #856404; }
+        .status-accepted    { background-color: #cce5ff; color: #004085; }
+        .status-assigned    { background-color: #d1ecf1; color: #0c5460; }
+        .status-in_progress { background-color: #d4edda; color: #155724; }
+        .status-completed   { background-color: #155724; color: #fff; }
+        .status-rejected    { background-color: #f8d7da; color: #721c24; }
+        .status-deferred    { background-color: #e2e3e5; color: #383d41; }
+        .review-approved        { background-color: #d4edda; color: #155724; }
+        .review-pending         { background-color: #fff3cd; color: #856404; }
+        .review-change_request  { background-color: #f8d7da; color: #721c24; }
+        .stage-not_started      { background-color: #e2e3e5; color: #383d41; }
+        .stage-manager_review   { background-color: #cce5ff; color: #004085; }
+        .stage-pm_review        { background-color: #d1ecf1; color: #0c5460; }
+        .stage-change_requested { background-color: #f8d7da; color: #721c24; }
+        .stage-final_approved   { background-color: #155724; color: #fff; }
+        .bool-yes { background-color: #d4edda; color: #155724; }
+        .bool-no  { background-color: #e2e3e5; color: #383d41; }
         .nav-tabs .nav-link.active { font-weight: 600; }
     </style>
 </head>
@@ -60,30 +76,124 @@
     <script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.html5.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script>
+        const TRUNCATE_FIELDS = ['task_type_description', 'task_digi_comments', 'task_Requester_description', 'about_task'];
+
+        const COLUMN_HEADERS = {
+            work_request_id:                        'Work Request ID',
+            task_id:                                'Task ID',
+            task_name:                              'Task Name',
+            brand:                                  'Brand',
+            task_request_type_name:                 'Request Type',
+            Vertical_Manager_name:                  'Vertical Manager Name',
+            task_type_name:                         'Task Type',
+            task_requester_name:                    'Task Requester Name',
+            task_assignment_type:                   'Assignment Type',
+            Tas_assigned_user_name:                 'Assigned User',
+            task_version:                           'Version',
+            project_count:                          'Project Count',
+            Task_no_of_work_pages:                  'Task Work Pages',
+            issue_task_count:                       'Issue Task Count',
+            issue_no_of_work_pages:                 'Issue Work Pages',
+            task_no_of_options_provided:            'No. of Options Provided',
+            task_concept_work:                      'Concept Work',
+            task_no_of_concepts:                    'No. of Concepts',
+            task_resize_work:                       'Resize Work',
+            task_no_of_resize:                      'No. of Resize',
+            task_ai:                                'Task AI',
+            task_no_of_ai_page:                     'No. of AI Pages',
+            task_duration_minutes:                  'Duration (Min)',
+            task_duration_seconds:                  'Duration (Sec)',
+            task_no_of_products_shot:               'No. of Products Shot',
+            task_shoot_setup:                       'Shoot Setup',
+            task_no_of_words_written:               'No. of Words Written',
+            task_no_of_responsive_screen:           'No. of Responsive Screens',
+            Project_requested_at_Client:            'Project Requested At Client',
+            Project_requested_accept_at_CM:         'Project Accepted At CM',
+            task_requested_atassign_intimate_CU:    'Task Assigned & Intimate CU',
+            task_requested_accept_at_CU:            'Task Accepted At CU',
+            Task_shared_with_CM_at:                 'Task Shared With CM At',
+            Task_respond_on_output_CM:              'CM Responded On Output',
+            Task_Output_shared_with_Client_at:      'Output Shared With Client At',
+            Task_Output_Client_Responded_approved:  'Client Responded / Approved',
+            task_start_date:                        'Task Start Date',
+            task_end_date:                          'Task End Date',
+            task_deadline:                          'Task Deadline',
+            task_review:                            'Task Review',
+            task_review_stage:                      'Task Review Stage',
+            task_status:                            'Task Status',
+            task_created_at:                        'Task Created At',
+            task_updated_at:                        'Task Updated At',
+            na:                                     'N/A',
+            task_type_description:                  'Task Type Description',
+            task_digi_comments:                     'Digi Comments',
+            task_Requester_description:             'Task Description',
+            about_task:                             'About Task',
+            Task_requester_department:              'Requester Department',
+            month:                                  'Month',
+            fy:                                     'Financial Year'
+        };
+
+        const BADGE_FIELDS = {
+            task_status: {
+                draft:       'status-draft',
+                pending:     'status-pending',
+                accepted:    'status-accepted',
+                assigned:    'status-assigned',
+                in_progress: 'status-in_progress',
+                completed:   'status-completed',
+                rejected:    'status-rejected',
+                deferred:    'status-deferred'
+            },
+            task_review: {
+                approved:       'review-approved',
+                pending:        'review-pending',
+                change_request: 'review-change_request'
+            },
+            task_review_stage: {
+                not_started:      'stage-not_started',
+                manager_review:   'stage-manager_review',
+                pm_review:        'stage-pm_review',
+                change_requested: 'stage-change_requested',
+                final_approved:   'stage-final_approved'
+            }
+        };
+
+        const BOOL_FIELDS = ['task_concept_work', 'task_resize_work', 'task_shoot_setup'];
+
         $(document).ready(function() {
             $.getJSON('./taskdetails/data', function(response) {
                 var columns = [];
-                if(response.data && response.data.length > 0) {
+                if (response.data && response.data.length > 0) {
                     Object.keys(response.data[0]).forEach(function(key) {
-                        columns.push({ 
-                            data: key, 
-                            title: key, 
-                            defaultContent: '-',
+                        columns.push({
+                            data: key,
+                            title: COLUMN_HEADERS[key] || key,
+                            defaultContent: 'N/A',
                             render: function(data, type, row) {
-                                if(key == 'task_status' && data) {
-                                    var cls = '';
-                                    if (data == 'upcoming') cls = 'status-upcoming';
-                                    else if (data == 'ongoing') cls = 'status-ongoing';
-                                    else if (data == 'completed') cls = 'status-completed';
-                                    return '<span class="status-badge ' + cls + '">' + data + '</span>';
+                                if (type !== 'display') return data;
+                                var val = data !== null && data !== undefined ? data : 'N/A';
+
+                                if (BADGE_FIELDS[key] && val && val !== 'N/A') {
+                                    var cls = BADGE_FIELDS[key][val] || '';
+                                    return '<span class="status-badge ' + cls + '">' + val + '</span>';
                                 }
-                                return data;
+
+                                if (BOOL_FIELDS.indexOf(key) !== -1) {
+                                    var isYes = val == 1 || val === true || val === 'true';
+                                    return '<span class="status-badge ' + (isYes ? 'bool-yes' : 'bool-no') + '">' + (isYes ? 'Yes' : 'No') + '</span>';
+                                }
+
+                                if (TRUNCATE_FIELDS.indexOf(key) !== -1) {
+                                    return '<div class="truncate-cell" title="' + String(val).replace(/"/g, '&quot;') + '">' + val + '</div>';
+                                }
+
+                                return val;
                             }
                         });
                     });
                 }
-                
-                var table = $('#taskDetailsTable').DataTable({
+
+                $('#taskDetailsTable').DataTable({
                     data: response.data,
                     columns: columns,
                     pageLength: 25,
@@ -93,22 +203,38 @@
                     scrollY: '60vh',
                     scrollCollapse: true,
                     buttons: [
-                        { extend: 'excel', text: '<i class="bi bi-file-earmark-excel"></i>', className: 'btn btn-success btn-sm', titleAttr: 'Export to Excel', filename: function() { return 'task_details_' + new Date().toISOString().slice(0, 10); } },
-                        { extend: 'csv', text: '<i class="bi bi-filetype-csv"></i>', className: 'btn btn-secondary btn-sm', titleAttr: 'Export to CSV', filename: function() { return 'task_details_' + new Date().toISOString().slice(0, 10); } }
+                        {
+                            extend: 'excel',
+                            text: '<i class="bi bi-file-earmark-excel"></i> Excel',
+                            className: 'btn btn-success btn-sm',
+                            titleAttr: 'Export to Excel',
+                            filename: function() { return 'task_details_' + new Date().toISOString().slice(0, 10); },
+                            exportOptions: { columns: ':visible' }
+                        },
+                        {
+                            extend: 'csv',
+                            text: '<i class="bi bi-filetype-csv"></i> CSV',
+                            className: 'btn btn-secondary btn-sm',
+                            titleAttr: 'Export to CSV',
+                            filename: function() { return 'task_details_' + new Date().toISOString().slice(0, 10); },
+                            exportOptions: { columns: ':visible' }
+                        }
                     ],
-                    initComplete: function () {
-                        this.api().columns().every( function () {
+                    initComplete: function() {
+                        this.api().columns().every(function() {
                             var column = this;
-                            var input = $('<input type="text" class="form-control form-control-sm" placeholder="Filter" style="width:100%;font-size:10px;padding:2px 4px;margin-top:2px;" />')
-                                .appendTo( $(column.header()) )
-                                .on( 'keyup change clear', function () {
-                                    if ( column.search() !== this.value ) {
-                                        column.search( this.value ).draw();
+                            $('<input type="text" class="form-control form-control-sm" placeholder="Filter" style="width:100%;font-size:10px;padding:2px 4px;margin-top:2px;" />')
+                                .appendTo($(column.header()))
+                                .on('keyup change clear', function() {
+                                    if (column.search() !== this.value) {
+                                        column.search(this.value).draw();
                                     }
                                 });
                         });
                     }
                 });
+            }).fail(function() {
+                console.error('Failed to load task data from API');
             });
         });
     </script>

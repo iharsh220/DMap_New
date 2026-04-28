@@ -162,53 +162,154 @@ const getTaskDetailsData = async (req, res) => {
 
         let query = `
             SELECT
-                wr.id AS work_request_id,
-                COALESCE(wr.project_name, 'N/A') AS project_name,
-                COALESCE(GROUP_CONCAT(DISTINCT pt.project_type SEPARATOR ', '), 'N/A') AS project_type,
-                COALESCE(rt.request_type, 'N/A') AS request_type,
-                COALESCE(GROUP_CONCAT(DISTINCT rdiv.title SEPARATOR ', '), 'N/A') AS requester_division,
-                COALESCE(ru.name, 'N/A') AS requester_name,
-                COALESCE(tdiv.title, 'N/A') AS user_division,
-                COALESCE(GROUP_CONCAT(DISTINCT mu.name ORDER BY mu.name SEPARATOR ', '), 'N/A') AS manager_name,
-                t.id AS task_id,
-                t.task_name,
-                tt.task_type,
-                COALESCE(GROUP_CONCAT(DISTINCT au.name SEPARATOR ', '), 'N/A') AS creative_user,
-                COUNT(DISTINCT ta.id) AS task_count,
-                t.task_count AS no_of_work_pages,
-                COALESCE(DATE_FORMAT(wr.requested_at, '%Y-%m-%d'), 'N/A') AS request_date,
-                COALESCE(wr.priority, 'N/A') AS scale,
-                COALESCE(DATE_FORMAT(t.start_date, '%Y-%m-%d'), 'N/A') AS task_start_date,
-                COALESCE(DATE_FORMAT(t.end_date, '%Y-%m-%d'), 'N/A') AS task_end_date,
+                wr.id                                                           AS work_request_id,
+                t.id                                                            AS task_id,
+                COALESCE(NULLIF(TRIM(t.task_name), ''), 'N/A')                 AS task_name,
+                COALESCE(NULLIF(TRIM(wr.brand), ''), 'N/A')                    AS brand,
+                COALESCE(NULLIF(TRIM(rt.request_type), ''), 'N/A')             AS task_request_type_name,
+
+                -- Vertical Manager Name (comma-separated)
+                COALESCE(
+                    NULLIF(
+                        (SELECT GROUP_CONCAT(DISTINCT mu2.name ORDER BY mu2.name SEPARATOR ', ')
+                         FROM work_request_managers wrm2
+                         JOIN users mu2 ON mu2.id = wrm2.manager_id
+                         WHERE wrm2.work_request_id = wr.id),
+                    ''),
+                'N/A')                                                          AS Vertical_Manager_name,
+
+                COALESCE(NULLIF(TRIM(tt.task_type), ''), 'N/A')                AS task_type_name,
+                COALESCE(NULLIF(TRIM(ru.name), ''), 'N/A')                     AS task_requester_name,
+                COALESCE(NULLIF(TRIM(t.assignment_type), ''), 'N/A')           AS task_assignment_type,
+
+                -- Assigned user(s) comma-separated
+                COALESCE(
+                    NULLIF(GROUP_CONCAT(DISTINCT au.name ORDER BY au.name SEPARATOR ', '), ''),
+                'N/A')                                                          AS Tas_assigned_user_name,
+
+                COALESCE(NULLIF(TRIM(t.version), ''), 'N/A')                   AS task_version,
+
+                -- Counts
+                1                                                               AS project_count,
+                t.task_count                                                    AS Task_no_of_work_pages,
+                COUNT(DISTINCT ia.id)                                           AS issue_task_count,
+                COALESCE(SUM(DISTINCT ia.task_count), 0)                       AS issue_no_of_work_pages,
+
+                -- Task work detail fields
+                COALESCE(t.no_of_options_provided, 0)                          AS task_no_of_options_provided,
+                t.concept_work                                                  AS task_concept_work,
+                COALESCE(t.no_of_concepts, 0)                                  AS task_no_of_concepts,
+                t.resize_work                                                   AS task_resize_work,
+                COALESCE(t.no_of_resize, 0)                                    AS task_no_of_resize,
+                COALESCE(t.no_of_images_videos_audio, 0)                       AS task_ai,
+                COALESCE(t.no_of_images_videos_audio, 0)                       AS task_no_of_ai_page,
+                COALESCE(t.duration_minutes, 0)                                AS task_duration_minutes,
+                COALESCE(t.duration_seconds, 0)                                AS task_duration_seconds,
+                COALESCE(t.no_of_products_shot, 0)                             AS task_no_of_products_shot,
+                t.shoot_setup                                                   AS task_shoot_setup,
+                COALESCE(t.no_of_words_written, 0)                             AS task_no_of_words_written,
+                COALESCE(t.no_of_responsive_screen, 0)                         AS task_no_of_responsive_screen,
+
+                -- Date: Project requested at client (wr shared_with_client)
+                COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A')                        AS Project_requested_at_Client,
+
+                -- Date: Project accepted at CM
+                COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A')                        AS Project_requested_accept_at_CM,
+
+                -- Date: Task assigned & intimated to CU (task_assignments created_at)
+                COALESCE(DATE_FORMAT(MIN(ta.created_at), '%d-%b-%Y %H:%i'), 'N/A')                     AS task_requested_atassign_intimate_CU,
+
+                -- Date: Task accepted at CU (first accepted status in review history)
+                COALESCE(
+                    DATE_FORMAT(
+                        (SELECT MIN(trh.created_at) FROM task_review_history trh
+                         WHERE trh.task_id = t.id AND trh.action = 'approved' AND trh.reviewer_type = 'manager'),
+                    '%d-%b-%Y %H:%i'),
+                'N/A')                                                          AS task_requested_accept_at_CU,
+
+                -- Date: Task shared with CM
+                COALESCE(DATE_FORMAT(t.shared_with_client_at, '%d-%b-%Y %H:%i'), 'N/A')                AS Task_shared_with_CM_at,
+
+                -- Date: CM responded on output (manager review action date)
+                COALESCE(
+                    DATE_FORMAT(
+                        (SELECT MIN(trh.created_at) FROM task_review_history trh
+                         WHERE trh.task_id = t.id AND trh.reviewer_type = 'manager'),
+                    '%d-%b-%Y %H:%i'),
+                'N/A')                                                          AS Task_respond_on_output_CM,
+
+                -- Date: Task output shared with client
+                COALESCE(DATE_FORMAT(t.shared_with_client_at, '%d-%b-%Y %H:%i'), 'N/A')                AS Task_Output_shared_with_Client_at,
+
+                -- Date: Client responded/approved (pm_review approved date)
+                COALESCE(
+                    DATE_FORMAT(
+                        (SELECT MIN(trh.created_at) FROM task_review_history trh
+                         WHERE trh.task_id = t.id AND trh.action = 'approved' AND trh.reviewer_type = 'project_manager'),
+                    '%d-%b-%Y %H:%i'),
+                'N/A')                                                          AS Task_Output_Client_Responded_approved,
+
+                -- Task dates
+                COALESCE(DATE_FORMAT(t.start_date, '%d-%b-%Y %H:%i'), 'N/A')   AS task_start_date,
+                COALESCE(DATE_FORMAT(t.end_date, '%d-%b-%Y %H:%i'), 'N/A')     AS task_end_date,
+                COALESCE(DATE_FORMAT(t.deadline, '%d-%b-%Y %H:%i'), 'N/A')     AS task_deadline,
+
+                -- Review fields
+                COALESCE(NULLIF(TRIM(t.review), ''), 'N/A')                    AS task_review,
+                COALESCE(NULLIF(TRIM(t.review_stage), ''), 'N/A')              AS task_review_stage,
+                COALESCE(NULLIF(TRIM(t.status), ''), 'N/A')                    AS task_status,
+
+                COALESCE(DATE_FORMAT(t.created_at, '%d-%b-%Y %H:%i'), 'N/A')   AS task_created_at,
+                COALESCE(DATE_FORMAT(t.updated_at, '%d-%b-%Y %H:%i'), 'N/A')   AS task_updated_at,
+
+                'N/A'                                                           AS na,
+
+                COALESCE(NULLIF(TRIM(tt.description), ''), 'N/A')              AS task_type_description,
+                COALESCE(NULLIF(TRIM(t.comments), ''), 'N/A')                  AS task_digi_comments,
+                COALESCE(NULLIF(TRIM(t.description), ''), 'N/A')               AS task_Requester_description,
+                COALESCE(NULLIF(TRIM(wr.about_project), ''), 'N/A')            AS about_task,
+                COALESCE(NULLIF(TRIM(dept.department_name), ''), 'N/A')        AS Task_requester_department,
+
+                DATE_FORMAT(t.created_at, '%M')                                AS month,
                 CASE
-                    WHEN t.start_date IS NULL AND t.end_date IS NULL THEN 'upcoming'
-                    WHEN t.start_date IS NOT NULL AND t.end_date IS NOT NULL THEN 'completed'
-                    ELSE 'ongoing'
-                END AS task_status
+                    WHEN MONTH(t.created_at) >= 4
+                        THEN CONCAT('FY ', YEAR(t.created_at), '-', RIGHT(YEAR(t.created_at) + 1, 2))
+                    ELSE
+                        CONCAT('FY ', YEAR(t.created_at) - 1, '-', RIGHT(YEAR(t.created_at), 2))
+                END                                                             AS fy
+
             FROM tasks t
-            LEFT JOIN work_requests wr ON t.work_request_id = wr.id
-            LEFT JOIN request_type rt ON wr.request_type_id = rt.id
-            LEFT JOIN task_type tt ON t.task_type_id = tt.id
-            LEFT JOIN task_project_reference tpr ON tt.id = tpr.task_id
-            LEFT JOIN project_type pt ON tpr.project_id = pt.id
-            LEFT JOIN project_request_reference prr ON pt.id = prr.project_id
-            LEFT JOIN request_type rt2 ON prr.request_id = rt2.id
-            LEFT JOIN request_division_reference rdr2 ON rt2.id = rdr2.request_id
-            LEFT JOIN division tdiv ON rdr2.division_id = tdiv.id
-            LEFT JOIN users ru ON wr.user_id = ru.id
-            LEFT JOIN user_divisions rud ON ru.id = rud.user_id
-            LEFT JOIN division rdiv ON rud.division_id = rdiv.id
-            LEFT JOIN work_request_managers wrm ON wr.id = wrm.work_request_id
-            LEFT JOIN users mu ON wrm.manager_id = mu.id
-            LEFT JOIN task_assignments ta ON t.id = ta.task_id
-            LEFT JOIN users au ON ta.user_id = au.id
+            LEFT JOIN work_requests wr          ON wr.id = t.work_request_id
+            LEFT JOIN request_type rt           ON rt.id = t.request_type_id
+            LEFT JOIN task_type tt              ON tt.id = t.task_type_id
+            LEFT JOIN users ru                  ON ru.id = wr.user_id
+            LEFT JOIN department dept           ON dept.id = ru.department_id
+            LEFT JOIN task_assignments ta       ON ta.task_id = t.id
+            LEFT JOIN users au                  ON au.id = ta.user_id
+            LEFT JOIN issue_assignments ia      ON ia.task_id = t.id
         `;
 
         if (whereClauses.length > 0) {
             query += ` WHERE ${whereClauses.join(' AND ')}`;
         }
 
-        query += ` GROUP BY wr.id, wr.project_name, rt.request_type, ru.name, t.id, t.task_name, tt.task_type, t.task_count, t.start_date, t.end_date, wr.requested_at, wr.priority ORDER BY t.id DESC`;
+        query += `
+            GROUP BY
+                wr.id, wr.brand, wr.requested_at, wr.about_project,
+                t.id, t.task_name, t.assignment_type, t.version, t.task_count,
+                t.no_of_options_provided, t.concept_work, t.no_of_concepts,
+                t.resize_work, t.no_of_resize, t.no_of_images_videos_audio,
+                t.duration_minutes, t.duration_seconds, t.no_of_products_shot,
+                t.shoot_setup, t.no_of_words_written, t.no_of_responsive_screen,
+                t.shared_with_client_at, t.start_date, t.end_date, t.deadline,
+                t.review, t.review_stage, t.status, t.created_at, t.updated_at,
+                t.comments, t.description,
+                rt.request_type,
+                tt.task_type, tt.description,
+                ru.name,
+                dept.department_name
+            ORDER BY t.id DESC
+        `;
 
         const results = await sequelize.query(query, {
             replacements,
@@ -237,57 +338,173 @@ const getIssueDetailsData = async (req, res) => {
 
         let query = `
             SELECT
-                wr.id AS work_request_id,
-                COALESCE(wr.project_name, 'N/A') AS project_name,
-                COALESCE(GROUP_CONCAT(DISTINCT pt.project_type SEPARATOR ', '), 'N/A') AS project_type,
-                COALESCE(rt.request_type, 'N/A') AS request_type,
-                COALESCE(GROUP_CONCAT(DISTINCT rdiv.title SEPARATOR ', '), 'N/A') AS requester_division,
-                COALESCE(ru.name, 'N/A') AS requester_name,
-                COALESCE(tdiv.title, 'N/A') AS user_division,
-                COALESCE(GROUP_CONCAT(DISTINCT mu.name ORDER BY mu.name SEPARATOR ', '), 'N/A') AS manager_name,
-                ia.id AS issue_id,
-                t.id AS task_id,
-                t.task_name,
-                tt.task_type,
-                ia.description,
-                ia.version,
-                ia.task_count AS no_of_work_pages,
-                COALESCE(DATE_FORMAT(wr.requested_at, '%Y-%m-%d'), 'N/A') AS request_date,
-                COALESCE(wr.priority, 'N/A') AS scale,
-                COALESCE(DATE_FORMAT(ia.start_date, '%Y-%m-%d'), 'N/A') AS issue_start_date,
-                COALESCE(DATE_FORMAT(ia.end_date, '%Y-%m-%d'), 'N/A') AS issue_end_date,
+                wr.id                                                           AS work_request_id,
+                t.id                                                            AS task_id,
+                ia.id                                                           AS issue_id,
+                COALESCE(NULLIF(TRIM(t.task_name), ''), 'N/A')                 AS task_name,
+                COALESCE(NULLIF(TRIM(wr.brand), ''), 'N/A')                    AS brand,
+                COALESCE(NULLIF(TRIM(rt.request_type), ''), 'N/A')             AS Issue_request_type_name,
+
+                -- Vertical Manager Name (comma-separated)
+                COALESCE(
+                    NULLIF(
+                        (SELECT GROUP_CONCAT(DISTINCT mu2.name ORDER BY mu2.name SEPARATOR ', ')
+                         FROM work_request_managers wrm2
+                         JOIN users mu2 ON mu2.id = wrm2.manager_id
+                         WHERE wrm2.work_request_id = wr.id),
+                    ''),
+                'N/A')                                                          AS Vertical_Manager_name,
+
+                COALESCE(NULLIF(TRIM(tt.task_type), ''), 'N/A')                AS task_type_name,
+                COALESCE(NULLIF(TRIM(ru.name), ''), 'N/A')                     AS issue_requester_name,
+                COALESCE(NULLIF(TRIM(ia.assignment_type), ''), 'N/A')          AS issue_assignment_type,
+
+                -- Assigned user(s) comma-separated
+                COALESCE(
+                    NULLIF(GROUP_CONCAT(DISTINCT au.name ORDER BY au.name SEPARATOR ', '), ''),
+                'N/A')                                                          AS assigned_user_name,
+
+                COALESCE(NULLIF(TRIM(ia.version), ''), 'N/A')                  AS issue_version,
+
+                -- Counts
+                1                                                               AS project_count,
+                t.task_count                                                    AS task_no_of_work_pages,
+                COUNT(DISTINCT ia.id)                                           AS issue_task_count,
+                COALESCE(ia.task_count, 0)                                      AS issue_no_of_work_pages,
+
+                -- Issue work detail fields
+                COALESCE(ia.no_of_options_provided, 0)                         AS issue_no_of_options_provided,
+                ia.concept_work                                                 AS issue_concept_work,
+                COALESCE(ia.no_of_concepts, 0)                                 AS issue_no_of_concepts,
+                ia.resize_work                                                  AS issue_resize_work,
+                COALESCE(ia.no_of_resize, 0)                                   AS issue_no_of_resize,
+                COALESCE(ia.no_of_images_videos_audio, 0)                      AS issue_AI,
+                COALESCE(ia.no_of_images_videos_audio, 0)                      AS issue_no_of_AI_Page,
+                COALESCE(ia.duration_minutes, 0)                               AS issue_duration_minutes,
+                COALESCE(ia.duration_seconds, 0)                               AS issue_duration_seconds,
+                COALESCE(ia.no_of_products_shot, 0)                            AS issue_no_of_products_shot,
+                ia.shoot_setup                                                  AS issue_shoot_setup,
+                COALESCE(ia.no_of_words_written, 0)                            AS issue_no_of_words_written,
+                ia.responsive_screen                                            AS issue_responsive_screen,
+
+                -- Date: Issue requested at client
+                COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A')                         AS issue_requested_at_Client,
+
+                -- Date: Issue accepted at CM
+                COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A')                         AS issue_requested_accept_at_CM,
+
+                -- Date: Issue assigned & intimated to CU
+                COALESCE(DATE_FORMAT(MIN(iua.created_at), '%d-%b-%Y %H:%i'), 'N/A')                     AS Issue_requested_atassign_intimate_CU,
+
+                -- Date: Issue accepted at CU (manager approved)
+                COALESCE(
+                    DATE_FORMAT(
+                        (SELECT MIN(trh.created_at) FROM task_review_history trh
+                         WHERE trh.task_id = t.id AND trh.action = 'approved' AND trh.reviewer_type = 'manager'),
+                    '%d-%b-%Y %H:%i'),
+                'N/A')                                                          AS Issue_requested_accept_at_CU,
+
+                -- Date: Issue shared with CM
+                COALESCE(DATE_FORMAT(ia.shared_with_client_at, '%d-%b-%Y %H:%i'), 'N/A')                AS Issue_shared_with_CM_at,
+
+                -- Date: CM responded on output
+                COALESCE(
+                    DATE_FORMAT(
+                        (SELECT MIN(trh.created_at) FROM task_review_history trh
+                         WHERE trh.task_id = t.id AND trh.reviewer_type = 'manager'),
+                    '%d-%b-%Y %H:%i'),
+                'N/A')                                                          AS Issue_respond_on_output_CM,
+
+                -- Date: Issue output shared with client
+                COALESCE(DATE_FORMAT(ia.shared_with_client_at, '%d-%b-%Y %H:%i'), 'N/A')                AS Issue_Output_shared_with_Client_at,
+
+                -- Date: Client responded/approved
+                COALESCE(
+                    DATE_FORMAT(
+                        (SELECT MIN(trh.created_at) FROM task_review_history trh
+                         WHERE trh.task_id = t.id AND trh.action = 'approved' AND trh.reviewer_type = 'project_manager'),
+                    '%d-%b-%Y %H:%i'),
+                'N/A')                                                          AS Issue_Output_Client_Responded_Approve,
+
+                -- Issue dates
+                COALESCE(DATE_FORMAT(ia.start_date, '%d-%b-%Y %H:%i'), 'N/A')  AS issue_start_date,
+                COALESCE(DATE_FORMAT(ia.end_date, '%d-%b-%Y %H:%i'), 'N/A')    AS issue_end_date,
+                COALESCE(DATE_FORMAT(ia.deadline, '%d-%b-%Y %H:%i'), 'N/A')    AS issue_deadline,
+
+                -- Review fields
+                COALESCE(NULLIF(TRIM(ia.review), ''), 'N/A')                   AS issue_review,
+                COALESCE(NULLIF(TRIM(ia.review_stage), ''), 'N/A')             AS issue_review_stage,
+                COALESCE(NULLIF(TRIM(ia.status), ''), 'N/A')                   AS issue_status,
+
+                COALESCE(DATE_FORMAT(ia.created_at, '%d-%b-%Y %H:%i'), 'N/A')  AS issue_created_at,
+                COALESCE(DATE_FORMAT(ia.updated_at, '%d-%b-%Y %H:%i'), 'N/A')  AS issue_updated_at,
+
+                -- Issue types (comma-separated)
+                COALESCE(
+                    NULLIF(
+                        (SELECT GROUP_CONCAT(ir.change_issue_type SEPARATOR ', ')
+                         FROM issue_assignment_types iat
+                         JOIN issue_register ir ON ir.id = iat.issue_register_id
+                         WHERE iat.issue_assignment_id = ia.id),
+                    ''),
+                'N/A')                                                          AS issue_types,
+
+                -- Issue types with description
+                COALESCE(
+                    NULLIF(
+                        (SELECT GROUP_CONCAT(CONCAT(ir.change_issue_type, ' - ', ir.description) SEPARATOR ' | ')
+                         FROM issue_assignment_types iat
+                         JOIN issue_register ir ON ir.id = iat.issue_register_id
+                         WHERE iat.issue_assignment_id = ia.id),
+                    ''),
+                'N/A')                                                          AS issue_types_with_description,
+
+                COALESCE(NULLIF(TRIM(ia.comments), ''), 'N/A')                 AS issue_digi_comments,
+                COALESCE(NULLIF(TRIM(ia.description), ''), 'N/A')              AS issue_Requester_description,
+                COALESCE(NULLIF(TRIM(wr.about_project), ''), 'N/A')            AS about_issue,
+                COALESCE(NULLIF(TRIM(dept.department_name), ''), 'N/A')        AS issue_requester_department,
+
+                DATE_FORMAT(ia.created_at, '%M')                               AS month,
                 CASE
-                    WHEN ia.start_date IS NULL AND ia.end_date IS NULL THEN 'upcoming'
-                    WHEN ia.start_date IS NOT NULL AND ia.end_date IS NOT NULL THEN 'completed'
-                    ELSE 'ongoing'
-                END AS issue_status,
-                ia.assignment_type,
-                COALESCE(GROUP_CONCAT(DISTINCT au.name SEPARATOR ', '), 'N/A') AS assigned_user
+                    WHEN MONTH(ia.created_at) >= 4
+                        THEN CONCAT('FY ', YEAR(ia.created_at), '-', RIGHT(YEAR(ia.created_at) + 1, 2))
+                    ELSE
+                        CONCAT('FY ', YEAR(ia.created_at) - 1, '-', RIGHT(YEAR(ia.created_at), 2))
+                END                                                             AS fy
+
             FROM issue_assignments ia
-            LEFT JOIN tasks t ON ia.task_id = t.id
-            LEFT JOIN work_requests wr ON t.work_request_id = wr.id
-            LEFT JOIN request_type rt ON wr.request_type_id = rt.id
-            LEFT JOIN task_type tt ON t.task_type_id = tt.id
-            LEFT JOIN task_project_reference tpr ON tt.id = tpr.task_id
-            LEFT JOIN project_type pt ON tpr.project_id = pt.id
-            LEFT JOIN project_request_reference prr ON pt.id = prr.project_id
-            LEFT JOIN request_type rt2 ON prr.request_id = rt2.id
-            LEFT JOIN request_division_reference rdr2 ON rt2.id = rdr2.request_id
-            LEFT JOIN division tdiv ON rdr2.division_id = tdiv.id
-            LEFT JOIN users ru ON wr.user_id = ru.id
-            LEFT JOIN user_divisions rud ON ru.id = rud.user_id
-            LEFT JOIN division rdiv ON rud.division_id = rdiv.id
-            LEFT JOIN work_request_managers wrm ON wr.id = wrm.work_request_id
-            LEFT JOIN users mu ON wrm.manager_id = mu.id
-            LEFT JOIN issue_user_assignments iua ON ia.id = iua.issue_assignment_id
-            LEFT JOIN users au ON iua.user_id = au.id
+            LEFT JOIN tasks t               ON t.id = ia.task_id
+            LEFT JOIN work_requests wr      ON wr.id = t.work_request_id
+            LEFT JOIN request_type rt       ON rt.id = wr.request_type_id
+            LEFT JOIN task_type tt          ON tt.id = t.task_type_id
+            LEFT JOIN users ru              ON ru.id = ia.requested_by_user_id
+            LEFT JOIN department dept       ON dept.id = ru.department_id
+            LEFT JOIN issue_user_assignments iua ON iua.issue_assignment_id = ia.id
+            LEFT JOIN users au              ON au.id = iua.user_id
         `;
 
         if (whereClauses.length > 0) {
             query += ` WHERE ${whereClauses.join(' AND ')}`;
         }
 
-        query += ` GROUP BY wr.id, wr.project_name, rt.request_type, ru.name, ia.id, ia.description, ia.version, ia.task_count, ia.start_date, ia.end_date, ia.assignment_type, t.id, t.task_name, tt.task_type, wr.requested_at, wr.priority ORDER BY ia.id DESC`;
+        query += `
+            GROUP BY
+                wr.id, wr.brand, wr.requested_at, wr.about_project,
+                t.id, t.task_name, t.task_count,
+                ia.id, ia.assignment_type, ia.version, ia.task_count,
+                ia.no_of_options_provided, ia.concept_work, ia.no_of_concepts,
+                ia.resize_work, ia.no_of_resize, ia.no_of_images_videos_audio,
+                ia.duration_minutes, ia.duration_seconds, ia.no_of_products_shot,
+                ia.shoot_setup, ia.no_of_words_written, ia.responsive_screen,
+                ia.shared_with_client_at, ia.start_date, ia.end_date, ia.deadline,
+                ia.review, ia.review_stage, ia.status,
+                ia.created_at, ia.updated_at, ia.comments, ia.description,
+                rt.request_type,
+                tt.task_type,
+                ru.name,
+                dept.department_name
+            ORDER BY ia.id DESC
+        `;
 
         const results = await sequelize.query(query, {
             replacements,
