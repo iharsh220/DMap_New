@@ -330,9 +330,8 @@ const getIssueDetailsData = async (req, res) => {
                 ia.id                                                           AS issue_id,
                 COALESCE(NULLIF(TRIM(t.task_name), ''), 'N/A')                 AS task_name,
                 COALESCE(NULLIF(TRIM(wr.brand), ''), 'N/A')                    AS brand,
-                COALESCE(NULLIF(TRIM(rt.request_type), ''), 'N/A')             AS Issue_request_type_name,
+                COALESCE(NULLIF(TRIM(rt.request_type), ''), 'N/A')             AS issue_request_type_name,
 
-                -- Vertical Manager Name (comma-separated)
                 COALESCE(
                     NULLIF(
                         (SELECT GROUP_CONCAT(DISTINCT mu2.name ORDER BY mu2.name SEPARATOR ', ')
@@ -340,33 +339,31 @@ const getIssueDetailsData = async (req, res) => {
                          JOIN users mu2 ON mu2.id = wrm2.manager_id
                          WHERE wrm2.work_request_id = wr.id),
                     ''),
-                'N/A')                                                          AS Vertical_Manager_name,
+                'N/A')                                                          AS vertical_manger_name,
 
                 COALESCE(NULLIF(TRIM(tt.task_type), ''), 'N/A')                AS task_type_name,
                 COALESCE(NULLIF(TRIM(ru.name), ''), 'N/A')                     AS issue_requester_name,
                 COALESCE(NULLIF(TRIM(ia.assignment_type), ''), 'N/A')          AS issue_assignment_type,
 
-                -- Assigned user(s) comma-separated
                 COALESCE(
                     NULLIF(GROUP_CONCAT(DISTINCT au.name ORDER BY au.name SEPARATOR ', '), ''),
                 'N/A')                                                          AS assigned_user_name,
 
                 COALESCE(NULLIF(TRIM(ia.version), ''), 'N/A')                  AS issue_version,
 
-                -- Counts
                 1                                                               AS project_count,
+                1                                                               AS task_count,
+                1                                                               AS issue_task_count,
                 t.task_count                                                    AS task_no_of_work_pages,
-                COUNT(DISTINCT ia.id)                                           AS issue_task_count,
                 COALESCE(ia.task_count, 0)                                      AS issue_no_of_work_pages,
 
-                -- Issue work detail fields
                 COALESCE(ia.no_of_options_provided, 0)                         AS issue_no_of_options_provided,
                 ia.concept_work                                                 AS issue_concept_work,
                 COALESCE(ia.no_of_concepts, 0)                                 AS issue_no_of_concepts,
                 ia.resize_work                                                  AS issue_resize_work,
                 COALESCE(ia.no_of_resize, 0)                                   AS issue_no_of_resize,
-                COALESCE(ia.no_of_images_videos_audio, 0)                      AS issue_AI,
-                COALESCE(ia.no_of_images_videos_audio, 0)                      AS issue_no_of_AI_Page,
+                COALESCE(ia.no_of_images_videos_audio, 0)                      AS issue_ai,
+                COALESCE(ia.no_of_images_videos_audio, 0)                      AS issue_no_of_ai_page,
                 COALESCE(ia.duration_minutes, 0)                               AS issue_duration_minutes,
                 COALESCE(ia.duration_seconds, 0)                               AS issue_duration_seconds,
                 COALESCE(ia.no_of_products_shot, 0)                            AS issue_no_of_products_shot,
@@ -374,51 +371,40 @@ const getIssueDetailsData = async (req, res) => {
                 COALESCE(ia.no_of_words_written, 0)                            AS issue_no_of_words_written,
                 ia.responsive_screen                                            AS issue_responsive_screen,
 
-                -- Date: Issue requested at client
-                COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A')                         AS issue_requested_at_Client,
+                COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A')                         AS issue_requested_at_client,
+                COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A')                         AS issue_requested_accept_at_cm,
 
-                -- Date: Issue accepted at CM
-                COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A')                         AS issue_requested_accept_at_CM,
+                COALESCE(DATE_FORMAT(MIN(iua.created_at), '%d-%b-%Y %H:%i'), 'N/A')                     AS issue_requested_atassign_intimate_cu,
 
-                -- Date: Issue assigned & intimated to CU
-                COALESCE(DATE_FORMAT(MIN(iua.created_at), '%d-%b-%Y %H:%i'), 'N/A')                     AS Issue_requested_atassign_intimate_CU,
-
-                -- Date: Issue accepted at CU (manager approved)
                 COALESCE(
                     DATE_FORMAT(
                         (SELECT MIN(trh.created_at) FROM task_review_history trh
                          WHERE trh.task_id = t.id AND trh.action = 'approved' AND trh.reviewer_type = 'manager'),
                     '%d-%b-%Y %H:%i'),
-                'N/A')                                                          AS Issue_requested_accept_at_CU,
+                'N/A')                                                          AS issue_requested_accept_at_cu,
 
-                -- Date: Issue shared with CM
-                COALESCE(DATE_FORMAT(ia.shared_with_client_at, '%d-%b-%Y %H:%i'), 'N/A')                AS Issue_shared_with_CM_at,
+                COALESCE(DATE_FORMAT(ia.shared_with_client_at, '%d-%b-%Y %H:%i'), 'N/A')                AS issue_shared_with_cm_at,
 
-                -- Date: CM responded on output
                 COALESCE(
                     DATE_FORMAT(
                         (SELECT MIN(trh.created_at) FROM task_review_history trh
                          WHERE trh.task_id = t.id AND trh.reviewer_type = 'manager'),
                     '%d-%b-%Y %H:%i'),
-                'N/A')                                                          AS Issue_respond_on_output_CM,
+                'N/A')                                                          AS issue_respond_on_output_cm,
 
-                -- Date: Issue output shared with client
-                COALESCE(DATE_FORMAT(ia.shared_with_client_at, '%d-%b-%Y %H:%i'), 'N/A')                AS Issue_Output_shared_with_Client_at,
+                COALESCE(DATE_FORMAT(ia.shared_with_client_at, '%d-%b-%Y %H:%i'), 'N/A')                AS issue_output_shared_with_client_at,
 
-                -- Date: Client responded/approved
                 COALESCE(
                     DATE_FORMAT(
                         (SELECT MIN(trh.created_at) FROM task_review_history trh
                          WHERE trh.task_id = t.id AND trh.action = 'approved' AND trh.reviewer_type = 'project_manager'),
                     '%d-%b-%Y %H:%i'),
-                'N/A')                                                          AS Issue_Output_Client_Responded_Approve,
+                'N/A')                                                          AS issue_output_client_responded_approve,
 
-                -- Issue dates
                 COALESCE(DATE_FORMAT(ia.start_date, '%d-%b-%Y %H:%i'), 'N/A')  AS issue_start_date,
                 COALESCE(DATE_FORMAT(ia.end_date, '%d-%b-%Y %H:%i'), 'N/A')    AS issue_end_date,
                 COALESCE(DATE_FORMAT(ia.deadline, '%d-%b-%Y %H:%i'), 'N/A')    AS issue_deadline,
 
-                -- Review fields
                 COALESCE(NULLIF(TRIM(ia.review), ''), 'N/A')                   AS issue_review,
                 COALESCE(NULLIF(TRIM(ia.review_stage), ''), 'N/A')             AS issue_review_stage,
                 COALESCE(NULLIF(TRIM(ia.status), ''), 'N/A')                   AS issue_status,
@@ -426,7 +412,6 @@ const getIssueDetailsData = async (req, res) => {
                 COALESCE(DATE_FORMAT(ia.created_at, '%d-%b-%Y %H:%i'), 'N/A')  AS issue_created_at,
                 COALESCE(DATE_FORMAT(ia.updated_at, '%d-%b-%Y %H:%i'), 'N/A')  AS issue_updated_at,
 
-                -- Issue types (comma-separated)
                 COALESCE(
                     NULLIF(
                         (SELECT GROUP_CONCAT(ir.change_issue_type SEPARATOR ', ')
@@ -436,7 +421,6 @@ const getIssueDetailsData = async (req, res) => {
                     ''),
                 'N/A')                                                          AS issue_types,
 
-                -- Issue types with description
                 COALESCE(
                     NULLIF(
                         (SELECT GROUP_CONCAT(CONCAT(ir.change_issue_type, ' - ', ir.description) SEPARATOR ' | ')
@@ -447,7 +431,7 @@ const getIssueDetailsData = async (req, res) => {
                 'N/A')                                                          AS issue_types_with_description,
 
                 COALESCE(NULLIF(TRIM(ia.comments), ''), 'N/A')                 AS issue_digi_comments,
-                COALESCE(NULLIF(TRIM(ia.description), ''), 'N/A')              AS issue_Requester_description,
+                COALESCE(NULLIF(TRIM(ia.description), ''), 'N/A')              AS issue_requester_description,
                 COALESCE(NULLIF(TRIM(wr.about_project), ''), 'N/A')            AS about_issue,
                 COALESCE(NULLIF(TRIM(dept.department_name), ''), 'N/A')        AS issue_requester_department,
 
