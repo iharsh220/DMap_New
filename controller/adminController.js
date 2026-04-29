@@ -164,11 +164,11 @@ const getTaskDetailsData = async (req, res) => {
             SELECT
                 wr.id                                                           AS work_request_id,
                 t.id                                                            AS task_id,
+                COALESCE(MIN(ia.id), NULL)                                      AS issue_id,
                 COALESCE(NULLIF(TRIM(t.task_name), ''), 'N/A')                 AS task_name,
                 COALESCE(NULLIF(TRIM(wr.brand), ''), 'N/A')                    AS brand,
                 COALESCE(NULLIF(TRIM(rt.request_type), ''), 'N/A')             AS task_request_type_name,
 
-                -- Vertical Manager Name (comma-separated)
                 COALESCE(
                     NULLIF(
                         (SELECT GROUP_CONCAT(DISTINCT mu2.name ORDER BY mu2.name SEPARATOR ', ')
@@ -176,26 +176,24 @@ const getTaskDetailsData = async (req, res) => {
                          JOIN users mu2 ON mu2.id = wrm2.manager_id
                          WHERE wrm2.work_request_id = wr.id),
                     ''),
-                'N/A')                                                          AS Vertical_Manager_name,
+                'N/A')                                                          AS vertical_manger_name,
 
                 COALESCE(NULLIF(TRIM(tt.task_type), ''), 'N/A')                AS task_type_name,
                 COALESCE(NULLIF(TRIM(ru.name), ''), 'N/A')                     AS task_requester_name,
                 COALESCE(NULLIF(TRIM(t.assignment_type), ''), 'N/A')           AS task_assignment_type,
 
-                -- Assigned user(s) comma-separated
                 COALESCE(
                     NULLIF(GROUP_CONCAT(DISTINCT au.name ORDER BY au.name SEPARATOR ', '), ''),
-                'N/A')                                                          AS Tas_assigned_user_name,
+                'N/A')                                                          AS tas_assigned_user_name,
 
                 COALESCE(NULLIF(TRIM(t.version), ''), 'N/A')                   AS task_version,
 
-                -- Counts
                 1                                                               AS project_count,
-                t.task_count                                                    AS Task_no_of_work_pages,
-                COUNT(DISTINCT ia.id)                                           AS issue_task_count,
+                1                                                               AS task_count,
+                (SELECT COUNT(DISTINCT ia2.id) FROM issue_assignments ia2 WHERE ia2.task_id = t.id) AS issue_task_count,
+                t.task_count                                                    AS task_no_of_work_pages,
                 COALESCE(SUM(DISTINCT ia.task_count), 0)                       AS issue_no_of_work_pages,
 
-                -- Task work detail fields
                 COALESCE(t.no_of_options_provided, 0)                          AS task_no_of_options_provided,
                 t.concept_work                                                  AS task_concept_work,
                 COALESCE(t.no_of_concepts, 0)                                  AS task_no_of_concepts,
@@ -210,51 +208,40 @@ const getTaskDetailsData = async (req, res) => {
                 COALESCE(t.no_of_words_written, 0)                             AS task_no_of_words_written,
                 COALESCE(t.no_of_responsive_screen, 0)                         AS task_no_of_responsive_screen,
 
-                -- Date: Project requested at client (wr shared_with_client)
-                COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A')                        AS Project_requested_at_Client,
+                COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A')                        AS project_requested_at_client,
+                COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A')                        AS project_requested_accept_at_cm,
 
-                -- Date: Project accepted at CM
-                COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A')                        AS Project_requested_accept_at_CM,
+                COALESCE(DATE_FORMAT(MIN(ta.created_at), '%d-%b-%Y %H:%i'), 'N/A')                     AS task_requested_atassign_intimate_cu,
 
-                -- Date: Task assigned & intimated to CU (task_assignments created_at)
-                COALESCE(DATE_FORMAT(MIN(ta.created_at), '%d-%b-%Y %H:%i'), 'N/A')                     AS task_requested_atassign_intimate_CU,
-
-                -- Date: Task accepted at CU (first accepted status in review history)
                 COALESCE(
                     DATE_FORMAT(
                         (SELECT MIN(trh.created_at) FROM task_review_history trh
                          WHERE trh.task_id = t.id AND trh.action = 'approved' AND trh.reviewer_type = 'manager'),
                     '%d-%b-%Y %H:%i'),
-                'N/A')                                                          AS task_requested_accept_at_CU,
+                'N/A')                                                          AS task_requested_accept_at_cu,
 
-                -- Date: Task shared with CM
-                COALESCE(DATE_FORMAT(t.shared_with_client_at, '%d-%b-%Y %H:%i'), 'N/A')                AS Task_shared_with_CM_at,
+                COALESCE(DATE_FORMAT(t.shared_with_client_at, '%d-%b-%Y %H:%i'), 'N/A')                AS task_shared_with_cm_at,
 
-                -- Date: CM responded on output (manager review action date)
                 COALESCE(
                     DATE_FORMAT(
                         (SELECT MIN(trh.created_at) FROM task_review_history trh
                          WHERE trh.task_id = t.id AND trh.reviewer_type = 'manager'),
                     '%d-%b-%Y %H:%i'),
-                'N/A')                                                          AS Task_respond_on_output_CM,
+                'N/A')                                                          AS task_respond_on_output_cm,
 
-                -- Date: Task output shared with client
-                COALESCE(DATE_FORMAT(t.shared_with_client_at, '%d-%b-%Y %H:%i'), 'N/A')                AS Task_Output_shared_with_Client_at,
+                COALESCE(DATE_FORMAT(t.shared_with_client_at, '%d-%b-%Y %H:%i'), 'N/A')                AS task_output_shared_with_client_at,
 
-                -- Date: Client responded/approved (pm_review approved date)
                 COALESCE(
                     DATE_FORMAT(
                         (SELECT MIN(trh.created_at) FROM task_review_history trh
                          WHERE trh.task_id = t.id AND trh.action = 'approved' AND trh.reviewer_type = 'project_manager'),
                     '%d-%b-%Y %H:%i'),
-                'N/A')                                                          AS Task_Output_Client_Responded_approved,
+                'N/A')                                                          AS task_output_client_responded_approved,
 
-                -- Task dates
                 COALESCE(DATE_FORMAT(t.start_date, '%d-%b-%Y %H:%i'), 'N/A')   AS task_start_date,
                 COALESCE(DATE_FORMAT(t.end_date, '%d-%b-%Y %H:%i'), 'N/A')     AS task_end_date,
                 COALESCE(DATE_FORMAT(t.deadline, '%d-%b-%Y %H:%i'), 'N/A')     AS task_deadline,
 
-                -- Review fields
                 COALESCE(NULLIF(TRIM(t.review), ''), 'N/A')                    AS task_review,
                 COALESCE(NULLIF(TRIM(t.review_stage), ''), 'N/A')              AS task_review_stage,
                 COALESCE(NULLIF(TRIM(t.status), ''), 'N/A')                    AS task_status,
@@ -266,9 +253,9 @@ const getTaskDetailsData = async (req, res) => {
 
                 COALESCE(NULLIF(TRIM(tt.description), ''), 'N/A')              AS task_type_description,
                 COALESCE(NULLIF(TRIM(t.comments), ''), 'N/A')                  AS task_digi_comments,
-                COALESCE(NULLIF(TRIM(t.description), ''), 'N/A')               AS task_Requester_description,
+                COALESCE(NULLIF(TRIM(t.description), ''), 'N/A')               AS task_requester_description,
                 COALESCE(NULLIF(TRIM(wr.about_project), ''), 'N/A')            AS about_task,
-                COALESCE(NULLIF(TRIM(dept.department_name), ''), 'N/A')        AS Task_requester_department,
+                COALESCE(NULLIF(TRIM(dept.department_name), ''), 'N/A')        AS task_requester_department,
 
                 DATE_FORMAT(t.created_at, '%M')                                AS month,
                 CASE
@@ -622,7 +609,8 @@ const getWorkRequestTasksData = async (req, res) => {
                 t.intimate_team AS task_intimate_team,
                 t.intimate_client AS task_intimate_client,
                 t.shared_with_client_at AS task_shared_with_client_at,
-                t.task_count AS task_count,
+                1 AS task_count,
+                (SELECT COUNT(DISTINCT ia2.id) FROM issue_assignments ia2 WHERE ia2.task_id = t.id) AS issue_task_count,
                 t.link AS task_link,
                 t.start_date AS task_start_date,
                 t.end_date AS task_end_date,
@@ -672,7 +660,7 @@ const getWorkRequestTasksData = async (req, res) => {
                 ia.intimate_team AS issue_intimate_team,
                 ia.intimate_client AS issue_intimate_client,
                 ia.shared_with_client_at AS issue_shared_with_client_at,
-                ia.task_count AS issue_task_count,
+                ia.task_count AS issue_work_pages,
                 ia.start_date AS issue_start_date,
                 ia.end_date AS issue_end_date,
                 ia.link AS issue_link,
