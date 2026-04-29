@@ -133,7 +133,7 @@ $(function(){
             data:data,columns:cols,
             pageLength:25,lengthMenu:[[25,50,100,200,-1],[25,50,100,200,'All']],
             dom:'<"dt-top-row"lf>rt<"dt-bottom-row"ip>',
-            scrollX:true,scrollY:'calc(100vh - 360px)',scrollCollapse:false,
+            scrollX:true,scrollY:'calc(100vh - 360px)',scrollCollapse:false,autoWidth:false,
             language:{search:'',searchPlaceholder:'Search all columns...',lengthMenu:'Show _MENU_ rows'},
             initComplete:function(){
                 var api=this.api();

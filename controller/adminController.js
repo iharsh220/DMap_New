@@ -52,7 +52,7 @@ const getAdminData = async (req, res) => {
                 COALESCE(SUM(DISTINCT t.task_count), 0)                     AS task_no_of_work_pages,
                 COALESCE(SUM(DISTINCT ia.task_count), 0)                    AS issue_no_of_work_pages,
 
-                COALESCE(DATE_FORMAT(MIN(t.shared_with_client_at), '%d-%b-%Y %H:%i'), 'N/A')  AS project_requested_at_client,
+                COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A')               AS project_requested_at_client,
                 COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A')               AS project_request_accept_at_cm,
                 COALESCE(DATE_FORMAT(MIN(t.start_date), '%d-%b-%Y %H:%i'), 'N/A')             AS project_start_date,
                 COALESCE(DATE_FORMAT(MAX(t.end_date), '%d-%b-%Y %H:%i'), 'N/A')               AS project_end_date,

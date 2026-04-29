@@ -12,7 +12,10 @@ const sequelize = new Sequelize(
     logging: false,
     dialectOptions: {
       charset: 'utf8mb4',
+      dateStrings: true,
+      typeCast: true,
     },
+    timezone: '+05:30',
     define: {
       charset: 'utf8mb4',
       collate: 'utf8mb4_unicode_ci',
