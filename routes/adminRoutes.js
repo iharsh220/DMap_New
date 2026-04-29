@@ -3,6 +3,12 @@ const router = express.Router();
 const path = require('path');
 const { getAdminData, getTaskDetailsData, getTasksForWorkRequest, getIssueDetailsData, getWorkRequestTasksData } = require('../controller/adminController');
 
+// Serve shared CSS theme
+router.get('/admin/dmap-theme.css', (req, res) => {
+    res.setHeader('Content-Type', 'text/css');
+    res.sendFile(path.join(__dirname, '..', 'public', 'dmap-theme.css'));
+});
+
 // Serve admin panel HTML
 router.get('/admin/projectsdetails', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'admin.html'));
