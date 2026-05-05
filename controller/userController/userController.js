@@ -311,7 +311,7 @@ const getAssignedTasks = async (req, res) => {
             offset: req.pagination.offset,
             order: [
                 // Always sort by deadline descending (latest deadline first)
-                ['deadline', 'ASC']
+                ['deadline', 'DESC']
             ]
         });
 
