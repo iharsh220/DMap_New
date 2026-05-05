@@ -77,38 +77,38 @@ const HEADERS  = {
     task_name:'task_name',
     brand:'brand',
     task_request_type_name:'task_request_type_name',
-    vertical_manger_name:'vertical_ manger name',
+    vertical_manger_name:'vertical_manager_name',
     task_type_name:'task_type_name',
     task_requester_name:'task_requester_name',
     task_assignment_type:'task_assignment_type',
-    tas_assigned_user_name:'tas assigned_user_name',
+    tas_assigned_user_name:'task_assigned_user_name',
     task_version:'task_version',
-    project_count:'project count',
+    project_count:'project_count',
     task_count:'task_count',
     issue_task_count:'issue_task_count',
-    task_no_of_work_pages:'task no_of_work_pages',
-    issue_no_of_work_pages:'issue no_of_work_pages',
+    task_no_of_work_pages:'task_no_of_work_pages',
+    issue_no_of_work_pages:'issue_no_of_work_pages',
     task_no_of_options_provided:'task_no_of_options_provided',
     task_concept_work:'task_concept_work',
     task_no_of_concepts:'task_no_of_concepts',
     task_resize_work:'task_resize_work',
-    task_no_of_resize:'task_no_of_ resize',
+    task_no_of_resize:'task_no_of_resize',
     task_ai:'task_ai',
-    task_no_of_ai_page:'task_no_of_ ai page',
+    task_no_of_ai_page:'task_no_of_ai_page',
     task_duration_minutes:'task_duration_minutes',
     task_duration_seconds:'task_duration_seconds',
     task_no_of_products_shot:'task_no_of_products_shot',
     task_shoot_setup:'task_shoot_setup',
     task_no_of_words_written:'task_no_of_words_written',
     task_no_of_responsive_screen:'task_no_of_responsive_screen',
-    project_requested_at_client:'project requested_at_client',
-    project_requested_accept_at_cm:'project requested _ accept at_cm',
-    task_requested_atassign_intimate_cu:'task requested_atassign & intimate _cu',
-    task_requested_accept_at_cu:'task requested _ accept at _cu',
-    task_shared_with_cm_at:'task _shared_ with _ cm at',
-    task_respond_on_output_cm:'task_respond-on_ output_cm',
-    task_output_shared_with_client_at:'task output_shared_ with _ client at',
-    task_output_client_responded_approved:'task output _client responded _approved',
+    project_requested_at_client:'project_requested_at_client',
+    project_requested_accept_at_cm:'project_requested_accept_at_cm',
+    task_requested_atassign_intimate_cu:'task_requested_atassign_intimate_cu',
+    task_requested_accept_at_cu:'task_requested_accept_at_cu',
+    task_shared_with_cm_at:'task_shared_with_cm_at',
+    task_respond_on_output_cm:'task_respond_on_output_cm',
+    task_output_shared_with_client_at:'task_output_shared_with_client_at',
+    task_output_client_responded_approved:'task_output_client_responded_approved',
     task_start_date:'task_start_date',
     task_end_date:'task_end_date',
     task_deadline:'task_deadline',
@@ -119,8 +119,8 @@ const HEADERS  = {
     task_updated_at:'task_updated_at',
     na:'na',
     task_type_description:'task_type_description',
-    task_digi_comments:'task_digi _comments',
-    task_requester_description:'task_ requester_ description',
+    task_digi_comments:'task_digi_comments',
+    task_requester_description:'task_requester_description',
     about_task:'about_task',
     task_requester_department:'task_requester_department',
     month:'month',
@@ -172,7 +172,7 @@ $(function(){
                 api.columns().every(function(){
                     var col=this,idx=col.index(),key=Object.keys(data[0])[idx];
                     var th=$(col.header());
-                    var labelText=th.text().trim();
+                    var labelText=HEADERS[key]||key;
                     th.empty();
                     var wrap=$('<div class="th-wrap"></div>');
                     wrap.append('<div class="th-label"><span>'+labelText+'</span><span class="th-sort"></span></div>');
@@ -195,9 +195,10 @@ $(function(){
             }
         });
         $('#mainTable').on('click','.col-filter',function(e){e.stopPropagation();});
+        var colTitles=cols.map(function(c){return c.title;});
         new $.fn.dataTable.Buttons(dt,[
-            {extend:'excel',className:'buttons-excel',filename:'tasks_'+new Date().toISOString().slice(0,10),exportOptions:{columns:':visible'}},
-            {extend:'csv',  className:'buttons-csv',  filename:'tasks_'+new Date().toISOString().slice(0,10),exportOptions:{columns:':visible'}}
+            {extend:'excel',className:'buttons-excel',filename:'tasks_'+new Date().toISOString().slice(0,10),exportOptions:{columns:':visible',format:{header:function(data,col){return colTitles[col]||data;}}}},
+            {extend:'csv',className:'buttons-csv',filename:'tasks_'+new Date().toISOString().slice(0,10),exportOptions:{columns:':visible',format:{header:function(data,col){return colTitles[col]||data;}}}}
         ]);
         $('#btnExcel').on('click',function(){dt.button('.buttons-excel').trigger();});
         $('#btnCsv').on('click',function(){dt.button('.buttons-csv').trigger();});

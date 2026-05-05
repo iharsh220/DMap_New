@@ -77,38 +77,38 @@ const HEADERS={
     task_name:'task_name',
     brand:'brand',
     issue_request_type_name:'issue_request_type_name',
-    vertical_manger_name:'vertical_ manger name',
+    vertical_manger_name:'vertical_manager_name',
     task_type_name:'task_type_name',
     issue_requester_name:'issue_requester_name',
     issue_assignment_type:'issue_assignment_type',
     assigned_user_name:'assigned_user_name',
     issue_version:'issue_version',
-    project_count:'project count',
+    project_count:'project_count',
     task_count:'task_count',
     issue_task_count:'issue_task_count',
-    task_no_of_work_pages:'task no_of_work_pages',
-    issue_no_of_work_pages:'issue no_of_work_pages',
+    task_no_of_work_pages:'task_no_of_work_pages',
+    issue_no_of_work_pages:'issue_no_of_work_pages',
     issue_no_of_options_provided:'issue_no_of_options_provided',
     issue_concept_work:'issue_concept_work',
     issue_no_of_concepts:'issue_no_of_concepts',
     issue_resize_work:'issue_resize_work',
     issue_no_of_resize:'issue_no_of_resize',
     issue_ai:'issue_ai',
-    issue_no_of_ai_page:'issue_no_of_ ai page',
+    issue_no_of_ai_page:'issue_no_of_ai_page',
     issue_duration_minutes:'issue_duration_minutes',
     issue_duration_seconds:'issue_duration_seconds',
     issue_no_of_products_shot:'issue_no_of_products_shot',
     issue_shoot_setup:'issue_shoot_setup',
     issue_no_of_words_written:'issue_no_of_words_written',
     issue_responsive_screen:'issue_responsive_screen',
-    issue_requested_at_client:'issue requested_at_ client',
-    issue_requested_accept_at_cm:'issue requested _ accept at _cm',
-    issue_requested_atassign_intimate_cu:'issue requested_atassign & intimate _cu',
-    issue_requested_accept_at_cu:'issue requested _ accept at _cu',
-    issue_shared_with_cm_at:'issue _shared_ with _ cm at',
-    issue_respond_on_output_cm:'issue_respond-on_ output_cm',
-    issue_output_shared_with_client_at:'issue output_shared_ with _ client at',
-    issue_output_client_responded_approve:'issue output _client responded _approve',
+    issue_requested_at_client:'issue_requested_at_client',
+    issue_requested_accept_at_cm:'issue_requested_accept_at_cm',
+    issue_requested_atassign_intimate_cu:'issue_requested_atassign_intimate_cu',
+    issue_requested_accept_at_cu:'issue_requested_accept_at_cu',
+    issue_shared_with_cm_at:'issue_shared_with_cm_at',
+    issue_respond_on_output_cm:'issue_respond_on_output_cm',
+    issue_output_shared_with_client_at:'issue_output_shared_with_client_at',
+    issue_output_client_responded_approve:'issue_output_client_responded_approve',
     issue_start_date:'issue_start_date',
     issue_end_date:'issue_end_date',
     issue_deadline:'issue_deadline',
@@ -119,8 +119,8 @@ const HEADERS={
     issue_updated_at:'issue_updated_at',
     issue_types:'issue_types',
     issue_types_with_description:'issue_types_with_description',
-    issue_digi_comments:'issue_digi _ comments',
-    issue_requester_description:'issue_requester_ description',
+    issue_digi_comments:'issue_digi_comments',
+    issue_requester_description:'issue_requester_description',
     about_issue:'about_issue',
     issue_requester_department:'issue_requester_department',
     month:'month',
@@ -172,7 +172,7 @@ $(function(){
                 api.columns().every(function(){
                     var col=this,idx=col.index(),key=Object.keys(data[0])[idx];
                     var th=$(col.header());
-                    var labelText=th.text().trim();
+                    var labelText=HEADERS[key]||key;
                     th.empty();
                     var wrap=$('<div class="th-wrap"></div>');
                     wrap.append('<div class="th-label"><span>'+labelText+'</span><span class="th-sort"></span></div>');
@@ -195,9 +195,10 @@ $(function(){
             }
         });
         $('#mainTable').on('click','.col-filter',function(e){e.stopPropagation();});
+        var colTitles=cols.map(function(c){return c.title;});
         new $.fn.dataTable.Buttons(dt,[
-            {extend:'excel',className:'buttons-excel',filename:'issues_'+new Date().toISOString().slice(0,10),exportOptions:{columns:':visible'}},
-            {extend:'csv',  className:'buttons-csv',  filename:'issues_'+new Date().toISOString().slice(0,10),exportOptions:{columns:':visible'}}
+            {extend:'excel',className:'buttons-excel',filename:'issues_'+new Date().toISOString().slice(0,10),exportOptions:{columns:':visible',format:{header:function(data,col){return colTitles[col]||data;}}}},
+            {extend:'csv',className:'buttons-csv',filename:'issues_'+new Date().toISOString().slice(0,10),exportOptions:{columns:':visible',format:{header:function(data,col){return colTitles[col]||data;}}}}
         ]);
         $('#btnExcel').on('click',function(){dt.button('.buttons-excel').trigger();});
         $('#btnCsv').on('click',function(){dt.button('.buttons-csv').trigger();});
