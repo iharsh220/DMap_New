@@ -238,7 +238,7 @@ const getAssignedWorkRequests = async (req, res) => {
         TaskAssignments.belongsTo(Tasks, { foreignKey: 'task_id' });
 
         const manager_id = req.user.id;
-        const { status, review, review_stages, user_id, user_name } = req.query; // Get status, review, review_stages, user_id, and user_name filters from query params
+        const { status, review, review_stages, user_id } = req.query; // Get status, review, review_stages, and user_id filters from query params
 
         let where = { status: { [Op.ne]: 'draft' } };
 
@@ -326,40 +326,55 @@ const getAssignedWorkRequests = async (req, res) => {
             where.user_id = userIdInt;
         }
 
-        // Handle user_name filter - filter by user name (search by name)
-        if (user_name) {
-            // Find users matching the name (case-insensitive search)
-            const matchingUsers = await User.findAll({
-                where: {
-                    name: { [Op.like]: `%${user_name}%` }
-                },
-                attributes: ['id']
-            });
+        // Apply filters from middleware, but exclude user_name/username as they may be handled via search
+        if (req.filters) {
+            const { user_name, username, ...otherFilters } = req.filters;
+            where = { ...where, ...otherFilters };
+        }
 
-            if (matchingUsers.length > 0) {
-                const userIds = matchingUsers.map(u => u.id);
-                where.user_id = { [Op.in]: userIds };
-            } else {
-                // No matching users found, return empty result
-                return res.json({
-                    success: true,
-                    data: [],
-                    pagination: req.pagination,
-                    message: 'No work requests found for the specified user name'
+        // Apply search - handle user_name/username specially since it's on the associated User model
+        if (req.search.term && req.search.fields.length > 0) {
+            const searchFields = req.search.fields;
+            // Check for user_name or username in search fields
+            const hasUserNameSearch = searchFields.includes('user_name') || searchFields.includes('username');
+            
+            // Remove user_name and username from search fields for the direct query
+            const directSearchFields = searchFields.filter(field => field !== 'user_name' && field !== 'username');
+            
+            // Build OR condition array combining direct fields and user_id (if applicable)
+            const orConditions = [];
+            
+            // Add direct field conditions (project_name, brand, etc.)
+            if (directSearchFields.length > 0) {
+                directSearchFields.forEach(field => {
+                    orConditions.push({
+                        [field]: { [Op.like]: `%${req.search.term}%` }
+                    });
                 });
             }
-        }
+            
+            // If user_name/username search is requested, add user_id IN condition
+            if (hasUserNameSearch) {
+                // Find users matching the name (case-insensitive search)
+                const matchingUsers = await User.findAll({
+                    where: {
+                        name: { [Op.like]: `%${req.search.term}%` }
+                    },
+                    attributes: ['id']
+                });
 
-        // Apply filters
-        if (req.filters) {
-            where = { ...where, ...req.filters };
-        }
-
-        // Apply search
-        if (req.search.term && req.search.fields.length > 0) {
-            where[Op.or] = req.search.fields.map(field => ({
-                [field]: { [Op.like]: `%${req.search.term}%` }
-            }));
+                if (matchingUsers.length > 0) {
+                    const userIds = matchingUsers.map(u => u.id);
+                    orConditions.push({ user_id: { [Op.in]: userIds } });
+                }
+                // If no matching users found, we simply skip adding user_id condition.
+                // The search will still match on other direct fields if they match.
+            }
+            
+            // Apply the combined OR condition if we have any conditions
+            if (orConditions.length > 0) {
+                where[Op.or] = orConditions;
+            }
         }
 
         const result = await workRequestService.getAll({
