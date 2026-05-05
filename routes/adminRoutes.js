@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const path = require('path');
-const { getAdminData, getTaskDetailsData, getTasksForWorkRequest, getIssueDetailsData, getWorkRequestTasksData } = require('../controller/adminController');
+const { getAdminData, getTaskDetailsData, getTasksForWorkRequest, getIssueDetailsData, getWorkRequestTasksData, getDeletePreview, deleteProject, deleteTask, deleteIssue } = require('../controller/adminController');
 
 // Serve shared CSS theme
 router.get('/admin/dmap-theme.css', (req, res) => {
@@ -43,5 +43,13 @@ router.get('/admin/workrequesttasks/data', getWorkRequestTasksData);
 
 // API endpoint for tasks
 router.get('/admin/projectsdetails/tasks/:workRequestId', getTasksForWorkRequest);
+
+// Delete preview
+router.get('/admin/delete/preview/:type/:id', getDeletePreview);
+
+// Delete endpoints
+router.delete('/admin/delete/project/:id', deleteProject);
+router.delete('/admin/delete/task/:id', deleteTask);
+router.delete('/admin/delete/issue/:id', deleteIssue);
 
 module.exports = router;

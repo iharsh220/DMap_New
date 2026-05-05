@@ -1,5 +1,137 @@
 const { sequelize } = require('../config/databaseConfig');
 
+const getDeletePreview = async (req, res) => {
+    try {
+        const { type, id } = req.params;
+        let preview = {};
+
+        if (type === 'project') {
+            const [wr] = await sequelize.query(
+                `SELECT wr.id, wr.project_name, wr.brand, wr.status,
+                    COUNT(DISTINCT t.id) AS task_count,
+                    COUNT(DISTINCT ia.id) AS issue_count
+                 FROM work_requests wr
+                 LEFT JOIN tasks t ON t.work_request_id = wr.id
+                 LEFT JOIN issue_assignments ia ON ia.task_id = t.id
+                 WHERE wr.id = :id GROUP BY wr.id`,
+                { replacements: { id }, type: sequelize.QueryTypes.SELECT }
+            );
+            const tasks = await sequelize.query(
+                `SELECT t.id, t.task_name, t.status,
+                    COUNT(DISTINCT ia.id) AS issue_count
+                 FROM tasks t
+                 LEFT JOIN issue_assignments ia ON ia.task_id = t.id
+                 WHERE t.work_request_id = :id GROUP BY t.id`,
+                { replacements: { id }, type: sequelize.QueryTypes.SELECT }
+            );
+            preview = { record: wr, tasks };
+        } else if (type === 'task') {
+            const [task] = await sequelize.query(
+                `SELECT t.id, t.task_name, t.status,
+                    COUNT(DISTINCT ia.id) AS issue_count
+                 FROM tasks t
+                 LEFT JOIN issue_assignments ia ON ia.task_id = t.id
+                 WHERE t.id = :id GROUP BY t.id`,
+                { replacements: { id }, type: sequelize.QueryTypes.SELECT }
+            );
+            const issues = await sequelize.query(
+                `SELECT ia.id, ia.version, ia.status, ia.assignment_type
+                 FROM issue_assignments ia WHERE ia.task_id = :id`,
+                { replacements: { id }, type: sequelize.QueryTypes.SELECT }
+            );
+            preview = { record: task, issues };
+        } else if (type === 'issue') {
+            const [issue] = await sequelize.query(
+                `SELECT ia.id, ia.version, ia.status, ia.assignment_type,
+                    t.task_name, wr.project_name
+                 FROM issue_assignments ia
+                 LEFT JOIN tasks t ON t.id = ia.task_id
+                 LEFT JOIN work_requests wr ON wr.id = t.work_request_id
+                 WHERE ia.id = :id`,
+                { replacements: { id }, type: sequelize.QueryTypes.SELECT }
+            );
+            preview = { record: issue };
+        }
+
+        res.json({ preview });
+    } catch (error) {
+        console.error('Error fetching delete preview:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+const deleteProject = async (req, res) => {
+    const t = await sequelize.transaction();
+    try {
+        const { id } = req.params;
+        const taskIds = await sequelize.query(
+            `SELECT id FROM tasks WHERE work_request_id = :id`,
+            { replacements: { id }, type: sequelize.QueryTypes.SELECT, transaction: t }
+        );
+        if (taskIds.length) {
+            const ids = taskIds.map(r => r.id);
+            await sequelize.query(`DELETE FROM issue_assignment_types WHERE issue_assignment_id IN (SELECT id FROM issue_assignments WHERE task_id IN (:ids))`, { replacements: { ids }, transaction: t });
+            await sequelize.query(`DELETE FROM issue_user_assignments WHERE issue_assignment_id IN (SELECT id FROM issue_assignments WHERE task_id IN (:ids))`, { replacements: { ids }, transaction: t });
+            await sequelize.query(`DELETE FROM issue_assignments WHERE task_id IN (:ids)`, { replacements: { ids }, transaction: t });
+            await sequelize.query(`DELETE FROM task_assignments WHERE task_id IN (:ids)`, { replacements: { ids }, transaction: t });
+            await sequelize.query(`DELETE FROM task_review_history WHERE task_id IN (:ids)`, { replacements: { ids }, transaction: t });
+            await sequelize.query(`DELETE FROM task_documents WHERE task_id IN (:ids)`, { replacements: { ids }, transaction: t });
+            await sequelize.query(`DELETE FROM task_dependencies WHERE task_id IN (:ids) OR depends_on_task_id IN (:ids)`, { replacements: { ids }, transaction: t });
+            await sequelize.query(`DELETE FROM task_project_reference WHERE task_id IN (:ids)`, { replacements: { ids }, transaction: t });
+            await sequelize.query(`DELETE FROM tasks WHERE work_request_id = :id`, { replacements: { id }, transaction: t });
+        }
+        await sequelize.query(`DELETE FROM work_request_managers WHERE work_request_id = :id`, { replacements: { id }, transaction: t });
+        await sequelize.query(`DELETE FROM work_request_documents WHERE work_request_id = :id`, { replacements: { id }, transaction: t });
+        await sequelize.query(`DELETE FROM project_request_reference WHERE work_request_id = :id`, { replacements: { id }, transaction: t });
+        await sequelize.query(`DELETE FROM request_division_reference WHERE work_request_id = :id`, { replacements: { id }, transaction: t });
+        await sequelize.query(`DELETE FROM work_requests WHERE id = :id`, { replacements: { id }, transaction: t });
+        await t.commit();
+        res.json({ success: true, message: 'Project and all related data deleted successfully' });
+    } catch (error) {
+        await t.rollback();
+        console.error('Error deleting project:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+const deleteTask = async (req, res) => {
+    const t = await sequelize.transaction();
+    try {
+        const { id } = req.params;
+        await sequelize.query(`DELETE FROM issue_assignment_types WHERE issue_assignment_id IN (SELECT id FROM issue_assignments WHERE task_id = :id)`, { replacements: { id }, transaction: t });
+        await sequelize.query(`DELETE FROM issue_user_assignments WHERE issue_assignment_id IN (SELECT id FROM issue_assignments WHERE task_id = :id)`, { replacements: { id }, transaction: t });
+        await sequelize.query(`DELETE FROM issue_assignments WHERE task_id = :id`, { replacements: { id }, transaction: t });
+        await sequelize.query(`DELETE FROM task_assignments WHERE task_id = :id`, { replacements: { id }, transaction: t });
+        await sequelize.query(`DELETE FROM task_review_history WHERE task_id = :id`, { replacements: { id }, transaction: t });
+        await sequelize.query(`DELETE FROM task_documents WHERE task_id = :id`, { replacements: { id }, transaction: t });
+        await sequelize.query(`DELETE FROM task_dependencies WHERE task_id = :id OR depends_on_task_id = :id`, { replacements: { id }, transaction: t });
+        await sequelize.query(`DELETE FROM task_project_reference WHERE task_id = :id`, { replacements: { id }, transaction: t });
+        await sequelize.query(`DELETE FROM tasks WHERE id = :id`, { replacements: { id }, transaction: t });
+        await t.commit();
+        res.json({ success: true, message: 'Task and all related issues deleted successfully' });
+    } catch (error) {
+        await t.rollback();
+        console.error('Error deleting task:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+const deleteIssue = async (req, res) => {
+    const t = await sequelize.transaction();
+    try {
+        const { id } = req.params;
+        await sequelize.query(`DELETE FROM issue_assignment_types WHERE issue_assignment_id = :id`, { replacements: { id }, transaction: t });
+        await sequelize.query(`DELETE FROM issue_user_assignments WHERE issue_assignment_id = :id`, { replacements: { id }, transaction: t });
+        await sequelize.query(`DELETE FROM issue_assignments WHERE id = :id`, { replacements: { id }, transaction: t });
+        await t.commit();
+        res.json({ success: true, message: 'Issue deleted successfully' });
+    } catch (error) {
+        await t.rollback();
+        console.error('Error deleting issue:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
 const getAdminData = async (req, res) => {
     try {
         const { startDate, endDate } = req.query;
@@ -747,5 +879,9 @@ module.exports = {
     getTaskDetailsData,
     getIssueDetailsData,
     getTasksForWorkRequest,
-    getWorkRequestTasksData
+    getWorkRequestTasksData,
+    getDeletePreview,
+    deleteProject,
+    deleteTask,
+    deleteIssue
 };
