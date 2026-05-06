@@ -65,6 +65,27 @@
     </div>
 </div>
 
+<!-- Edit Modal -->
+<div id="editModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;">
+  <div style="background:#1e2433;border:1px solid #2d3548;border-radius:12px;width:560px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,0.5);">
+    <div style="padding:20px 24px 16px;border-bottom:1px solid #2d3548;display:flex;align-items:center;gap:10px;">
+      <span style="background:#6366f122;border-radius:8px;padding:6px 10px;"><i class="bi bi-pencil-square" style="color:#818cf8;font-size:18px;"></i></span>
+      <div>
+        <div style="color:#f1f5f9;font-weight:600;font-size:15px;">Edit Project</div>
+        <div style="color:#94a3b8;font-size:12px;">Update project details</div>
+      </div>
+      <button onclick="closeEditModal()" style="margin-left:auto;background:none;border:none;color:#64748b;font-size:20px;cursor:pointer;line-height:1;">&times;</button>
+    </div>
+    <div style="padding:16px 24px;overflow-y:auto;flex:1;">
+      <div id="editModalBody" style="color:#cbd5e1;font-size:13px;"></div>
+    </div>
+    <div style="padding:16px 24px;border-top:1px solid #2d3548;display:flex;gap:10px;justify-content:flex-end;">
+      <button onclick="closeEditModal()" style="padding:8px 20px;border-radius:7px;border:1px solid #2d3548;background:#2d3548;color:#94a3b8;font-size:13px;cursor:pointer;">Cancel</button>
+      <button id="confirmEditBtn" style="padding:8px 20px;border-radius:7px;border:none;background:#6366f1;color:#fff;font-size:13px;font-weight:600;cursor:pointer;"><i class="bi bi-check-lg"></i> Save Changes</button>
+    </div>
+  </div>
+</div>
+
 <!-- Delete Confirm Modal -->
 <div id="deleteModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;">
   <div style="background:#1e2433;border:1px solid #2d3548;border-radius:12px;width:520px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,0.5);">
@@ -94,41 +115,21 @@
 <script>
 const TRUNCATE = ['work_request_description','about_project','request_type_description','project_type_description','project_digi_comments'];
 const HEADERS  = {
-    work_request_id:'work_request_id',
-    project_name:'project_name',
-    brand:'brand',
-    request_type_name:'request_type_name',
-    request_type_description:'request_type_description',
-    digi_vertical_manager_name:'digi_vertical_manager_name',
-    project_requester_name:'project_requester_name',
-    project_request_creator_email:'project_request_creator_email',
-    project_request_creator_phone:'project_request_creator_phone',
-    project_request_creator_department:'project_request_creator_department',
-    project_request_creator_designation:'project_request_creator_designation',
-    project_request_creator_location:'project_request_creator_location',
-    project_type_name:'project_type_name',
-    project_type_description:'project_type_description',
-    project_priority:'project_priority',
-    project_count:'project_count',
-    task_count:'task_count',
-    issue_task_count:'issue_task_count',
-    task_no_of_work_pages:'task_no_of_work_pages',
-    issue_no_of_work_pages:'issue_no_of_work_pages',
-    project_requested_at_client:'project_requested_at_client',
-    project_request_accept_at_cm:'project_request_accept_at_cm',
-    project_start_date:'project_start_date',
-    project_end_date:'project_end_date',
-    project_deadline:'project_deadline',
-    project_review:'project_review',
-    project_stage:'project_stage',
-    project_request_status:'project_request_status',
-    project_request_created_at:'project_request_created_at',
-    project_updated_at:'project_updated_at',
-    project_digi_comments:'project_digi_comments',
-    work_request_description:'work_request_description',
-    about_project:'about_project',
-    month:'month',
-    fy:'fy'
+    work_request_id:'work_request_id',project_name:'project_name',brand:'brand',
+    request_type_name:'request_type_name',request_type_description:'request_type_description',
+    digi_vertical_manager_name:'digi_vertical_manager_name',project_requester_name:'project_requester_name',
+    project_request_creator_email:'project_request_creator_email',project_request_creator_phone:'project_request_creator_phone',
+    project_request_creator_department:'project_request_creator_department',project_request_creator_designation:'project_request_creator_designation',
+    project_request_creator_location:'project_request_creator_location',project_type_name:'project_type_name',
+    project_type_description:'project_type_description',project_priority:'project_priority',
+    project_count:'project_count',task_count:'task_count',issue_task_count:'issue_task_count',
+    task_no_of_work_pages:'task_no_of_work_pages',issue_no_of_work_pages:'issue_no_of_work_pages',
+    project_requested_at_client:'project_requested_at_client',project_request_accept_at_cm:'project_request_accept_at_cm',
+    project_start_date:'project_start_date',project_end_date:'project_end_date',project_deadline:'project_deadline',
+    project_review:'project_review',project_stage:'project_stage',project_request_status:'project_request_status',
+    project_request_created_at:'project_request_created_at',project_updated_at:'project_updated_at',
+    project_digi_comments:'project_digi_comments',work_request_description:'work_request_description',
+    about_project:'about_project',month:'month',fy:'fy'
 };
 const BADGES = {
     project_request_status:{draft:'status-draft',pending:'status-pending',accepted:'status-accepted',assigned:'status-assigned',in_progress:'status-in_progress',completed:'status-completed',rejected:'status-rejected'},
@@ -149,12 +150,12 @@ $(function(){
 
         var cols = [];
         if(data.length){
-            // Delete column first
             cols.push({
-                data:null, title:'Action', orderable:false, searchable:false, width:'36px',
+                data:null, title:'Action', orderable:false, searchable:false, width:'80px',
                 render:function(v,type,row){
                     if(type!=='display') return '';
-                    return '<button class="del-btn" data-type="project" data-id="'+row.work_request_id+'" title="Delete Project" style="background:#be123c22;border:1px solid #be123c44;color:#f43f5e;border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;"><i class="bi bi-trash3"></i></button>';
+                    return '<button class="edit-btn" data-type="project" data-id="'+row.work_request_id+'" title="Edit Project" style="background:#6366f122;border:1px solid #6366f144;color:#818cf8;border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;margin-right:4px;"><i class="bi bi-pencil"></i></button>'
+                          +'<button class="del-btn" data-type="project" data-id="'+row.work_request_id+'" title="Delete Project" style="background:#be123c22;border:1px solid #be123c44;color:#f43f5e;border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;"><i class="bi bi-trash3"></i></button>';
                 }
             });
             Object.keys(data[0]).forEach(function(k){
@@ -163,12 +164,8 @@ $(function(){
                     render:function(v,type){
                         if(type!=='display') return v;
                         var val = v!=null ? v : 'N/A';
-                        if(BADGES[k] && val && val!=='N/A'){
-                            var c=BADGES[k][val]||'';
-                            return '<span class="status-badge '+c+'">'+val+'</span>';
-                        }
-                        if(TRUNCATE.indexOf(k)!==-1)
-                            return '<span class="truncate-cell" title="'+String(val).replace(/"/g,'&quot;')+'">'+val+'</span>';
+                        if(BADGES[k] && val && val!=='N/A'){var c=BADGES[k][val]||'';return '<span class="status-badge '+c+'">'+val+'</span>';}
+                        if(TRUNCATE.indexOf(k)!==-1)return '<span class="truncate-cell" title="'+String(val).replace(/"/g,'&quot;')+'">'+val+'</span>';
                         return val;
                     }
                 });
@@ -184,35 +181,23 @@ $(function(){
             initComplete:function(){
                 var api = this.api();
                 api.columns().every(function(){
-                    var col = this;
-                    var idx = col.index();
+                    var col = this, idx = col.index();
                     var th  = $(col.header());
-                    var labelText = idx === 0 ? 'Action' : (HEADERS[Object.keys(data[0])[idx-1]]||Object.keys(data[0])[idx-1]);
+                    var labelText = idx===0 ? 'Action' : (HEADERS[Object.keys(data[0])[idx-1]]||Object.keys(data[0])[idx-1]);
                     th.empty();
                     var wrap = $('<div class="th-wrap"></div>');
                     var label = $('<div class="th-label"><span>'+labelText+'</span><span class="th-sort"></span></div>');
                     wrap.append(label);
-                    if(idx === 0){
-                        th.append(wrap);
-                        return;
-                    }
+                    if(idx===0){ th.append(wrap); return; }
                     var key = Object.keys(data[0])[idx-1];
                     if(BADGES[key]){
                         var sel = $('<select class="col-filter"><option value="">All</option></select>');
-                        Object.keys(BADGES[key]).forEach(function(opt){
-                            sel.append('<option value="'+opt+'">'+opt+'</option>');
-                        });
-                        sel.on('change',function(e){
-                            e.stopPropagation();
-                            col.search(this.value).draw();
-                        });
+                        Object.keys(BADGES[key]).forEach(function(opt){sel.append('<option value="'+opt+'">'+opt+'</option>');});
+                        sel.on('change',function(e){e.stopPropagation();col.search(this.value).draw();});
                         wrap.append(sel);
                     } else {
                         var inp = $('<input class="col-filter" type="text" placeholder="Filter...">');
-                        inp.on('keyup change clear',function(e){
-                            e.stopPropagation();
-                            if(col.search()!==this.value) col.search(this.value).draw();
-                        });
+                        inp.on('keyup change clear',function(e){e.stopPropagation();if(col.search()!==this.value)col.search(this.value).draw();});
                         wrap.append(inp);
                     }
                     th.append(wrap);
@@ -220,62 +205,97 @@ $(function(){
             }
         });
 
-        // prevent sort when clicking filter input/select
         $('#mainTable').on('click','.col-filter',function(e){ e.stopPropagation(); });
-        $('#mainTable').on('click','.del-btn',function(e){
-            e.stopPropagation();
-            var type=$(this).data('type'), id=$(this).data('id');
-            openDeleteModal(type, id);
-        });
+        $('#mainTable').on('click','.del-btn',function(e){ e.stopPropagation(); openDeleteModal($(this).data('type'),$(this).data('id')); });
+        $('#mainTable').on('click','.edit-btn',function(e){ e.stopPropagation(); openEditModal($(this).data('type'),$(this).data('id')); });
 
-        $('#btnExcel').on('click',function(){
-            dt.button('.buttons-excel').trigger();
-        });
-        $('#btnCsv').on('click',function(){
-            dt.button('.buttons-csv').trigger();
-        });
-
-        // hidden DT buttons for export
         var colTitles = cols.map(function(c){ return c.title; });
         new $.fn.dataTable.Buttons(dt,[
             {extend:'excel',className:'buttons-excel',filename:'projects_'+new Date().toISOString().slice(0,10),exportOptions:{columns:':visible',format:{header:function(data,col){return colTitles[col]||data;}}}},
             {extend:'csv',className:'buttons-csv',filename:'projects_'+new Date().toISOString().slice(0,10),exportOptions:{columns:':visible',format:{header:function(data,col){return colTitles[col]||data;}}}}
         ]);
+        $('#btnExcel').on('click',function(){ dt.button('.buttons-excel').trigger(); });
+        $('#btnCsv').on('click',function(){ dt.button('.buttons-csv').trigger(); });
 
     }).fail(function(){
         $('#loader').html('<div style="color:#be123c;font-size:13px;font-family:Inter,sans-serif"><i class="bi bi-exclamation-triangle"></i> Failed to load data</div>');
     });
 });
 
-var _deleteType, _deleteId, _dtRef;
+function fi(label,name,val,t){
+    t=t||'text';
+    return '<div style="margin-bottom:12px;"><label style="display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;">'+label+'</label>'
+        +'<input name="'+name+'" value="'+(val!=null?String(val).replace(/"/g,'&quot;'):'')+'" type="'+t+'" style="width:100%;background:#131929;border:1px solid #2d3548;border-radius:6px;padding:7px 10px;color:#e2e8f0;font-size:13px;box-sizing:border-box;"></div>';
+}
+function fs(label,name,val,opts){
+    var s='<div style="margin-bottom:12px;"><label style="display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;">'+label+'</label>'
+        +'<select name="'+name+'" style="width:100%;background:#131929;border:1px solid #2d3548;border-radius:6px;padding:7px 10px;color:#e2e8f0;font-size:13px;">';
+    opts.forEach(function(o){s+='<option value="'+o+'"'+(String(val)===String(o)?' selected':'')+'>'+o+'</option>';});
+    return s+'</select></div>';
+}
+function ft(label,name,val){
+    return '<div style="margin-bottom:12px;"><label style="display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;">'+label+'</label>'
+        +'<textarea name="'+name+'" rows="2" style="width:100%;background:#131929;border:1px solid #2d3548;border-radius:6px;padding:7px 10px;color:#e2e8f0;font-size:13px;box-sizing:border-box;resize:vertical;">'+(val||'')+'</textarea></div>';
+}
+
+function openEditModal(type, id){
+    $('#editModalBody').html('<div style="color:#94a3b8;padding:20px;text-align:center;"><i class="bi bi-arrow-repeat"></i> Loading...</div>');
+    $('#editModal').css('display','flex');
+    $.getJSON('/digilabs/dmap/api/datatable/admin/edit/'+type+'/'+id, function(res){
+        var r=res.record, html='';
+        html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 16px;">';
+        html+=fi('Project Name','project_name',r.project_name);
+        html+=fi('Brand','brand',r.brand);
+        html+=fs('Priority','priority',r.priority,['low','medium','high','critical']);
+        html+=fs('Status','status',r.status,['draft','pending','accepted','assigned','in_progress','completed','rejected']);
+        html+=fi('Requested At','requested_at',r.requested_at?String(r.requested_at).slice(0,16):'','datetime-local');
+        html+='</div>';
+        html+=ft('Remarks','remarks',r.remarks);
+        html+=ft('Description','description',r.description);
+        html+=ft('About Project','about_project',r.about_project);
+        $('#editModalBody').html(html);
+        $('#confirmEditBtn').off('click').on('click',function(){ submitEdit(type,id); });
+    }).fail(function(){ $('#editModalBody').html('<div style="color:#f43f5e;">Failed to load data.</div>'); });
+}
+function closeEditModal(){ $('#editModal').hide(); }
+function submitEdit(type,id){
+    var payload={};
+    $('#editModalBody input,#editModalBody select,#editModalBody textarea').each(function(){ payload[this.name]=this.value; });
+    $('#confirmEditBtn').prop('disabled',true).html('<i class="bi bi-arrow-repeat"></i> Saving...');
+    $.ajax({
+        url:'/digilabs/dmap/api/datatable/admin/edit/'+type+'/'+id,
+        method:'PUT', contentType:'application/json',
+        data:JSON.stringify(payload),
+        success:function(){ closeEditModal(); location.reload(); },
+        error:function(){ $('#confirmEditBtn').prop('disabled',false).html('<i class="bi bi-check-lg"></i> Save Changes'); alert('Update failed. Please try again.'); }
+    });
+}
+
 function openDeleteModal(type, id){
-    _deleteType=type; _deleteId=id;
-    $('#deleteModalBody').html('<div style="color:#94a3b8;padding:20px;text-align:center;"><i class="bi bi-arrow-repeat" style="animation:spin 1s linear infinite;display:inline-block;"></i> Loading preview...</div>');
+    $('#deleteModalBody').html('<div style="color:#94a3b8;padding:20px;text-align:center;"><i class="bi bi-arrow-repeat"></i> Loading preview...</div>');
     $('#deleteModal').css('display','flex');
     $.getJSON('/digilabs/dmap/api/datatable/admin/delete/preview/'+type+'/'+id, function(res){
         var p=res.preview, r=p.record, html='';
-        if(type==='project'){
-            html='<div style="background:#be123c11;border:1px solid #be123c33;border-radius:8px;padding:12px 16px;margin-bottom:14px;">';
-            html+='<div style="color:#f43f5e;font-weight:600;margin-bottom:6px;"><i class="bi bi-folder2-open"></i> Project to be deleted</div>';
-            html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;">';
-            html+='<div><span style="color:#64748b;">ID:</span> <span style="color:#e2e8f0;">'+r.id+'</span></div>';
-            html+='<div><span style="color:#64748b;">Name:</span> <span style="color:#e2e8f0;">'+(r.project_name||'N/A')+'</span></div>';
-            html+='<div><span style="color:#64748b;">Brand:</span> <span style="color:#e2e8f0;">'+(r.brand||'N/A')+'</span></div>';
-            html+='<div><span style="color:#64748b;">Status:</span> <span style="color:#e2e8f0;">'+(r.status||'N/A')+'</span></div>';
-            html+='</div></div>';
-            if(p.tasks && p.tasks.length){
-                html+='<div style="color:#f59e0b;font-size:12px;font-weight:600;margin-bottom:8px;"><i class="bi bi-exclamation-triangle"></i> '+p.tasks.length+' task(s) will also be deleted:</div>';
-                html+='<div style="max-height:200px;overflow-y:auto;">';
-                p.tasks.forEach(function(t){
-                    html+='<div style="background:#1a2035;border:1px solid #2d3548;border-radius:6px;padding:8px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">';
-                    html+='<span style="color:#cbd5e1;"><i class="bi bi-check2-square" style="color:#6366f1;"></i> '+(t.task_name||'Unnamed Task')+'</span>';
-                    html+='<span style="color:#64748b;font-size:11px;">'+t.issue_count+' issue(s)</span>';
-                    html+='</div>';
-                });
+        html='<div style="background:#be123c11;border:1px solid #be123c33;border-radius:8px;padding:12px 16px;margin-bottom:14px;">';
+        html+='<div style="color:#f43f5e;font-weight:600;margin-bottom:6px;"><i class="bi bi-folder2-open"></i> Project to be deleted</div>';
+        html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;">';
+        html+='<div><span style="color:#64748b;">ID:</span> <span style="color:#e2e8f0;">'+r.id+'</span></div>';
+        html+='<div><span style="color:#64748b;">Name:</span> <span style="color:#e2e8f0;">'+(r.project_name||'N/A')+'</span></div>';
+        html+='<div><span style="color:#64748b;">Brand:</span> <span style="color:#e2e8f0;">'+(r.brand||'N/A')+'</span></div>';
+        html+='<div><span style="color:#64748b;">Status:</span> <span style="color:#e2e8f0;">'+(r.status||'N/A')+'</span></div>';
+        html+='</div></div>';
+        if(p.tasks && p.tasks.length){
+            html+='<div style="color:#f59e0b;font-size:12px;font-weight:600;margin-bottom:8px;"><i class="bi bi-exclamation-triangle"></i> '+p.tasks.length+' task(s) will also be deleted:</div>';
+            html+='<div style="max-height:200px;overflow-y:auto;">';
+            p.tasks.forEach(function(t){
+                html+='<div style="background:#1a2035;border:1px solid #2d3548;border-radius:6px;padding:8px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">';
+                html+='<span style="color:#cbd5e1;"><i class="bi bi-check2-square" style="color:#6366f1;"></i> '+(t.task_name||'Unnamed Task')+'</span>';
+                html+='<span style="color:#64748b;font-size:11px;">'+t.issue_count+' issue(s)</span>';
                 html+='</div>';
-            } else {
-                html+='<div style="color:#22c55e;font-size:12px;"><i class="bi bi-check-circle"></i> No tasks linked to this project.</div>';
-            }
+            });
+            html+='</div>';
+        } else {
+            html+='<div style="color:#22c55e;font-size:12px;"><i class="bi bi-check-circle"></i> No tasks linked to this project.</div>';
         }
         $('#deleteModalBody').html(html);
         $('#confirmDeleteBtn').off('click').on('click',function(){ confirmDelete(type,id); });

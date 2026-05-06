@@ -1,5 +1,140 @@
 const { sequelize } = require('../config/databaseConfig');
 
+const getEditData = async (req, res) => {
+    try {
+        const { type, id } = req.params;
+        let record = {};
+
+        if (type === 'project') {
+            const [row] = await sequelize.query(
+                `SELECT id, project_name, brand, priority, status, remarks, description, about_project, requested_at FROM work_requests WHERE id = :id`,
+                { replacements: { id }, type: sequelize.QueryTypes.SELECT }
+            );
+            record = row;
+        } else if (type === 'task') {
+            const [row] = await sequelize.query(
+                `SELECT t.id, t.task_name, t.status, t.review, t.review_stage, t.deadline, t.start_date, t.end_date,
+                    t.comments, t.description, t.assignment_type, t.version, t.task_count,
+                    t.no_of_options_provided, t.concept_work, t.no_of_concepts, t.resize_work, t.no_of_resize,
+                    t.no_of_images_videos_audio, t.duration_minutes, t.duration_seconds,
+                    t.no_of_products_shot, t.shoot_setup, t.no_of_words_written, t.no_of_responsive_screen,
+                    t.link, t.intimate_team, t.intimate_client
+                 FROM tasks t WHERE t.id = :id`,
+                { replacements: { id }, type: sequelize.QueryTypes.SELECT }
+            );
+            record = row;
+        } else if (type === 'issue') {
+            const [row] = await sequelize.query(
+                `SELECT ia.id, ia.status, ia.review, ia.review_stage, ia.deadline, ia.start_date, ia.end_date,
+                    ia.comments, ia.description, ia.assignment_type, ia.version, ia.task_count,
+                    ia.no_of_options_provided, ia.concept_work, ia.no_of_concepts, ia.resize_work, ia.no_of_resize,
+                    ia.no_of_images_videos_audio, ia.duration_minutes, ia.duration_seconds,
+                    ia.no_of_products_shot, ia.shoot_setup, ia.no_of_words_written, ia.responsive_screen,
+                    ia.link, ia.intimate_team, ia.intimate_client
+                 FROM issue_assignments ia WHERE ia.id = :id`,
+                { replacements: { id }, type: sequelize.QueryTypes.SELECT }
+            );
+            record = row;
+        }
+
+        res.json({ record });
+    } catch (error) {
+        console.error('Error fetching edit data:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+const updateProject = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { project_name, brand, priority, status, remarks, description } = req.body;
+        await sequelize.query(
+            `UPDATE work_requests SET project_name=:project_name, brand=:brand, priority=:priority, status=:status, remarks=:remarks, description=:description, updated_at=NOW() WHERE id=:id`,
+            { replacements: { id, project_name, brand, priority, status, remarks, description }, type: sequelize.QueryTypes.UPDATE }
+        );
+        res.json({ success: true, message: 'Project updated successfully' });
+    } catch (error) {
+        console.error('Error updating project:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+const updateTask = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { task_name, status, review, review_stage, deadline, start_date, end_date, comments, description,
+            assignment_type, version, task_count, no_of_options_provided, concept_work, no_of_concepts,
+            resize_work, no_of_resize, no_of_images_videos_audio, duration_minutes, duration_seconds,
+            no_of_products_shot, shoot_setup, no_of_words_written, no_of_responsive_screen, link,
+            intimate_team, intimate_client } = req.body;
+        await sequelize.query(
+            `UPDATE tasks SET task_name=:task_name, status=:status, review=:review, review_stage=:review_stage,
+                deadline=:deadline, start_date=:start_date, end_date=:end_date, comments=:comments, description=:description,
+                assignment_type=:assignment_type, version=:version, task_count=:task_count,
+                no_of_options_provided=:no_of_options_provided, concept_work=:concept_work, no_of_concepts=:no_of_concepts,
+                resize_work=:resize_work, no_of_resize=:no_of_resize, no_of_images_videos_audio=:no_of_images_videos_audio,
+                duration_minutes=:duration_minutes, duration_seconds=:duration_seconds,
+                no_of_products_shot=:no_of_products_shot, shoot_setup=:shoot_setup,
+                no_of_words_written=:no_of_words_written, no_of_responsive_screen=:no_of_responsive_screen,
+                link=:link, intimate_team=:intimate_team, intimate_client=:intimate_client, updated_at=NOW()
+             WHERE id=:id`,
+            { replacements: { id, task_name, status, review, review_stage,
+                deadline: deadline||null, start_date: start_date||null, end_date: end_date||null,
+                comments, description, assignment_type, version, task_count: task_count||0,
+                no_of_options_provided: no_of_options_provided||0, concept_work: concept_work||0,
+                no_of_concepts: no_of_concepts||0, resize_work: resize_work||0, no_of_resize: no_of_resize||0,
+                no_of_images_videos_audio: no_of_images_videos_audio||0,
+                duration_minutes: duration_minutes||0, duration_seconds: duration_seconds||0,
+                no_of_products_shot: no_of_products_shot||0, shoot_setup: shoot_setup||0,
+                no_of_words_written: no_of_words_written||0, no_of_responsive_screen: no_of_responsive_screen||0,
+                link: link||null, intimate_team: intimate_team||0, intimate_client: intimate_client||0
+            }, type: sequelize.QueryTypes.UPDATE }
+        );
+        res.json({ success: true, message: 'Task updated successfully' });
+    } catch (error) {
+        console.error('Error updating task:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+const updateIssue = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status, review, review_stage, deadline, start_date, end_date, comments, description,
+            assignment_type, version, task_count, no_of_options_provided, concept_work, no_of_concepts,
+            resize_work, no_of_resize, no_of_images_videos_audio, duration_minutes, duration_seconds,
+            no_of_products_shot, shoot_setup, no_of_words_written, responsive_screen, link,
+            intimate_team, intimate_client } = req.body;
+        await sequelize.query(
+            `UPDATE issue_assignments SET status=:status, review=:review, review_stage=:review_stage,
+                deadline=:deadline, start_date=:start_date, end_date=:end_date, comments=:comments, description=:description,
+                assignment_type=:assignment_type, version=:version, task_count=:task_count,
+                no_of_options_provided=:no_of_options_provided, concept_work=:concept_work, no_of_concepts=:no_of_concepts,
+                resize_work=:resize_work, no_of_resize=:no_of_resize, no_of_images_videos_audio=:no_of_images_videos_audio,
+                duration_minutes=:duration_minutes, duration_seconds=:duration_seconds,
+                no_of_products_shot=:no_of_products_shot, shoot_setup=:shoot_setup,
+                no_of_words_written=:no_of_words_written, responsive_screen=:responsive_screen,
+                link=:link, intimate_team=:intimate_team, intimate_client=:intimate_client, updated_at=NOW()
+             WHERE id=:id`,
+            { replacements: { id, status, review, review_stage,
+                deadline: deadline||null, start_date: start_date||null, end_date: end_date||null,
+                comments, description, assignment_type, version, task_count: task_count||0,
+                no_of_options_provided: no_of_options_provided||0, concept_work: concept_work||0,
+                no_of_concepts: no_of_concepts||0, resize_work: resize_work||0, no_of_resize: no_of_resize||0,
+                no_of_images_videos_audio: no_of_images_videos_audio||0,
+                duration_minutes: duration_minutes||0, duration_seconds: duration_seconds||0,
+                no_of_products_shot: no_of_products_shot||0, shoot_setup: shoot_setup||0,
+                no_of_words_written: no_of_words_written||0, responsive_screen: responsive_screen||0,
+                link: link||null, intimate_team: intimate_team||0, intimate_client: intimate_client||0
+            }, type: sequelize.QueryTypes.UPDATE }
+        );
+        res.json({ success: true, message: 'Issue updated successfully' });
+    } catch (error) {
+        console.error('Error updating issue:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
 const getDeletePreview = async (req, res) => {
     try {
         const { type, id } = req.params;
@@ -883,5 +1018,9 @@ module.exports = {
     getDeletePreview,
     deleteProject,
     deleteTask,
-    deleteIssue
+    deleteIssue,
+    getEditData,
+    updateProject,
+    updateTask,
+    updateIssue
 };

@@ -63,6 +63,27 @@
     </div>
 </div>
 
+<!-- Edit Modal -->
+<div id="editModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;">
+  <div style="background:#1e2433;border:1px solid #2d3548;border-radius:12px;width:560px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,0.5);">
+    <div style="padding:20px 24px 16px;border-bottom:1px solid #2d3548;display:flex;align-items:center;gap:10px;">
+      <span style="background:#6366f122;border-radius:8px;padding:6px 10px;"><i class="bi bi-pencil-square" style="color:#818cf8;font-size:18px;"></i></span>
+      <div>
+        <div style="color:#f1f5f9;font-weight:600;font-size:15px;">Edit Issue</div>
+        <div style="color:#94a3b8;font-size:12px;">Update issue details</div>
+      </div>
+      <button onclick="closeEditModal()" style="margin-left:auto;background:none;border:none;color:#64748b;font-size:20px;cursor:pointer;line-height:1;">&times;</button>
+    </div>
+    <div style="padding:16px 24px;overflow-y:auto;flex:1;">
+      <div id="editModalBody" style="color:#cbd5e1;font-size:13px;"></div>
+    </div>
+    <div style="padding:16px 24px;border-top:1px solid #2d3548;display:flex;gap:10px;justify-content:flex-end;">
+      <button onclick="closeEditModal()" style="padding:8px 20px;border-radius:7px;border:1px solid #2d3548;background:#2d3548;color:#94a3b8;font-size:13px;cursor:pointer;">Cancel</button>
+      <button id="confirmEditBtn" style="padding:8px 20px;border-radius:7px;border:none;background:#6366f1;color:#fff;font-size:13px;font-weight:600;cursor:pointer;"><i class="bi bi-check-lg"></i> Save Changes</button>
+    </div>
+  </div>
+</div>
+
 <!-- Delete Confirm Modal -->
 <div id="deleteModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;">
   <div style="background:#1e2433;border:1px solid #2d3548;border-radius:12px;width:520px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,0.5);">
@@ -92,60 +113,31 @@
 <script>
 const TRUNCATE=['issue_types_with_description','issue_digi_comments','issue_requester_description','about_issue'];
 const HEADERS={
-    work_request_id:'work_request_id',
-    task_id:'task_id',
-    issue_id:'issue_id',
-    task_name:'task_name',
-    brand:'brand',
-    issue_request_type_name:'issue_request_type_name',
-    vertical_manger_name:'vertical_manager_name',
-    task_type_name:'task_type_name',
-    issue_requester_name:'issue_requester_name',
-    issue_assignment_type:'issue_assignment_type',
-    assigned_user_name:'assigned_user_name',
-    issue_version:'issue_version',
-    project_count:'project_count',
-    task_count:'task_count',
-    issue_task_count:'issue_task_count',
-    task_no_of_work_pages:'task_no_of_work_pages',
-    issue_no_of_work_pages:'issue_no_of_work_pages',
-    issue_no_of_options_provided:'issue_no_of_options_provided',
-    issue_concept_work:'issue_concept_work',
-    issue_no_of_concepts:'issue_no_of_concepts',
-    issue_resize_work:'issue_resize_work',
-    issue_no_of_resize:'issue_no_of_resize',
-    issue_ai:'issue_ai',
-    issue_no_of_ai_page:'issue_no_of_ai_page',
-    issue_duration_minutes:'issue_duration_minutes',
-    issue_duration_seconds:'issue_duration_seconds',
-    issue_no_of_products_shot:'issue_no_of_products_shot',
-    issue_shoot_setup:'issue_shoot_setup',
-    issue_no_of_words_written:'issue_no_of_words_written',
-    issue_responsive_screen:'issue_responsive_screen',
-    issue_requested_at_client:'issue_requested_at_client',
+    work_request_id:'work_request_id',task_id:'task_id',issue_id:'issue_id',task_name:'task_name',brand:'brand',
+    issue_request_type_name:'issue_request_type_name',vertical_manger_name:'vertical_manager_name',
+    task_type_name:'task_type_name',issue_requester_name:'issue_requester_name',
+    issue_assignment_type:'issue_assignment_type',assigned_user_name:'assigned_user_name',
+    issue_version:'issue_version',project_count:'project_count',task_count:'task_count',
+    issue_task_count:'issue_task_count',task_no_of_work_pages:'task_no_of_work_pages',
+    issue_no_of_work_pages:'issue_no_of_work_pages',issue_no_of_options_provided:'issue_no_of_options_provided',
+    issue_concept_work:'issue_concept_work',issue_no_of_concepts:'issue_no_of_concepts',
+    issue_resize_work:'issue_resize_work',issue_no_of_resize:'issue_no_of_resize',issue_ai:'issue_ai',
+    issue_no_of_ai_page:'issue_no_of_ai_page',issue_duration_minutes:'issue_duration_minutes',
+    issue_duration_seconds:'issue_duration_seconds',issue_no_of_products_shot:'issue_no_of_products_shot',
+    issue_shoot_setup:'issue_shoot_setup',issue_no_of_words_written:'issue_no_of_words_written',
+    issue_responsive_screen:'issue_responsive_screen',issue_requested_at_client:'issue_requested_at_client',
     issue_requested_accept_at_cm:'issue_requested_accept_at_cm',
     issue_requested_atassign_intimate_cu:'issue_requested_atassign_intimate_cu',
-    issue_requested_accept_at_cu:'issue_requested_accept_at_cu',
-    issue_shared_with_cm_at:'issue_shared_with_cm_at',
+    issue_requested_accept_at_cu:'issue_requested_accept_at_cu',issue_shared_with_cm_at:'issue_shared_with_cm_at',
     issue_respond_on_output_cm:'issue_respond_on_output_cm',
     issue_output_shared_with_client_at:'issue_output_shared_with_client_at',
     issue_output_client_responded_approve:'issue_output_client_responded_approve',
-    issue_start_date:'issue_start_date',
-    issue_end_date:'issue_end_date',
-    issue_deadline:'issue_deadline',
-    issue_review:'issue_review',
-    issue_review_stage:'issue_review_stage',
-    issue_status:'issue_status',
-    issue_created_at:'issue_created_at',
-    issue_updated_at:'issue_updated_at',
-    issue_types:'issue_types',
-    issue_types_with_description:'issue_types_with_description',
-    issue_digi_comments:'issue_digi_comments',
-    issue_requester_description:'issue_requester_description',
-    about_issue:'about_issue',
-    issue_requester_department:'issue_requester_department',
-    month:'month',
-    fy:'fy'
+    issue_start_date:'issue_start_date',issue_end_date:'issue_end_date',issue_deadline:'issue_deadline',
+    issue_review:'issue_review',issue_review_stage:'issue_review_stage',issue_status:'issue_status',
+    issue_created_at:'issue_created_at',issue_updated_at:'issue_updated_at',
+    issue_types:'issue_types',issue_types_with_description:'issue_types_with_description',
+    issue_digi_comments:'issue_digi_comments',issue_requester_description:'issue_requester_description',
+    about_issue:'about_issue',issue_requester_department:'issue_requester_department',month:'month',fy:'fy'
 };
 const BADGES={
     issue_status:{m_pending:'status-m_pending',u_pending:'status-u_pending',m_accepted:'status-m_accepted',u_accepted:'status-u_accepted',in_progress:'status-in_progress',completed:'status-completed',rejected:'status-rejected',on_hold:'status-on_hold',cancelled:'status-cancelled'},
@@ -168,10 +160,11 @@ $(function(){
         var cols=[];
         if(data.length){
             cols.push({
-                data:null, title:'Action', orderable:false, searchable:false, width:'36px',
+                data:null, title:'Action', orderable:false, searchable:false, width:'80px',
                 render:function(v,type,row){
                     if(type!=='display') return '';
-                    return '<button class="del-btn" data-type="issue" data-id="'+row.issue_id+'" title="Delete Issue" style="background:#be123c22;border:1px solid #be123c44;color:#f43f5e;border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;"><i class="bi bi-trash3"></i></button>';
+                    return '<button class="edit-btn" data-type="issue" data-id="'+row.issue_id+'" title="Edit Issue" style="background:#6366f122;border:1px solid #6366f144;color:#818cf8;border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;margin-right:4px;"><i class="bi bi-pencil"></i></button>'
+                          +'<button class="del-btn" data-type="issue" data-id="'+row.issue_id+'" title="Delete Issue" style="background:#be123c22;border:1px solid #be123c44;color:#f43f5e;border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;"><i class="bi bi-trash3"></i></button>';
                 }
             });
             Object.keys(data[0]).forEach(function(k){
@@ -225,10 +218,8 @@ $(function(){
             }
         });
         $('#mainTable').on('click','.col-filter',function(e){e.stopPropagation();});
-        $('#mainTable').on('click','.del-btn',function(e){
-            e.stopPropagation();
-            openDeleteModal($(this).data('type'), $(this).data('id'));
-        });
+        $('#mainTable').on('click','.del-btn',function(e){e.stopPropagation();openDeleteModal($(this).data('type'),$(this).data('id'));});
+        $('#mainTable').on('click','.edit-btn',function(e){e.stopPropagation();openEditModal($(this).data('type'),$(this).data('id'));});
         var colTitles=cols.map(function(c){return c.title;});
         new $.fn.dataTable.Buttons(dt,[
             {extend:'excel',className:'buttons-excel',filename:'issues_'+new Date().toISOString().slice(0,10),exportOptions:{columns:':visible',format:{header:function(data,col){return colTitles[col]||data;}}}},
@@ -238,6 +229,74 @@ $(function(){
         $('#btnCsv').on('click',function(){dt.button('.buttons-csv').trigger();});
     }).fail(function(){$('#loader').html('<div style="color:#be123c;font-size:13px"><i class="bi bi-exclamation-triangle"></i> Failed to load data</div>');});
 });
+
+function inp(label,name,val,type){
+    type=type||'text';
+    return '<div style="margin-bottom:12px;"><label style="display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;">'+label+'</label>'
+        +'<input name="'+name+'" value="'+(val!=null?String(val).replace(/"/g,'&quot;'):'')+'" type="'+type+'" style="width:100%;background:#131929;border:1px solid #2d3548;border-radius:6px;padding:7px 10px;color:#e2e8f0;font-size:13px;box-sizing:border-box;"></div>';
+}
+function sel(label,name,val,opts){
+    var s='<div style="margin-bottom:12px;"><label style="display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;">'+label+'</label>'
+        +'<select name="'+name+'" style="width:100%;background:#131929;border:1px solid #2d3548;border-radius:6px;padding:7px 10px;color:#e2e8f0;font-size:13px;">';
+    opts.forEach(function(o){s+='<option value="'+o+'"'+(String(val)===String(o)?' selected':'')+'>'+o+'</option>';});
+    return s+'</select></div>';
+}
+function ta(label,name,val){
+    return '<div style="margin-bottom:12px;"><label style="display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;">'+label+'</label>'
+        +'<textarea name="'+name+'" rows="2" style="width:100%;background:#131929;border:1px solid #2d3548;border-radius:6px;padding:7px 10px;color:#e2e8f0;font-size:13px;box-sizing:border-box;resize:vertical;">'+(val||'')+'</textarea></div>';
+}
+
+function openEditModal(type, id){
+    $('#editModalBody').html('<div style="color:#94a3b8;padding:20px;text-align:center;"><i class="bi bi-arrow-repeat"></i> Loading...</div>');
+    $('#editModal').css('display','flex');
+    $.getJSON('/digilabs/dmap/api/datatable/admin/edit/'+type+'/'+id, function(res){
+        var r=res.record, html='';
+        html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 16px;">';
+        html+=inp('Version','version',r.version);
+        html+=sel('Status','status',r.status,['m_pending','u_pending','m_accepted','u_accepted','in_progress','completed','rejected','on_hold','cancelled']);
+        html+=sel('Review','review',r.review,['pending','approved','change_request']);
+        html+=sel('Review Stage','review_stage',r.review_stage,['not_started','manager_review','pm_review','change_requested','final_approved']);
+        html+=sel('Assignment Type','assignment_type',r.assignment_type,['new','mod']);
+        html+=inp('Start Date','start_date',r.start_date?String(r.start_date).slice(0,16):'','datetime-local');
+        html+=inp('End Date','end_date',r.end_date?String(r.end_date).slice(0,16):'','datetime-local');
+        html+=inp('Deadline','deadline',r.deadline?String(r.deadline).slice(0,16):'','datetime-local');
+        html+=inp('Work Pages (task_count)','task_count',r.task_count,'number');
+        html+=inp('No. of Options Provided','no_of_options_provided',r.no_of_options_provided,'number');
+        html+=inp('No. of Concepts','no_of_concepts',r.no_of_concepts,'number');
+        html+=inp('No. of Resize','no_of_resize',r.no_of_resize,'number');
+        html+=inp('AI/Images/Videos/Audio','no_of_images_videos_audio',r.no_of_images_videos_audio,'number');
+        html+=inp('Duration Minutes','duration_minutes',r.duration_minutes,'number');
+        html+=inp('Duration Seconds','duration_seconds',r.duration_seconds,'number');
+        html+=inp('No. of Products Shot','no_of_products_shot',r.no_of_products_shot,'number');
+        html+=inp('No. of Words Written','no_of_words_written',r.no_of_words_written,'number');
+        html+=inp('No. of Responsive Screen','no_of_responsive_screen',r.no_of_responsive_screen,'number');
+        html+=sel('Concept Work','concept_work',r.concept_work,[0,1]);
+        html+=sel('Resize Work','resize_work',r.resize_work,[0,1]);
+        html+=sel('Shoot Setup','shoot_setup',r.shoot_setup,[0,1]);
+        html+=sel('Responsive Screen','responsive_screen',r.responsive_screen,[0,1]);
+        html+=sel('Intimate Team','intimate_team',r.intimate_team,[0,1]);
+        html+=sel('Intimate Client','intimate_client',r.intimate_client,[0,1]);
+        html+=inp('Link','link',r.link);
+        html+='</div>';
+        html+=ta('Comments','comments',r.comments);
+        html+=ta('Description','description',r.description);
+        $('#editModalBody').html(html);
+        $('#confirmEditBtn').off('click').on('click',function(){ submitEdit(type,id); });
+    }).fail(function(){ $('#editModalBody').html('<div style="color:#f43f5e;">Failed to load data.</div>'); });
+}
+function closeEditModal(){ $('#editModal').hide(); }
+function submitEdit(type,id){
+    var payload={};
+    $('#editModalBody input,#editModalBody select,#editModalBody textarea').each(function(){ payload[this.name]=this.value; });
+    $('#confirmEditBtn').prop('disabled',true).html('<i class="bi bi-arrow-repeat"></i> Saving...');
+    $.ajax({
+        url:'/digilabs/dmap/api/datatable/admin/edit/'+type+'/'+id,
+        method:'PUT', contentType:'application/json',
+        data:JSON.stringify(payload),
+        success:function(){ closeEditModal(); location.reload(); },
+        error:function(){ $('#confirmEditBtn').prop('disabled',false).html('<i class="bi bi-check-lg"></i> Save Changes'); alert('Update failed. Please try again.'); }
+    });
+}
 
 function openDeleteModal(type, id){
     $('#deleteModalBody').html('<div style="color:#94a3b8;padding:20px;text-align:center;"><i class="bi bi-arrow-repeat"></i> Loading preview...</div>');

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const path = require('path');
-const { getAdminData, getTaskDetailsData, getTasksForWorkRequest, getIssueDetailsData, getWorkRequestTasksData, getDeletePreview, deleteProject, deleteTask, deleteIssue } = require('../controller/adminController');
+const { getAdminData, getTaskDetailsData, getTasksForWorkRequest, getIssueDetailsData, getWorkRequestTasksData, getDeletePreview, deleteProject, deleteTask, deleteIssue, getEditData, updateProject, updateTask, updateIssue } = require('../controller/adminController');
 
 // Serve shared CSS theme
 router.get('/admin/dmap-theme.css', (req, res) => {
@@ -51,5 +51,13 @@ router.get('/admin/delete/preview/:type/:id', getDeletePreview);
 router.delete('/admin/delete/project/:id', deleteProject);
 router.delete('/admin/delete/task/:id', deleteTask);
 router.delete('/admin/delete/issue/:id', deleteIssue);
+
+// Edit - get current data
+router.get('/admin/edit/:type/:id', getEditData);
+
+// Edit - update endpoints
+router.put('/admin/edit/project/:id', updateProject);
+router.put('/admin/edit/task/:id', updateTask);
+router.put('/admin/edit/issue/:id', updateIssue);
 
 module.exports = router;
