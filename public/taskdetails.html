@@ -205,22 +205,25 @@ $(function(){
                     if(BADGES[key]){
                         var sel=$('<select class="col-filter"><option value="">All</option></select>');
                         Object.keys(BADGES[key]).forEach(function(o){sel.append('<option value="'+o+'">'+o+'</option>');});
-                        sel.on('change',function(e){e.stopPropagation();col.search(this.value).draw();});
+                        sel.on('change click mousedown',function(e){e.stopPropagation();});
+                        sel.on('change',function(){col.search(this.value).draw();});
                         wrap.append(sel);
                     } else if(BOOLS.indexOf(key)!==-1){
                         var sel=$('<select class="col-filter"><option value="">All</option><option value="1">Yes</option><option value="0">No</option></select>');
-                        sel.on('change',function(e){e.stopPropagation();col.search(this.value).draw();});
+                        sel.on('change click mousedown',function(e){e.stopPropagation();});
+                        sel.on('change',function(){col.search(this.value).draw();});
                         wrap.append(sel);
                     } else {
                         var inp=$('<input class="col-filter" type="text" placeholder="Filter...">');
-                        inp.on('keyup change clear',function(e){e.stopPropagation();if(col.search()!==this.value)col.search(this.value).draw();});
+                        inp.on('click mousedown focus',function(e){e.stopPropagation();});
+                        inp.on('keyup change clear',function(){if(col.search()!==this.value)col.search(this.value).draw();});
                         wrap.append(inp);
                     }
                     th.append(wrap);
+                    th.off('click').on('click',function(e){if($(e.target).closest('.col-filter').length===0)api.order([idx,'asc']).draw();});
                 });
             }
         });
-        $('#mainTable').on('click','.col-filter',function(e){e.stopPropagation();});
         $('#mainTable').on('click','.del-btn',function(e){e.stopPropagation();openDeleteModal($(this).data('type'),$(this).data('id'));});
         $('#mainTable').on('click','.edit-btn',function(e){e.stopPropagation();openEditModal($(this).data('type'),$(this).data('id'));});
         var colTitles=cols.map(function(c){return c.title;});
