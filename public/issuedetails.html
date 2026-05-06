@@ -219,7 +219,16 @@ $(function(){
                         wrap.append(inp);
                     }
                     th.append(wrap);
-                    th.off('click').on('click',function(e){if($(e.target).closest('.col-filter').length===0)api.order([idx,'asc']).draw();});
+                    th.off('click').on('click',function(e){
+                        if($(e.target).closest('.col-filter').length===0){
+                            var currentOrder = api.order();
+                            if(currentOrder.length && currentOrder[0][0]===idx){
+                                api.order([idx, currentOrder[0][1]==='asc'?'desc':'asc']).draw();
+                            } else {
+                                api.order([idx,'asc']).draw();
+                            }
+                        }
+                    });
                 });
             }
         });
