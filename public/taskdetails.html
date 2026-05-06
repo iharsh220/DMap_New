@@ -242,7 +242,7 @@ $(function(){
 function openDeleteModal(type, id){
     $('#deleteModalBody').html('<div style="color:#94a3b8;padding:20px;text-align:center;"><i class="bi bi-arrow-repeat"></i> Loading preview...</div>');
     $('#deleteModal').css('display','flex');
-    $.getJSON('/admin/delete/preview/'+type+'/'+id, function(res){
+    $.getJSON('/digilabs/dmap/api/datatable/admin/delete/preview/'+type+'/'+id, function(res){
         var p=res.preview, r=p.record, html='';
         html='<div style="background:#be123c11;border:1px solid #be123c33;border-radius:8px;padding:12px 16px;margin-bottom:14px;">';
         html+='<div style="color:#f43f5e;font-weight:600;margin-bottom:6px;"><i class="bi bi-check2-square"></i> Task to be deleted</div>';
@@ -272,7 +272,7 @@ function openDeleteModal(type, id){
 function closeDeleteModal(){ $('#deleteModal').hide(); }
 function confirmDelete(type,id){
     $('#confirmDeleteBtn').prop('disabled',true).html('<i class="bi bi-arrow-repeat"></i> Deleting...');
-    $.ajax({ url:'/admin/delete/'+type+'/'+id, method:'DELETE',
+    $.ajax({ url:'/digilabs/dmap/api/datatable/admin/delete/'+type+'/'+id, method:'DELETE',
         success:function(){ closeDeleteModal(); location.reload(); },
         error:function(){ $('#confirmDeleteBtn').prop('disabled',false).html('<i class="bi bi-trash3"></i> Yes, Delete'); alert('Delete failed. Please try again.'); }
     });
