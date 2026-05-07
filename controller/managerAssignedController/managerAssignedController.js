@@ -337,13 +337,13 @@ const getAssignedWorkRequests = async (req, res) => {
             const searchFields = req.search.fields;
             // Check for user_name or username in search fields
             const hasUserNameSearch = searchFields.includes('user_name') || searchFields.includes('username');
-            
+
             // Remove user_name and username from search fields for the direct query
             const directSearchFields = searchFields.filter(field => field !== 'user_name' && field !== 'username');
-            
+
             // Build OR condition array combining direct fields and user_id (if applicable)
             const orConditions = [];
-            
+
             // Add direct field conditions (project_name, brand, etc.)
             if (directSearchFields.length > 0) {
                 directSearchFields.forEach(field => {
@@ -352,7 +352,7 @@ const getAssignedWorkRequests = async (req, res) => {
                     });
                 });
             }
-            
+
             // If user_name/username search is requested, add user_id IN condition
             if (hasUserNameSearch) {
                 // Find users matching the name (case-insensitive search)
@@ -370,7 +370,7 @@ const getAssignedWorkRequests = async (req, res) => {
                 // If no matching users found, we simply skip adding user_id condition.
                 // The search will still match on other direct fields if they match.
             }
-            
+
             // Apply the combined OR condition if we have any conditions
             if (orConditions.length > 0) {
                 where[Op.or] = orConditions;
@@ -4500,6 +4500,110 @@ const getIssueAssignments = async (req, res) => {
 
         // Build where condition
         let where = {};
+        let userSearchTaskIds = null; // Store user search task IDs separately
+        let wrProjectNameBrandTaskIds = null; // Store task IDs for project_name/brand searches
+
+        // Apply search - handle fields from related tables
+        if (req.search && req.search.term && req.search.fields && req.search.fields.length > 0) {
+            const searchFields = req.search.fields;
+            const searchTerm = req.search.term;
+            
+            // Categorize search fields by which table they belong to
+            const directFields = []; // On IssueAssignments
+            const wrFields = []; // On WorkRequests (via task)
+            const userNameFields = []; // On User (via WorkRequest)
+            
+            searchFields.forEach(field => {
+                if (field === 'user_name' || field === 'username') {
+                    userNameFields.push(field);
+                } else if (field === 'project_name' || field === 'brand') {
+                    wrFields.push(field);
+                } else {
+                    directFields.push(field);
+                }
+            });
+            
+            // Build OR condition array
+            const orConditions = [];
+            
+            // Add direct field conditions (on IssueAssignments)
+            if (directFields.length > 0) {
+                directFields.forEach(field => {
+                    orConditions.push({
+                        [field]: { [Op.like]: `%${searchTerm}%` }
+                    });
+                });
+            }
+            
+            // Handle WorkRequest fields (project_name, brand) - need to get task IDs from work requests matching these
+            if (wrFields.length > 0) {
+                // Build where for WorkRequests search
+                const wrOrConditions = [];
+                wrFields.forEach(field => {
+                    wrOrConditions.push({
+                        [field]: { [Op.like]: `%${searchTerm}%` }
+                    });
+                });
+                
+                // Find work requests matching the term on these fields
+                const matchingWorkRequests = await WorkRequests.findAll({
+                    where: {
+                        [Op.or]: wrOrConditions
+                    },
+                    attributes: ['id']
+                });
+                
+                if (matchingWorkRequests.length > 0) {
+                    const wrIds = matchingWorkRequests.map(wr => wr.id);
+                    // Get task IDs for these work requests
+                    const tasksFromWr = await Tasks.findAll({
+                        attributes: ['id'],
+                        where: { work_request_id: { [Op.in]: wrIds } },
+                        raw: true
+                    });
+                    const taskIdsFromWr = tasksFromWr.map(t => t.id);
+                    if (taskIdsFromWr.length > 0) {
+                        orConditions.push({ task_id: { [Op.in]: taskIdsFromWr } });
+                        // Also store these for later intersection with division tasks
+                        wrProjectNameBrandTaskIds = taskIdsFromWr;
+                    }
+                }
+            }
+            
+            // Handle user_name search - get task IDs from work requests belonging to users with matching name
+            if (userNameFields.length > 0) {
+                const matchingUsers = await User.findAll({
+                    where: {
+                        name: { [Op.like]: `%${searchTerm}%` }
+                    },
+                    attributes: ['id']
+                });
+
+                if (matchingUsers.length > 0) {
+                    const userIds = matchingUsers.map(u => u.id);
+                    const taskIdsFromUserSearch = await Tasks.findAll({
+                        attributes: ['id'],
+                        include: [{
+                            model: WorkRequests,
+                            where: { user_id: { [Op.in]: userIds } },
+                            attributes: []
+                        }],
+                        raw: true
+                    });
+                    
+                    const taskIds = taskIdsFromUserSearch.map(t => t.id);
+                    if (taskIds.length > 0) {
+                        orConditions.push({ task_id: { [Op.in]: taskIds } });
+                        userSearchTaskIds = taskIds;
+                    }
+                }
+            }
+            
+            // Apply the combined OR condition if we have any conditions
+            if (orConditions.length > 0) {
+                where[Op.or] = orConditions;
+            }
+        }
 
         // Apply intimate_team filter if provided (only accept 0 or 1)
         if (intimate_team !== undefined && intimate_team !== null && intimate_team !== '') {

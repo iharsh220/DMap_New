@@ -105,18 +105,65 @@ const getAssignedTasks = async (req, res) => {
             ];
         }
 
-        // Apply filters
+        // Apply filters (excluding user_name/username as they're handled separately)
         if (req.filters) {
-            whereCondition = { ...whereCondition, ...req.filters };
+            const { user_name, username, ...otherFilters } = req.filters;
+            whereCondition = { ...whereCondition, ...otherFilters };
         }
 
-        // Apply search (only for text fields to avoid date parsing issues)
+        // Apply search - handle user_name/username specially since it's on the WorkRequest's user (client)
         if (req.search.term && req.search.fields.length > 0) {
-            const textFields = req.search.fields.filter(field => !['deadline', 'created_at', 'updated_at'].includes(field));
-            if (textFields.length > 0) {
-                whereCondition[Op.or] = textFields.map(field => ({
-                    [field]: { [Op.like]: `%${req.search.term}%` }
-                }));
+            const searchFields = req.search.fields;
+            // Check for user_name or username in search fields
+            const hasUserNameSearch = searchFields.includes('user_name') || searchFields.includes('username');
+            
+            // Remove user_name and username from search fields for direct query
+            const directSearchFields = searchFields.filter(field => field !== 'user_name' && field !== 'username');
+            
+            // Build OR condition array combining direct fields and work_request_id subquery (if applicable)
+            const orConditions = [];
+            
+            // Add direct field conditions (task_name, etc.)
+            if (directSearchFields.length > 0) {
+                directSearchFields.forEach(field => {
+                    if (!['deadline', 'created_at', 'updated_at'].includes(field)) {
+                        orConditions.push({
+                            [field]: { [Op.like]: `%${req.search.term}%` }
+                        });
+                    }
+                });
+            }
+            
+            // If user_name/username search is requested, add condition for work_request IDs
+            if (hasUserNameSearch) {
+                // Find users matching the name (case-insensitive search) - these are the work request creators (clients)
+                const matchingUsers = await User.findAll({
+                    where: {
+                        name: { [Op.like]: `%${req.search.term}%` }
+                    },
+                    attributes: ['id']
+                });
+
+                if (matchingUsers.length > 0) {
+                    const matchingUserIds = matchingUsers.map(u => u.id);
+                    // Get all work_requests where user_id (client) is in matching user IDs
+                    const workRequests = await WorkRequests.findAll({
+                        attributes: ['id'],
+                        where: { user_id: { [Op.in]: matchingUserIds } }
+                    });
+                    const matchingWorkRequestIds = workRequests.map(wr => wr.id);
+                    
+                    if (matchingWorkRequestIds.length > 0) {
+                        // Add condition to match tasks whose work_request_id is in the list
+                        orConditions.push({ work_request_id: { [Op.in]: matchingWorkRequestIds } });
+                    }
+                }
+                // If no matching users/work_requests found, we simply skip - other direct fields still work
+            }
+            
+            // Apply the combined OR condition if we have any conditions
+            if (orConditions.length > 0) {
+                whereCondition[Op.or] = orConditions;
             }
         }
 

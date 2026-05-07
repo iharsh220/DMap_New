@@ -28,7 +28,7 @@ router.get('/my-team', authenticateToken, checkRole([1, 2, 3]), searchMiddleware
 router.get('/my-tasks', authenticateToken, checkRole([1, 2, 3]), getMyTasks); // Get tasks assigned to the manager themselves
 
 // Issue assignment routes - must come before /:id routes
-router.get('/issue-assignments', authenticateToken, checkRole([1, 2, 3]), getIssueAssignments); // Get all issue assignments with filters (status, review_stage, review)
+router.get('/issue-assignments', authenticateToken, checkRole([1, 2, 3]), filterMiddleware, paginationMiddleware, searchMiddleware, getIssueAssignments); // Get all issue assignments with filters (status, review_stage, review)
 router.post('/assign-issue-to-user', authenticateToken, checkRole([1, 2, 3]), assignIssueToUser); // Assign issue to a user
 router.put('/issue/:id/accept', authenticateToken, checkRole([1, 2, 3]), acceptIssueRequest); // Accept an issue request
 
