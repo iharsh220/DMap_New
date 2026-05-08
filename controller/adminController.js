@@ -816,10 +816,7 @@ const getWorkRequestTasksData = async (req, res) => {
                 wr.status AS work_request_status,
                 wr.requested_at,
                 wr.remarks,
-                wr.created_at AS work_request_created_at,
-                wr.updated_at AS work_request_updated_at,
-                
-                rt.id AS request_type_id,
+                wr.remarks AS work_request_digi_comments,
                 rt.request_type AS request_type_name,
                 rt.description AS request_type_description,
                 
@@ -844,6 +841,37 @@ const getWorkRequestTasksData = async (req, res) => {
                 (SELECT GROUP_CONCAT(wrm.manager_id SEPARATOR ', ')
                  FROM work_request_managers wrm
                  WHERE wrm.work_request_id = wr.id) AS manager_ids,
+
+                wr.requested_at AS project_requested_accept_at_cm,
+
+                (SELECT DATE_FORMAT(MIN(t2.start_date), '%d-%b-%Y %H:%i')
+                 FROM tasks t2 WHERE t2.work_request_id = wr.id) AS project_start_date,
+
+                (SELECT DATE_FORMAT(MAX(t2.end_date), '%d-%b-%Y %H:%i')
+                 FROM tasks t2 WHERE t2.work_request_id = wr.id) AS project_end_date,
+
+                (SELECT DATE_FORMAT(MAX(t2.deadline), '%d-%b-%Y %H:%i')
+                 FROM tasks t2 WHERE t2.work_request_id = wr.id) AS project_deadline,
+
+                (SELECT
+                    CASE
+                        WHEN COUNT(t2.id) = 0 THEN NULL
+                        WHEN SUM(CASE WHEN t2.review = 'approved' THEN 1 ELSE 0 END) = COUNT(t2.id) THEN 'approved'
+                        WHEN SUM(CASE WHEN t2.review = 'change_request' THEN 1 ELSE 0 END) > 0 THEN 'change_request'
+                        ELSE 'pending'
+                    END
+                 FROM tasks t2 WHERE t2.work_request_id = wr.id) AS project_review,
+
+                (SELECT
+                    CASE
+                        WHEN COUNT(t2.id) = 0 THEN NULL
+                        WHEN SUM(CASE WHEN t2.review_stage = 'final_approved' THEN 1 ELSE 0 END) = COUNT(t2.id) THEN 'final_approved'
+                        WHEN SUM(CASE WHEN t2.review_stage = 'pm_review' THEN 1 ELSE 0 END) > 0 THEN 'pm_review'
+                        WHEN SUM(CASE WHEN t2.review_stage = 'manager_review' THEN 1 ELSE 0 END) > 0 THEN 'manager_review'
+                        WHEN SUM(CASE WHEN t2.review_stage = 'change_requested' THEN 1 ELSE 0 END) > 0 THEN 'change_requested'
+                        ELSE 'not_started'
+                    END
+                 FROM tasks t2 WHERE t2.work_request_id = wr.id) AS project_stage,
                 
                 t.id AS task_id,
                 t.task_name,
@@ -861,6 +889,7 @@ const getWorkRequestTasksData = async (req, res) => {
                 t.intimate_client AS task_intimate_client,
                 t.shared_with_client_at AS task_shared_with_client_at,
                 1 AS task_count,
+                t.task_count AS task_no_of_work_pages,
                 (SELECT COUNT(DISTINCT ia2.id) FROM issue_assignments ia2 WHERE ia2.task_id = t.id) AS issue_task_count,
                 t.link AS task_link,
                 t.start_date AS task_start_date,
@@ -877,12 +906,44 @@ const getWorkRequestTasksData = async (req, res) => {
                 t.no_of_products_shot AS task_no_of_products_shot,
                 t.shoot_setup AS task_shoot_setup,
                 t.no_of_resize AS task_no_of_resize,
+                t.no_of_images_videos_audio AS task_ai,
+                t.no_of_images_videos_audio AS task_no_of_ai_page,
                 t.responsive_screen AS task_responsive_screen,
                 t.no_of_responsive_screen AS task_no_of_responsive_screen,
                 t.created_at AS task_created_at,
                 t.updated_at AS task_updated_at,
-                t.comments AS task_comments,
-                
+                t.comments AS task_digi_comments,
+                t.description AS task_requester_description,
+
+                DATE_FORMAT(t.created_at, '%M') AS month,
+                CASE
+                    WHEN MONTH(t.created_at) >= 4
+                        THEN CONCAT('FY ', YEAR(t.created_at), '-', RIGHT(YEAR(t.created_at) + 1, 2))
+                    ELSE
+                        CONCAT('FY ', YEAR(t.created_at) - 1, '-', RIGHT(YEAR(t.created_at), 2))
+                END AS fy,
+
+                COALESCE(DATE_FORMAT(
+                    (SELECT MIN(ta2.created_at) FROM task_assignments ta2 WHERE ta2.task_id = t.id),
+                '%d-%b-%Y %H:%i'), 'N/A') AS task_requested_atassign_intimate_cu,
+
+                COALESCE(DATE_FORMAT(
+                    (SELECT MIN(trh.created_at) FROM task_review_history trh
+                     WHERE trh.task_id = t.id AND trh.action = 'approved' AND trh.reviewer_type = 'manager'),
+                '%d-%b-%Y %H:%i'), 'N/A') AS task_requested_accept_at_cu,
+
+                COALESCE(DATE_FORMAT(t.shared_with_client_at, '%d-%b-%Y %H:%i'), 'N/A') AS task_shared_with_cm_at,
+
+                COALESCE(DATE_FORMAT(
+                    (SELECT MIN(trh.created_at) FROM task_review_history trh
+                     WHERE trh.task_id = t.id AND trh.reviewer_type = 'manager'),
+                '%d-%b-%Y %H:%i'), 'N/A') AS task_respond_on_output_cm,
+
+                COALESCE(DATE_FORMAT(
+                    (SELECT MIN(trh.created_at) FROM task_review_history trh
+                     WHERE trh.task_id = t.id AND trh.action = 'approved' AND trh.reviewer_type = 'project_manager'),
+                '%d-%b-%Y %H:%i'), 'N/A') AS task_output_client_responded_approved,
+
                 tt.id AS task_type_id,
                 tt.task_type AS task_type_name,
                 tt.description AS task_type_description,
@@ -911,6 +972,7 @@ const getWorkRequestTasksData = async (req, res) => {
                 ia.intimate_team AS issue_intimate_team,
                 ia.intimate_client AS issue_intimate_client,
                 ia.shared_with_client_at AS issue_shared_with_client_at,
+                ia.task_count AS issue_task_count_pages,
                 ia.task_count AS issue_work_pages,
                 ia.start_date AS issue_start_date,
                 ia.end_date AS issue_end_date,
@@ -935,11 +997,37 @@ const getWorkRequestTasksData = async (req, res) => {
                 ia.no_of_products_shot AS issue_no_of_products_shot,
                 ia.shoot_setup AS issue_shoot_setup,
                 ia.no_of_resize AS issue_no_of_resize,
+                ia.no_of_images_videos_audio AS issue_ai,
+                ia.no_of_images_videos_audio AS issue_no_of_ai_page,
                 ia.responsive_screen AS issue_responsive_screen,
                 ia.no_of_responsive_screen AS issue_no_of_responsive_screen,
                 ia.created_at AS issue_created_at,
                 ia.updated_at AS issue_updated_at,
                 ia.comments AS issue_comments,
+
+                COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A') AS issue_requested_at_client,
+                COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A') AS issue_requested_accept_at_cm,
+
+                COALESCE(DATE_FORMAT(
+                    (SELECT MIN(iua2.created_at) FROM issue_user_assignments iua2 WHERE iua2.issue_assignment_id = ia.id),
+                '%d-%b-%Y %H:%i'), 'N/A') AS issue_requested_atassign_intimate_cu,
+
+                COALESCE(DATE_FORMAT(
+                    (SELECT MIN(trh.created_at) FROM task_review_history trh
+                     WHERE trh.task_id = t.id AND trh.action = 'approved' AND trh.reviewer_type = 'manager'),
+                '%d-%b-%Y %H:%i'), 'N/A') AS issue_requested_accept_at_cu,
+
+                COALESCE(DATE_FORMAT(ia.shared_with_client_at, '%d-%b-%Y %H:%i'), 'N/A') AS issue_shared_with_cm_at,
+
+                COALESCE(DATE_FORMAT(
+                    (SELECT MIN(trh.created_at) FROM task_review_history trh
+                     WHERE trh.task_id = t.id AND trh.reviewer_type = 'manager'),
+                '%d-%b-%Y %H:%i'), 'N/A') AS issue_respond_on_output_cm,
+
+                COALESCE(DATE_FORMAT(
+                    (SELECT MIN(trh.created_at) FROM task_review_history trh
+                     WHERE trh.task_id = t.id AND trh.action = 'approved' AND trh.reviewer_type = 'project_manager'),
+                '%d-%b-%Y %H:%i'), 'N/A') AS issue_output_client_responded_approve,
                 
                 issue_requester.id AS issue_requester_id,
                 issue_requester.name AS issue_requester_name,
