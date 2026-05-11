@@ -4808,7 +4808,7 @@ const getIssueAssignments = async (req, res) => {
                             include: [
                                 {
                                     model: User,
-                                    attributes: ['id', 'name', 'email']
+                                    attributes: ['id', 'name', 'email', 'job_role_id']
                                 }
                             ]
                         }
@@ -4855,7 +4855,35 @@ const getIssueAssignments = async (req, res) => {
         });
 
         // Format the response
-        const formattedData = issueAssignments.map(issue => ({
+        const formattedData = issueAssignments.map(issue => {
+            const wrManagers = issue.task && issue.task.WorkRequest && issue.task.WorkRequest.WorkRequestManagers
+                ? issue.task.WorkRequest.WorkRequestManagers.map(wm => ({
+                    id: wm.manager_id,
+                    name: wm.manager ? wm.manager.name : null,
+                    email: wm.manager ? wm.manager.email : null,
+                    source: 'work_request'
+                }))
+                : [];
+
+            const taskManagers = issue.task && issue.task.TaskAssignments
+                ? issue.task.TaskAssignments
+                    .filter(ta => ta.User && [1, 2, 3].includes(ta.User.job_role_id))
+                    .map(ta => ({
+                        id: ta.user_id,
+                        name: ta.User.name,
+                        email: ta.User.email,
+                        source: 'task'
+                    }))
+                : [];
+
+            // Merge, deduplicate by id
+            const allManagerIds = new Set(wrManagers.map(m => m.id));
+            const mergedManagers = [
+                ...wrManagers,
+                ...taskManagers.filter(m => !allManagerIds.has(m.id))
+            ];
+
+            return {
             id: issue.id,
             issue_id: issue.issue_id,
             version: issue.version,
@@ -4952,8 +4980,10 @@ const getIssueAssignments = async (req, res) => {
                     email: ua.user.email
                 } : null,
                 documents: ua.documents
-            })) : []
-        }));
+            })) : [],
+            managers: mergedManagers
+        };
+        });
 
         res.json({
             success: true,
