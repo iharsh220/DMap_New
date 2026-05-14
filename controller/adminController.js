@@ -450,12 +450,14 @@ const getTaskDetailsData = async (req, res) => {
                 COALESCE(NULLIF(TRIM(t.assignment_type), ''), 'N/A')           AS task_assignment_type,
 
                 COALESCE(
-                    NULLIF(GROUP_CONCAT(DISTINCT au.name ORDER BY au.name SEPARATOR ', '), ''),
-                'N/A')                                                          AS tas_assigned_user_name,
+                     NULLIF(GROUP_CONCAT(DISTINCT au.name ORDER BY au.name SEPARATOR ', '), ''),
+                 'N/A')                                                          AS tas_assigned_user_name,
 
-                COALESCE(NULLIF(TRIM(t.version), ''), 'N/A')                   AS task_version,
+                 COALESCE(NULLIF(TRIM(d.title), ''), 'N/A')                     AS vertical_name,
 
-                1                                                               AS project_count,
+                 COALESCE(NULLIF(TRIM(t.version), ''), 'N/A')                   AS task_version,
+
+                 1                                                               AS project_count,
                 1                                                               AS task_count,
                 (SELECT COUNT(DISTINCT ia2.id) FROM issue_assignments ia2 WHERE ia2.task_id = t.id) AS issue_task_count,
                 t.task_count                                                    AS task_no_of_work_pages,
@@ -539,30 +541,33 @@ const getTaskDetailsData = async (req, res) => {
             LEFT JOIN users ru                  ON ru.id = wr.user_id
             LEFT JOIN department dept           ON dept.id = ru.department_id
             LEFT JOIN task_assignments ta       ON ta.task_id = t.id
-            LEFT JOIN users au                  ON au.id = ta.user_id
-            LEFT JOIN issue_assignments ia      ON ia.task_id = t.id
-        `;
+             LEFT JOIN users au                  ON au.id = ta.user_id
+             LEFT JOIN user_divisions ud         ON ud.user_id = au.id
+             LEFT JOIN division d               ON d.id = ud.division_id
+             LEFT JOIN issue_assignments ia      ON ia.task_id = t.id
+         `;
 
-        if (whereClauses.length > 0) {
-            query += ` WHERE ${whereClauses.join(' AND ')}`;
-        }
+         if (whereClauses.length > 0) {
+             query += ` WHERE ${whereClauses.join(' AND ')}`;
+         }
 
-        query += `
-            GROUP BY
-                wr.id, wr.brand, wr.requested_at, wr.about_project,
-                t.id, t.task_name, t.assignment_type, t.version, t.task_count,
-                t.no_of_options_provided, t.concept_work, t.no_of_concepts,
-                t.resize_work, t.no_of_resize, t.no_of_images_videos_audio,
-                t.duration_minutes, t.duration_seconds, t.no_of_products_shot,
-                t.shoot_setup, t.no_of_words_written, t.no_of_responsive_screen,
-                t.shared_with_client_at, t.start_date, t.end_date, t.deadline,
-                t.review, t.review_stage, t.status, t.created_at, t.updated_at,
-                t.comments, t.description,
-                rt.request_type,
-                tt.task_type, tt.description,
-                ru.name,
-                dept.department_name
-            ORDER BY t.id DESC
+         query += `
+             GROUP BY
+                 wr.id, wr.brand, wr.requested_at, wr.about_project,
+                 t.id, t.task_name, t.assignment_type, t.version, t.task_count,
+                 t.no_of_options_provided, t.concept_work, t.no_of_concepts,
+                 t.resize_work, t.no_of_resize, t.no_of_images_videos_audio,
+                 t.duration_minutes, t.duration_seconds, t.no_of_products_shot,
+                 t.shoot_setup, t.no_of_words_written, t.no_of_responsive_screen,
+                 t.shared_with_client_at, t.start_date, t.end_date, t.deadline,
+                 t.review, t.review_stage, t.status, t.created_at, t.updated_at,
+                 t.comments, t.description,
+                 rt.request_type,
+                 tt.task_type, tt.description,
+                 ru.name,
+                 dept.department_name,
+                 d.title
+             ORDER BY t.id DESC
         `;
 
         const results = await sequelize.query(query, {
