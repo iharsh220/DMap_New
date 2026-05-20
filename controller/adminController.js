@@ -78,17 +78,20 @@ const updateTask = async (req, res) => {
                 no_of_words_written=:no_of_words_written, no_of_responsive_screen=:no_of_responsive_screen,
                 link=:link, intimate_team=:intimate_team, intimate_client=:intimate_client, updated_at=NOW()
              WHERE id=:id`,
-            { replacements: { id, task_name, status, review, review_stage,
-                deadline: deadline||null, start_date: start_date||null, end_date: end_date||null,
-                comments, description, assignment_type, version, task_count: task_count||0,
-                no_of_options_provided: no_of_options_provided||0, concept_work: concept_work||0,
-                no_of_concepts: no_of_concepts||0, resize_work: resize_work||0, no_of_resize: no_of_resize||0,
-                no_of_images_videos_audio: no_of_images_videos_audio||0,
-                duration_minutes: duration_minutes||0, duration_seconds: duration_seconds||0,
-                no_of_products_shot: no_of_products_shot||0, shoot_setup: shoot_setup||0,
-                no_of_words_written: no_of_words_written||0, no_of_responsive_screen: no_of_responsive_screen||0,
-                link: link||null, intimate_team: intimate_team||0, intimate_client: intimate_client||0
-            }, type: sequelize.QueryTypes.UPDATE }
+            {
+                replacements: {
+                    id, task_name, status, review, review_stage,
+                    deadline: deadline || null, start_date: start_date || null, end_date: end_date || null,
+                    comments, description, assignment_type, version, task_count: task_count || 0,
+                    no_of_options_provided: no_of_options_provided || 0, concept_work: concept_work || 0,
+                    no_of_concepts: no_of_concepts || 0, resize_work: resize_work || 0, no_of_resize: no_of_resize || 0,
+                    no_of_images_videos_audio: no_of_images_videos_audio || 0,
+                    duration_minutes: duration_minutes || 0, duration_seconds: duration_seconds || 0,
+                    no_of_products_shot: no_of_products_shot || 0, shoot_setup: shoot_setup || 0,
+                    no_of_words_written: no_of_words_written || 0, no_of_responsive_screen: no_of_responsive_screen || 0,
+                    link: link || null, intimate_team: intimate_team || 0, intimate_client: intimate_client || 0
+                }, type: sequelize.QueryTypes.UPDATE
+            }
         );
         res.json({ success: true, message: 'Task updated successfully' });
     } catch (error) {
@@ -116,17 +119,20 @@ const updateIssue = async (req, res) => {
                 no_of_words_written=:no_of_words_written, responsive_screen=:responsive_screen,
                 link=:link, intimate_team=:intimate_team, intimate_client=:intimate_client, updated_at=NOW()
              WHERE id=:id`,
-            { replacements: { id, status, review, review_stage,
-                deadline: deadline||null, start_date: start_date||null, end_date: end_date||null,
-                comments, description, assignment_type, version, task_count: task_count||0,
-                no_of_options_provided: no_of_options_provided||0, concept_work: concept_work||0,
-                no_of_concepts: no_of_concepts||0, resize_work: resize_work||0, no_of_resize: no_of_resize||0,
-                no_of_images_videos_audio: no_of_images_videos_audio||0,
-                duration_minutes: duration_minutes||0, duration_seconds: duration_seconds||0,
-                no_of_products_shot: no_of_products_shot||0, shoot_setup: shoot_setup||0,
-                no_of_words_written: no_of_words_written||0, responsive_screen: responsive_screen||0,
-                link: link||null, intimate_team: intimate_team||0, intimate_client: intimate_client||0
-            }, type: sequelize.QueryTypes.UPDATE }
+            {
+                replacements: {
+                    id, status, review, review_stage,
+                    deadline: deadline || null, start_date: start_date || null, end_date: end_date || null,
+                    comments, description, assignment_type, version, task_count: task_count || 0,
+                    no_of_options_provided: no_of_options_provided || 0, concept_work: concept_work || 0,
+                    no_of_concepts: no_of_concepts || 0, resize_work: resize_work || 0, no_of_resize: no_of_resize || 0,
+                    no_of_images_videos_audio: no_of_images_videos_audio || 0,
+                    duration_minutes: duration_minutes || 0, duration_seconds: duration_seconds || 0,
+                    no_of_products_shot: no_of_products_shot || 0, shoot_setup: shoot_setup || 0,
+                    no_of_words_written: no_of_words_written || 0, responsive_screen: responsive_screen || 0,
+                    link: link || null, intimate_team: intimate_team || 0, intimate_client: intimate_client || 0
+                }, type: sequelize.QueryTypes.UPDATE
+            }
         );
         res.json({ success: true, message: 'Issue updated successfully' });
     } catch (error) {
@@ -547,11 +553,11 @@ const getTaskDetailsData = async (req, res) => {
              LEFT JOIN issue_assignments ia      ON ia.task_id = t.id
          `;
 
-         if (whereClauses.length > 0) {
-             query += ` WHERE ${whereClauses.join(' AND ')}`;
-         }
+        if (whereClauses.length > 0) {
+            query += ` WHERE ${whereClauses.join(' AND ')}`;
+        }
 
-         query += `
+        query += `
              GROUP BY
                  wr.id, wr.brand, wr.requested_at, wr.about_project,
                  t.id, t.task_name, t.assignment_type, t.version, t.task_count,
