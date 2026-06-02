@@ -973,6 +973,10 @@ const getWorkRequestTasksData = async (req, res) => {
                 assignee_loc.location_name AS assigned_user_location,
                 
                 ia.id AS issue_id,
+                CASE
+                    WHEN ia.id IS NULL THEN NULL
+                    ELSE COALESCE(NULLIF(TRIM(task_rt.request_type), ''), 'N/A')
+                END AS issue_request_type_name,
                 ia.issue_id AS issue_parent_id,
                 ia.task_id AS issue_task_id,
                 ia.requested_by_user_id AS issue_requested_by_user_id,
