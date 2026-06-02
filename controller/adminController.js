@@ -627,6 +627,8 @@ const getIssueDetailsData = async (req, res) => {
                     NULLIF(GROUP_CONCAT(DISTINCT au.name ORDER BY au.name SEPARATOR ', '), ''),
                 'N/A')                                                          AS assigned_user_name,
 
+                COALESCE(NULLIF(TRIM(d.title), ''), 'N/A')                     AS vertical_name,
+
                 COALESCE(NULLIF(TRIM(ia.version), ''), 'N/A')                  AS issue_version,
 
                 1                                                               AS project_count,
@@ -730,6 +732,8 @@ const getIssueDetailsData = async (req, res) => {
             LEFT JOIN department dept       ON dept.id = ru.department_id
             LEFT JOIN issue_user_assignments iua ON iua.issue_assignment_id = ia.id
             LEFT JOIN users au              ON au.id = iua.user_id
+            LEFT JOIN user_divisions ud         ON ud.user_id = au.id
+            LEFT JOIN division d               ON d.id = ud.division_id
         `;
 
         if (whereClauses.length > 0) {
@@ -751,7 +755,8 @@ const getIssueDetailsData = async (req, res) => {
                 rt.request_type,
                 tt.task_type,
                 ru.name,
-                dept.department_name
+                dept.department_name,
+                d.title
             ORDER BY ia.id DESC
         `;
 
