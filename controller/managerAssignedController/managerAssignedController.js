@@ -5,6 +5,7 @@ const path = require('path');
 const CrudService = require('../../services/crudService');
 const {
     WorkRequests,
+    WorkRequestDeferrals,
     RequestType,
     ProjectType,
     TaskType,
@@ -1156,6 +1157,10 @@ const deferWorkRequest = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Invalid reason' });
         }
 
+        if (reason === 'insufficient_details' && !message) {
+            return res.status(400).json({ success: false, error: 'message is required for insufficient_details reason' });
+        }
+
         if (reason === 'incorrect_request_type' && (!req.body.new_request_type_id || !req.body.new_project_type_id)) {
             return res.status(400).json({ success: false, error: 'new_request_type_id and new_project_type_id are required for incorrect_request_type reason' });
         }
@@ -1193,16 +1198,26 @@ const deferWorkRequest = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Work request is already accepted and cannot be deferred' });
         }
 
-        if (reason === 'insufficient_details' && message) {
+        if (reason === 'insufficient_details') {
             // Update work request status and remarks to insufficient_details
             const updateResult = await workRequestService.updateById(id, {
-                // status: 'insufficient_details',
+                // status: 'deferred',
                 remarks: 'insufficient_details'
             });
 
             if (!updateResult.success) {
                 return res.status(500).json({ success: false, error: 'Failed to update work request' });
             }
+
+            await WorkRequestDeferrals.create({
+                work_request_id: id,
+                manager_id,
+                reason,
+                message,
+                old_request_type_id: workRequest.request_type_id,
+                old_project_type_id: workRequest.project_id,
+                deferred_at: new Date()
+            });
 
             // Send email to user
             const user = workRequest.users;
@@ -1287,7 +1302,7 @@ const deferWorkRequest = async (req, res) => {
                         job_role_id: { [Op.in]: [2, 3] }, // 2: Creative Manager, 3: Creative Lead
                         account_status: 'active'
                     },
-                    attributes: ['id', 'name', 'email']
+                    attributes: ['id', 'name', 'email', 'job_role_id']
                 }],
                 attributes: []
             });
@@ -1318,6 +1333,18 @@ const deferWorkRequest = async (req, res) => {
             }));
 
             await WorkRequestManagers.bulkCreate(newAssignments);
+
+            await WorkRequestDeferrals.create({
+                work_request_id: id,
+                manager_id,
+                reason,
+                message: message || null,
+                old_request_type_id: workRequest.request_type_id,
+                new_request_type_id: newRequestTypeId,
+                old_project_type_id: workRequest.project_id,
+                new_project_type_id: newProjectTypeId,
+                deferred_at: new Date()
+            });
 
             // Use the first manager (Creative Manager) for the transfer email
             const newManager = newManagersAndLeads.find(m => m.User.job_role_id === 2)?.User ||

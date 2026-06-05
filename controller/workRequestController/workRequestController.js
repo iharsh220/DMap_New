@@ -2,6 +2,7 @@ const { Op } = require('sequelize');
 const CrudService = require('../../services/crudService');
 const {
     WorkRequests,
+    WorkRequestDeferrals,
     RequestType,
     ProjectType,
     User,
@@ -400,16 +401,16 @@ const updateWorkRequest = async (req, res) => {
             return res.status(403).json({ success: false, error: 'You do not have permission to update this work request' });
         }
 
+        // Extract update fields from request body
+        let { project_name, brand, request_type_id, project_id, description, about_project, priority, remarks, status, document_ids } = req.body;
+
         // If the creator (client) is updating, update requested_at to current time
         // Build update data object first
         const updateData = {};
-        
+
         if (isCreator) {
             updateData.requested_at = new Date();
         }
-
-        // Extract update fields from request body
-        let { project_name, brand, request_type_id, project_id, description, about_project, priority, remarks, status, document_ids } = req.body;
 
         if (project_name !== undefined) updateData.project_name = project_name;
         if (brand !== undefined) updateData.brand = brand;
@@ -419,6 +420,7 @@ const updateWorkRequest = async (req, res) => {
         if (priority !== undefined) updateData.priority = priority;
         if (remarks !== undefined) updateData.remarks = remarks;
         if (status !== undefined) updateData.status = status;
+        if (isCreator && workRequest.status === 'deferred' && status === undefined) updateData.status = 'pending';
 
         // Validate about_project JSON structure if provided
         if (about_project !== undefined) {
@@ -468,6 +470,25 @@ const updateWorkRequest = async (req, res) => {
         // Update the work request
         if (Object.keys(updateData).length > 0) {
             await workRequest.update(updateData, { transaction });
+        }
+
+        if (isCreator) {
+            const latestOpenDeferral = await WorkRequestDeferrals.findOne({
+                where: {
+                    work_request_id: workRequestId,
+                    client_resubmitted_at: null
+                },
+                order: [['deferred_at', 'DESC']],
+                transaction
+            });
+
+            if (latestOpenDeferral) {
+                await latestOpenDeferral.update({
+                    client_resubmitted_at: new Date(),
+                    resubmitted_by_user_id: user_id,
+                    resubmission_count: latestOpenDeferral.resubmission_count + 1
+                }, { transaction });
+            }
         }
 
         // Handle document deletion - remove documents that are not in document_ids array

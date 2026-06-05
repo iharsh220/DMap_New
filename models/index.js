@@ -17,6 +17,7 @@ const RequestDivisionReference = require('./RequestDivisionReference/RequestDivi
 const WorkRequests = require('./WorkRequests/WorkRequests');
 const WorkRequestManagers = require('./WorkRequestManagers/WorkRequestManagers');
 const WorkRequestDocuments = require('./WorkRequestDocuments/WorkRequestDocuments');
+const WorkRequestDeferrals = require('./WorkRequestDeferrals/WorkRequestDeferrals');
 const ProjectType = require('./ProjectType/ProjectType');
 const TaskType = require('./TaskType/TaskType');
 const ProjectRequestReference = require('./ProjectRequestReference/ProjectRequestReference');
@@ -78,12 +79,17 @@ WorkRequests.belongsTo(RequestType, { foreignKey: 'request_type_id' });
 WorkRequests.belongsTo(ProjectType, { foreignKey: 'project_id' });
 WorkRequests.hasMany(WorkRequestManagers, { foreignKey: 'work_request_id' });
 WorkRequests.hasMany(WorkRequestDocuments, { foreignKey: 'work_request_id' });
+WorkRequests.hasMany(WorkRequestDeferrals, { foreignKey: 'work_request_id', as: 'deferrals' });
 WorkRequests.hasMany(Tasks, { foreignKey: 'work_request_id' });
 
 WorkRequestManagers.belongsTo(WorkRequests, { foreignKey: 'work_request_id' });
 WorkRequestManagers.belongsTo(User, { as: 'manager', foreignKey: 'manager_id' });
 
 WorkRequestDocuments.belongsTo(WorkRequests, { foreignKey: 'work_request_id' });
+
+WorkRequestDeferrals.belongsTo(WorkRequests, { foreignKey: 'work_request_id' });
+WorkRequestDeferrals.belongsTo(User, { as: 'deferredBy', foreignKey: 'manager_id' });
+WorkRequestDeferrals.belongsTo(User, { as: 'resubmittedBy', foreignKey: 'resubmitted_by_user_id' });
 
 RequestType.belongsToMany(Division, { through: RequestDivisionReference, foreignKey: 'request_id' });
 Division.belongsToMany(RequestType, { through: RequestDivisionReference, foreignKey: 'division_id' });
@@ -184,6 +190,7 @@ module.exports = {
   WorkRequests,
   WorkRequestManagers,
   WorkRequestDocuments,
+  WorkRequestDeferrals,
   ProjectType,
   TaskType,
   ProjectRequestReference,
