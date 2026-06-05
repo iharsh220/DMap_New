@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pending PM Review Reminder</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f4f4f4; padding: 20px 0;">
+        <tr>
+            <td align="center">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="640" style="background-color: #ffffff; max-width: 640px;">
+                    <tr>
+                        <td style="background-color: #007bff; padding: 25px 20px; text-align: center;">
+                            <h1 style="color: #ffffff; font-size: 22px; font-weight: 600; margin: 0; font-family: Arial, Helvetica, sans-serif;">Pending PM Review Reminder</h1>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 30px 25px;">
+                            <p style="margin: 0 0 15px 0; color: #333333;">Dear <strong>{{client_name}}</strong>,</p>
+                            <p style="margin: 0 0 15px 0; color: #333333;">You have <strong>{{pending_count}}</strong> item(s) waiting for PM review. Please complete the pending review.</p>
+
+                            <div style="background-color: #f8f9fa; border-left: 4px solid #007bff; padding: 15px 20px; margin: 20px 0;">
+                                <p style="margin: 0;"><strong>Action Required:</strong> Review the pending task(s) and issue(s) in D-Map.</p>
+                            </div>
+
+                            <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
+                                <thead>
+                                    <tr>
+                                        <th align="left" style="padding: 10px; border-bottom: 2px solid #dee2e6; color: #495057;">Type</th>
+                                        <th align="left" style="padding: 10px; border-bottom: 2px solid #dee2e6; color: #495057;">Name</th>
+                                        <th align="left" style="padding: 10px; border-bottom: 2px solid #dee2e6; color: #495057;">Project</th>
+                                        <th align="left" style="padding: 10px; border-bottom: 2px solid #dee2e6; color: #495057;">Deadline</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {{#each items}}
+                                    <tr>
+                                        <td style="padding: 10px; border-bottom: 1px solid #e9ecef;">{{this.type}} #{{this.id}}</td>
+                                        <td style="padding: 10px; border-bottom: 1px solid #e9ecef;">{{this.name}}</td>
+                                        <td style="padding: 10px; border-bottom: 1px solid #e9ecef;">{{this.project_name}}</td>
+                                        <td style="padding: 10px; border-bottom: 1px solid #e9ecef;">{{this.deadline}}</td>
+                                    </tr>
+                                    {{/each}}
+                                </tbody>
+                            </table>
+
+                            <div style="text-align: center;">
+                                <a href="{{frontend_url}}" style="display: inline-block; background-color: #007bff; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 15px 0;">Open D-Map</a>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 0;">
+                            <a href="{{frontend_url}}">
+                                <img src="{{banner_base64}}" alt="D-Map Banner" width="640" style="display: block; width: 100%; max-width: 640px; height: auto; border: 0;">
+                            </a>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="background-color: #f8f9fa; padding: 25px 20px; text-align: center; border-top: 1px solid #e9ecef;">
+                            <p style="margin: 5px 0; font-size: 12px; color: #6c757d;">This is an automated message from D-Map. Please do not reply directly to this email.</p>
+                            <p style="margin: 5px 0; font-size: 12px; color: #6c757d;">&copy; 2026 Alembic Digital Labs. All rights reserved.</p>
+                            <p style="margin: 10px 0 0 0; font-size: 12px;">
+                                <a href="{{frontend_url}}" style="color: #007bff; text-decoration: none;">Visit D-Map</a> |
+                                <a href="mailto:support@alembicdigilabs.com" style="color: #007bff; text-decoration: none;">Support</a>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

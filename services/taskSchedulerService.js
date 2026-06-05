@@ -1,7 +1,9 @@
 const { Queue, Worker } = require('bullmq');
 const cron = require('node-cron');
 const { Op } = require('sequelize');
-const { Tasks, WorkRequests, IssueAssignments, WorkRequestManagers } = require('../models');
+const { Tasks, WorkRequests, IssueAssignments, User } = require('../models');
+const { sendMail } = require('./mailService');
+const { renderTemplate } = require('./templateService');
 
 // Create task scheduler queue
 const taskSchedulerQueue = new Queue('task-scheduler-queue', {
@@ -21,6 +23,10 @@ const taskSchedulerWorker = new Worker('task-scheduler-queue', async (job) => {
 
   if (type === 'progress_issues') {
     return await progressIssuesWithTodayStartDate();
+  }
+
+  if (type === 'pm_review_reminders') {
+    return await sendPmReviewPendingReminders();
   }
 
   throw new Error(`Unknown job type: ${type}`);
@@ -144,6 +150,139 @@ const progressIssuesWithTodayStartDate = async () => {
   }
 };
 
+const formatDate = (date) => {
+  if (!date) {
+    return 'Not set';
+  }
+
+  return new Date(date).toLocaleDateString('en-IN', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+};
+
+const addReminderItem = (remindersByEmail, client, item) => {
+  if (!client || !client.email) {
+    return;
+  }
+
+  if (!remindersByEmail.has(client.email)) {
+    remindersByEmail.set(client.email, {
+      client,
+      items: []
+    });
+  }
+
+  remindersByEmail.get(client.email).items.push(item);
+};
+
+// Function to send daily reminders for pending PM/client reviews
+const sendPmReviewPendingReminders = async () => {
+  try {
+    const remindersByEmail = new Map();
+
+    const pendingTasks = await Tasks.findAll({
+      where: {
+        review: 'pending',
+        review_stage: 'pm_review'
+      },
+      attributes: ['id', 'task_name', 'deadline', 'work_request_id', 'updated_at'],
+      include: [{
+        model: WorkRequests,
+        attributes: ['id', 'project_name', 'brand', 'user_id'],
+        include: [{
+          model: User,
+          as: 'users',
+          attributes: ['id', 'name', 'email']
+        }]
+      }]
+    });
+
+    for (const task of pendingTasks) {
+      const workRequest = task.WorkRequest;
+      addReminderItem(remindersByEmail, workRequest?.users, {
+        type: 'Task',
+        id: task.id,
+        name: task.task_name || `Task ${task.id}`,
+        project_name: workRequest?.project_name || 'N/A',
+        brand: workRequest?.brand || 'N/A',
+        work_request_id: workRequest?.id || task.work_request_id,
+        deadline: formatDate(task.deadline),
+        pending_since: formatDate(task.updated_at)
+      });
+    }
+
+    const pendingIssues = await IssueAssignments.findAll({
+      where: {
+        review: 'pending',
+        review_stage: 'pm_review'
+      },
+      attributes: ['id', 'version', 'description', 'deadline', 'task_id', 'updated_at'],
+      include: [{
+        model: Tasks,
+        as: 'task',
+        attributes: ['id', 'task_name', 'work_request_id'],
+        include: [{
+          model: WorkRequests,
+          attributes: ['id', 'project_name', 'brand', 'user_id'],
+          include: [{
+            model: User,
+            as: 'users',
+            attributes: ['id', 'name', 'email']
+          }]
+        }]
+      }]
+    });
+
+    for (const issue of pendingIssues) {
+      const task = issue.task;
+      const workRequest = task?.WorkRequest;
+      addReminderItem(remindersByEmail, workRequest?.users, {
+        type: 'Issue',
+        id: issue.id,
+        name: issue.version ? `Issue ${issue.version}` : `Issue ${issue.id}`,
+        task_name: task?.task_name || 'N/A',
+        project_name: workRequest?.project_name || 'N/A',
+        brand: workRequest?.brand || 'N/A',
+        work_request_id: workRequest?.id || task?.work_request_id || 'N/A',
+        deadline: formatDate(issue.deadline),
+        pending_since: formatDate(issue.updated_at)
+      });
+    }
+
+    let sentEmails = 0;
+
+    for (const [email, reminder] of remindersByEmail.entries()) {
+      const html = renderTemplate('pmReviewPendingReminder', {
+        client_name: reminder.client.name || 'User',
+        pending_count: reminder.items.length,
+        items: reminder.items,
+        frontend_url: process.env.FRONTEND_URL
+      });
+
+      await sendMail({
+        to: email,
+        subject: `Pending PM Review Reminder (${reminder.items.length})`,
+        html
+      });
+
+      sentEmails++;
+    }
+
+    return {
+      success: true,
+      message: `Sent ${sentEmails} PM review reminder email(s)`,
+      pendingTasks: pendingTasks.length,
+      pendingIssues: pendingIssues.length,
+      sentEmails
+    };
+  } catch (error) {
+    console.error('Error sending PM review pending reminders:', error);
+    throw error;
+  }
+};
+
 // Function to schedule the daily task and issue progression job
 const scheduleTaskProgression = () => {
   // Runs at 12:01 AM IST
@@ -165,7 +304,22 @@ const scheduleTaskProgression = () => {
     timezone: 'Asia/Kolkata'
   });
 
+  // Runs daily at 9:00 AM IST
+  cron.schedule('0 9 * * *', async () => {
+    console.log('Running scheduled task: PM review pending reminders');
+
+    try {
+      await taskSchedulerQueue.add('pm-review-reminders', { type: 'pm_review_reminders' });
+      console.log('PM review reminder job queued successfully');
+    } catch (error) {
+      console.error('Failed to queue PM review reminder job:', error);
+    }
+  }, {
+    timezone: 'Asia/Kolkata'
+  });
+
   console.log('Task and Issue progression scheduler initialized - runs daily at 12:01 AM IST (checks start_date)');
+  console.log('PM review reminder scheduler initialized - runs daily at 9:00 AM IST');
 };
 
 
@@ -191,6 +345,17 @@ const triggerIssueProgression = async () => {
   }
 };
 
+// Function to manually trigger PM review reminder emails (for testing)
+const triggerPmReviewPendingReminders = async () => {
+  try {
+    const result = await taskSchedulerQueue.add('pm-review-reminders', { type: 'pm_review_reminders' });
+    return result;
+  } catch (error) {
+    console.error('Failed to trigger PM review pending reminders:', error);
+    throw error;
+  }
+};
+
 taskSchedulerWorker.on('completed', (job) => {
   console.log(`Task scheduler job ${job.id} completed:`, job.returnvalue);
 });
@@ -203,6 +368,8 @@ module.exports = {
   scheduleTaskProgression,
   triggerTaskProgression,
   triggerIssueProgression,
+  triggerPmReviewPendingReminders,
   progressTasksWithTodayStartDate,
-  progressIssuesWithTodayStartDate
+  progressIssuesWithTodayStartDate,
+  sendPmReviewPendingReminders
 };
