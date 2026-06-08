@@ -239,7 +239,7 @@ const getAssignedWorkRequests = async (req, res) => {
         TaskAssignments.belongsTo(Tasks, { foreignKey: 'task_id' });
 
         const manager_id = req.user.id;
-        const { status, review, review_stages, user_id } = req.query; // Get status, review, review_stages, and user_id filters from query params
+        const { status, review, review_stages, user_id, sort } = req.query; // Get status, review, review_stages, and user_id filters from query params
 
         let where = { status: { [Op.ne]: 'draft' } };
 
@@ -436,7 +436,7 @@ const getAssignedWorkRequests = async (req, res) => {
             ],
             limit: req.pagination.limit,
             offset: req.pagination.offset,
-            order: [['requested_at', 'DESC']]
+            order: [['requested_at', sort || 'DESC']]
         });
 
         if (result.success) {
@@ -4518,7 +4518,7 @@ const getIssueAssignments = async (req, res) => {
         TaskAssignments.belongsTo(User, { foreignKey: 'user_id' });
 
         const manager_id = req.user.id;
-        const { status, review_stage, review, intimate_team } = req.query;
+        const { status, review_stage, review, intimate_team, sort } = req.query;
 
         // Define valid enum values
         const validStatuses = ['m_pending', 'u_pending', 'm_accepted', 'u_accepted', 'in_progress', 'completed', 'rejected', 'on_hold', 'cancelled'];
@@ -4534,12 +4534,12 @@ const getIssueAssignments = async (req, res) => {
         if (req.search && req.search.term && req.search.fields && req.search.fields.length > 0) {
             const searchFields = req.search.fields;
             const searchTerm = req.search.term;
-            
+
             // Categorize search fields by which table they belong to
             const directFields = []; // On IssueAssignments
             const wrFields = []; // On WorkRequests (via task)
             const userNameFields = []; // On User (via WorkRequest)
-            
+
             searchFields.forEach(field => {
                 if (field === 'user_name' || field === 'username') {
                     userNameFields.push(field);
@@ -4549,10 +4549,10 @@ const getIssueAssignments = async (req, res) => {
                     directFields.push(field);
                 }
             });
-            
+
             // Build OR condition array
             const orConditions = [];
-            
+
             // Add direct field conditions (on IssueAssignments)
             if (directFields.length > 0) {
                 directFields.forEach(field => {
@@ -4561,7 +4561,7 @@ const getIssueAssignments = async (req, res) => {
                     });
                 });
             }
-            
+
             // Handle WorkRequest fields (project_name, brand) - need to get task IDs from work requests matching these
             if (wrFields.length > 0) {
                 // Build where for WorkRequests search
@@ -4571,7 +4571,7 @@ const getIssueAssignments = async (req, res) => {
                         [field]: { [Op.like]: `%${searchTerm}%` }
                     });
                 });
-                
+
                 // Find work requests matching the term on these fields
                 const matchingWorkRequests = await WorkRequests.findAll({
                     where: {
@@ -4579,7 +4579,7 @@ const getIssueAssignments = async (req, res) => {
                     },
                     attributes: ['id']
                 });
-                
+
                 if (matchingWorkRequests.length > 0) {
                     const wrIds = matchingWorkRequests.map(wr => wr.id);
                     // Get task IDs for these work requests
@@ -4596,7 +4596,7 @@ const getIssueAssignments = async (req, res) => {
                     }
                 }
             }
-            
+
             // Handle user_name search - get task IDs from work requests belonging to users with matching name
             if (userNameFields.length > 0) {
                 const matchingUsers = await User.findAll({
@@ -4617,7 +4617,7 @@ const getIssueAssignments = async (req, res) => {
                         }],
                         raw: true
                     });
-                    
+
                     const taskIds = taskIdsFromUserSearch.map(t => t.id);
                     if (taskIds.length > 0) {
                         orConditions.push({ task_id: { [Op.in]: taskIds } });
@@ -4625,7 +4625,7 @@ const getIssueAssignments = async (req, res) => {
                     }
                 }
             }
-            
+
             // Apply the combined OR condition if we have any conditions
             if (orConditions.length > 0) {
                 where[Op.or] = orConditions;
@@ -4878,7 +4878,7 @@ const getIssueAssignments = async (req, res) => {
                     ]
                 }
             ],
-            order: [['created_at', 'DESC']]
+            order: [['created_at', sort || 'DESC']]
         });
 
         // Format the response
@@ -4911,105 +4911,105 @@ const getIssueAssignments = async (req, res) => {
             ];
 
             return {
-            id: issue.id,
-            issue_id: issue.issue_id,
-            version: issue.version,
-            description: issue.description,
-            // Issue deadline - shown at top level for easy access
-            deadline: issue.deadline,
-            start_date: issue.start_date,
-            end_date: issue.end_date,
-            assignment_type: issue.assignment_type,
-            intimate_team: issue.intimate_team,
-            intimate_client: issue.intimate_client,
-            task_count: issue.task_count,
-            link: issue.link,
-            status: issue.status,
-            review: issue.review,
-            review_stage: issue.review_stage,
-            created_at: issue.created_at,
-            updated_at: issue.updated_at,
-            // Task type from the linked task - shown at top level for easy access
-            task_type: issue.task && issue.task.TaskType ? {
-                id: issue.task.TaskType.id,
-                task_type: issue.task.TaskType.task_type,
-                description: issue.task.TaskType.description
-            } : null,
-            task_type_name: issue.task && issue.task.TaskType ? issue.task.TaskType.task_type : null,
-            task_type_id: issue.task ? issue.task.task_type_id : null,
-            task: issue.task ? {
-                id: issue.task.id,
-                task_name: issue.task.task_name,
-                work_request_id: issue.task.work_request_id,
-                // Task deadline
-                deadline: issue.task.deadline,
-                status: issue.task.status,
-                task_type_id: issue.task.task_type_id,
-                // Task type info at task level
-                task_type: issue.task.TaskType ? {
+                id: issue.id,
+                issue_id: issue.issue_id,
+                version: issue.version,
+                description: issue.description,
+                // Issue deadline - shown at top level for easy access
+                deadline: issue.deadline,
+                start_date: issue.start_date,
+                end_date: issue.end_date,
+                assignment_type: issue.assignment_type,
+                intimate_team: issue.intimate_team,
+                intimate_client: issue.intimate_client,
+                task_count: issue.task_count,
+                link: issue.link,
+                status: issue.status,
+                review: issue.review,
+                review_stage: issue.review_stage,
+                created_at: issue.created_at,
+                updated_at: issue.updated_at,
+                // Task type from the linked task - shown at top level for easy access
+                task_type: issue.task && issue.task.TaskType ? {
                     id: issue.task.TaskType.id,
                     task_type: issue.task.TaskType.task_type,
                     description: issue.task.TaskType.description
                 } : null,
-                task_type_name: issue.task.TaskType ? issue.task.TaskType.task_type : null,
-                // Include assigned users from the task
-                assignedUsers: issue.task.TaskAssignments ? issue.task.TaskAssignments.map(ta => ({
-                    id: ta.id,
-                    user_id: ta.user_id,
-                    user: ta.User ? {
-                        id: ta.User.id,
-                        name: ta.User.name,
-                        email: ta.User.email
+                task_type_name: issue.task && issue.task.TaskType ? issue.task.TaskType.task_type : null,
+                task_type_id: issue.task ? issue.task.task_type_id : null,
+                task: issue.task ? {
+                    id: issue.task.id,
+                    task_name: issue.task.task_name,
+                    work_request_id: issue.task.work_request_id,
+                    // Task deadline
+                    deadline: issue.task.deadline,
+                    status: issue.task.status,
+                    task_type_id: issue.task.task_type_id,
+                    // Task type info at task level
+                    task_type: issue.task.TaskType ? {
+                        id: issue.task.TaskType.id,
+                        task_type: issue.task.TaskType.task_type,
+                        description: issue.task.TaskType.description
+                    } : null,
+                    task_type_name: issue.task.TaskType ? issue.task.TaskType.task_type : null,
+                    // Include assigned users from the task
+                    assignedUsers: issue.task.TaskAssignments ? issue.task.TaskAssignments.map(ta => ({
+                        id: ta.id,
+                        user_id: ta.user_id,
+                        user: ta.User ? {
+                            id: ta.User.id,
+                            name: ta.User.name,
+                            email: ta.User.email
+                        } : null
+                    })) : [],
+                    workRequest: issue.task.WorkRequest ? {
+                        id: issue.task.WorkRequest.id,
+                        project_name: issue.task.WorkRequest.project_name,
+                        brand: issue.task.WorkRequest.brand,
+                        priority: issue.task.WorkRequest.priority,
+                        status: issue.task.WorkRequest.status,
+                        user: issue.task.WorkRequest.users ? {
+                            id: issue.task.WorkRequest.users.id,
+                            name: issue.task.WorkRequest.users.name,
+                            email: issue.task.WorkRequest.users.email
+                        } : null,
+                        requestType: issue.task.WorkRequest.RequestType ? {
+                            id: issue.task.WorkRequest.RequestType.id,
+                            request_type: issue.task.WorkRequest.RequestType.request_type
+                        } : null,
+                        managers: issue.task.WorkRequest.WorkRequestManagers ? issue.task.WorkRequest.WorkRequestManagers.map(wm => ({
+                            id: wm.manager_id,
+                            name: wm.manager ? wm.manager.name : null,
+                            email: wm.manager ? wm.manager.email : null
+                        })) : []
+                    } : null
+                } : null,
+                requester: issue.requester ? {
+                    id: issue.requester.id,
+                    name: issue.requester.name,
+                    email: issue.requester.email
+                } : null,
+                issueTypes: issue.issueTypeLinks ? issue.issueTypeLinks.map(link => ({
+                    id: link.id,
+                    issue_register_id: link.issue_register_id,
+                    issueRegister: link.issueRegister ? {
+                        id: link.issueRegister.id,
+                        change_issue_type: link.issueRegister.change_issue_type,
+                        description: link.issueRegister.description
                     } : null
                 })) : [],
-                workRequest: issue.task.WorkRequest ? {
-                    id: issue.task.WorkRequest.id,
-                    project_name: issue.task.WorkRequest.project_name,
-                    brand: issue.task.WorkRequest.brand,
-                    priority: issue.task.WorkRequest.priority,
-                    status: issue.task.WorkRequest.status,
-                    user: issue.task.WorkRequest.users ? {
-                        id: issue.task.WorkRequest.users.id,
-                        name: issue.task.WorkRequest.users.name,
-                        email: issue.task.WorkRequest.users.email
+                assignedUsers: issue.userAssignments ? issue.userAssignments.map(ua => ({
+                    id: ua.id,
+                    user_id: ua.user_id,
+                    user: ua.user ? {
+                        id: ua.user.id,
+                        name: ua.user.name,
+                        email: ua.user.email
                     } : null,
-                    requestType: issue.task.WorkRequest.RequestType ? {
-                        id: issue.task.WorkRequest.RequestType.id,
-                        request_type: issue.task.WorkRequest.RequestType.request_type
-                    } : null,
-                    managers: issue.task.WorkRequest.WorkRequestManagers ? issue.task.WorkRequest.WorkRequestManagers.map(wm => ({
-                        id: wm.manager_id,
-                        name: wm.manager ? wm.manager.name : null,
-                        email: wm.manager ? wm.manager.email : null
-                    })) : []
-                } : null
-            } : null,
-            requester: issue.requester ? {
-                id: issue.requester.id,
-                name: issue.requester.name,
-                email: issue.requester.email
-            } : null,
-            issueTypes: issue.issueTypeLinks ? issue.issueTypeLinks.map(link => ({
-                id: link.id,
-                issue_register_id: link.issue_register_id,
-                issueRegister: link.issueRegister ? {
-                    id: link.issueRegister.id,
-                    change_issue_type: link.issueRegister.change_issue_type,
-                    description: link.issueRegister.description
-                } : null
-            })) : [],
-            assignedUsers: issue.userAssignments ? issue.userAssignments.map(ua => ({
-                id: ua.id,
-                user_id: ua.user_id,
-                user: ua.user ? {
-                    id: ua.user.id,
-                    name: ua.user.name,
-                    email: ua.user.email
-                } : null,
-                documents: ua.documents
-            })) : [],
-            managers: mergedManagers
-        };
+                    documents: ua.documents
+                })) : [],
+                managers: mergedManagers
+            };
         });
 
         res.json({

@@ -32,7 +32,7 @@ require('dotenv').config();
 const getAssignedTasks = async (req, res) => {
     try {
         const user_id = req.user.id;
-        const { status, deadline, review, review_stages, assigned_to } = req.query; // Get status, deadline, review, review_stages, and assigned_to filters from query params
+        const { status, deadline, review, review_stages, assigned_to, sort } = req.query; // Get status, deadline, review, review_stages, and assigned_to filters from query params
 
         // Check if user is manager (job_role_id = 2)
         const isManager = req.user.jobRole && req.user.jobRole.id === 2;
@@ -116,13 +116,13 @@ const getAssignedTasks = async (req, res) => {
             const searchFields = req.search.fields;
             // Check for user_name or username in search fields
             const hasUserNameSearch = searchFields.includes('user_name') || searchFields.includes('username');
-            
+
             // Remove user_name and username from search fields for direct query
             const directSearchFields = searchFields.filter(field => field !== 'user_name' && field !== 'username');
-            
+
             // Build OR condition array combining direct fields and work_request_id subquery (if applicable)
             const orConditions = [];
-            
+
             // Add direct field conditions (task_name, etc.)
             if (directSearchFields.length > 0) {
                 directSearchFields.forEach(field => {
@@ -133,7 +133,7 @@ const getAssignedTasks = async (req, res) => {
                     }
                 });
             }
-            
+
             // If user_name/username search is requested, add condition for work_request IDs
             if (hasUserNameSearch) {
                 // Find users matching the name (case-insensitive search) - these are the work request creators (clients)
@@ -152,7 +152,7 @@ const getAssignedTasks = async (req, res) => {
                         where: { user_id: { [Op.in]: matchingUserIds } }
                     });
                     const matchingWorkRequestIds = workRequests.map(wr => wr.id);
-                    
+
                     if (matchingWorkRequestIds.length > 0) {
                         // Add condition to match tasks whose work_request_id is in the list
                         orConditions.push({ work_request_id: { [Op.in]: matchingWorkRequestIds } });
@@ -160,7 +160,7 @@ const getAssignedTasks = async (req, res) => {
                 }
                 // If no matching users/work_requests found, we simply skip - other direct fields still work
             }
-            
+
             // Apply the combined OR condition if we have any conditions
             if (orConditions.length > 0) {
                 whereCondition[Op.or] = orConditions;
@@ -358,7 +358,7 @@ const getAssignedTasks = async (req, res) => {
             offset: req.pagination.offset,
             order: [
                 // Always sort by deadline descending (latest deadline first)
-                ['deadline', 'DESC']
+                ['deadline', sort || 'DESC']
             ]
         });
 
@@ -1336,7 +1336,7 @@ const submitTask = async (req, res) => {
             if (no_of_responsive_screen !== undefined) {
                 taskUpdateData.no_of_responsive_screen = parseInt(no_of_responsive_screen, 10) || 0;
             }
-            
+
             // Media count field
             if (no_of_images_videos_audio !== undefined) {
                 taskUpdateData.no_of_images_videos_audio = parseInt(no_of_images_videos_audio, 10) || 0;
@@ -2318,7 +2318,7 @@ const submitIssue = async (req, res) => {
             if (no_of_responsive_screen !== undefined) {
                 issueUpdateData.no_of_responsive_screen = parseInt(no_of_responsive_screen, 10) || 0;
             }
-            
+
             // Media count field
             if (no_of_images_videos_audio !== undefined) {
                 issueUpdateData.no_of_images_videos_audio = parseInt(no_of_images_videos_audio, 10) || 0;
