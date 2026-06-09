@@ -198,6 +198,12 @@ const IssueAssignments = sequelize.define('IssueAssignments', {
     allowNull: true,
     comment: 'Optional comments when submitting/completing an issue',
   },
+  notification_alert: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    allowNull: false,
+    comment: 'Notification alert flag for issue assignments',
+  },
 }, {
   tableName: 'issue_assignments',
   timestamps: true,

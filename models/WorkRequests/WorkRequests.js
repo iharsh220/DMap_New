@@ -51,6 +51,11 @@ const WorkRequests = sequelize.define('WorkRequests', {
     type: DataTypes.TEXT,
     allowNull: true,
   },
+  notification_alert: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    allowNull: false,
+  },
   created_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,

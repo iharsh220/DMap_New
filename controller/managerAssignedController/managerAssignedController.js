@@ -440,6 +440,11 @@ const getAssignedWorkRequests = async (req, res) => {
         });
 
         if (result.success) {
+            const managerId = req.user.id;
+
+            // Calculate total notification count: count of pending work requests with notification_alert = 1
+            const totalNotificationAlert = result.data.filter(wr => wr.status === 'pending' && wr.notification_alert == 1).length;
+
             // Collect unique user IDs
             const userIds = [...new Set(result.data.map(wr => wr.user_id))];
 
@@ -478,7 +483,7 @@ const getAssignedWorkRequests = async (req, res) => {
                 workRequest.dataValues.users = userMap.get(workRequest.user_id);
             }
 
-            res.json({ success: true, data: result.data, pagination: req.pagination });
+            res.json({ success: true, data: result.data, pagination: req.pagination, notification_alert: totalNotificationAlert });
         } else {
             res.status(500).json({ success: false, error: result.error });
         }
@@ -1649,7 +1654,8 @@ const createTask = async (req, res) => {
             request_type_id,
             task_type_id,
             deadline: formattedDeadline,
-            status: 'pending'
+            status: 'pending',
+            notification_alert: 1
         };
 
         // Add project_type_id if provided
@@ -2446,9 +2452,9 @@ const assignTasksToUsers = async (req, res) => {
         // Wait for all emails to be sent
         await Promise.all(emailPromises);
 
-        // Update intimate_team to 1 for all tasks in this work request
+        // Update intimate_team to 1 and notification_alert to 1 for all tasks in this work request
         await Tasks.update(
-            { intimate_team: 1 },
+            { intimate_team: 1, notification_alert: 1 },
             { where: { work_request_id: workRequestId } }
         );
 
@@ -5084,9 +5090,9 @@ const assignIssueToUser = async (req, res) => {
             user_id
         });
 
-        // Update issue_assignment status to 'u_pending' and intimate_team to 1 so user gets email notification
+        // Update issue_assignment status to 'u_pending', intimate_team to 1, and notification_alert to 1
         await IssueAssignments.update(
-            { status: 'u_pending', intimate_team: 1, deadline: deadline || null },
+            { status: 'u_pending', intimate_team: 1, deadline: deadline || null, notification_alert: 1 },
             { where: { id: issue_assignment_id } }
         );
 

@@ -234,7 +234,8 @@ const createIssueAssignment = async (req, res) => {
             intimate_team,
             intimate_client,
             status: 'm_pending',
-            review: 'pending'
+            review: 'pending',
+            notification_alert: 1
         }, { transaction });
 
         if (task_id) {

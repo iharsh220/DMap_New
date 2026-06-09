@@ -191,6 +191,12 @@ const Tasks = sequelize.define('Tasks', {
     allowNull: true,
     comment: 'Optional comments when submitting/completing a task',
   },
+  notification_alert: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    allowNull: false,
+    comment: 'Notification alert flag for task assignments',
+  },
 }, {
   tableName: 'tasks',
   timestamps: true,
