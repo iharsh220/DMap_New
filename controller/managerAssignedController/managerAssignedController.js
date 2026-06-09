@@ -483,7 +483,7 @@ const getAssignedWorkRequests = async (req, res) => {
                 workRequest.dataValues.users = userMap.get(workRequest.user_id);
             }
 
-            res.json({ success: true, data: result.data, pagination: req.pagination, notification_alert: totalNotificationAlert });
+            res.json({ success: true, data: result.data, pagination: req.pagination, notification_alert_count: totalNotificationAlert });
         } else {
             res.status(500).json({ success: false, error: result.error });
         }
