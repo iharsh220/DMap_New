@@ -923,6 +923,14 @@ const getTaskById = async (req, res) => {
             return res.status(404).json({ success: false, error: 'Task not found' });
         }
 
+        // Reset notification_alert to 0 if it is 1
+        if (taskResult.notification_alert == 1) {
+            await Tasks.update(
+                { notification_alert: 0 },
+                { where: { id: taskId, notification_alert: 1 } }
+            );
+        }
+
         // Flatten documents from all task assignments
         taskResult.dataValues.documents = (taskResult.taskAssignments || []).flatMap(ta => ta.taskDocuments || []);
         delete taskResult.dataValues.taskAssignments;
