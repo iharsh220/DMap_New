@@ -1035,6 +1035,15 @@ const getAssignedWorkRequestById = async (req, res) => {
         // Add task users to the work request response
         workRequest.dataValues.taskUsers = taskUsers;
 
+        // Reset notification_alert to 0 for all tasks in this work request where it is 1
+        if (workRequest.Tasks && workRequest.Tasks.length > 0) {
+            const taskIds = workRequest.Tasks.map(t => t.id);
+            await Tasks.update(
+                { notification_alert: 0 },
+                { where: { id: { [Op.in]: taskIds }, notification_alert: 1 } }
+            );
+        }
+
         res.json({ success: true, data: workRequest });
     } catch (error) {
         console.error('Error fetching assigned work request:', error);
