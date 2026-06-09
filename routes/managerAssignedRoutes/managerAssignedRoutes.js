@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getAssignedWorkRequests, getAssignedWorkRequestById, acceptWorkRequest, acceptIssueRequest, deferWorkRequest, updateWorkRequestProject, deleteWorkRequest, deleteTask, getMyTasks, getAssignableUsers, getTaskTypesByWorkRequest, createTask, getTasksByWorkRequestId, getTaskAnalytics, getMyTeam, assignTasksToUsers, getAssignedRequestsWithStatus, getUserTask, updateTask, reviewTaskDocument, reviewIssueDocument, reviewTask, shareForClientReview, assignIssueToUser, getIssueAssignments, completeAllTasksAndIssues } = require('../../controller/managerAssignedController/managerAssignedController');
+const { getAssignedWorkRequests, getAssignedWorkRequestById, acceptWorkRequest, acceptIssueRequest, deferWorkRequest, updateWorkRequestProject, deleteWorkRequest, deleteTask, getMyTasks, getAssignableUsers, getTaskTypesByWorkRequest, createTask, getTasksByWorkRequestId, getTaskAnalytics, getMyTeam, getAssignedRequestsWithStatus, getUserTask, updateTask, reviewTaskDocument, reviewIssueDocument, reviewTask, shareForClientReview, assignIssueToUser, getIssueAssignments, completeAllTasksAndIssues } = require('../../controller/managerAssignedController/managerAssignedController');
 const { authenticateToken } = require('../../middleware/jwtMiddleware');
 const { checkRole } = require('../../middleware/roleMiddleware');
 const filterMiddleware = require('../../middleware/filterMiddleware');
@@ -42,7 +42,6 @@ router.delete('/:id', authenticateToken, checkRole([1, 2, 3]), deleteWorkRequest
 router.get('/:id/assignable-users', authenticateToken, checkRole([1, 2, 3]), getAssignableUsers); // Get users that can be assigned tasks for a specific work request
 router.get('/id/task-types', authenticateToken, checkRole([1, 2, 3]), getTaskTypesByWorkRequest); // Get task types for a specific work request based on its project_id or directly by project_id query param
 router.get('/:id/analytics', authenticateToken, checkRole([1, 2, 3]), getTaskAnalytics); // Get task analytics for a specific work request
-router.post('/:id/assign-tasks', authenticateToken, checkRole([1, 2, 3]), assignTasksToUsers); // Send task assignment notifications to users
 
 // Complete all tasks and issues for a work request
 router.put('/complete', authenticateToken, completeAllTasksAndIssues); // Complete all tasks and issues for a work request
