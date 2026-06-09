@@ -362,6 +362,9 @@ const getAssignedTasks = async (req, res) => {
             ]
         });
 
+        // Calculate total notification count: count of tasks with notification_alert = 1
+        const totalNotificationAlert = tasks.filter(task => task.notification_alert == 1).length;
+
         // Sort WorkRequestManagers by nested manager ID ascending (23 then 27)
         tasks.forEach(task => {
             if (task.WorkRequest && task.WorkRequest.WorkRequestManagers) {
@@ -472,6 +475,7 @@ const getAssignedTasks = async (req, res) => {
             success: true,
             data: tasks,
             pagination: req.pagination,
+            notification_alert_count: totalNotificationAlert,
             message: 'Assigned tasks retrieved successfully'
         });
     } catch (error) {
