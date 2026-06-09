@@ -442,8 +442,8 @@ const getAssignedWorkRequests = async (req, res) => {
         if (result.success) {
             const managerId = req.user.id;
 
-            // Calculate total notification count: count of pending work requests with notification_alert = 1
-            const totalNotificationAlert = result.data.filter(wr => wr.status === 'pending' && wr.notification_alert == 1).length;
+            // Calculate total notification count: count of work requests with notification_alert = 1
+            const totalNotificationAlert = result.data.filter(wr => wr.notification_alert == 1).length;
 
             // Collect unique user IDs
             const userIds = [...new Set(result.data.map(wr => wr.user_id))];
@@ -1043,6 +1043,12 @@ const getAssignedWorkRequestById = async (req, res) => {
                 { where: { id: { [Op.in]: taskIds }, notification_alert: 1 } }
             );
         }
+
+        // Reset notification_alert to 0 for the work request
+        await WorkRequests.update(
+            { notification_alert: 0 },
+            { where: { id: id, notification_alert: 1 } }
+        );
 
         res.json({ success: true, data: workRequest });
     } catch (error) {
