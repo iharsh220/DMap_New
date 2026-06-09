@@ -4921,6 +4921,7 @@ const getIssueAssignments = async (req, res) => {
                 issue_id: issue.issue_id,
                 version: issue.version,
                 description: issue.description,
+                notification_alert: issue.notification_alert,
                 // Issue deadline - shown at top level for easy access
                 deadline: issue.deadline,
                 start_date: issue.start_date,
@@ -5018,9 +5019,13 @@ const getIssueAssignments = async (req, res) => {
             };
         });
 
+        // Calculate total notification count: count of issue assignments with notification_alert = 1
+        const totalNotificationAlert = formattedData.filter(issue => issue.notification_alert == 1).length;
+
         res.json({
             success: true,
             data: formattedData,
+            notification_alert_count: totalNotificationAlert,
             message: 'Issue assignments retrieved successfully'
         });
     } catch (error) {
