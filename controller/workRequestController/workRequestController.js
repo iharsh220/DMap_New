@@ -159,7 +159,8 @@ const createWorkRequest = async (req, res) => {
             priority,
             status: isdraft === 'true' ? 'draft' : 'pending',
             requested_at: new Date(),
-            remarks
+            remarks,
+            notification_alert: 1
         };
 
         const result = await workRequestService.create(workRequestData);
