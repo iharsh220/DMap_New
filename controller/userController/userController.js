@@ -2034,9 +2034,13 @@ const getAssignedIssues = async (req, res) => {
             };
         });
 
+        // Calculate total notification count: count of issue assignments with notification_alert = 1
+        const totalNotificationAlert = issueAssignments.filter(ia => ia.notification_alert == 1).length;
+
         res.json({
             success: true,
             data: result,
+            notification_alert_count: totalNotificationAlert,
             message: 'Assigned issues retrieved successfully'
         });
     } catch (error) {
