@@ -1994,6 +1994,7 @@ const getAssignedIssues = async (req, res) => {
                     review_stage: ia.review_stage,
                     intimate_team: ia.intimate_team,
                     intimate_client: ia.intimate_client,
+                    notification_alert: ia.notification_alert,
                     created_at: ia.created_at,
                     updated_at: ia.updated_at
                 },
@@ -2134,7 +2135,8 @@ const acceptIssue = async (req, res) => {
         // Prepare update data
         const updateData = {
             status: newStatus,
-            start_date: finalStartDate
+            start_date: finalStartDate,
+            notification_alert: 0
         };
 
         // Update the issue assignment
