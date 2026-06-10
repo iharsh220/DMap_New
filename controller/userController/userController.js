@@ -373,17 +373,20 @@ const getAssignedTasks = async (req, res) => {
 
         tasks.forEach(task => {
             if (isManager) {
-                // Manager: show notification_alert = 1 when review = 'pending' AND review_stage = 'manager_review'
-                // Manager doesn't need to be directly assigned - they review tasks in their division
-                if (task.review === 'pending' && task.review_stage === 'manager_review') {
-                    // Keep original notification_alert value (should be 1)
+                // Manager: only keep notification_alert = 1 if database already has 1 AND review = 'pending' AND review_stage = 'manager_review'
+                if (task.notification_alert == 1 && task.review === 'pending' && task.review_stage === 'manager_review') {
+                    // Keep as 1
                 } else {
                     task.dataValues.notification_alert = 0;
                 }
             } else if (isCreativeUser) {
-                // For creative user: only show notification_alert = 1 when status=pending, review=pending, review_stage=not_started
-                if (task.status === 'pending' && task.review === 'pending' && task.review_stage === 'not_started') {
-                    // Keep original notification_alert value (should be 1)
+                // For creative user: only keep notification_alert = 1 if database already has 1 AND:
+                // 1. status=pending, review=pending, review_stage=not_started
+                // 2. status=in_progress, review=pending, review_stage=manager_review
+                const isPendingNotStarted = task.status === 'pending' && task.review === 'pending' && task.review_stage === 'not_started';
+                const isInProgressManagerReview = task.status === 'in_progress' && task.review === 'pending' && task.review_stage === 'manager_review';
+                if (task.notification_alert == 1 && (isPendingNotStarted || isInProgressManagerReview)) {
+                    // Keep as 1
                 } else {
                     task.dataValues.notification_alert = 0;
                 }
@@ -391,15 +394,20 @@ const getAssignedTasks = async (req, res) => {
         });
 
         // Calculate total notification count based on user role
-        // Creative Manager (job_role_id = 2): show count only for tasks with review = 'pending' AND review_stage = 'manager_review'
-        // Creative User (job_role_id = 4): show count only for tasks with status = 'pending' AND review = 'pending' AND review_stage = 'not_started'
+        // Count only tasks that have notification_alert = 1 in database AND meet the conditions
         let totalNotificationAlert = 0;
         if (isManager) {
-            // Manager: count tasks with notification_alert = 1 that are in manager_review stage
+            // Manager: count tasks with notification_alert = 1 AND review = 'pending' AND review_stage = 'manager_review'
             totalNotificationAlert = tasks.filter(task => task.notification_alert == 1 && task.review === 'pending' && task.review_stage === 'manager_review').length;
         } else if (isCreativeUser) {
-            // Creative User: count only tasks with notification_alert = 1 AND status = 'pending' AND review = 'pending' AND review_stage = 'not_started'
-            totalNotificationAlert = tasks.filter(task => task.notification_alert == 1 && task.status === 'pending' && task.review === 'pending' && task.review_stage === 'not_started').length;
+            // Creative User: count tasks with notification_alert = 1 AND:
+            // 1. status=pending, review=pending, review_stage=not_started
+            // 2. status=in_progress, review=pending, review_stage=manager_review
+            totalNotificationAlert = tasks.filter(task => {
+                const isPendingNotStarted = task.status === 'pending' && task.review === 'pending' && task.review_stage === 'not_started';
+                const isInProgressManagerReview = task.status === 'in_progress' && task.review === 'pending' && task.review_stage === 'manager_review';
+                return task.notification_alert == 1 && (isPendingNotStarted || isInProgressManagerReview);
+            }).length;
         } else {
             // Default: count all tasks with notification_alert = 1
             totalNotificationAlert = tasks.filter(task => task.notification_alert == 1).length;

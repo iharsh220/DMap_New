@@ -3561,7 +3561,7 @@ const reviewTask = async (req, res) => {
                 }
             }
 
-            updateData.notification_alert = 0;
+            // updateData.notification_alert = 0;
             await Tasks.update(updateData, { where: { id: taskId } });
 
             // If action is change_request, delete all related task documents
