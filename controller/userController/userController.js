@@ -362,29 +362,44 @@ const getAssignedTasks = async (req, res) => {
             ]
         });
 
-        // Modify notification_alert based on user role for each task
-        // Creative Manager (job_role_id = 2): set notification_alert = 0 for all tasks
-        // Creative User (job_role_id = 4): keep notification_alert as is (1 for pending, 0 for others)
+        // Modify notification_alert based on user role and assignment for each task
+        // Creative Manager (job_role_id = 2):
+        //   - If manager is assigned to the task AND review = 'pending' AND review_stage = 'manager_review': keep notification_alert as is (1)
+        //   - Otherwise: notification_alert = 0
+        // Creative User (job_role_id = 4):
+        //   - If status = 'pending' AND review = 'pending' AND review_stage = 'not_started': keep notification_alert as is (1)
+        //   - Otherwise: notification_alert = 0
         const isCreativeUser = req.user.jobRole && req.user.jobRole.id === 4;
 
         tasks.forEach(task => {
             if (isManager) {
-                // Manager: set notification_alert to 0 for all tasks
-                task.dataValues.notification_alert = 0;
+                // Manager: show notification_alert = 1 when review = 'pending' AND review_stage = 'manager_review'
+                // Manager doesn't need to be directly assigned - they review tasks in their division
+                if (task.review === 'pending' && task.review_stage === 'manager_review') {
+                    // Keep original notification_alert value (should be 1)
+                } else {
+                    task.dataValues.notification_alert = 0;
+                }
+            } else if (isCreativeUser) {
+                // For creative user: only show notification_alert = 1 when status=pending, review=pending, review_stage=not_started
+                if (task.status === 'pending' && task.review === 'pending' && task.review_stage === 'not_started') {
+                    // Keep original notification_alert value (should be 1)
+                } else {
+                    task.dataValues.notification_alert = 0;
+                }
             }
-            // For creative user, keep original notification_alert value
         });
 
         // Calculate total notification count based on user role
-        // Creative Manager (job_role_id = 2): show count for all statuses
-        // Creative User (job_role_id = 4): show count only for pending status
+        // Creative Manager (job_role_id = 2): show count only for tasks with review = 'pending' AND review_stage = 'manager_review'
+        // Creative User (job_role_id = 4): show count only for tasks with status = 'pending' AND review = 'pending' AND review_stage = 'not_started'
         let totalNotificationAlert = 0;
         if (isManager) {
-            // Manager: count all tasks with notification_alert = 1
-            totalNotificationAlert = tasks.filter(task => task.notification_alert == 1).length;
+            // Manager: count tasks with notification_alert = 1 that are in manager_review stage
+            totalNotificationAlert = tasks.filter(task => task.notification_alert == 1 && task.review === 'pending' && task.review_stage === 'manager_review').length;
         } else if (isCreativeUser) {
-            // Creative User: count only tasks with notification_alert = 1 AND status = 'pending'
-            totalNotificationAlert = tasks.filter(task => task.notification_alert == 1 && task.status === 'pending').length;
+            // Creative User: count only tasks with notification_alert = 1 AND status = 'pending' AND review = 'pending' AND review_stage = 'not_started'
+            totalNotificationAlert = tasks.filter(task => task.notification_alert == 1 && task.status === 'pending' && task.review === 'pending' && task.review_stage === 'not_started').length;
         } else {
             // Default: count all tasks with notification_alert = 1
             totalNotificationAlert = tasks.filter(task => task.notification_alert == 1).length;
@@ -949,12 +964,12 @@ const getTaskById = async (req, res) => {
         }
 
         // Reset notification_alert to 0 if it is 1
-        if (taskResult.notification_alert == 1) {
-            await Tasks.update(
-                { notification_alert: 0 },
-                { where: { id: taskId, notification_alert: 1 } }
-            );
-        }
+        // if (taskResult.notification_alert == 1) {
+        //     await Tasks.update(
+        //         { notification_alert: 0 },
+        //         { where: { id: taskId, notification_alert: 1 } }
+        //     );
+        // }
 
         // Flatten documents from all task assignments
         taskResult.dataValues.documents = (taskResult.taskAssignments || []).flatMap(ta => ta.taskDocuments || []);
@@ -1085,7 +1100,8 @@ const acceptTask = async (req, res) => {
 
         // Prepare update data
         const updateData = {
-            status: 'accepted' // Default status
+            status: 'accepted', // Default status
+            notification_alert: 0 // Reset notification alert when task is accepted
         };
 
         // Set start_date automatically if deadline is today or in the future and no start_date provided
