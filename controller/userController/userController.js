@@ -2261,7 +2261,8 @@ const submitIssue = async (req, res) => {
                 review: 'pending',
                 review_stage: 'manager_review', // Set review_stage to manager_review when issue is completed
                 link: link || issueAssignment.link,
-                description: description || issueAssignment.description
+                description: description || issueAssignment.description,
+                notification_alert: 1
             };
 
             // Validate that end_date is not before start_date
