@@ -98,7 +98,7 @@ app.use('*', (req, res) => {
     res.status(404).json({ error: 'Route not found' });
 });
 
-const PORT = process.env.PORT || 1005;
+const PORT = process.env.PORT || 1007;
 
 // Connect to database
 connectDB();
