@@ -798,7 +798,20 @@ const getMyWorkRequests = async (req, res) => {
                 }
                 workRequest.dataValues.project_deadline = projectDeadline;
             });
-            res.json({ success: true, data: result.data, pagination: req.pagination });
+
+            // Calculate total notification_alert count across all tasks in all work requests
+            let totalNotificationAlert = 0;
+            result.data.forEach(workRequest => {
+                if (workRequest.Tasks && workRequest.Tasks.length > 0) {
+                    workRequest.Tasks.forEach(task => {
+                        if (task.notification_alert == 1) {
+                            totalNotificationAlert++;
+                        }
+                    });
+                }
+            });
+
+            res.json({ success: true, data: result.data, pagination: req.pagination, notification_alert_count: totalNotificationAlert });
         } else {
             res.status(500).json({ success: false, error: result.error });
         }
@@ -1128,6 +1141,36 @@ const getWorkRequestById = async (req, res) => {
 
             // Add taskUsers to the work request response
             workRequest.dataValues.taskUsers = taskUsers;
+
+            // Reset notification_alert to 0 for all tasks and issue_assignments linked to this work request
+            if (workRequest.Tasks && workRequest.Tasks.length > 0) {
+                const taskIds = workRequest.Tasks.map(task => task.id);
+                const issueAssignmentIds = [];
+
+                workRequest.Tasks.forEach(task => {
+                    task.dataValues.notification_alert = 0;
+                    if (task.issueAssignments && task.issueAssignments.length > 0) {
+                        task.issueAssignments.forEach(issue => {
+                            issue.dataValues.notification_alert = 0;
+                            issueAssignmentIds.push(issue.id);
+                        });
+                    }
+                });
+
+                // Update tasks in database
+                await Tasks.update(
+                    { notification_alert: 0 },
+                    { where: { id: { [Op.in]: taskIds } } }
+                );
+
+                // Update issue_assignments in database
+                if (issueAssignmentIds.length > 0) {
+                    await IssueAssignments.update(
+                        { notification_alert: 0 },
+                        { where: { id: { [Op.in]: issueAssignmentIds } } }
+                    );
+                }
+            }
 
             res.json({ success: true, data: workRequest });
         } else {
