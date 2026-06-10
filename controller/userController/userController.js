@@ -362,8 +362,33 @@ const getAssignedTasks = async (req, res) => {
             ]
         });
 
-        // Calculate total notification count: count of tasks with notification_alert = 1
-        const totalNotificationAlert = tasks.filter(task => task.notification_alert == 1).length;
+        // Modify notification_alert based on user role for each task
+        // Creative Manager (job_role_id = 2): set notification_alert = 0 for all tasks
+        // Creative User (job_role_id = 4): keep notification_alert as is (1 for pending, 0 for others)
+        const isCreativeUser = req.user.jobRole && req.user.jobRole.id === 4;
+
+        tasks.forEach(task => {
+            if (isManager) {
+                // Manager: set notification_alert to 0 for all tasks
+                task.dataValues.notification_alert = 0;
+            }
+            // For creative user, keep original notification_alert value
+        });
+
+        // Calculate total notification count based on user role
+        // Creative Manager (job_role_id = 2): show count for all statuses
+        // Creative User (job_role_id = 4): show count only for pending status
+        let totalNotificationAlert = 0;
+        if (isManager) {
+            // Manager: count all tasks with notification_alert = 1
+            totalNotificationAlert = tasks.filter(task => task.notification_alert == 1).length;
+        } else if (isCreativeUser) {
+            // Creative User: count only tasks with notification_alert = 1 AND status = 'pending'
+            totalNotificationAlert = tasks.filter(task => task.notification_alert == 1 && task.status === 'pending').length;
+        } else {
+            // Default: count all tasks with notification_alert = 1
+            totalNotificationAlert = tasks.filter(task => task.notification_alert == 1).length;
+        }
 
         // Sort WorkRequestManagers by nested manager ID ascending (23 then 27)
         tasks.forEach(task => {
@@ -1256,7 +1281,8 @@ const submitTask = async (req, res) => {
                 status: 'completed',
                 review: 'pending',
                 end_date: new Date(),
-                review_stage: 'manager_review' // Set review_stage to manager_review when task is completed
+                review_stage: 'manager_review', // Set review_stage to manager_review when task is completed
+                notification_alert: 1
             };
 
             // Add start_date if provided in request body
