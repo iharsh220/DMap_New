@@ -4365,8 +4365,8 @@ const acceptIssueRequest = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Issue request is already accepted by manager' });
         }
 
-        // Update status to m_accepted
-        await IssueAssignments.update({ status: 'm_accepted' }, { where: { id } });
+        // Update status to m_accepted and reset notification_alert
+        await IssueAssignments.update({ status: 'm_accepted', notification_alert: 0 }, { where: { id } });
 
         // Get work request details for email
         let workRequest = null;
