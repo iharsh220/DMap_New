@@ -640,6 +640,14 @@ const getIssueDetailsData = async (req, res) => {
 
                 COALESCE(NULLIF(TRIM(tt.task_type), ''), 'N/A')                AS task_type_name,
                 COALESCE(NULLIF(TRIM(ru.name), ''), 'N/A')                     AS issue_requester_name,
+                COALESCE(
+                    NULLIF(
+                        (SELECT GROUP_CONCAT(DISTINCT d.title ORDER BY d.title SEPARATOR ', ')
+                         FROM user_divisions ud
+                         JOIN division d ON d.id = ud.division_id
+                         WHERE ud.user_id = wr.user_id),
+                    ''),
+                'N/A')                                                          AS client_division,
                 COALESCE(NULLIF(TRIM(ia.assignment_type), ''), 'N/A')          AS issue_assignment_type,
 
                 COALESCE(
@@ -665,15 +673,16 @@ const getIssueDetailsData = async (req, res) => {
                 COALESCE(ia.no_of_images_videos_audio, 0)                      AS issue_no_of_ai_page,
                 COALESCE(ia.duration_minutes, 0)                               AS issue_duration_minutes,
                 COALESCE(ia.duration_seconds, 0)                               AS issue_duration_seconds,
+                COALESCE(ia.duration_minutes, 0) * 60 + COALESCE(ia.duration_seconds, 0) AS issue_video_duration,
                 COALESCE(ia.no_of_products_shot, 0)                            AS issue_no_of_products_shot,
                 ia.shoot_setup                                                  AS issue_shoot_setup,
                 COALESCE(ia.no_of_words_written, 0)                            AS issue_no_of_words_written,
                 ia.responsive_screen                                            AS issue_responsive_screen,
 
                 COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A')                         AS issue_requested_at_client,
-                COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A')                         AS issue_requested_accept_at_cm,
+                COALESCE(DATE_FORMAT((SELECT MIN(wrm2.created_at) FROM work_request_managers wrm2 WHERE wrm2.work_request_id = wr.id), '%d-%b-%Y %H:%i'), 'N/A') AS issue_requested_accept_at_cm,
 
-                COALESCE(DATE_FORMAT(MIN(iua.created_at), '%d-%b-%Y %H:%i'), 'N/A')                     AS issue_requested_atassign_intimate_cu,
+                COALESCE(DATE_FORMAT(MIN(iua.created_at), '%d-%b-%Y %H:%i'), 'N/A')                     AS issue_requested_at_assign_intimate_cu,
 
                 COALESCE(
                     DATE_FORMAT(
@@ -773,7 +782,7 @@ const getIssueDetailsData = async (req, res) => {
                 ia.created_at, ia.updated_at, ia.comments, ia.description,
                 rt.request_type,
                 tt.task_type,
-                ru.name,
+                ru.id, ru.name,
                 dept.department_name,
                 d.title
             ORDER BY ia.id DESC
