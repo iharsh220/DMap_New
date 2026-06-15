@@ -870,6 +870,10 @@ const getWorkRequestTasksData = async (req, res) => {
                 
                 creator.id AS request_creator_id,
                 creator.name AS request_creator_name,
+                COALESCE(NULLIF((SELECT GROUP_CONCAT(DISTINCT d.title ORDER BY d.title SEPARATOR ', ')
+                                 FROM user_divisions ud
+                                 JOIN division d ON d.id = ud.division_id
+                                 WHERE ud.user_id = creator.id), ''), 'N/A') AS request_creator_division,
                 creator.email AS request_creator_email,
                 creator.phone AS request_creator_phone,
                 creator_dept.department_name AS request_creator_department,
@@ -886,7 +890,7 @@ const getWorkRequestTasksData = async (req, res) => {
                  FROM work_request_managers wrm
                  WHERE wrm.work_request_id = wr.id) AS manager_ids,
 
-                wr.requested_at AS project_requested_accept_at_cm,
+                COALESCE(DATE_FORMAT((SELECT MIN(wrm2.created_at) FROM work_request_managers wrm2 WHERE wrm2.work_request_id = wr.id), '%d-%b-%Y %H:%i'), 'N/A') AS project_requested_accept_at_cm,
 
                 (SELECT DATE_FORMAT(MIN(t2.start_date), '%d-%b-%Y %H:%i')
                  FROM tasks t2 WHERE t2.work_request_id = wr.id) AS project_start_date,
@@ -946,6 +950,7 @@ const getWorkRequestTasksData = async (req, res) => {
                 t.no_of_concepts AS task_no_of_concepts,
                 t.duration_minutes AS task_duration_minutes,
                 t.duration_seconds AS task_duration_seconds,
+                COALESCE(t.duration_minutes, 0) * 60 + COALESCE(t.duration_seconds, 0) AS task_video_duration,
                 t.product_shoot AS task_product_shoot,
                 t.no_of_products_shot AS task_no_of_products_shot,
                 t.shoot_setup AS task_shoot_setup,
@@ -969,7 +974,7 @@ const getWorkRequestTasksData = async (req, res) => {
 
                 COALESCE(DATE_FORMAT(
                     (SELECT MIN(ta2.created_at) FROM task_assignments ta2 WHERE ta2.task_id = t.id),
-                '%d-%b-%Y %H:%i'), 'N/A') AS task_requested_atassign_intimate_cu,
+                '%d-%b-%Y %H:%i'), 'N/A') AS task_requested_at_assign_intimate_cu,
 
                 COALESCE(DATE_FORMAT(
                     (SELECT MIN(trh.created_at) FROM task_review_history trh
@@ -1021,7 +1026,7 @@ const getWorkRequestTasksData = async (req, res) => {
                 ia.intimate_client AS issue_intimate_client,
                 ia.shared_with_client_at AS issue_shared_with_client_at,
                 ia.task_count AS issue_task_count_pages,
-                ia.task_count AS issue_work_pages,
+                ia.task_count AS issue_no_of_work_pages,
                 ia.start_date AS issue_start_date,
                 ia.end_date AS issue_end_date,
                 ia.link AS issue_link,
@@ -1041,6 +1046,7 @@ const getWorkRequestTasksData = async (req, res) => {
                 ia.no_of_concepts AS issue_no_of_concepts,
                 ia.duration_minutes AS issue_duration_minutes,
                 ia.duration_seconds AS issue_duration_seconds,
+                COALESCE(ia.duration_minutes, 0) * 60 + COALESCE(ia.duration_seconds, 0) AS issue_video_duration,
                 ia.product_shoot AS issue_product_shoot,
                 ia.no_of_products_shot AS issue_no_of_products_shot,
                 ia.shoot_setup AS issue_shoot_setup,
@@ -1054,11 +1060,11 @@ const getWorkRequestTasksData = async (req, res) => {
                 ia.comments AS issue_comments,
 
                 COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A') AS issue_requested_at_client,
-                COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A') AS issue_requested_accept_at_cm,
+                COALESCE(DATE_FORMAT((SELECT MIN(wrm2.created_at) FROM work_request_managers wrm2 WHERE wrm2.work_request_id = wr.id), '%d-%b-%Y %H:%i'), 'N/A') AS issue_requested_accept_at_cm,
 
                 COALESCE(DATE_FORMAT(
                     (SELECT MIN(iua2.created_at) FROM issue_user_assignments iua2 WHERE iua2.issue_assignment_id = ia.id),
-                '%d-%b-%Y %H:%i'), 'N/A') AS issue_requested_atassign_intimate_cu,
+                '%d-%b-%Y %H:%i'), 'N/A') AS issue_requested_at_assign_intimate_cu,
 
                 COALESCE(DATE_FORMAT(
                     (SELECT MIN(trh.created_at) FROM task_review_history trh
