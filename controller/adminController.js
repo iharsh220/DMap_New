@@ -342,18 +342,10 @@ const getAdminData = async (req, res) => {
                 COALESCE((SELECT SUM(COALESCE(t2.resize_work, 0)) FROM tasks t2 WHERE t2.work_request_id = wr.id), 0) AS task_resize_work,
                 COALESCE((SELECT SUM(COALESCE(t2.no_of_images_videos_audio, 0)) FROM tasks t2 WHERE t2.work_request_id = wr.id), 0) AS task_ai,
                 COALESCE((SELECT SUM(COALESCE(t2.shoot_setup, 0)) FROM tasks t2 WHERE t2.work_request_id = wr.id), 0) AS task_shoot_setup,
-                CASE
-                    WHEN COALESCE((SELECT SUM(COALESCE(t2.duration_minutes, 0) + COALESCE(t2.duration_seconds, 0)) FROM tasks t2 WHERE t2.work_request_id = wr.id), 0) = 0 THEN 'N/A'
-                    ELSE CONCAT(
-                        FLOOR(COALESCE((SELECT SUM(COALESCE(t2.duration_minutes, 0) + COALESCE(t2.duration_seconds, 0)) FROM tasks t2 WHERE t2.work_request_id = wr.id), 0) / 60),
-                        'm ',
-                        LPAD(MOD(COALESCE((SELECT SUM(COALESCE(t2.duration_minutes, 0) + COALESCE(t2.duration_seconds, 0)) FROM tasks t2 WHERE t2.work_request_id = wr.id), 0), 60), 2, '0'),
-                        's'
-                    )
-                END                                                          AS video_duration,
+                COALESCE((SELECT SUM(COALESCE(t2.duration_minutes, 0) * 60 + COALESCE(t2.duration_seconds, 0)) FROM tasks t2 WHERE t2.work_request_id = wr.id), 0) AS video_duration,
 
                 COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A')               AS project_requested_at_client,
-                COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A')               AS project_request_accept_at_cm,
+                COALESCE(DATE_FORMAT((SELECT MIN(wrm2.created_at) FROM work_request_managers wrm2 WHERE wrm2.work_request_id = wr.id), '%d-%b-%Y %H:%i'), 'N/A') AS project_request_accept_at_cm,
                 COALESCE(DATE_FORMAT(MIN(t.start_date), '%d-%b-%Y %H:%i'), 'N/A')             AS project_start_date,
                 COALESCE(DATE_FORMAT(MAX(t.end_date), '%d-%b-%Y %H:%i'), 'N/A')               AS project_end_date,
                 COALESCE(DATE_FORMAT(MAX(t.deadline), '%d-%b-%Y %H:%i'), 'N/A')               AS project_deadline,
@@ -469,22 +461,21 @@ const getTaskDetailsData = async (req, res) => {
                 COALESCE(NULLIF(TRIM(wr.brand), ''), 'N/A')                    AS brand,
                 COALESCE(NULLIF(TRIM(rt.request_type), ''), 'N/A')             AS task_request_type_name,
 
-                COALESCE(
-                    NULLIF(
-                        (SELECT GROUP_CONCAT(DISTINCT mu2.name ORDER BY mu2.name SEPARATOR ', ')
-                         FROM work_request_managers wrm2
-                         JOIN users mu2 ON mu2.id = wrm2.manager_id
-                         WHERE wrm2.work_request_id = wr.id),
-                    ''),
-                'N/A')                                                          AS vertical_manger_name,
-
                 COALESCE(NULLIF(TRIM(tt.task_type), ''), 'N/A')                AS task_type_name,
                 COALESCE(NULLIF(TRIM(ru.name), ''), 'N/A')                     AS task_requester_name,
+                COALESCE(
+                    NULLIF(
+                        (SELECT GROUP_CONCAT(DISTINCT d.title ORDER BY d.title SEPARATOR ', ')
+                         FROM user_divisions ud
+                         JOIN division d ON d.id = ud.division_id
+                         WHERE ud.user_id = ru.id),
+                    ''),
+                'N/A')                                                          AS client_division,
                 COALESCE(NULLIF(TRIM(t.assignment_type), ''), 'N/A')           AS task_assignment_type,
 
                 COALESCE(
                      NULLIF(GROUP_CONCAT(DISTINCT au.name ORDER BY au.name SEPARATOR ', '), ''),
-                 'N/A')                                                          AS tas_assigned_user_name,
+                 'N/A')                                                          AS task_assigned_user_name,
 
                  COALESCE(NULLIF(TRIM(d.title), ''), 'N/A')                     AS vertical_name,
 
@@ -505,15 +496,16 @@ const getTaskDetailsData = async (req, res) => {
                 COALESCE(t.no_of_images_videos_audio, 0)                       AS task_no_of_ai_page,
                 COALESCE(t.duration_minutes, 0)                                AS task_duration_minutes,
                 COALESCE(t.duration_seconds, 0)                                AS task_duration_seconds,
+                COALESCE(t.duration_minutes, 0) * 60 + COALESCE(t.duration_seconds, 0) AS video_duration,
                 COALESCE(t.no_of_products_shot, 0)                             AS task_no_of_products_shot,
                 t.shoot_setup                                                   AS task_shoot_setup,
                 COALESCE(t.no_of_words_written, 0)                             AS task_no_of_words_written,
                 COALESCE(t.no_of_responsive_screen, 0)                         AS task_no_of_responsive_screen,
 
                 COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A')                        AS project_requested_at_client,
-                COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A')                        AS project_requested_accept_at_cm,
+                COALESCE(DATE_FORMAT((SELECT MIN(wrm2.created_at) FROM work_request_managers wrm2 WHERE wrm2.work_request_id = wr.id), '%d-%b-%Y %H:%i'), 'N/A') AS project_requested_accept_at_cm,
 
-                COALESCE(DATE_FORMAT(MIN(ta.created_at), '%d-%b-%Y %H:%i'), 'N/A')                     AS task_requested_atassign_intimate_cu,
+                COALESCE(DATE_FORMAT(MIN(ta.created_at), '%d-%b-%Y %H:%i'), 'N/A')                     AS task_requested_at_assign_intimate_cu,
 
                 COALESCE(
                     DATE_FORMAT(
@@ -595,10 +587,10 @@ const getTaskDetailsData = async (req, res) => {
                  t.shared_with_client_at, t.start_date, t.end_date, t.deadline,
                  t.review, t.review_stage, t.status, t.created_at, t.updated_at,
                  t.comments, t.description,
-                 rt.request_type,
-                 tt.task_type, tt.description,
-                 ru.name,
-                 dept.department_name,
+                  rt.request_type,
+                  tt.task_type, tt.description,
+                  ru.id, ru.name,
+                  dept.department_name,
                  d.title
              ORDER BY t.id DESC
         `;
