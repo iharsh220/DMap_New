@@ -308,6 +308,14 @@ const getAdminData = async (req, res) => {
                 'N/A')                                                       AS digi_vertical_manager_name,
 
                 COALESCE(NULLIF(TRIM(ru.name), ''), 'N/A')                  AS project_requester_name,
+                COALESCE(
+                    NULLIF(
+                        (SELECT GROUP_CONCAT(DISTINCT d.title ORDER BY d.title SEPARATOR ', ')
+                         FROM user_divisions ud
+                         JOIN division d ON d.id = ud.division_id
+                         WHERE ud.user_id = ru.id),
+                    ''),
+                'N/A')                                                       AS client_division,
                 COALESCE(NULLIF(TRIM(ru.email), ''), 'N/A')                 AS project_request_creator_email,
                 COALESCE(NULLIF(TRIM(ru.phone), ''), 'N/A')                 AS project_request_creator_phone,
                 COALESCE(NULLIF(TRIM(dept.department_name), ''), 'N/A')     AS project_request_creator_department,
@@ -324,6 +332,25 @@ const getAdminData = async (req, res) => {
                 COUNT(DISTINCT ia.id)                                        AS issue_task_count,
                 COALESCE(SUM(DISTINCT t.task_count), 0)                     AS task_no_of_work_pages,
                 COALESCE(SUM(DISTINCT ia.task_count), 0)                    AS issue_no_of_work_pages,
+                COALESCE((SELECT SUM(COALESCE(t2.no_of_options_provided, 0)) FROM tasks t2 WHERE t2.work_request_id = wr.id), 0) AS task_no_of_options_provided,
+                COALESCE((SELECT SUM(COALESCE(t2.concept_work, 0)) FROM tasks t2 WHERE t2.work_request_id = wr.id), 0) AS task_concept_work,
+                COALESCE((SELECT SUM(COALESCE(t2.no_of_resize, 0)) FROM tasks t2 WHERE t2.work_request_id = wr.id), 0) AS task_no_of_resize,
+                COALESCE((SELECT SUM(COALESCE(t2.no_of_images_videos_audio, 0)) FROM tasks t2 WHERE t2.work_request_id = wr.id), 0) AS task_no_of_ai_page,
+                COALESCE((SELECT SUM(COALESCE(t2.no_of_products_shot, 0)) FROM tasks t2 WHERE t2.work_request_id = wr.id), 0) AS task_no_of_products_shot,
+                COALESCE((SELECT SUM(COALESCE(t2.no_of_words_written, 0)) FROM tasks t2 WHERE t2.work_request_id = wr.id), 0) AS task_no_of_words_written,
+                COALESCE((SELECT SUM(COALESCE(t2.no_of_responsive_screen, 0)) FROM tasks t2 WHERE t2.work_request_id = wr.id), 0) AS task_no_of_responsive_screen,
+                COALESCE((SELECT SUM(COALESCE(t2.resize_work, 0)) FROM tasks t2 WHERE t2.work_request_id = wr.id), 0) AS task_resize_work,
+                COALESCE((SELECT SUM(COALESCE(t2.no_of_images_videos_audio, 0)) FROM tasks t2 WHERE t2.work_request_id = wr.id), 0) AS task_ai,
+                COALESCE((SELECT SUM(COALESCE(t2.shoot_setup, 0)) FROM tasks t2 WHERE t2.work_request_id = wr.id), 0) AS task_shoot_setup,
+                CASE
+                    WHEN COALESCE((SELECT SUM(COALESCE(t2.duration_minutes, 0) + COALESCE(t2.duration_seconds, 0)) FROM tasks t2 WHERE t2.work_request_id = wr.id), 0) = 0 THEN 'N/A'
+                    ELSE CONCAT(
+                        FLOOR(COALESCE((SELECT SUM(COALESCE(t2.duration_minutes, 0) + COALESCE(t2.duration_seconds, 0)) FROM tasks t2 WHERE t2.work_request_id = wr.id), 0) / 60),
+                        'm ',
+                        LPAD(MOD(COALESCE((SELECT SUM(COALESCE(t2.duration_minutes, 0) + COALESCE(t2.duration_seconds, 0)) FROM tasks t2 WHERE t2.work_request_id = wr.id), 0), 60), 2, '0'),
+                        's'
+                    )
+                END                                                          AS video_duration,
 
                 COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A')               AS project_requested_at_client,
                 COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A')               AS project_request_accept_at_cm,
