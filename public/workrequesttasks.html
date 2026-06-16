@@ -354,8 +354,8 @@ $(function(){
         $('#mainTable').on('click','.col-filter',function(e){e.stopPropagation();});
         var colTitles=cols.map(function(c){return c.title;});
         new $.fn.dataTable.Buttons(dt,[
-            {extend:'excel',className:'buttons-excel',filename:'rawdata_'+new Date().toISOString().slice(0,10),exportOptions:{columns:':visible',format:{header:function(data,col){return colTitles[col]||data;}}}},
-            {extend:'csv',className:'buttons-csv',filename:'rawdata_'+new Date().toISOString().slice(0,10),exportOptions:{columns:':visible',format:{header:function(data,col){return colTitles[col]||data;}}}}
+            {extend:'excel',className:'buttons-excel',filename:'rawdata_'+new Date().toISOString().slice(0,10),exportOptions:{columns:':gt(0):visible',modifier:{page:'all'},orthogonal:'export',format:{header:function(data,col){return colTitles[col]||data;},body:function(data){return data == null ? '' : data;}}}},
+            {extend:'csv',className:'buttons-csv',filename:'rawdata_'+new Date().toISOString().slice(0,10),exportOptions:{columns:':gt(0):visible',modifier:{page:'all'},orthogonal:'export',format:{header:function(data,col){return colTitles[col]||data;},body:function(data){return data == null ? '' : data;}}}}
         ]);
         $('#btnExcel').on('click',function(){dt.button('.buttons-excel').trigger();});
         $('#btnCsv').on('click',function(){dt.button('.buttons-csv').trigger();});
