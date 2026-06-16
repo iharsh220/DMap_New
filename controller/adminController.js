@@ -440,6 +440,88 @@ const getAdminData = async (req, res) => {
     }
 };
 
+const getClientsData = async (req, res) => {
+    try {
+        const { startDate, endDate } = req.query;
+
+        const replacements = {};
+        const whereClauses = [];
+
+        if (startDate) {
+            whereClauses.push('wr.requested_at >= :startDate');
+            replacements.startDate = startDate;
+        }
+
+        if (endDate) {
+            whereClauses.push('wr.requested_at <= :endDate');
+            replacements.endDate = endDate;
+        }
+
+        let query = `
+            SELECT
+                wr.id AS work_request_id,
+                COALESCE(NULLIF(TRIM(wr.project_name), ''), 'N/A') AS project_name,
+                COALESCE(NULLIF(TRIM(rt.request_type), ''), 'N/A') AS request_type_name,
+                COALESCE(NULLIF(TRIM(pt.project_type), ''), 'N/A') AS project_type_name,
+                COALESCE(NULLIF(TRIM(wr.priority), ''), 'N/A') AS project_priority,
+                COALESCE(NULLIF(TRIM(ru.name), ''), 'N/A') AS project_requester_name,
+                COALESCE(
+                    NULLIF(
+                        (SELECT GROUP_CONCAT(DISTINCT d.title ORDER BY d.title SEPARATOR ', ')
+                         FROM user_divisions ud
+                         JOIN division d ON d.id = ud.division_id
+                         WHERE ud.user_id = ru.id),
+                    ''),
+                'N/A') AS client_division,
+                COALESCE(
+                    NULLIF(
+                        (SELECT GROUP_CONCAT(DISTINCT mu2.name ORDER BY mu2.name SEPARATOR ', ')
+                         FROM work_request_managers wrm2
+                         JOIN users mu2 ON mu2.id = wrm2.manager_id
+                         WHERE wrm2.work_request_id = wr.id),
+                    ''),
+                'N/A') AS digi_vertical_manager_name,
+                1 AS project_count,
+                COALESCE(NULLIF(TRIM(wr.status), ''), 'N/A') AS project_status,
+                COALESCE(NULLIF(TRIM(wr.description), ''), 'N/A') AS description,
+                COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A') AS project_requested_at_client,
+                COALESCE(DATE_FORMAT((SELECT MIN(wrm2.created_at) FROM work_request_managers wrm2 WHERE wrm2.work_request_id = wr.id), '%d-%b-%Y %H:%i'), 'N/A') AS response_timestamp,
+                CASE
+                    WHEN wr.requested_at IS NOT NULL
+                     AND (SELECT MIN(wrm2.created_at) FROM work_request_managers wrm2 WHERE wrm2.work_request_id = wr.id) IS NOT NULL
+                    THEN CONCAT(
+                        FLOOR(TIMESTAMPDIFF(MINUTE, wr.requested_at, (SELECT MIN(wrm2.created_at) FROM work_request_managers wrm2 WHERE wrm2.work_request_id = wr.id)) / 60),
+                        'h ',
+                        MOD(TIMESTAMPDIFF(MINUTE, wr.requested_at, (SELECT MIN(wrm2.created_at) FROM work_request_managers wrm2 WHERE wrm2.work_request_id = wr.id)), 60),
+                        'm'
+                    )
+                    ELSE 'N/A'
+                END AS request_to_response_tat
+            FROM work_requests wr
+            LEFT JOIN request_type rt ON rt.id = wr.request_type_id
+            LEFT JOIN project_type pt ON pt.id = wr.project_id
+            LEFT JOIN users ru ON ru.id = wr.user_id
+        `;
+
+        if (whereClauses.length > 0) {
+            query += ` WHERE ${whereClauses.join(' AND ')}`;
+        }
+
+        query += ` ORDER BY wr.requested_at DESC`;
+
+        const results = await sequelize.query(query, {
+            replacements,
+            type: sequelize.QueryTypes.SELECT
+        });
+
+        res.json({ data: results });
+
+    } catch (error) {
+        console.error('Error fetching clients data:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
 const getTaskDetailsData = async (req, res) => {
     try {
         const { taskStatus } = req.query;
@@ -1153,6 +1235,7 @@ const getWorkRequestTasksData = async (req, res) => {
 
 module.exports = {
     getAdminData,
+    getClientsData,
     getTaskDetailsData,
     getIssueDetailsData,
     getTasksForWorkRequest,
