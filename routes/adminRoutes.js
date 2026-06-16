@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const path = require('path');
+const { cachedAdminData, invalidateAdminCache } = require('../services/adminCacheService');
 const { getAdminData, getClientsData, getTaskDetailsData, getTasksForWorkRequest, getIssueDetailsData, getWorkRequestTasksData, getDeletePreview, deleteProject, deleteTask, deleteIssue, getEditData, updateProject, updateTask, updateIssue } = require('../controller/adminController');
 
 // Serve shared CSS theme
@@ -35,37 +36,37 @@ router.get('/admin/workrequesttasks', (req, res) => {
 });
 
 // API endpoint for project details data
-router.get('/admin/projectsdetails/data', getAdminData);
+router.get('/admin/projectsdetails/data', cachedAdminData(getAdminData));
 
 // API endpoint for clients data
-router.get('/admin/clients/data', getClientsData);
+router.get('/admin/clients/data', cachedAdminData(getClientsData));
 
 // API endpoint for task details data
-router.get('/admin/taskdetails/data', getTaskDetailsData);
+router.get('/admin/taskdetails/data', cachedAdminData(getTaskDetailsData));
 
 // API endpoint for issue details data
-router.get('/admin/issuedetails/data', getIssueDetailsData);
+router.get('/admin/issuedetails/data', cachedAdminData(getIssueDetailsData));
 
 // API endpoint for workrequest tasks raw data
-router.get('/admin/workrequesttasks/data', getWorkRequestTasksData);
+router.get('/admin/workrequesttasks/data', cachedAdminData(getWorkRequestTasksData));
 
 // API endpoint for tasks
-router.get('/admin/projectsdetails/tasks/:workRequestId', getTasksForWorkRequest);
+router.get('/admin/projectsdetails/tasks/:workRequestId', cachedAdminData(getTasksForWorkRequest));
 
 // Delete preview
-router.get('/admin/delete/preview/:type/:id', getDeletePreview);
+router.get('/admin/delete/preview/:type/:id', cachedAdminData(getDeletePreview));
 
 // Delete endpoints
-router.delete('/admin/delete/project/:id', deleteProject);
-router.delete('/admin/delete/task/:id', deleteTask);
-router.delete('/admin/delete/issue/:id', deleteIssue);
+router.delete('/admin/delete/project/:id', invalidateAdminCache, deleteProject);
+router.delete('/admin/delete/task/:id', invalidateAdminCache, deleteTask);
+router.delete('/admin/delete/issue/:id', invalidateAdminCache, deleteIssue);
 
 // Edit - get current data
 router.get('/admin/edit/:type/:id', getEditData);
 
 // Edit - update endpoints
-router.put('/admin/edit/project/:id', updateProject);
-router.put('/admin/edit/task/:id', updateTask);
-router.put('/admin/edit/issue/:id', updateIssue);
+router.put('/admin/edit/project/:id', invalidateAdminCache, updateProject);
+router.put('/admin/edit/task/:id', invalidateAdminCache, updateTask);
+router.put('/admin/edit/issue/:id', invalidateAdminCache, updateIssue);
 
 module.exports = router;
