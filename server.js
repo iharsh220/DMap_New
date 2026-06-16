@@ -14,7 +14,7 @@ require('dotenv').config();
 const { scheduleTaskProgression } = require('./services/taskSchedulerService');
 
 // Base route
-const baseRoute = process.env.BASE_ROUTE || '/digilabs/uat/dmap/api/';
+const baseRoute = process.env.BASE_ROUTE || '/digilabs/dmap/api/';
 
 const app = express();
 const server = http.createServer(app);
@@ -98,7 +98,7 @@ app.use('*', (req, res) => {
     res.status(404).json({ error: 'Route not found' });
 });
 
-const PORT = process.env.PORT || 1007;
+const PORT = process.env.PORT || 1005;
 
 // Connect to database
 connectDB();
