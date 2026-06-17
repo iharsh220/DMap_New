@@ -4813,7 +4813,7 @@ const getIssueAssignments = async (req, res) => {
                     ]
                 }
             ],
-            order: [['created_at', sort || 'DESC']]
+            order: [['notification_alert', 'DESC'], ['created_at', sort || 'DESC']]
         });
 
         // Format the response
