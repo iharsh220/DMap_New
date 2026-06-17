@@ -357,7 +357,7 @@ const getAssignedTasks = async (req, res) => {
             limit: req.pagination.limit,
             offset: req.pagination.offset,
             order: [
-                // Always sort by deadline descending (latest deadline first)
+                ['notification_alert', 'DESC'],
                 ['deadline', sort || 'DESC']
             ]
         });
@@ -1923,7 +1923,7 @@ const getMyTeamTasks = async (req, res) => {
 const getAssignedIssues = async (req, res) => {
     try {
         const user_id = req.user.id;
-        const { status } = req.query;
+        const { status,sort } = req.query;
 
         // Get issue_user_assignments for this user
         const userIssueAssignments = await IssueUserAssignments.findAll({
