@@ -239,7 +239,30 @@ const getAssignedWorkRequests = async (req, res) => {
         TaskAssignments.belongsTo(Tasks, { foreignKey: 'task_id' });
 
         const manager_id = req.user.id;
-        const { status, review, review_stages, user_id, sort } = req.query; // Get status, review, review_stages, and user_id filters from query params
+        const { status, review, review_stages, user_id, sort, sort_by } = req.query;
+        const allowedSortFields = {
+            id: 'id',
+            project_name: 'project_name',
+            brand: 'brand',
+            priority: 'priority',
+            status: 'status',
+            requested_at: 'requested_at',
+            created_at: 'created_at',
+            deadline: 'deadline',
+            user_name: [User, 'name'],
+            email: [User, 'email']
+        };
+        const sortDirection = String(sort || 'DESC').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+        const sortField = allowedSortFields[sort_by] || 'requested_at';
+        const order = [['notification_alert', 'DESC']];
+
+        if (Array.isArray(sortField)) {
+            order.push([...sortField, sortDirection]);
+        } else if (sortField === 'deadline') {
+            order.push([literal('(SELECT MAX(`deadline`) FROM `tasks` WHERE `tasks`.`work_request_id` = `WorkRequests`.`id`)'), sortDirection]);
+        } else {
+            order.push([sortField, sortDirection]);
+        }
 
         let where = { status: { [Op.ne]: 'draft' } };
 
@@ -436,7 +459,7 @@ const getAssignedWorkRequests = async (req, res) => {
             ],
             limit: req.pagination.limit,
             offset: req.pagination.offset,
-            order: [['requested_at', sort || 'DESC']]
+            order
         });
 
         if (result.success) {
