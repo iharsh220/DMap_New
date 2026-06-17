@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const { cachedAdminData, invalidateAdminCache } = require('../services/adminCacheService');
-const { getAdminData, getClientsData, getTaskDetailsData, getTasksForWorkRequest, getIssueDetailsData, getWorkRequestTasksData, getDeletePreview, deleteProject, deleteTask, deleteIssue, getEditData, updateProject, updateTask, updateIssue } = require('../controller/adminController');
+const { getAdminData, getClientsData, getTaskDetailsData, getTasksForWorkRequest, getIssueDetailsData, getWorkRequestTasksData, getDeletePreview, deleteProject, deleteClient, deleteTask, deleteIssue, getEditData, updateProject, updateClient, updateTask, updateIssue } = require('../controller/adminController');
 
 // Serve shared CSS theme
 router.get('/admin/dmap-theme.css', (req, res) => {
@@ -58,6 +58,7 @@ router.get('/admin/delete/preview/:type/:id', cachedAdminData(getDeletePreview))
 
 // Delete endpoints
 router.delete('/admin/delete/project/:id', invalidateAdminCache, deleteProject);
+router.delete('/admin/delete/client/:id', invalidateAdminCache, deleteClient);
 router.delete('/admin/delete/task/:id', invalidateAdminCache, deleteTask);
 router.delete('/admin/delete/issue/:id', invalidateAdminCache, deleteIssue);
 
@@ -66,6 +67,7 @@ router.get('/admin/edit/:type/:id', getEditData);
 
 // Edit - update endpoints
 router.put('/admin/edit/project/:id', invalidateAdminCache, updateProject);
+router.put('/admin/edit/client/:id', invalidateAdminCache, updateClient);
 router.put('/admin/edit/task/:id', invalidateAdminCache, updateTask);
 router.put('/admin/edit/issue/:id', invalidateAdminCache, updateIssue);
 

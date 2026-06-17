@@ -1,5 +1,42 @@
 const { sequelize } = require('../config/databaseConfig');
 
+const getClientUsersByDivision = async (userId) => {
+    return sequelize.query(
+        `SELECT DISTINCT u.id, u.name, u.email, u.phone
+         FROM users u
+         JOIN user_divisions ud ON ud.user_id = u.id
+         WHERE ud.division_id IN (SELECT division_id FROM user_divisions WHERE user_id = :userId)
+           AND u.account_status = 'active'
+         ORDER BY u.name ASC`,
+        { replacements: { userId }, type: sequelize.QueryTypes.SELECT }
+    );
+};
+
+const getClientDeleteQueries = async (req, res, transaction) => {
+    const { id } = req.params;
+    const taskIds = await sequelize.query(
+        `SELECT id FROM tasks WHERE work_request_id = :id`,
+        { replacements: { id }, type: sequelize.QueryTypes.SELECT, transaction }
+    );
+    if (taskIds.length) {
+        const ids = taskIds.map(r => r.id);
+        await sequelize.query(`DELETE iat FROM issue_assignment_types iat INNER JOIN issue_assignments ia ON iat.issue_assignment_id = ia.id WHERE ia.task_id IN (:ids)`, { replacements: { ids }, transaction });
+        await sequelize.query(`DELETE iua FROM issue_user_assignments iua INNER JOIN issue_assignments ia ON iua.issue_assignment_id = ia.id WHERE ia.task_id IN (:ids)`, { replacements: { ids }, transaction });
+        await sequelize.query(`DELETE FROM issue_assignments WHERE task_id IN (:ids)`, { replacements: { ids }, transaction });
+        await sequelize.query(`DELETE FROM task_assignments WHERE task_id IN (:ids)`, { replacements: { ids }, transaction });
+        await sequelize.query(`DELETE FROM task_review_history WHERE task_id IN (:ids)`, { replacements: { ids }, transaction });
+        await sequelize.query(`DELETE td FROM task_documents td INNER JOIN task_assignments ta ON td.task_assignment_id = ta.id WHERE ta.task_id IN (:ids)`, { replacements: { ids }, transaction });
+        await sequelize.query(`DELETE FROM task_dependencies WHERE task_id IN (:ids) OR dependency_task_id IN (:ids)`, { replacements: { ids }, transaction });
+        await sequelize.query(`DELETE FROM task_project_reference WHERE task_id IN (:ids)`, { replacements: { ids }, transaction });
+        await sequelize.query(`DELETE FROM tasks WHERE work_request_id = :id`, { replacements: { id }, transaction });
+    }
+    await sequelize.query(`DELETE FROM work_request_managers WHERE work_request_id = :id`, { replacements: { id }, transaction });
+    await sequelize.query(`DELETE FROM work_request_documents WHERE work_request_id = :id`, { replacements: { id }, transaction });
+    await sequelize.query(`DELETE FROM project_request_reference WHERE work_request_id = :id`, { replacements: { id }, transaction });
+    await sequelize.query(`DELETE FROM request_division_reference WHERE work_request_id = :id`, { replacements: { id }, transaction });
+    await sequelize.query(`DELETE FROM work_requests WHERE id = :id`, { replacements: { id }, transaction });
+};
+
 const getEditData = async (req, res) => {
     try {
         const { type, id } = req.params;
@@ -10,6 +47,30 @@ const getEditData = async (req, res) => {
                 `SELECT id, project_name, brand, priority, status, remarks, description, about_project, requested_at FROM work_requests WHERE id = :id`,
                 { replacements: { id }, type: sequelize.QueryTypes.SELECT }
             );
+            record = row;
+        } else if (type === 'client') {
+            const [row] = await sequelize.query(
+                `SELECT wr.id, wr.user_id, wr.project_name, wr.brand, wr.priority, wr.status, wr.remarks,
+                        wr.description, wr.about_project, wr.requested_at,
+                        ru.name AS client_name, ru.email AS client_email,
+                        COALESCE(
+                            NULLIF(
+                                (SELECT GROUP_CONCAT(DISTINCT d.title ORDER BY d.title SEPARATOR ', ')
+                                 FROM user_divisions ud
+                                 JOIN division d ON d.id = ud.division_id
+                                 WHERE ud.user_id = wr.user_id),
+                            ''),
+                        'N/A') AS client_division
+                 FROM work_requests wr
+                 LEFT JOIN users ru ON ru.id = wr.user_id
+                 WHERE wr.id = :id`,
+                { replacements: { id }, type: sequelize.QueryTypes.SELECT }
+            );
+            if (row) {
+                const clientUsers = await getClientUsersByDivision(row.user_id);
+                res.json({ record: row, clientUsers });
+                return;
+            }
             record = row;
         } else if (type === 'task') {
             const [row] = await sequelize.query(
@@ -55,6 +116,57 @@ const updateProject = async (req, res) => {
         res.json({ success: true, message: 'Project updated successfully' });
     } catch (error) {
         console.error('Error updating project:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+const updateClient = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { user_id } = req.body;
+        const userId = Number.parseInt(user_id, 10);
+
+        if (!Number.isInteger(userId) || userId <= 0) {
+            return res.status(400).json({ success: false, error: 'Invalid client user' });
+        }
+
+        const [workRequest] = await sequelize.query(
+            `SELECT wr.id, wr.user_id AS current_user_id,
+                    (SELECT GROUP_CONCAT(division_id) FROM user_divisions WHERE user_id = wr.user_id) AS division_ids
+             FROM work_requests wr
+             WHERE wr.id = :id`,
+            { replacements: { id }, type: sequelize.QueryTypes.SELECT }
+        );
+
+        if (!workRequest) {
+            return res.status(404).json({ success: false, error: 'Client request not found' });
+        }
+
+        if (!workRequest.division_ids) {
+            return res.status(400).json({ success: false, error: 'Current client has no division mapping' });
+        }
+
+        const [match] = await sequelize.query(
+            `SELECT COUNT(*) AS match_count
+             FROM user_divisions ud
+             WHERE ud.user_id = :user_id AND FIND_IN_SET(ud.division_id, :division_ids) > 0`,
+            {
+                replacements: { user_id: userId, division_ids: workRequest.division_ids },
+                type: sequelize.QueryTypes.SELECT
+            }
+        );
+
+        if (!match.match_count) {
+            return res.status(400).json({ success: false, error: 'Selected user does not belong to this client division' });
+        }
+
+        await sequelize.query(
+            `UPDATE work_requests SET user_id=:user_id, updated_at=NOW() WHERE id=:id`,
+            { replacements: { id, user_id: userId }, type: sequelize.QueryTypes.UPDATE }
+        );
+        res.json({ success: true, message: 'Client updated successfully' });
+    } catch (error) {
+        console.error('Error updating client:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 };
@@ -166,6 +278,36 @@ const getDeletePreview = async (req, res) => {
                 { replacements: { id }, type: sequelize.QueryTypes.SELECT }
             );
             preview = { record: wr, tasks };
+        } else if (type === 'client') {
+            const [wr] = await sequelize.query(
+                `SELECT wr.id, wr.project_name, wr.brand, wr.status,
+                        ru.name AS client_name, ru.email AS client_email,
+                        COALESCE(
+                            NULLIF(
+                                (SELECT GROUP_CONCAT(DISTINCT d.title ORDER BY d.title SEPARATOR ', ')
+                                 FROM user_divisions ud
+                                 JOIN division d ON d.id = ud.division_id
+                                 WHERE ud.user_id = wr.user_id),
+                            ''),
+                        'N/A') AS client_division,
+                        COUNT(DISTINCT t.id) AS task_count,
+                        COUNT(DISTINCT ia.id) AS issue_count
+                 FROM work_requests wr
+                 LEFT JOIN users ru ON ru.id = wr.user_id
+                 LEFT JOIN tasks t ON t.work_request_id = wr.id
+                 LEFT JOIN issue_assignments ia ON ia.task_id = t.id
+                 WHERE wr.id = :id GROUP BY wr.id`,
+                { replacements: { id }, type: sequelize.QueryTypes.SELECT }
+            );
+            const tasks = await sequelize.query(
+                `SELECT t.id, t.task_name, t.status,
+                    COUNT(DISTINCT ia.id) AS issue_count
+                 FROM tasks t
+                 LEFT JOIN issue_assignments ia ON ia.task_id = t.id
+                 WHERE t.work_request_id = :id GROUP BY t.id`,
+                { replacements: { id }, type: sequelize.QueryTypes.SELECT }
+            );
+            preview = { record: wr, tasks };
         } else if (type === 'task') {
             const [task] = await sequelize.query(
                 `SELECT t.id, t.task_name, t.status,
@@ -204,33 +346,25 @@ const getDeletePreview = async (req, res) => {
 const deleteProject = async (req, res) => {
     const t = await sequelize.transaction();
     try {
-        const { id } = req.params;
-        const taskIds = await sequelize.query(
-            `SELECT id FROM tasks WHERE work_request_id = :id`,
-            { replacements: { id }, type: sequelize.QueryTypes.SELECT, transaction: t }
-        );
-        if (taskIds.length) {
-            const ids = taskIds.map(r => r.id);
-            await sequelize.query(`DELETE iat FROM issue_assignment_types iat INNER JOIN issue_assignments ia ON iat.issue_assignment_id = ia.id WHERE ia.task_id IN (:ids)`, { replacements: { ids }, transaction: t });
-            await sequelize.query(`DELETE iua FROM issue_user_assignments iua INNER JOIN issue_assignments ia ON iua.issue_assignment_id = ia.id WHERE ia.task_id IN (:ids)`, { replacements: { ids }, transaction: t });
-            await sequelize.query(`DELETE FROM issue_assignments WHERE task_id IN (:ids)`, { replacements: { ids }, transaction: t });
-            await sequelize.query(`DELETE FROM task_assignments WHERE task_id IN (:ids)`, { replacements: { ids }, transaction: t });
-            await sequelize.query(`DELETE FROM task_review_history WHERE task_id IN (:ids)`, { replacements: { ids }, transaction: t });
-            await sequelize.query(`DELETE td FROM task_documents td INNER JOIN task_assignments ta ON td.task_assignment_id = ta.id WHERE ta.task_id IN (:ids)`, { replacements: { ids }, transaction: t });
-            await sequelize.query(`DELETE FROM task_dependencies WHERE task_id IN (:ids) OR dependency_task_id IN (:ids)`, { replacements: { ids }, transaction: t });
-            await sequelize.query(`DELETE FROM task_project_reference WHERE task_id IN (:ids)`, { replacements: { ids }, transaction: t });
-            await sequelize.query(`DELETE FROM tasks WHERE work_request_id = :id`, { replacements: { id }, transaction: t });
-        }
-        await sequelize.query(`DELETE FROM work_request_managers WHERE work_request_id = :id`, { replacements: { id }, transaction: t });
-        await sequelize.query(`DELETE FROM work_request_documents WHERE work_request_id = :id`, { replacements: { id }, transaction: t });
-        await sequelize.query(`DELETE FROM project_request_reference WHERE work_request_id = :id`, { replacements: { id }, transaction: t });
-        await sequelize.query(`DELETE FROM request_division_reference WHERE work_request_id = :id`, { replacements: { id }, transaction: t });
-        await sequelize.query(`DELETE FROM work_requests WHERE id = :id`, { replacements: { id }, transaction: t });
+        await getClientDeleteQueries(req, res, t);
         await t.commit();
         res.json({ success: true, message: 'Project and all related data deleted successfully' });
     } catch (error) {
         await t.rollback();
         console.error('Error deleting project:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+const deleteClient = async (req, res) => {
+    const t = await sequelize.transaction();
+    try {
+        await getClientDeleteQueries(req, res, t);
+        await t.commit();
+        res.json({ success: true, message: 'Client request and all related data deleted successfully' });
+    } catch (error) {
+        await t.rollback();
+        console.error('Error deleting client request:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 };
@@ -1242,10 +1376,12 @@ module.exports = {
     getWorkRequestTasksData,
     getDeletePreview,
     deleteProject,
+    deleteClient,
     deleteTask,
     deleteIssue,
     getEditData,
     updateProject,
+    updateClient,
     updateTask,
     updateIssue
 };
