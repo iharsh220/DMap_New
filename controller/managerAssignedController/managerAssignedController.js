@@ -4453,6 +4453,7 @@ const getIssueAssignments = async (req, res) => {
         TaskAssignments.belongsTo(User, { foreignKey: 'user_id' });
 
         const manager_id = req.user.id;
+        const isManager = req.user.jobRole && req.user.jobRole.id === 2;
         const { status, review_stage, review, intimate_team, sort } = req.query;
 
         // Define valid enum values
@@ -4947,6 +4948,16 @@ const getIssueAssignments = async (req, res) => {
                 managers: mergedManagers
             };
         });
+
+        if (isManager) {
+            formattedData.forEach(issue => {
+                if (issue.notification_alert == 1 && issue.review === 'pending' && issue.review_stage === 'manager_review') {
+                    // Keep as 1
+                } else {
+                    issue.notification_alert = 0;
+                }
+            });
+        }
 
         // Calculate total notification count: count of issue assignments with notification_alert = 1
         const totalNotificationAlert = formattedData.filter(issue => issue.notification_alert == 1).length;
