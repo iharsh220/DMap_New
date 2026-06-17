@@ -64,6 +64,48 @@
     </div>
 </div>
 
+<!-- Edit Modal -->
+<div id="editModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;">
+  <div style="background:#1e2433;border:1px solid #2d3548;border-radius:12px;width:620px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,0.5);">
+    <div style="padding:20px 24px 16px;border-bottom:1px solid #2d3548;display:flex;align-items:center;gap:10px;">
+      <span style="background:#6366f122;border-radius:8px;padding:6px 10px;"><i class="bi bi-pencil-square" style="color:#818cf8;font-size:18px;"></i></span>
+      <div>
+        <div style="color:#f1f5f9;font-weight:600;font-size:15px;">Edit Client</div>
+        <div style="color:#94a3b8;font-size:12px;">Update client request details</div>
+      </div>
+      <button onclick="closeEditModal()" style="margin-left:auto;background:none;border:none;color:#64748b;font-size:20px;cursor:pointer;line-height:1;">&times;</button>
+    </div>
+    <div style="padding:16px 24px;overflow-y:auto;flex:1;">
+      <div id="editModalBody" style="color:#cbd5e1;font-size:13px;"></div>
+    </div>
+    <div style="padding:16px 24px;border-top:1px solid #2d3548;display:flex;gap:10px;justify-content:flex-end;">
+      <button onclick="closeEditModal()" style="padding:8px 20px;border-radius:7px;border:1px solid #2d3548;background:#2d3548;color:#94a3b8;font-size:13px;cursor:pointer;">Cancel</button>
+      <button id="confirmEditBtn" style="padding:8px 20px;border-radius:7px;border:none;background:#6366f1;color:#fff;font-size:13px;font-weight:600;cursor:pointer;"><i class="bi bi-check-lg"></i> Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirm Modal -->
+<div id="deleteModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;">
+  <div style="background:#1e2433;border:1px solid #2d3548;border-radius:12px;width:560px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,0.5);">
+    <div style="padding:20px 24px 16px;border-bottom:1px solid #2d3548;display:flex;align-items:center;gap:10px;">
+      <span style="background:#be123c22;border-radius:8px;padding:6px 10px;"><i class="bi bi-exclamation-triangle-fill" style="color:#f43f5e;font-size:18px;"></i></span>
+      <div>
+        <div style="color:#f1f5f9;font-weight:600;font-size:15px;">Confirm Delete</div>
+        <div style="color:#94a3b8;font-size:12px;">This action cannot be undone</div>
+      </div>
+      <button onclick="closeDeleteModal()" style="margin-left:auto;background:none;border:none;color:#64748b;font-size:20px;cursor:pointer;line-height:1;">&times;</button>
+    </div>
+    <div style="padding:16px 24px;overflow-y:auto;flex:1;">
+      <div id="deleteModalBody" style="color:#cbd5e1;font-size:13px;"></div>
+    </div>
+    <div style="padding:16px 24px;border-top:1px solid #2d3548;display:flex;gap:10px;justify-content:flex-end;">
+      <button onclick="closeDeleteModal()" style="padding:8px 20px;border-radius:7px;border:1px solid #2d3548;background:#2d3548;color:#94a3b8;font-size:13px;cursor:pointer;">Cancel</button>
+      <button id="confirmDeleteBtn" style="padding:8px 20px;border-radius:7px;border:none;background:#be123c;color:#fff;font-size:13px;font-weight:600;cursor:pointer;"><i class="bi bi-trash3"></i> Yes, Delete</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
@@ -118,6 +160,16 @@ $(function(){
         $('#s4').text(tatValues.length ? Math.round(tatValues.reduce((a,b)=>a+b,0)/tatValues.length)+'m' : 'N/A');
 
         var cols=[];
+        if(data.length){
+            cols.push({
+                data:null,title:'Action',orderable:false,searchable:false,width:'82px',
+                render:function(v,type,row){
+                    if(type!=='display') return '';
+                    return '<button class="edit-btn" data-type="client" data-id="'+row.work_request_id+'" title="Edit Client" style="background:#6366f122;border:1px solid #6366f144;color:#818cf8;border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;margin-right:4px;"><i class="bi bi-pencil"></i></button>'
+                          +'<button class="del-btn" data-type="client" data-id="'+row.work_request_id+'" title="Delete Client" style="background:#be123c22;border:1px solid #be123c44;color:#f43f5e;border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;"><i class="bi bi-trash3"></i></button>';
+                }
+            });
+        }
         var orderedKeys=COL_ORDER.filter(function(k){return data.length && Object.prototype.hasOwnProperty.call(data[0],k);});
         orderedKeys.forEach(function(k){
             cols.push({
@@ -148,11 +200,12 @@ $(function(){
                 api.columns().every(function(){
                     var col=this,idx=col.index();
                     var th=$(col.header());
-                    var key=orderedKeys[idx]||Object.keys(data[0])[idx];
-                    var labelText=HEADERS[key]||key;
+                    var key=idx===0 ? null : (orderedKeys[idx-1]||Object.keys(data[0])[idx-1]);
+                    var labelText=idx===0 ? 'Action' : (HEADERS[key]||key);
                     th.empty();
                     var wrap=$('<div class="th-wrap"></div>');
                     wrap.append('<div class="th-label"><span>'+labelText+'</span><span class="th-sort"></span></div>');
+                    if(idx===0){ th.append(wrap); return; }
                     if(BADGES[key]){
                         var sel=$('<select class="col-filter"><option value="">All</option></select>');
                         Object.keys(BADGES[key]).forEach(function(opt){sel.append('<option value="'+opt+'">'+opt+'</option>');});
@@ -179,6 +232,9 @@ $(function(){
                 });
             }
         });
+        $('#mainTable').on('click','.del-btn',function(e){ e.stopPropagation(); openDeleteModal($(this).data('type'),$(this).data('id')); });
+        $('#mainTable').on('click','.edit-btn',function(e){ e.stopPropagation(); openEditModal($(this).data('type'),$(this).data('id')); });
+
         var colTitles=cols.map(function(c){return c.title;});
         new $.fn.dataTable.Buttons(dt,[
             {extend:'excel',className:'buttons-excel',filename:'clients_'+new Date().toISOString().slice(0,10),exportOptions:{columns:':gt(0):visible',modifier:{page:'all'},orthogonal:'export',format:{header:function(data,col){return colTitles[col]||data;},body:function(data){return data == null ? '' : data;}}}},
@@ -188,6 +244,114 @@ $(function(){
         $('#btnCsv').on('click',function(){dt.button('.buttons-csv').trigger();});
     }).fail(function(){$('#loader').html('<div style="color:#be123c;font-size:13px"><i class="bi bi-exclamation-triangle"></i> Failed to load data</div>');});
 });
+
+function fi(label,name,val,t){
+    t=t||'text';
+    return '<div style="margin-bottom:12px;"><label style="display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;">'+label+'</label>'
+        +'<input name="'+name+'" value="'+(val!=null?String(val).replace(/"/g,'&quot;'):'')+'" type="'+t+'" style="width:100%;background:#131929;border:1px solid #2d3548;border-radius:6px;padding:7px 10px;color:#e2e8f0;font-size:13px;box-sizing:border-box;"></div>';
+}
+function fr(label,name,val,t){
+    t=t||'text';
+    return '<div style="margin-bottom:12px;"><label style="display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;">'+label+'</label>'
+        +'<input name="'+name+'" value="'+(val!=null?String(val).replace(/"/g,'&quot;'):'')+'" type="'+t+'" readonly style="width:100%;background:#111827;border:1px solid #2d3548;border-radius:6px;padding:7px 10px;color:#94a3b8;font-size:13px;box-sizing:border-box;"></div>';
+}
+function fs(label,name,val,opts){
+    var s='<div style="margin-bottom:12px;"><label style="display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;">'+label+'</label>'
+        +'<select name="'+name+'" style="width:100%;background:#131929;border:1px solid #2d3548;border-radius:6px;padding:7px 10px;color:#e2e8f0;font-size:13px;">';
+    opts.forEach(function(o){s+='<option value="'+o+'"'+(String(val)===String(o)?' selected':'')+'>'+o+'</option>';});
+    return s+'</select></div>';
+}
+function fu(label,name,val,users){
+    var s='<div style="margin-bottom:12px;"><label style="display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;">'+label+'</label>'
+        +'<select name="user_id" style="width:100%;background:#131929;border:1px solid #2d3548;border-radius:6px;padding:7px 10px;color:#e2e8f0;font-size:13px;">';
+    if(!users || !users.length){
+        s+='<option value="">No users in this client division</option>';
+    } else {
+        users.forEach(function(u){s+='<option value="'+u.id+'"'+(String(val)===String(u.id)?' selected':'')+'>'+u.name+' - '+u.email+'</option>';});
+    }
+    return s+'</select></div>';
+}
+function ft(label,name,val){
+    return '<div style="margin-bottom:12px;"><label style="display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;">'+label+'</label>'
+        +'<textarea name="'+name+'" rows="2" style="width:100%;background:#131929;border:1px solid #2d3548;border-radius:6px;padding:7px 10px;color:#e2e8f0;font-size:13px;box-sizing:border-box;resize:vertical;">'+(val||'')+'</textarea></div>';
+}
+
+function openEditModal(type, id){
+    $('#editModalBody').html('<div style="color:#94a3b8;padding:20px;text-align:center;"><i class="bi bi-arrow-repeat"></i> Loading...</div>');
+    $('#editModal').css('display','flex');
+    $.getJSON('/digilabs/dmap/api/datatable/admin/edit/'+type+'/'+id, function(res){
+        var r=res.record, html='';
+        html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 16px;">';
+        html+=fr('Project Request ID','work_request_id',r.id);
+        html+=fi('Project Name','project_name',r.project_name);
+        html+=fi('Brand','brand',r.brand);
+        html+=fs('Priority','priority',r.priority,['low','medium','high','critical']);
+        html+=fs('Status','status',r.status,['draft','pending','accepted','assigned','in_progress','completed','rejected','deferred']);
+        html+=fi('Requested At','requested_at',r.requested_at?String(r.requested_at).slice(0,16):'','datetime-local');
+        html+='</div>';
+        html+=fr('Client Name','client_name',r.client_name);
+        html+=fr('Client Email','client_email',r.client_email);
+        html+=fr('Client Division','client_division',r.client_division);
+        html+=fu('Update Client User','user_id',r.user_id,res.clientUsers);
+        html+=ft('Remarks','remarks',r.remarks);
+        html+=ft('Description','description',r.description);
+        html+=ft('About Project','about_project',r.about_project);
+        $('#editModalBody').html(html);
+        $('#confirmEditBtn').off('click').on('click',function(){ submitEdit(type,id); });
+    }).fail(function(){ $('#editModalBody').html('<div style="color:#f43f5e;">Failed to load data.</div>'); });
+}
+function closeEditModal(){ $('#editModal').hide(); }
+function submitEdit(type,id){
+    var payload={};
+    $('#editModalBody input,#editModalBody select,#editModalBody textarea').each(function(){ payload[this.name]=this.value; });
+    $('#confirmEditBtn').prop('disabled',true).html('<i class="bi bi-arrow-repeat"></i> Saving...');
+    $.ajax({
+        url:'/digilabs/dmap/api/datatable/admin/edit/'+type+'/'+id,
+        method:'PUT', contentType:'application/json',
+        data:JSON.stringify(payload),
+        success:function(){ closeEditModal(); location.reload(); },
+        error:function(xhr){ $('#confirmEditBtn').prop('disabled',false).html('<i class="bi bi-check-lg"></i> Save Changes'); alert((xhr.responseJSON && xhr.responseJSON.error) || 'Update failed. Please try again.'); }
+    });
+}
+
+function openDeleteModal(type, id){
+    $('#deleteModalBody').html('<div style="color:#94a3b8;padding:20px;text-align:center;"><i class="bi bi-arrow-repeat"></i> Loading preview...</div>');
+    $('#deleteModal').css('display','flex');
+    $.getJSON('/digilabs/dmap/api/datatable/admin/delete/preview/'+type+'/'+id, function(res){
+        var p=res.preview, r=p.record, html='';
+        html+='<div style="background:#be123c11;border:1px solid #be123c33;border-radius:8px;padding:12px 16px;margin-bottom:14px;">';
+        html+='<div style="color:#f43f5e;font-weight:600;margin-bottom:6px;"><i class="bi bi-people"></i> Client request to be deleted</div>';
+        html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;">';
+        html+='<div><span style="color:#64748b;">ID:</span> <span style="color:#e2e8f0;">'+r.id+'</span></div>';
+        html+='<div><span style="color:#64748b;">Project:</span> <span style="color:#e2e8f0;">'+(r.project_name||'N/A')+'</span></div>';
+        html+='<div><span style="color:#64748b;">Client:</span> <span style="color:#e2e8f0;">'+(r.client_name||'N/A')+'</span></div>';
+        html+='<div><span style="color:#64748b;">Division:</span> <span style="color:#e2e8f0;">'+(r.client_division||'N/A')+'</span></div>';
+        html+='</div></div>';
+        if(p.tasks && p.tasks.length){
+            html+='<div style="color:#f59e0b;font-size:12px;font-weight:600;margin-bottom:8px;"><i class="bi bi-exclamation-triangle"></i> '+p.tasks.length+' linked task(s) will also be deleted:</div>';
+            html+='<div style="max-height:200px;overflow-y:auto;">';
+            p.tasks.forEach(function(t){
+                html+='<div style="background:#1a2035;border:1px solid #2d3548;border-radius:6px;padding:8px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">';
+                html+='<span style="color:#cbd5e1;"><i class="bi bi-check2-square" style="color:#6366f1;"></i> '+(t.task_name||'Unnamed Task')+'</span>';
+                html+='<span style="color:#64748b;font-size:11px;">'+t.issue_count+' issue(s)</span>';
+                html+='</div>';
+            });
+            html+='</div>';
+        } else {
+            html+='<div style="color:#22c55e;font-size:12px;"><i class="bi bi-check-circle"></i> No tasks linked to this client request.</div>';
+        }
+        $('#deleteModalBody').html(html);
+        $('#confirmDeleteBtn').off('click').on('click',function(){ confirmDelete(type,id); });
+    }).fail(function(){ $('#deleteModalBody').html('<div style="color:#f43f5e;">Failed to load preview.</div>'); });
+}
+function closeDeleteModal(){ $('#deleteModal').hide(); }
+function confirmDelete(type,id){
+    $('#confirmDeleteBtn').prop('disabled',true).html('<i class="bi bi-arrow-repeat"></i> Deleting...');
+    $.ajax({ url:'/digilabs/dmap/api/datatable/admin/delete/'+type+'/'+id, method:'DELETE',
+        success:function(){ closeDeleteModal(); location.reload(); },
+        error:function(){ $('#confirmDeleteBtn').prop('disabled',false).html('<i class="bi bi-trash3"></i> Yes, Delete'); alert('Delete failed. Please try again.'); }
+    });
+}
 </script>
 </body>
 </html>
