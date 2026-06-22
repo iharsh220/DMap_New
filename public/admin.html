@@ -118,25 +118,22 @@
 <script>
 const TRUNCATE = ['work_request_description','about_project','request_type_description','project_type_description','project_digi_comments'];
 const HEADERS  = {
+    project_request_status:'Project Status',
     work_request_id:'Project Request ID',
     project_name:'Project Name',
-    brand:'Brand',
     request_type_name:'Project Requested To',
-    request_type_description:'Request Type Description',
-    digi_vertical_manager_name:'Request Accepted By',
+    project_type_name:'Project Type',
+    project_priority:'Project Priority',
     project_requester_name:'Client Name',
     client_division:'Client Division',
-    project_request_creator_email:'Project Request Creator Email',
-    project_request_creator_phone:'Project Request Creator Phone',
-    project_request_creator_department:'Project Request Creator Department',
-    project_request_creator_designation:'Project Request Creator Designation',
-    project_request_creator_location:'Project Request Creator Location',
-    project_type_name:'Project Type',
-    project_type_description:'Project Type Description',
-    project_priority:'Project Priority',
+    request_accepted_by:'Request Accepted By',
     project_count:'No. of Project',
     task_count:'Task Count',
-    issue_task_count:'Issue Task Count',
+    change_count:'Change Count',
+    project_start_date:'Project Start Date',
+    project_end_date:'Project End Date',
+    client_change_requested_counter:'Client Change Requested Counter',
+    cm_change_requested_counter:'CM Change Requested Counter',
     task_no_of_work_pages:'No. of Work Pages',
     issue_no_of_work_pages:'No. of Change Pages',
     task_no_of_options_provided:'No. of Options',
@@ -150,24 +147,44 @@ const HEADERS  = {
     task_resize_work:'Includes Resize Work',
     task_ai:'Includes AI Work',
     task_shoot_setup:'Includes Shoot Setup',
-    project_requested_at_client:'Project Request Timestamp',
-    project_request_accept_at_cm:'Project Acceptance Timestamp',
-    project_start_date:'Project Start Date',
-    project_end_date:'Project End Date',
-    project_deadline:'Project Deadline',
-    project_review:'Project Review',
-    project_stage:'Project Stage',
-    project_request_status:'Project Request Status',
-    project_request_created_at:'Project Request Created At',
-    project_updated_at:'Project Updated At',
-    project_digi_comments:'Project Digi Comments',
-    work_request_description:'Work Request Description',
-    about_project:'About Project',
+    project_request_timestamp:'Project Request Timestamp',
+    project_acceptance_timestamp:'Project Acceptance Timestamp',
+    project_marked_completed_timestamp:'Project Marked Completed Timestamp',
+    project_marked_completed_by:'Project Marked Completed by',
+    project_tat:'Project TAT',
+    project_request_to_response_tat:'Project Request to Response TAT',
+    task_request_to_response_tat_avg:'Task Request to Response TAT AVG',
+    task_acceptance_to_completion_tat_by_cu_avg:'Task Acceptance to Completion TAT by CU AVG',
+    task_output_shared_to_response_by_cm_tat_avg:'Task Output Shared to Response by CM TAT AVG',
+    task_internal_tat_avg:'Task Internal TAT AVG',
+    task_whole_tat_avg:'Task Whole TAT AVG',
+    change_request_to_response_tat:'Change Request to Response TAT',
+    change_acceptance_to_completion_tat_by_cu:'Change Acceptance to Completion TAT by CU',
+    change_output_shared_to_response_by_cm_tat:'Change Output Shared to Response by CM TAT',
+    change_internal_tat:'Change Internal TAT',
+    change_whole_tat:'Change Whole TAT',
+    project_request_response_reminder_counter_to_cm:'Project Request Response Reminder Counter To CM',
+    task_request_response_reminder_counter_to_cu:'Task Request Response Reminder Counter To CU',
+    task_output_response_reminder_counter_to_cm:'Task Output Response Reminder Counter To CM',
+    task_output_response_reminder_counter_to_client:'Task Output Response Reminder Counter To Client',
+    change_request_response_reminder_counter_to_cu:'Change Request Response Reminder Counter To CU',
+    chnage_output_response_reminder_counter_to_cm:'Chnage Output Response Reminder Counter To CM',
+    change_output_response_reminder_counter_to_client:'Change Output Response Reminder Counter To Client',
+    project_closure_reminder_counter_to_client:'Project Closure Reminder Counter To Client',
     month:'Month',
-    fy:'FY'
+    fy:'Financial Year'
+};
+const STATUS_LABELS={
+    pending:'Pending Response',
+    accepted:'Awaiting Assignment',
+    assigned:'Upcoming',
+    in_progress:'Ongoing',
+    completed:'Completed',
+    deferred:'Deferred',
+    cancelled:'Cancelled'
 };
 const BADGES = {
-    project_request_status:{draft:'status-draft',pending:'status-pending',accepted:'status-accepted',assigned:'status-assigned',in_progress:'status-in_progress',completed:'status-completed',rejected:'status-rejected'},
+    project_request_status:{draft:'status-draft',pending:'status-pending',accepted:'status-accepted',assigned:'status-assigned',in_progress:'status-in_progress',completed:'status-completed',rejected:'status-rejected',deferred:'status-deferred',cancelled:'status-cancelled'},
     project_review:{approved:'review-approved',pending:'review-pending',change_request:'review-change_request'},
     project_priority:{low:'priority-low',medium:'priority-medium',high:'priority-high',critical:'priority-critical'},
     project_stage:{not_started:'stage-not_started',manager_review:'stage-manager_review',pm_review:'stage-pm_review',change_requested:'stage-change_requested',final_approved:'stage-final_approved'}
@@ -199,6 +216,9 @@ $(function(){
                     render:function(v,type){
                         if(type!=='display') return v;
                         var val = v!=null ? v : 'N/A';
+                        if(k==='project_request_status' && STATUS_LABELS[val]){
+                            return '<span class="status-badge '+(BADGES[k][val]||'')+'">'+STATUS_LABELS[val]+'</span>';
+                        }
                         if(BADGES[k] && val && val!=='N/A'){var c=BADGES[k][val]||'';return '<span class="status-badge '+c+'">'+val+'</span>';}
                         if(TRUNCATE.indexOf(k)!==-1)return '<span class="truncate-cell" title="'+String(val).replace(/"/g,'&quot;')+'">'+val+'</span>';
                         return val;
@@ -211,7 +231,7 @@ $(function(){
             data:data, columns:cols,
             pageLength:25, lengthMenu:[[25,50,100,200,-1],[25,50,100,200,'All']],
             dom:'<"dt-top-row"lf>rt<"dt-bottom-row"ip>',
-            scrollX:true, scrollY:'calc(100vh - 360px)', scrollCollapse:false, autoWidth:false, fixedColumns:{left:2},
+            scrollX:true, scrollY:'calc(100vh - 360px)', scrollCollapse:false, autoWidth:false, fixedColumns:{left:3},
             language:{ search:'', searchPlaceholder:'Search all columns...', lengthMenu:'Show _MENU_ rows' },
             initComplete:function(){
                 var api = this.api();
