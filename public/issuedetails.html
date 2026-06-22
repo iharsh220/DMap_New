@@ -182,6 +182,13 @@ $(function(){
         $('#s3').text(data.filter(r=>r.issue_status==='in_progress').length);
         $('#s4').text(data.filter(r=>r.issue_status==='m_pending'||r.issue_status==='u_pending').length);
 
+        function updateStats(arr){
+            $('#s1').text(arr.length);
+            $('#s2').text(arr.filter(r=>r.issue_status==='completed').length);
+            $('#s3').text(arr.filter(r=>r.issue_status==='in_progress').length);
+            $('#s4').text(arr.filter(r=>r.issue_status==='m_pending'||r.issue_status==='u_pending').length);
+        }
+
         var cols=[];
         if(data.length){
             cols.push({
@@ -263,6 +270,12 @@ $(function(){
         ]);
         $('#btnExcel').on('click',function(){dt.button('.buttons-excel').trigger();});
         $('#btnCsv').on('click',function(){dt.button('.buttons-csv').trigger();});
+        dt.on('draw',function(){
+            var rows=dt.rows({ filter:'applied' }).data();
+            var arr=rows.toArray ? rows.toArray() : rows;
+            updateStats(arr);
+            $('#recordCount').text(arr.length+' Records');
+        });
     }).fail(function(){$('#loader').html('<div style="color:#be123c;font-size:13px"><i class="bi bi-exclamation-triangle"></i> Failed to load data</div>');});
 });
 

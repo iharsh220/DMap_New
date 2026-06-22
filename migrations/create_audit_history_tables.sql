@@ -26,7 +26,15 @@ CREATE TABLE IF NOT EXISTS `work_request_history` (
   `updated_at` DATETIME NOT NULL,
   INDEX `idx_work_request_history_work_request_id` (`work_request_id`),
   INDEX `idx_work_request_history_actor_id` (`actor_id`),
-  INDEX `idx_work_request_history_created_at` (`created_at`)
+  INDEX `idx_work_request_history_created_at` (`created_at`),
+  INDEX `idx_work_request_history_related_user_id` (`related_user_id`),
+  INDEX `idx_work_request_history_related_manager_id` (`related_manager_id`),
+  CONSTRAINT `fk_work_request_history_work_request_id` FOREIGN KEY (`work_request_id`) REFERENCES `work_requests` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_work_request_history_actor_id` FOREIGN KEY (`actor_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_work_request_history_related_user_id` FOREIGN KEY (`related_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_work_request_history_related_manager_id` FOREIGN KEY (`related_manager_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_work_request_history_related_task_id` FOREIGN KEY (`related_task_id`) REFERENCES `tasks` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_work_request_history_related_issue_id` FOREIGN KEY (`related_issue_id`) REFERENCES `issue_assignments` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `task_history` (
@@ -59,7 +67,15 @@ CREATE TABLE IF NOT EXISTS `task_history` (
   INDEX `idx_task_history_task_id` (`task_id`),
   INDEX `idx_task_history_work_request_id` (`work_request_id`),
   INDEX `idx_task_history_actor_id` (`actor_id`),
-  INDEX `idx_task_history_created_at` (`created_at`)
+  INDEX `idx_task_history_created_at` (`created_at`),
+  INDEX `idx_task_history_related_user_id` (`related_user_id`),
+  INDEX `idx_task_history_assigned_to_user_id` (`assigned_to_user_id`),
+  CONSTRAINT `fk_task_history_task_id` FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_task_history_work_request_id` FOREIGN KEY (`work_request_id`) REFERENCES `work_requests` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_task_history_actor_id` FOREIGN KEY (`actor_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_task_history_related_user_id` FOREIGN KEY (`related_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_task_history_assigned_to_user_id` FOREIGN KEY (`assigned_to_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_task_history_related_issue_id` FOREIGN KEY (`related_issue_id`) REFERENCES `issue_assignments` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `issue_history` (
@@ -95,5 +111,15 @@ CREATE TABLE IF NOT EXISTS `issue_history` (
   INDEX `idx_issue_history_task_id` (`task_id`),
   INDEX `idx_issue_history_work_request_id` (`work_request_id`),
   INDEX `idx_issue_history_actor_id` (`actor_id`),
-  INDEX `idx_issue_history_created_at` (`created_at`)
+  INDEX `idx_issue_history_created_at` (`created_at`),
+  INDEX `idx_issue_history_related_user_id` (`related_user_id`),
+  INDEX `idx_issue_history_assigned_to_user_id` (`assigned_to_user_id`),
+  CONSTRAINT `fk_issue_history_issue_assignment_id` FOREIGN KEY (`issue_assignment_id`) REFERENCES `issue_assignments` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_issue_history_task_id` FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_issue_history_work_request_id` FOREIGN KEY (`work_request_id`) REFERENCES `work_requests` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_issue_history_parent_issue_id` FOREIGN KEY (`parent_issue_id`) REFERENCES `issue_assignments` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_issue_history_related_issue_id` FOREIGN KEY (`related_issue_id`) REFERENCES `issue_assignments` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_issue_history_actor_id` FOREIGN KEY (`actor_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_issue_history_related_user_id` FOREIGN KEY (`related_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_issue_history_assigned_to_user_id` FOREIGN KEY (`assigned_to_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

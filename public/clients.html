@@ -169,11 +169,15 @@ $(function(){
         $('#loader').hide();
         var data=res.data||[];
         $('#recordCount').text(data.length+' Records');
-        $('#s1').text(new Set(data.map(r=>r.project_requester_name).filter(Boolean)).size);
-        $('#s2').text(data.length);
-        $('#s3').text(data.filter(r=>r.project_status==='pending').length);
-        var tatValues=data.map(r=>parseTatMinutes(r.request_to_response_tat)).filter(v=>v!==null);
-        $('#s4').text(tatValues.length ? Math.round(tatValues.reduce((a,b)=>a+b,0)/tatValues.length)+'m' : 'N/A');
+
+        function updateStats(arr){
+            $('#s1').text(new Set(arr.map(r=>r.project_requester_name).filter(Boolean)).size);
+            $('#s2').text(arr.length);
+            $('#s3').text(arr.filter(r=>r.project_status==='pending').length);
+            var tatValues=arr.map(r=>parseTatMinutes(r.request_to_response_tat)).filter(v=>v!==null);
+            $('#s4').text(tatValues.length ? Math.round(tatValues.reduce((a,b)=>a+b,0)/tatValues.length)+'m' : 'N/A');
+        }
+        updateStats(data);
 
         var cols=[];
         if(data.length){
@@ -261,6 +265,12 @@ $(function(){
         ]);
         $('#btnExcel').on('click',function(){dt.button('.buttons-excel').trigger();});
         $('#btnCsv').on('click',function(){dt.button('.buttons-csv').trigger();});
+        dt.on('draw',function(){
+            var rows=dt.rows({ filter:'applied' }).data();
+            var arr=rows.toArray ? rows.toArray() : rows;
+            updateStats(arr);
+            $('#recordCount').text(arr.length+' Records');
+        });
     }).fail(function(){$('#loader').html('<div style="color:#be123c;font-size:13px"><i class="bi bi-exclamation-triangle"></i> Failed to load data</div>');});
 });
 

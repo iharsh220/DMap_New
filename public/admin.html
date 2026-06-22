@@ -205,6 +205,13 @@ $(function(){
         $('#s3').text(data.filter(r=>r.project_request_status==='in_progress').length);
         $('#s4').text(data.filter(r=>r.project_request_status==='pending').length);
 
+        function updateStats(arr){
+            $('#s1').text(arr.length);
+            $('#s2').text(arr.filter(r=>r.project_request_status==='completed').length);
+            $('#s3').text(arr.filter(r=>r.project_request_status==='in_progress').length);
+            $('#s4').text(arr.filter(r=>r.project_request_status==='pending').length);
+        }
+
         var cols = [];
         if(data.length){
             cols.push({
@@ -286,7 +293,12 @@ $(function(){
         ]);
         $('#btnExcel').on('click',function(){ dt.button('.buttons-excel').trigger(); });
         $('#btnCsv').on('click',function(){ dt.button('.buttons-csv').trigger(); });
-
+        dt.on('draw',function(){
+            var rows = dt.rows({ filter:'applied' }).data();
+            var arr = rows.toArray ? rows.toArray() : rows;
+            updateStats(arr);
+            $('#recordCount').text(arr.length+' Records');
+        });
     }).fail(function(){
         $('#loader').html('<div style="color:#be123c;font-size:13px;font-family:Inter,sans-serif"><i class="bi bi-exclamation-triangle"></i> Failed to load data</div>');
     });
