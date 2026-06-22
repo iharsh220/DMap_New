@@ -113,6 +113,11 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdn.datatables.net/fixedcolumns/4.3.0/js/dataTables.fixedColumns.min.js"></script>
 <script>
+function getApiBase(){
+    var p=window.location.pathname;
+    if(p.indexOf('/digilabs/uat/')!==-1) return '/digilabs/uat/dmap/api/';
+    return '/digilabs/dmap/api/';
+}
 const TRUNCATE=['description'];
 const COL_ORDER=[
     'work_request_id','project_name','request_type_name','project_type_name',
@@ -293,7 +298,7 @@ function ft(label,name,val){
 function openEditModal(type, id){
     $('#editModalBody').html('<div style="color:#94a3b8;padding:20px;text-align:center;"><i class="bi bi-arrow-repeat"></i> Loading...</div>');
     $('#editModal').css('display','flex');
-    $.getJSON('/digilabs/dmap/api/datatable/admin/edit/'+type+'/'+id, function(res){
+    $.getJSON(getApiBase()+'datatable/admin/edit/'+type+'/'+id, function(res){
         var r=res.record, html='';
         html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 16px;">';
         html+=fr('Project Request ID','work_request_id',r.id);
@@ -320,7 +325,7 @@ function submitEdit(type,id){
     $('#editModalBody input,#editModalBody select,#editModalBody textarea').each(function(){ payload[this.name]=this.value; });
     $('#confirmEditBtn').prop('disabled',true).html('<i class="bi bi-arrow-repeat"></i> Saving...');
     $.ajax({
-        url:'/digilabs/dmap/api/datatable/admin/edit/'+type+'/'+id,
+        url:getApiBase()+'datatable/admin/edit/'+type+'/'+id,
         method:'PUT', contentType:'application/json',
         data:JSON.stringify(payload),
         success:function(){ closeEditModal(); location.reload(); },
@@ -331,7 +336,7 @@ function submitEdit(type,id){
 function openDeleteModal(type, id){
     $('#deleteModalBody').html('<div style="color:#94a3b8;padding:20px;text-align:center;"><i class="bi bi-arrow-repeat"></i> Loading preview...</div>');
     $('#deleteModal').css('display','flex');
-    $.getJSON('/digilabs/dmap/api/datatable/admin/delete/preview/'+type+'/'+id, function(res){
+    $.getJSON(getApiBase()+'datatable/admin/delete/preview/'+type+'/'+id, function(res){
         var p=res.preview, r=p.record, html='';
         html+='<div style="background:#be123c11;border:1px solid #be123c33;border-radius:8px;padding:12px 16px;margin-bottom:14px;">';
         html+='<div style="color:#f43f5e;font-weight:600;margin-bottom:6px;"><i class="bi bi-people"></i> Client request to be deleted</div>';
@@ -361,7 +366,7 @@ function openDeleteModal(type, id){
 function closeDeleteModal(){ $('#deleteModal').hide(); }
 function confirmDelete(type,id){
     $('#confirmDeleteBtn').prop('disabled',true).html('<i class="bi bi-arrow-repeat"></i> Deleting...');
-    $.ajax({ url:'/digilabs/dmap/api/datatable/admin/delete/'+type+'/'+id, method:'DELETE',
+    $.ajax({ url:getApiBase()+'datatable/admin/delete/'+type+'/'+id, method:'DELETE',
         success:function(){ closeDeleteModal(); location.reload(); },
         error:function(){ $('#confirmDeleteBtn').prop('disabled',false).html('<i class="bi bi-trash3"></i> Yes, Delete'); alert('Delete failed. Please try again.'); }
     });
