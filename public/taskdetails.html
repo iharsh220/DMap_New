@@ -114,70 +114,56 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdn.datatables.net/fixedcolumns/4.3.0/js/dataTables.fixedColumns.min.js"></script>
 <script>
-const TRUNCATE = ['task_type_description','task_digi_comments','task_requester_description','about_task'];
 const HEADERS  = {
+    task_status:'Task Status',
     work_request_id:'Project Request ID',
     task_id:'Task ID',
-    issue_id:'Change ID',
+    change_id:'Change ID',
     task_name:'Task Name',
-    brand:'Brand',
-    task_request_type_name:'Task Request Type Name',
     task_type_name:'Task Type',
     task_requester_name:'Client Name',
     client_division:'Client Division',
-    task_assignment_type:'Task Assignment Type',
-    task_assigned_user_name:'Assigned Creative User',
-    vertical_name:'Vertical Name',
-    task_version:'Task Version',
-    project_count:'Project Count',
-    task_count:'Task Count',
-    issue_task_count:'Issue Task Count',
+    task_manager:'Task Manager',
+    assigned_creative_user:'Assigned Creative User',
+    cu_vertical:'CU Vertical',
+    task_start_date:'Task Start Date',
+    task_end_date:'Task End Date',
+    task_deadline:'Task Deadline',
     task_no_of_work_pages:'No. of Work Pages',
     issue_no_of_work_pages:'No. of Change Pages',
     task_no_of_options_provided:'No. of Options',
     task_concept_work:'No. of Concept Created',
-    task_no_of_concepts:'No. of Concepts',
-    task_resize_work:'Includes Resize Work',
     task_no_of_resize:'No. of Resize Pages',
-    task_ai:'Includes AI Work',
     task_no_of_ai_page:'No. of AI Pages',
-    task_duration_minutes:'Task Duration Minutes',
-    task_duration_seconds:'Task Duration Seconds',
     video_duration:'Video Duration',
     task_no_of_products_shot:'No. of Products Used',
-    task_shoot_setup:'Includes Shoot Setup',
     task_no_of_words_written:'No. of Words Written',
     task_no_of_responsive_screen:'No. of Responsive UI Created',
-    project_requested_at_client:'Project Request Timestamp',
-    project_requested_accept_at_cm:'Project Request Accept Timestamp',
-    task_requested_at_assign_intimate_cu:'Task Request Timestamp',
-    task_requested_accept_at_cu:'Task Request Response Timestamp',
-    task_shared_with_cm_at:'Task Output Shared with CM Timestamp',
-    task_respond_on_output_cm:'Task Output Response by CM Timestamp',
-    task_output_shared_with_client_at:'Task Output Shared with Client Timestamp',
-    task_output_client_responded_approved:'Task Output Client Responded Approved',
-    task_start_date:'Task Start Date',
-    task_end_date:'Task End Date',
-    task_deadline:'Task Deadline',
-    task_review:'Task Review',
-    task_review_stage:'Task Review Stage',
-    task_status:'Task Status',
-    task_created_at:'Task Created At',
-    task_updated_at:'Task Updated At',
-    na:'NA',
-    task_type_description:'Task Type Description',
-    task_digi_comments:'Task Digi Comments',
-    task_requester_description:'Task Requester Description',
-    about_task:'About Task',
-    task_requester_department:'Task Requester Department',
+    task_resize_work:'Includes Resize Work',
+    task_ai:'Includes AI Work',
+    task_shoot_setup:'Includes Shoot Setup',
+    task_request_timestamp:'Task Request Timestamp',
+    task_request_response_timestamp:'Task Request Response Timestamp',
+    task_request_to_response_tat:'Task Request to Response TAT',
+    task_output_shared_with_cm_timestamp:'Task Output Shared with CM Timestamp',
+    task_acceptance_to_completion_tat_by_cu:'Task Acceptance to Completion TAT by CU',
+    task_output_response_by_cm_timestamp:'Task Output Response by CM Timestamp',
+    task_output_shared_to_response_by_cm_tat:'Task Output Shared to Response by CM TAT',
+    task_output_shared_with_client_timestamp:'Task Output Shared with Client Timestamp',
+    task_internal_tat:'Task Internal TAT',
+    task_output_response_by_client_timestamp:'Task Output Response by Client Timestamp',
+    task_whole_tat:'Task Whole TAT',
+    task_request_response_reminder_counter_to_cu:'Task Request Response Reminder Counter To CU',
+    task_output_response_reminder_counter_to_cm:'Task Output Response Reminder Counter To CM',
+    task_output_response_reminder_counter_to_client:'Task Output Response Reminder Counter To Client',
+    client_change_requested_counter:'Client Change Requested Counter',
+    cm_change_requested_counter:'CM Change Requested Counter',
+    change_version:'Change Version',
     month:'Month',
-    fy:'FY'
+    fy:'Financial Year'
 };
 const BADGES = {
-    task_status:{draft:'status-draft',pending:'status-pending',accepted:'status-accepted',assigned:'status-assigned',in_progress:'status-in_progress',completed:'status-completed',rejected:'status-rejected',deferred:'status-deferred'},
-    task_review:{approved:'review-approved',pending:'review-pending',change_request:'review-change_request'},
-    task_review_stage:{not_started:'stage-not_started',manager_review:'stage-manager_review',pm_review:'stage-pm_review',change_requested:'stage-change_requested',final_approved:'stage-final_approved'},
-    task_assignment_type:{new:'status-accepted',mod:'status-assigned'}
+    task_status:{draft:'status-draft',pending:'status-pending',accepted:'status-accepted',assigned:'status-assigned',in_progress:'status-in_progress',completed:'status-completed',rejected:'status-rejected',deferred:'status-deferred'}
 };
 const BOOLS = ['task_concept_work','task_resize_work','task_shoot_setup'];
 
@@ -209,7 +195,6 @@ $(function(){
                         var val=v!=null?v:'N/A';
                         if(BADGES[k]&&val&&val!=='N/A'){var c=BADGES[k][val]||'';return '<span class="status-badge '+c+'">'+val+'</span>';}
                         if(BOOLS.indexOf(k)!==-1){var y=val==1||val===true||val==='true';return '<span class="status-badge '+(y?'bool-yes':'bool-no')+'">'+(y?'Yes':'No')+'</span>';}
-                        if(TRUNCATE.indexOf(k)!==-1)return '<span class="truncate-cell" title="'+String(val).replace(/"/g,'&quot;')+'">'+val+'</span>';
                         return val;
                     }
                 });
@@ -220,7 +205,7 @@ $(function(){
             data:data,columns:cols,
             pageLength:25,lengthMenu:[[25,50,100,200,-1],[25,50,100,200,'All']],
             dom:'<"dt-top-row"lf>rt<"dt-bottom-row"ip>',
-            scrollX:true,scrollY:'calc(100vh - 360px)',scrollCollapse:false,autoWidth:false,fixedColumns:{left:3},
+            scrollX:true,scrollY:'calc(100vh - 360px)',scrollCollapse:false,autoWidth:false,fixedColumns:{left:4},
             language:{search:'',searchPlaceholder:'Search all columns...',lengthMenu:'Show _MENU_ rows'},
             initComplete:function(){
                 var api=this.api();
