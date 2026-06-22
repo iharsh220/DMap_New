@@ -31,6 +31,7 @@ const {
 } = require('../../models');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
+const { recordWorkRequestHistory, recordTaskHistory, recordIssueHistory, getWorkRequestHistory: getWorkRequestHistoryRecords } = require('../../services/historyService');
 // const { queueFileUpload } = require('../../services/fileUploadService');
 const path = require('path');
 const fs = require('fs');
@@ -263,6 +264,19 @@ const createWorkRequest = async (req, res) => {
                 }
             }
         }
+
+        await recordWorkRequestHistory({
+            req,
+            workRequestId,
+            action: 'created',
+            previousData: null,
+            nextData: result.data,
+            changes: {
+                project_name: { before: null, after: project_name },
+                status: { before: null, after: isdraft === 'true' ? 'draft' : 'pending' }
+            },
+            comments: isdraft === 'true' ? 'Draft work request created' : 'Work request submitted by user'
+        });
 
         // Send notification emails
         if (isdraft === 'false' && req.user && allAssignees.length > 0) {
@@ -635,6 +649,15 @@ const updateWorkRequest = async (req, res) => {
         }
 
         await transaction.commit();
+
+        await recordWorkRequestHistory({
+            req,
+            workRequestId,
+            action: isCreator ? 'resubmitted' : 'updated',
+            previousData: workRequest,
+            comments: isCreator ? 'Work request resubmitted by creator' : 'Work request updated by manager',
+            relatedUserId: workRequest.user_id
+        });
 
         // Fetch updated work request with associations
         const updatedWorkRequest = await WorkRequests.findByPk(workRequestId, {
@@ -1740,6 +1763,38 @@ const pmApproveTask = async (req, res) => {
             );
         }
 
+        await recordTaskHistory({
+            req,
+            transaction,
+            taskId: task.id,
+            workRequestId: task.work_request_id,
+            action: 'pm_approved',
+            previousData: task,
+            nextData: {
+                status: 'completed',
+                review: 'approved',
+                review_stage: 'final_approved'
+            },
+            previousStatus: task.status,
+            newStatus: 'completed',
+            previousReview: task.review,
+            newReview: 'approved',
+            previousReviewStage: task.review_stage,
+            newReviewStage: 'final_approved',
+            comments: 'PM approved task and associated documents'
+        });
+
+        await recordWorkRequestHistory({
+            req,
+            transaction,
+            workRequestId: task.work_request_id,
+            action: 'pm_approved_task',
+            previousStatus: task.status,
+            newStatus: 'completed',
+            relatedTaskId: task.id,
+            comments: 'PM approved task'
+        });
+
         await transaction.commit();
 
         // Fetch updated task
@@ -1783,7 +1838,18 @@ const handleIssuePmApproval = async (req, res, transaction, issueId) => {
         const manager = req.user;
 
         // Find the issue
-        const issueAssignment = await IssueAssignments.findByPk(issueId);
+        const issueAssignment = await IssueAssignments.findByPk(issueId, {
+            include: [
+                {
+                    model: Tasks,
+                    as: 'task',
+                    attributes: ['id', 'task_name', 'work_request_id'],
+                    include: [
+                        { model: WorkRequests, attributes: ['id', 'project_name', 'brand'] }
+                    ]
+                }
+            ]
+        });
 
         if (!issueAssignment) {
             await transaction.rollback();
@@ -1804,10 +1870,35 @@ const handleIssuePmApproval = async (req, res, transaction, issueId) => {
 
         const previousStatus = issueAssignment.status;
         const previousStage = issueAssignment.review_stage;
+        const previousReview = issueAssignment.review;
 
         // If issue has a linked task, update all issues with that task_id and the task itself
         if (issueAssignment.task_id) {
             const taskId = issueAssignment.task_id;
+            const allIssuesForTask = await IssueAssignments.findAll({ where: { task_id: taskId }, transaction });
+
+            for (const issue of allIssuesForTask) {
+                await recordIssueHistory({
+                    req,
+                    transaction,
+                    issueAssignmentId: issue.id,
+                    taskId,
+                    workRequestId: issueAssignment.task ? issueAssignment.task.WorkRequest?.id : null,
+                    action: 'pm_approved',
+                    previousData: issue,
+                    nextData: {
+                        review: 'approved',
+                        review_stage: 'final_approved'
+                    },
+                    previousStatus: issue.status,
+                    newStatus: issue.status,
+                    previousReview: issue.review,
+                    newReview: 'approved',
+                    previousReviewStage: issue.review_stage,
+                    newReviewStage: 'final_approved',
+                    comments: 'PM approved issue'
+                });
+            }
 
             // Update ALL issues with the same task_id to review='approved' and review_stage='final_approved'
             await IssueAssignments.update(
@@ -1819,6 +1910,27 @@ const handleIssuePmApproval = async (req, res, transaction, issueId) => {
             const linkedTask = await Tasks.findByPk(taskId);
 
             if (linkedTask) {
+                await recordTaskHistory({
+                    req,
+                    transaction,
+                    taskId: linkedTask.id,
+                    workRequestId: linkedTask.work_request_id,
+                    action: 'pm_approved_issue_linked_task',
+                    previousData: linkedTask,
+                    nextData: {
+                        status: 'accepted',
+                        review: 'approved',
+                        review_stage: 'final_approved'
+                    },
+                    previousStatus: linkedTask.status,
+                    newStatus: 'accepted',
+                    previousReview: linkedTask.review,
+                    newReview: 'approved',
+                    previousReviewStage: linkedTask.review_stage,
+                    newReviewStage: 'final_approved',
+                    comments: 'PM approved linked task after issue approval'
+                });
+
                 await linkedTask.update({
                     status: 'accepted',
                     review: 'approved',
@@ -1880,6 +1992,43 @@ const handleIssuePmApproval = async (req, res, transaction, issueId) => {
                 new_stage: 'final_approved'
             }, { transaction });
         }
+
+        await recordIssueHistory({
+            req,
+            transaction,
+            issueAssignmentId: issueId,
+            taskId: issueAssignment.task_id,
+            workRequestId: issueAssignment.task?.WorkRequest?.id,
+            action: 'pm_approved',
+            previousData: issueAssignment,
+            nextData: {
+                review: 'approved',
+                review_stage: 'final_approved'
+            },
+            previousStatus,
+            newStatus: previousStatus,
+            previousReview,
+            newReview: 'approved',
+            previousReviewStage: previousStage,
+            newReviewStage: 'final_approved',
+            comments: 'PM approved issue'
+        });
+
+        await recordWorkRequestHistory({
+            req,
+            transaction,
+            workRequestId: issueAssignment.task?.WorkRequest?.id,
+            action: 'pm_approved_issue',
+            previousStatus,
+            newStatus: previousStatus,
+            previousReview,
+            newReview: 'approved',
+            previousReviewStage: previousStage,
+            newReviewStage: 'final_approved',
+            relatedTaskId: issueAssignment.task_id,
+            relatedIssueId: issueId,
+            comments: 'PM approved issue'
+        });
 
         await transaction.commit();
 
@@ -1943,10 +2092,316 @@ const handleIssuePmApproval = async (req, res, transaction, issueId) => {
     }
 };
 
+const pmRejectTask = async (req, res) => {
+    const transaction = await require('../../models').sequelize.transaction();
+
+    try {
+        const { task_id, issue_id, comments, issue_description, issue_register_ids = [], deadline, start_date, end_date, link, task_count = 0 } = req.body;
+        const manager = req.user;
+
+        if (!task_id && !issue_id) {
+            await transaction.rollback();
+            return res.status(400).json({ success: false, error: 'task_id or issue_id is required' });
+        }
+
+        const createChangeRequestIssue = async (targetTaskId, parentIssueId) => {
+            const versionCount = await IssueAssignments.count({
+                where: parentIssueId ? { issue_id: parentIssueId } : { task_id: targetTaskId }
+            });
+            const issueAssignment = await IssueAssignments.create({
+                issue_id: parentIssueId || null,
+                task_id: parentIssueId ? null : targetTaskId,
+                requested_by_user_id: manager.id,
+                assignment_type: 'mod',
+                version: `V${versionCount + 1}`,
+                description: issue_description || comments || 'PM change request',
+                deadline,
+                start_date,
+                end_date,
+                link,
+                task_count: task_count || 0,
+                intimate_team: 1,
+                intimate_client: 0,
+                status: 'm_pending',
+                review: 'pending',
+                review_stage: 'manager_review',
+                notification_alert: 1
+            }, { transaction });
+
+            if (issue_register_ids && issue_register_ids.length > 0) {
+                const issueTypeLinks = issue_register_ids.map(registerId => ({
+                    issue_assignment_id: issueAssignment.id,
+                    issue_register_id: registerId
+                }));
+                await IssueAssignmentTypes.bulkCreate(issueTypeLinks, { transaction });
+            }
+
+            return issueAssignment;
+        };
+
+        if (task_id) {
+            const taskId = parseInt(task_id, 10);
+            if (isNaN(taskId)) {
+                await transaction.rollback();
+                return res.status(400).json({ success: false, error: 'Invalid task ID' });
+            }
+
+            const task = await Tasks.findByPk(taskId, {
+                include: [
+                    {
+                        model: WorkRequests,
+                        attributes: ['id', 'project_name', 'brand', 'user_id']
+                    }
+                ]
+            });
+
+            if (!task) {
+                await transaction.rollback();
+                return res.status(404).json({ success: false, error: 'Task not found' });
+            }
+
+            if (task.intimate_client !== 1) {
+                await transaction.rollback();
+                return res.status(400).json({ success: false, error: 'Task is not marked for client review (intimate_client must be 1)' });
+            }
+
+            const changeRequestIssue = await createChangeRequestIssue(taskId, null);
+            const nextTaskData = {
+                status: 'in_progress',
+                review: 'change_request',
+                review_stage: 'change_requested',
+                notification_alert: 1,
+                comments: comments || null
+            };
+
+            await task.update({
+                ...nextTaskData
+            }, { transaction });
+
+            await TaskReviewHistory.create({
+                task_id: taskId,
+                reviewer_id: manager.id,
+                reviewer_type: 'project_manager',
+                action: 'change_request',
+                comments: comments || 'PM rejected task and created change request issue',
+                previous_stage: task.review_stage || 'pm_review',
+                new_stage: 'change_requested'
+            }, { transaction });
+
+            await recordTaskHistory({
+                req,
+                transaction,
+                taskId,
+                workRequestId: task.work_request_id,
+                action: 'pm_rejected',
+                previousData: task,
+                nextData: nextTaskData,
+                previousStatus: task.status,
+                newStatus: 'in_progress',
+                previousReview: task.review,
+                newReview: 'change_request',
+                previousReviewStage: task.review_stage,
+                newReviewStage: 'change_requested',
+                comments: comments || 'PM rejected task and created change request issue',
+                relatedIssueId: changeRequestIssue.id
+            });
+
+            await recordIssueHistory({
+                req,
+                transaction,
+                issueAssignmentId: changeRequestIssue.id,
+                taskId,
+                workRequestId: task.work_request_id,
+                action: 'pm_change_request_created',
+                previousData: null,
+                nextData: changeRequestIssue,
+                newStatus: changeRequestIssue.status,
+                comments: comments || 'PM change request issue created'
+            });
+
+            await recordWorkRequestHistory({
+                req,
+                transaction,
+                workRequestId: task.work_request_id,
+                action: 'pm_rejected_task',
+                previousStatus: task.status,
+                newStatus: 'in_progress',
+                previousReview: task.review,
+                newReview: 'change_request',
+                previousReviewStage: task.review_stage,
+                newReviewStage: 'change_requested',
+                relatedTaskId: taskId,
+                relatedIssueId: changeRequestIssue.id,
+                comments: comments || 'PM rejected task and created change request issue'
+            });
+
+            await transaction.commit();
+            return res.json({
+                success: true,
+                data: {
+                    type: 'task',
+                    task_id: taskId,
+                    change_request_issue: changeRequestIssue
+                },
+                message: 'Task rejected by PM and change request issue created successfully'
+            });
+        }
+
+        const issueId = parseInt(issue_id, 10);
+        if (isNaN(issueId)) {
+            await transaction.rollback();
+            return res.status(400).json({ success: false, error: 'Invalid issue ID' });
+        }
+
+        const issueAssignment = await IssueAssignments.findByPk(issueId, {
+            include: [
+                {
+                    model: Tasks,
+                    as: 'task',
+                    attributes: ['id', 'task_name', 'work_request_id'],
+                    include: [
+                        { model: WorkRequests, attributes: ['id', 'project_name', 'brand', 'user_id'] }
+                    ]
+                }
+            ]
+        });
+
+        if (!issueAssignment) {
+            await transaction.rollback();
+            return res.status(404).json({ success: false, error: 'Issue not found' });
+        }
+
+        if (issueAssignment.intimate_client !== 1) {
+            await transaction.rollback();
+            return res.status(400).json({ success: false, error: 'Issue is not marked for client review (intimate_client must be 1)' });
+        }
+
+        const changeRequestIssue = await createChangeRequestIssue(issueAssignment.task_id, issueId);
+        const nextIssueData = {
+            status: 'in_progress',
+            review: 'change_request',
+            review_stage: 'change_requested',
+            notification_alert: 1,
+            comments: comments || null
+        };
+
+        await issueAssignment.update(nextIssueData, { transaction });
+
+        if (issueAssignment.issue_id) {
+            await IssueAssignments.update(
+                { review: 'change_request', review_stage: 'change_requested' },
+                { where: { id: issueAssignment.issue_id }, transaction }
+            );
+        }
+
+        if (issueAssignment.task_id) {
+            await TaskReviewHistory.create({
+                task_id: issueAssignment.task_id,
+                reviewer_id: manager.id,
+                reviewer_type: 'project_manager',
+                action: 'change_request',
+                comments: comments || 'PM rejected issue and created change request issue',
+                previous_stage: issueAssignment.review_stage || 'pm_review',
+                new_stage: 'change_requested'
+            }, { transaction });
+        }
+
+        await recordIssueHistory({
+            req,
+            transaction,
+            issueAssignmentId: issueId,
+            taskId: issueAssignment.task_id,
+            workRequestId: issueAssignment.task?.work_request_id,
+            action: 'pm_rejected',
+            previousData: issueAssignment,
+            nextData: nextIssueData,
+            previousStatus: issueAssignment.status,
+            newStatus: 'in_progress',
+            previousReview: issueAssignment.review,
+            newReview: 'change_request',
+            previousReviewStage: issueAssignment.review_stage,
+            newReviewStage: 'change_requested',
+            comments: comments || 'PM rejected issue and created change request issue',
+            relatedIssueId: changeRequestIssue.id
+        });
+
+        await recordIssueHistory({
+            req,
+            transaction,
+            issueAssignmentId: changeRequestIssue.id,
+            taskId: issueAssignment.task_id,
+            workRequestId: issueAssignment.task?.work_request_id,
+            parentIssueId: issueId,
+            action: 'pm_change_request_created',
+            previousData: null,
+            nextData: changeRequestIssue,
+            newStatus: changeRequestIssue.status,
+            comments: comments || 'PM change request issue created'
+        });
+
+        await recordWorkRequestHistory({
+            req,
+            transaction,
+            workRequestId: issueAssignment.task?.work_request_id,
+            action: 'pm_rejected_issue',
+            previousStatus: issueAssignment.status,
+            newStatus: 'in_progress',
+            previousReview: issueAssignment.review,
+            newReview: 'change_request',
+            previousReviewStage: issueAssignment.review_stage,
+            newReviewStage: 'change_requested',
+            relatedTaskId: issueAssignment.task_id,
+            relatedIssueId: issueId,
+            comments: comments || 'PM rejected issue and created change request issue'
+        });
+
+        await transaction.commit();
+        return res.json({
+            success: true,
+            data: {
+                type: 'issue',
+                issue_id: issueId,
+                change_request_issue: changeRequestIssue
+            },
+            message: 'Issue rejected by PM and change request issue created successfully'
+        });
+    } catch (error) {
+        await transaction.rollback();
+        console.error('Error in PM reject task:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            message: 'Failed to reject task or issue by PM'
+        });
+    }
+};
+
 // Get my task requests - based on issue_assignments
 // This gets work requests where the manager is assigned via issue_assignments -> task -> user -> user's manager
 const getMyTaskRequests = async (req, res) => {
 
+};
+
+const getWorkRequestHistory = async (req, res) => {
+    try {
+        const workRequestId = parseInt(req.params.workRequestId, 10);
+        if (isNaN(workRequestId)) {
+            return res.status(400).json({ success: false, error: 'Invalid work request ID' });
+        }
+
+        const limit = parseInt(req.query.limit, 10) || 200;
+        const offset = parseInt(req.query.offset, 10) || 0;
+        const history = await getWorkRequestHistoryRecords(workRequestId, { limit, offset });
+
+        res.json({
+            success: true,
+            data: history,
+            message: 'Work request history retrieved successfully'
+        });
+    } catch (error) {
+        console.error('Error fetching work request history:', error);
+        res.status(500).json({ success: false, error: error.message, message: 'Failed to fetch work request history' });
+    }
 };
 
 module.exports = {
@@ -1960,5 +2415,7 @@ module.exports = {
     getDivisionWorkRequests,
     getDivisionWorkRequestById,
     getUserDashboardStats,
-    pmApproveTask
+    pmApproveTask,
+    pmRejectTask,
+    getWorkRequestHistory
 };

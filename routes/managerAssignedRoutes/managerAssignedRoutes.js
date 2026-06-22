@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getAssignedWorkRequests, getAssignedWorkRequestById, acceptWorkRequest, acceptIssueRequest, deferWorkRequest, updateWorkRequestProject, deleteWorkRequest, deleteTask, getMyTasks, getAssignableUsers, getTaskTypesByWorkRequest, createTask, getTasksByWorkRequestId, getTaskAnalytics, getMyTeam, getAssignedRequestsWithStatus, getUserTask, updateTask, reviewTaskDocument, reviewIssueDocument, reviewTask, shareForClientReview, assignIssueToUser, getIssueAssignments, completeAllTasksAndIssues } = require('../../controller/managerAssignedController/managerAssignedController');
+const { getAssignedWorkRequests, getAssignedWorkRequestById, acceptWorkRequest, acceptIssueRequest, deferWorkRequest, updateWorkRequestProject, deleteWorkRequest, deleteTask, getMyTasks, getAssignableUsers, getTaskTypesByWorkRequest, createTask, getTasksByWorkRequestId, getTaskAnalytics, getMyTeam, getAssignedRequestsWithStatus, getUserTask, updateTask, reviewTaskDocument, reviewIssueDocument, reviewTask, shareForClientReview, assignIssueToUser, getIssueAssignments, completeAllTasksAndIssues, getTaskHistory, getIssueHistory } = require('../../controller/managerAssignedController/managerAssignedController');
 const { authenticateToken } = require('../../middleware/jwtMiddleware');
 const { checkRole } = require('../../middleware/roleMiddleware');
 const filterMiddleware = require('../../middleware/filterMiddleware');
@@ -31,6 +31,8 @@ router.get('/my-tasks', authenticateToken, checkRole([1, 2, 3]), getMyTasks); //
 router.get('/issue-assignments', authenticateToken, checkRole([1, 2, 3]), filterMiddleware, paginationMiddleware, searchMiddleware, getIssueAssignments); // Get all issue assignments with filters (status, review_stage, review)
 router.post('/assign-issue-to-user', authenticateToken, checkRole([1, 2, 3]), assignIssueToUser); // Assign issue to a user
 router.put('/issue/:id/accept', authenticateToken, checkRole([1, 2, 3]), acceptIssueRequest); // Accept an issue request
+router.get('/history/task/:taskId', authenticateToken, checkRole([1, 2, 3, 4]), getTaskHistory);
+router.get('/history/issue/:issueAssignmentId', authenticateToken, checkRole([1, 2, 3, 4]), getIssueHistory);
 
 router.get('/:id', authenticateToken, checkRole([1, 2, 3, 4]), getAssignedWorkRequestById); // Get specific assigned work request by ID
 router.put('/:id/accept', authenticateToken, checkRole([1, 2, 3]), acceptWorkRequest); // Accept a work request

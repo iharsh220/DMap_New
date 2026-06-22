@@ -18,6 +18,7 @@ const WorkRequests = require('./WorkRequests/WorkRequests');
 const WorkRequestManagers = require('./WorkRequestManagers/WorkRequestManagers');
 const WorkRequestDocuments = require('./WorkRequestDocuments/WorkRequestDocuments');
 const WorkRequestDeferrals = require('./WorkRequestDeferrals/WorkRequestDeferrals');
+const WorkRequestHistory = require('./WorkRequestHistory/WorkRequestHistory');
 const ProjectType = require('./ProjectType/ProjectType');
 const TaskType = require('./TaskType/TaskType');
 const ProjectRequestReference = require('./ProjectRequestReference/ProjectRequestReference');
@@ -33,6 +34,8 @@ const IssueDocuments = require('./IssueDocuments/IssueDocuments');
 const IssueAssignmentTypes = require('./IssueAssignmentTypes/IssueAssignmentTypes');
 const ChangeIssueTasktype = require('./ChangeIssueTasktype/ChangeIssueTasktype');
 const TaskReviewHistory = require('./TaskReviewHistory/TaskReviewHistory');
+const TaskHistory = require('./TaskHistory/TaskHistory');
+const IssueHistory = require('./IssueHistory/IssueHistory');
 
 // Associations
 Department.hasMany(Division, { foreignKey: 'department_id', as: 'divisions' });
@@ -72,6 +75,8 @@ Sales.belongsTo(Division, { foreignKey: 'division_id' });
 Tasks.belongsTo(TaskType, { foreignKey: 'task_type_id' });
 Tasks.belongsTo(WorkRequests, { foreignKey: 'work_request_id' });
 Tasks.belongsTo(RequestType, { foreignKey: 'request_type_id' });
+Tasks.hasMany(TaskHistory, { foreignKey: 'task_id', as: 'history' });
+TaskHistory.belongsTo(Tasks, { foreignKey: 'task_id', as: 'task' });
 
 
 WorkRequests.belongsTo(User, { foreignKey: 'user_id', as: 'users' });
@@ -81,6 +86,12 @@ WorkRequests.hasMany(WorkRequestManagers, { foreignKey: 'work_request_id' });
 WorkRequests.hasMany(WorkRequestDocuments, { foreignKey: 'work_request_id' });
 WorkRequests.hasMany(WorkRequestDeferrals, { foreignKey: 'work_request_id', as: 'deferrals' });
 WorkRequests.hasMany(Tasks, { foreignKey: 'work_request_id' });
+WorkRequests.hasMany(WorkRequestHistory, { foreignKey: 'work_request_id', as: 'history' });
+
+TaskHistory.belongsTo(WorkRequests, { foreignKey: 'work_request_id', as: 'workRequest' });
+WorkRequests.hasMany(TaskHistory, { foreignKey: 'work_request_id', as: 'taskHistory' });
+IssueHistory.belongsTo(WorkRequests, { foreignKey: 'work_request_id', as: 'workRequest' });
+WorkRequests.hasMany(IssueHistory, { foreignKey: 'work_request_id', as: 'issueHistory' });
 
 WorkRequestManagers.belongsTo(WorkRequests, { foreignKey: 'work_request_id' });
 WorkRequestManagers.belongsTo(User, { as: 'manager', foreignKey: 'manager_id' });
@@ -90,6 +101,8 @@ WorkRequestDocuments.belongsTo(WorkRequests, { foreignKey: 'work_request_id' });
 WorkRequestDeferrals.belongsTo(WorkRequests, { foreignKey: 'work_request_id' });
 WorkRequestDeferrals.belongsTo(User, { as: 'deferredBy', foreignKey: 'manager_id' });
 WorkRequestDeferrals.belongsTo(User, { as: 'resubmittedBy', foreignKey: 'resubmitted_by_user_id' });
+
+WorkRequestHistory.belongsTo(WorkRequests, { foreignKey: 'work_request_id', as: 'workRequest' });
 
 RequestType.belongsToMany(Division, { through: RequestDivisionReference, foreignKey: 'request_id' });
 Division.belongsToMany(RequestType, { through: RequestDivisionReference, foreignKey: 'division_id' });
@@ -126,6 +139,10 @@ TaskAssignments.hasMany(TaskDocuments, { foreignKey: 'task_assignment_id' });
 // IssueAssignments Associations (similar to Tasks pattern)
 IssueAssignments.belongsTo(Tasks, { foreignKey: 'task_id', as: 'task' });
 IssueAssignments.belongsTo(User, { foreignKey: 'requested_by_user_id', as: 'requester' });
+IssueAssignments.hasMany(IssueHistory, { foreignKey: 'issue_assignment_id', as: 'history' });
+IssueHistory.belongsTo(IssueAssignments, { foreignKey: 'issue_assignment_id', as: 'issueAssignment' });
+IssueHistory.belongsTo(Tasks, { foreignKey: 'task_id', as: 'task' });
+TaskHistory.belongsTo(IssueAssignments, { foreignKey: 'related_issue_id', as: 'relatedIssue' });
 
 // Self-referencing association for issue-related changes
 IssueAssignments.belongsTo(IssueAssignments, { foreignKey: 'issue_id', as: 'parentIssue' });
@@ -191,6 +208,7 @@ module.exports = {
   WorkRequestManagers,
   WorkRequestDocuments,
   WorkRequestDeferrals,
+  WorkRequestHistory,
   ProjectType,
   TaskType,
   ProjectRequestReference,
@@ -205,5 +223,7 @@ module.exports = {
   IssueDocuments,
   IssueAssignmentTypes,
   ChangeIssueTasktype,
-  TaskReviewHistory
+  TaskReviewHistory,
+  TaskHistory,
+  IssueHistory
 };

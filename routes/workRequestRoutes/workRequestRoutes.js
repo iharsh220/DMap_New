@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createWorkRequest, updateWorkRequest, getMyWorkRequests, getMyTaskRequests, getWorkRequestById, getProjectTypesByRequestType, getAboutProjectOptions, getDivisionWorkRequests, getDivisionWorkRequestById, getUserDashboardStats, pmApproveTask } = require('../../controller/workRequestController/workRequestController');
+const { createWorkRequest, updateWorkRequest, getMyWorkRequests, getMyTaskRequests, getWorkRequestById, getProjectTypesByRequestType, getAboutProjectOptions, getDivisionWorkRequests, getDivisionWorkRequestById, getUserDashboardStats, pmApproveTask, pmRejectTask, getWorkRequestHistory } = require('../../controller/workRequestController/workRequestController');
 const { authenticateToken } = require('../../middleware/jwtMiddleware');
 const filterMiddleware = require('../../middleware/filterMiddleware');
 const paginationMiddleware = require('../../middleware/paginationMiddleware');
@@ -26,6 +26,10 @@ router.get('/dashboard-stats', authenticateToken, getUserDashboardStats);
 
 // POST /work-requests/pm-approve - PM approve task
 router.post('/pm-approve', authenticateToken, pmApproveTask);
+router.post('/pm-reject', authenticateToken, pmRejectTask);
+
+// GET /work-requests/history/:workRequestId - Get work request history
+router.get('/history/:workRequestId', authenticateToken, getWorkRequestHistory);
 
 // GET /work-requests/:id - Get work request by ID
 router.get('/:id', authenticateToken, getWorkRequestById);

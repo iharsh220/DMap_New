@@ -4,7 +4,7 @@ const { authenticateToken } = require('../../middleware/jwtMiddleware');
 const filterMiddleware = require('../../middleware/filterMiddleware');
 const paginationMiddleware = require('../../middleware/paginationMiddleware');
 const searchMiddleware = require('../../middleware/searchMiddleware');
-const { getAssignedTasks, getMyTeamTasks, getTaskById, assignTaskToUser, acceptTask, submitTask, getTaskDocuments, deleteTaskDocument, getAssignedIssues, acceptIssue, submitIssue } = require('../../controller/userController/userController');
+const { getAssignedTasks, getMyTeamTasks, getTaskById, assignTaskToUser, acceptTask, submitTask, getTaskDocuments, deleteTaskDocument, getAssignedIssues, acceptIssue, submitIssue, getUserTaskHistory, getUserIssueHistory } = require('../../controller/userController/userController');
 
 // GET /api/users/tasks - Get assigned tasks (only for division 9 users or managers)
 router.get('/tasks', authenticateToken, filterMiddleware, paginationMiddleware, searchMiddleware, getAssignedTasks);
@@ -20,6 +20,9 @@ router.post('/assign-task', authenticateToken, assignTaskToUser);
 
 // PUT /api/users/tasks/:taskId/accept - Accept a task and optionally set start_date (only if intimate_team = 1)
 router.put('/tasks/:taskId/accept', authenticateToken, acceptTask);
+
+// GET /api/users/tasks/:taskId/history - Get task history
+router.get('/tasks/:taskId/history', authenticateToken, getUserTaskHistory);
 
 // POST /api/users/tasks/submit - Submit a task with optional link and files
 router.post('/tasks/submit', authenticateToken, submitTask);
@@ -39,5 +42,8 @@ router.put('/issues/:issueId/accept', authenticateToken, acceptIssue);
 
 // PUT /api/users/issues/:issueId/submit - Submit/complete an issue
 router.put('/issues/:issueId/submit', authenticateToken, submitIssue);
+
+// GET /api/users/issues/:issueAssignmentId/history - Get issue history
+router.get('/issues/:issueAssignmentId/history', authenticateToken, getUserIssueHistory);
 
 module.exports = router;
