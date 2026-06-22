@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS `work_request_history` (
   `id` INT NOT NULL AUTO_INCREMENT,
+  PRIMARY KEY (`id`),
   `work_request_id` INT NOT NULL,
   `action` VARCHAR(100) NOT NULL,
   `actor_id` INT NULL,
@@ -30,6 +31,7 @@ CREATE TABLE IF NOT EXISTS `work_request_history` (
 
 CREATE TABLE IF NOT EXISTS `task_history` (
   `id` INT NOT NULL AUTO_INCREMENT,
+  PRIMARY KEY (`id`),
   `task_id` INT NOT NULL,
   `work_request_id` INT NULL,
   `action` VARCHAR(100) NOT NULL,
@@ -62,6 +64,7 @@ CREATE TABLE IF NOT EXISTS `task_history` (
 
 CREATE TABLE IF NOT EXISTS `issue_history` (
   `id` INT NOT NULL AUTO_INCREMENT,
+  PRIMARY KEY (`id`),
   `issue_assignment_id` INT NOT NULL,
   `task_id` INT NULL,
   `work_request_id` INT NULL,
