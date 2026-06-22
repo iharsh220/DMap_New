@@ -32,6 +32,7 @@ const {
 
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
+const { recordWorkRequestHistory, recordTaskHistory, recordIssueHistory, getTaskHistory: getTaskHistoryRecords, getIssueHistory: getIssueHistoryRecords } = require('../../services/historyService');
 
 const workRequestService = new CrudService(WorkRequests);
 const userService = new CrudService(User);
@@ -1123,6 +1124,19 @@ const acceptWorkRequest = async (req, res) => {
         const updateResult = await workRequestService.updateById(id, { status: 'accepted' });
 
         if (updateResult.success) {
+            await recordWorkRequestHistory({
+                req,
+                workRequestId: id,
+                action: 'manager_accepted',
+                previousData: workRequest,
+                nextData: { status: 'accepted' },
+                previousStatus: workRequest.status,
+                newStatus: 'accepted',
+                comments: 'Work request accepted by manager',
+                relatedUserId: workRequest.user_id,
+                relatedManagerId: manager_id
+            });
+
             const user = workRequest.users;
             const requestType = workRequest.RequestType || {};
             const divisionId = requestType.Divisions?.[0]?.id;
@@ -1262,6 +1276,16 @@ const deferWorkRequest = async (req, res) => {
                 deferred_at: new Date()
             });
 
+            await recordWorkRequestHistory({
+                req,
+                workRequestId: id,
+                action: 'manager_deferred',
+                previousData: workRequest,
+                comments: message,
+                relatedUserId: workRequest.user_id,
+                relatedManagerId: manager_id
+            });
+
             // Send email to user
             const user = workRequest.users;
             const currentUser = req.user;
@@ -1387,6 +1411,20 @@ const deferWorkRequest = async (req, res) => {
                 old_project_type_id: workRequest.project_id,
                 new_project_type_id: newProjectTypeId,
                 deferred_at: new Date()
+            });
+
+            await recordWorkRequestHistory({
+                req,
+                workRequestId: id,
+                action: 'manager_deferred_reassigned',
+                previousData: workRequest,
+                nextData: {
+                    request_type_id: newRequestTypeId,
+                    project_id: newProjectTypeId
+                },
+                comments: message || 'Work request reassigned to new request/project type',
+                relatedUserId: workRequest.user_id,
+                relatedManagerId: manager_id
             });
 
             // Use the first manager (Creative Manager) for the transfer email
@@ -1710,6 +1748,27 @@ const createTask = async (req, res) => {
             user_id: userId
         }));
         await TaskAssignments.bulkCreate(assignmentRecords);
+
+        await recordTaskHistory({
+            req,
+            taskId: taskResult.id,
+            workRequestId,
+            action: 'created',
+            previousData: null,
+            nextData: {
+                work_request_id,
+                task_name,
+                description,
+                request_type_id,
+                task_type_id,
+                deadline: formattedDeadline,
+                status: 'pending'
+            },
+            newStatus: 'pending',
+            comments: 'Task created by manager',
+            relatedManagerId: manager_id,
+            assignedToUserIds: assigned_to_ids
+        });
 
         // Send email notification to assigned users
         const assignedUsers = await User.findAll({
@@ -2443,10 +2502,23 @@ const updateWorkRequestProject = async (req, res) => {
             return res.status(404).json({ success: false, error: 'Work request not found or not assigned to you' });
         }
 
+        const workRequest = existingResult.data[0];
+
         // Update the work request
         const updateResult = await workRequestService.updateById(id, { project_id, project_name });
 
         if (updateResult.success) {
+            await recordWorkRequestHistory({
+                req,
+                workRequestId: id,
+                action: 'project_updated',
+                previousData: workRequest,
+                nextData: { project_id, project_name },
+                comments: 'Work request project updated by manager',
+                relatedUserId: workRequest.user_id,
+                relatedManagerId: manager_id
+            });
+
             res.json({ success: true, message: 'Work request project updated successfully' });
         } else {
             res.status(500).json({ success: false, error: 'Failed to update work request project' });
@@ -2483,6 +2555,8 @@ const deleteWorkRequest = async (req, res) => {
             return res.status(404).json({ success: false, error: 'Work request not found or not assigned to you' });
         }
 
+        const workRequest = existingResult.data[0];
+
         // Get all task IDs for this work request
         const tasks = await Tasks.findAll({ where: { work_request_id: id }, attributes: ['id'] });
         const taskIds = tasks.map(t => t.id);
@@ -2490,6 +2564,17 @@ const deleteWorkRequest = async (req, res) => {
         // Get all task assignment IDs for these tasks
         const taskAssignments = await TaskAssignments.findAll({ where: { task_id: { [Op.in]: taskIds } }, attributes: ['id'] });
         const taskAssignmentIds = taskAssignments.map(ta => ta.id);
+
+        // Record deletion before removing parent records
+        await recordWorkRequestHistory({
+            req,
+            workRequestId: id,
+            action: 'deleted',
+            previousData: workRequest,
+            comments: 'Work request deleted by manager',
+            relatedUserId: workRequest.user_id,
+            relatedManagerId: manager_id
+        });
 
         // Delete related records first to avoid foreign key constraints
         // Delete TaskDocuments for these task assignments
@@ -2563,6 +2648,17 @@ const deleteTask = async (req, res) => {
         // Get all task assignment IDs for this task
         const taskAssignments = await TaskAssignments.findAll({ where: { task_id: taskId }, attributes: ['id'] });
         const taskAssignmentIds = taskAssignments.map(ta => ta.id);
+
+        // Record deletion before removing parent records
+        await recordTaskHistory({
+            req,
+            taskId,
+            workRequestId: task.WorkRequest?.id,
+            action: 'deleted',
+            previousData: task,
+            comments: 'Task deleted by manager',
+            relatedManagerId: manager_id
+        });
 
         // Delete related records first to avoid foreign key constraints
         // Delete TaskDocuments for these task assignments
@@ -3285,6 +3381,18 @@ const updateTask = async (req, res) => {
             ]
         });
 
+        await recordTaskHistory({
+            req,
+            taskId,
+            workRequestId: task.WorkRequest?.id,
+            action: 'updated',
+            previousData: task,
+            nextData: updatedTask,
+            comments: 'Task updated by manager',
+            relatedManagerId: manager_id,
+            assignedToUserId: updatedTask?.TaskAssignments?.[0]?.user_id || null
+        });
+
         res.json({
             success: true,
             data: updatedTask,
@@ -3358,6 +3466,18 @@ const reviewTaskDocument = async (req, res) => {
         // Fetch updated document
         const updatedDocument = await TaskDocuments.findByPk(documentId, {
             attributes: ['id', 'document_name', 'document_path', 'uploaded_at', 'status', 'version', 'review']
+        });
+
+        await recordTaskHistory({
+            req,
+            taskId: document.TaskAssignments.Task.id,
+            workRequestId: document.TaskAssignments.Task.WorkRequest?.id,
+            action: 'document_reviewed',
+            previousData: document,
+            nextData: updatedDocument,
+            changes: { review },
+            comments: `Task document marked ${review} by manager`,
+            relatedManagerId: manager_id
         });
 
         res.json({
@@ -3442,6 +3562,19 @@ const reviewIssueDocument = async (req, res) => {
         // Fetch updated document
         const updatedDocument = await IssueDocuments.findByPk(documentId, {
             attributes: ['id', 'document_name', 'document_path', 'document_type', 'document_size', 'uploaded_at', 'status', 'version', 'review']
+        });
+
+        await recordIssueHistory({
+            req,
+            issueAssignmentId: document.issueUserAssignment.issue_assignment_id,
+            taskId: document.issueUserAssignment.issueAssignment.task?.id,
+            workRequestId: document.issueUserAssignment.issueAssignment.task?.WorkRequest?.id,
+            action: 'document_reviewed',
+            previousData: document,
+            nextData: updatedDocument,
+            changes: { review },
+            comments: `Issue document marked ${review} by manager`,
+            relatedManagerId: manager_id
         });
 
         res.json({
@@ -3659,6 +3792,19 @@ const reviewTask = async (req, res) => {
                         through: { attributes: [] }
                     }
                 ]
+            });
+
+            await recordTaskHistory({
+                req,
+                taskId,
+                workRequestId: task.WorkRequest?.id,
+                action: action === 'approved' ? 'manager_approved' : 'manager_change_requested',
+                previousData: task,
+                nextData: updatedTask,
+                changes: { review: action, review_stage: newStage, status: newStatus },
+                comments: comments || null,
+                relatedManagerId: manager_id,
+                relatedUserId: updatedTask?.assignedUsers?.[0]?.id || null
             });
 
             return res.json({
@@ -3881,6 +4027,20 @@ const reviewTask = async (req, res) => {
                 ]
             });
 
+            await recordIssueHistory({
+                req,
+                issueAssignmentId: issueId,
+                taskId: issueAssignment.task_id,
+                workRequestId: issueAssignment.task?.work_request_id,
+                action: action === 'approved' ? 'manager_approved' : 'manager_change_requested',
+                previousData: issueAssignment,
+                nextData: updatedIssue,
+                changes: { review: action, review_stage: newStage, status: newStatus },
+                comments: comments || null,
+                relatedManagerId: manager_id,
+                relatedUserId: updatedIssue?.userAssignments?.[0]?.user_id || null
+            });
+
             return res.json({
                 success: true,
                 data: {
@@ -4044,6 +4204,8 @@ const shareForClientReview = async (req, res) => {
         // Collect all items to share and their documents
         const itemsToShare = [];
         let allDocuments = [];
+        const sharedTaskIds = [];
+        const sharedIssueIds = [];
 
         // Handle task sharing if task_ids is provided
         if (task_ids && Array.isArray(task_ids) && task_ids.length > 0) {
@@ -4142,6 +4304,19 @@ const shareForClientReview = async (req, res) => {
                     { intimate_client: 1, shared_with_client_at: new Date() },
                     { where: { id: taskIdInt } }
                 );
+
+                sharedTaskIds.push({ taskId: taskIdInt, workRequestId: work_request_id });
+
+                await recordTaskHistory({
+                    req,
+                    taskId: taskIdInt,
+                    workRequestId: work_request_id,
+                    action: 'shared_for_client_review',
+                    previousData: task,
+                    nextData: { intimate_client: 1, shared_with_client_at: new Date() },
+                    comments: 'Task shared with client by manager',
+                    relatedManagerId: manager_id
+                });
 
                 // Update intimate_client to 1 for the documents that are being shared
                 if (taskDocuments.length > 0) {
@@ -4261,6 +4436,20 @@ const shareForClientReview = async (req, res) => {
                     { where: { id: issueIdInt } }
                 );
 
+                sharedIssueIds.push({ issueAssignmentId: issueIdInt, taskId: issueAssignment.task_id, workRequestId: work_request_id });
+
+                await recordIssueHistory({
+                    req,
+                    issueAssignmentId: issueIdInt,
+                    taskId: issueAssignment.task_id,
+                    workRequestId: issueAssignment.task?.work_request_id || work_request_id,
+                    action: 'shared_for_client_review',
+                    previousData: issueAssignment,
+                    nextData: { intimate_client: 1, shared_with_client_at: new Date() },
+                    comments: 'Issue shared with client by manager',
+                    relatedManagerId: manager_id
+                });
+
                 // Update intimate_client to 1 for the documents that are being shared
                 if (issueDocuments.length > 0) {
                     await IssueDocuments.update(
@@ -4270,6 +4459,20 @@ const shareForClientReview = async (req, res) => {
                 }
             }
         }
+
+        await recordWorkRequestHistory({
+            req,
+            workRequestId: work_request_id,
+            action: 'shared_for_client_review',
+            previousData: workRequest,
+            nextData: {
+                shared_task_ids: sharedTaskIds.map(item => item.taskId),
+                shared_issue_ids: sharedIssueIds.map(item => item.issueAssignmentId)
+            },
+            comments: 'Items shared with client by manager',
+            relatedUserId: workRequest.user_id,
+            relatedManagerId: manager_id
+        });
 
         // Send email to client with all items and documents
         const html = renderTemplate('clientReviewNotification', {
@@ -4392,6 +4595,20 @@ const acceptIssueRequest = async (req, res) => {
 
         // Update status to m_accepted and reset notification_alert
         await IssueAssignments.update({ status: 'm_accepted', notification_alert: 0 }, { where: { id } });
+
+        await recordIssueHistory({
+            req,
+            issueAssignmentId: id,
+            taskId: task.id,
+            workRequestId: task.work_request_id,
+            action: 'manager_accepted',
+            previousData: issueAssignment,
+            nextData: { status: 'm_accepted', notification_alert: 0 },
+            previousStatus: issueAssignment.status,
+            newStatus: 'm_accepted',
+            comments: 'Issue request accepted by manager',
+            relatedUserId: issueAssignment.requested_by_user_id
+        });
 
         // Get work request details for email
         let workRequest = null;
@@ -5041,6 +5258,20 @@ const assignIssueToUser = async (req, res) => {
             { where: { id: issue_assignment_id } }
         );
 
+        await recordIssueHistory({
+            req,
+            issueAssignmentId: issue_assignment_id,
+            taskId: issueAssignment.task?.id,
+            workRequestId: issueAssignment.task?.work_request_id,
+            action: 'assigned',
+            previousStatus: issueAssignment.status,
+            newStatus: 'u_pending',
+            comments: 'Issue assigned to user by manager',
+            relatedUserId: manager_id,
+            assignedToUserId: user_id,
+            assignedToUserName: assignedUser.name
+        });
+
         // Get work request details for email
         let workRequest = null;
         let requestType = null;
@@ -5258,6 +5489,52 @@ const completeAllTasksAndIssues = async (req, res) => {
         // Commit the transaction
         await transaction.commit();
 
+        await recordWorkRequestHistory({
+            req,
+            workRequestId: workRequestId,
+            action: 'completed',
+            previousData: workRequest,
+            nextData: { status: 'completed' },
+            comments: 'All tasks and issues completed by manager',
+            relatedUserId: workRequest.user_id,
+            relatedManagerId: manager_id
+        });
+
+        for (const task of tasks) {
+            await recordTaskHistory({
+                req,
+                taskId: task.id,
+                workRequestId: workRequestId,
+                action: 'completed',
+                previousData: task,
+                nextData: {
+                    status: 'completed',
+                    review: 'approved',
+                    review_stage: 'final_approved'
+                },
+                comments: 'Task completed while completing all work request items',
+                relatedManagerId: manager_id
+            });
+        }
+
+        for (const issueAssignment of issueAssignments) {
+            await recordIssueHistory({
+                req,
+                issueAssignmentId: issueAssignment.id,
+                taskId: issueAssignment.task_id,
+                workRequestId: workRequestId,
+                action: 'completed',
+                previousData: issueAssignment,
+                nextData: {
+                    status: 'completed',
+                    review: 'approved',
+                    review_stage: 'final_approved'
+                },
+                comments: 'Issue completed while completing all work request items',
+                relatedManagerId: manager_id
+            });
+        }
+
         // Get user details who created the work request
         const requestCreator = await User.findByPk(workRequest.user_id, {
             attributes: ['id', 'name', 'email']
@@ -5330,6 +5607,50 @@ const completeAllTasksAndIssues = async (req, res) => {
     }
 };
 
+const getTaskHistory = async (req, res) => {
+    try {
+        const taskId = parseInt(req.params.taskId, 10);
+        if (isNaN(taskId)) {
+            return res.status(400).json({ success: false, error: 'Invalid task ID' });
+        }
+
+        const limit = parseInt(req.query.limit, 10) || 200;
+        const offset = parseInt(req.query.offset, 10) || 0;
+        const history = await getTaskHistoryRecords(taskId, { limit, offset });
+
+        res.json({
+            success: true,
+            data: history,
+            message: 'Task history retrieved successfully'
+        });
+    } catch (error) {
+        console.error('Error fetching task history:', error);
+        res.status(500).json({ success: false, error: error.message, message: 'Failed to fetch task history' });
+    }
+};
+
+const getIssueHistory = async (req, res) => {
+    try {
+        const issueAssignmentId = parseInt(req.params.issueAssignmentId, 10);
+        if (isNaN(issueAssignmentId)) {
+            return res.status(400).json({ success: false, error: 'Invalid issue assignment ID' });
+        }
+
+        const limit = parseInt(req.query.limit, 10) || 200;
+        const offset = parseInt(req.query.offset, 10) || 0;
+        const history = await getIssueHistoryRecords(issueAssignmentId, { limit, offset });
+
+        res.json({
+            success: true,
+            data: history,
+            message: 'Issue history retrieved successfully'
+        });
+    } catch (error) {
+        console.error('Error fetching issue history:', error);
+        res.status(500).json({ success: false, error: error.message, message: 'Failed to fetch issue history' });
+    }
+};
+
 module.exports = {
     getAssignedWorkRequests,
     getAssignedWorkRequestById,
@@ -5355,5 +5676,7 @@ module.exports = {
     shareForClientReview,
     assignIssueToUser,
     getIssueAssignments,
-    completeAllTasksAndIssues
+    completeAllTasksAndIssues,
+    getTaskHistory,
+    getIssueHistory
 };

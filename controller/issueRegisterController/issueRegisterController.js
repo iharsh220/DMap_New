@@ -1,6 +1,7 @@
 const { Op } = require('sequelize');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
+const { recordTaskHistory, recordIssueHistory, recordWorkRequestHistory } = require('../../services/historyService');
 const {
     IssueRegister,
     ChangeIssueTasktype,
@@ -238,8 +239,48 @@ const createIssueAssignment = async (req, res) => {
             notification_alert: 1
         }, { transaction });
 
+        await recordIssueHistory({
+            req,
+            transaction,
+            issueAssignmentId: issueAssignment.id,
+            taskId: task_id || null,
+            workRequestId: taskWorkRequestId,
+            parentIssueId: issue_id || null,
+            action: 'created',
+            previousData: null,
+            nextData: issueAssignment,
+            newStatus: 'm_pending',
+            comments: 'Issue assignment created'
+        });
+
+        if (taskWorkRequestId) {
+            await recordWorkRequestHistory({
+                req,
+                transaction,
+                workRequestId: taskWorkRequestId,
+                action: 'change_request_issue_created',
+                relatedTaskId: task_id || null,
+                relatedIssueId: issueAssignment.id,
+                comments: 'Change request issue created'
+            });
+        }
+
         if (task_id) {
             await Tasks.update({ review: 'change_request' }, { where: { id: task_id }, transaction });
+
+            await recordTaskHistory({
+                req,
+                transaction,
+                taskId: task_id,
+                workRequestId: taskWorkRequestId,
+                action: 'change_request_created',
+                previousReview: 'pending',
+                newReview: 'change_request',
+                previousReviewStage: 'final_approved',
+                newReviewStage: 'change_requested',
+                comments: `New issue request created - ${version}`,
+                relatedIssueId: issueAssignment.id
+            });
 
             // Create review history entry when new issue is created for a task
             await TaskReviewHistory.create({
@@ -257,8 +298,22 @@ const createIssueAssignment = async (req, res) => {
         if (issue_id) {
             await IssueAssignments.update({ review: 'change_request' }, { where: { id: issue_id }, transaction });
 
-            // Get the task_id from the parent issue to create history
             const parentIssue = await IssueAssignments.findByPk(issue_id, { attributes: ['task_id'] });
+            await recordIssueHistory({
+                req,
+                transaction,
+                issueAssignmentId: issue_id,
+                taskId: parentIssue?.task_id || null,
+                action: 'child_change_request_created',
+                previousReview: 'pending',
+                newReview: 'change_request',
+                previousReviewStage: 'final_approved',
+                newReviewStage: 'change_requested',
+                comments: `New issue request created for issue - ${version}`,
+                relatedIssueId: issueAssignment.id
+            });
+
+            // Get the task_id from the parent issue to create history
             if (parentIssue && parentIssue.task_id) {
                 await TaskReviewHistory.create({
                     task_id: parentIssue.task_id,

@@ -25,6 +25,7 @@ const {
 } = require('../../models');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
+const { recordTaskHistory, recordIssueHistory, recordWorkRequestHistory, getTaskHistory: getTaskHistoryRecords, getIssueHistory: getIssueHistoryRecords } = require('../../services/historyService');
 const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
@@ -682,6 +683,28 @@ const assignTaskToUser = async (req, res) => {
             user_id: userId
         });
 
+        await recordTaskHistory({
+            req,
+            taskId,
+            workRequestId: workRequest.id,
+            action: 'assigned',
+            previousStatus: task.status,
+            newStatus: 'pending',
+            comments: 'Task assigned to user',
+            relatedUserId: req.user.id,
+            assignedToUserId: userId,
+            assignedToUserName: assignedUser.name
+        });
+
+        await recordWorkRequestHistory({
+            req,
+            workRequestId: workRequest.id,
+            action: 'task_assigned',
+            relatedTaskId: taskId,
+            relatedUserId: req.user.id,
+            comments: 'Task assigned to user'
+        });
+
         // Send consolidated email to work request creator with CC to managers and assigned user
         const assignedAt = new Date().toLocaleDateString('en-IN', {
             year: 'numeric',
@@ -1141,6 +1164,18 @@ const acceptTask = async (req, res) => {
             });
         }
 
+        await recordTaskHistory({
+            req,
+            taskId,
+            workRequestId: task.work_request_id,
+            action: 'accepted',
+            previousData: task,
+            nextData: updateData,
+            previousStatus: task.status,
+            newStatus: updateData.status,
+            comments: 'Task accepted by assigned user'
+        });
+
 
         res.json({
             success: true,
@@ -1510,6 +1545,22 @@ const submitTask = async (req, res) => {
             // Commit the task transaction
             await taskTransaction.commit();
 
+            await recordTaskHistory({
+                req,
+                taskId,
+                workRequestId: workRequest.id,
+                action: 'submitted',
+                previousData: task,
+                nextData: taskUpdateData,
+                previousStatus: task.status,
+                newStatus: 'completed',
+                previousReview: task.review,
+                newReview: 'pending',
+                previousReviewStage: task.review_stage,
+                newReviewStage: 'manager_review',
+                comments: comments || 'Task submitted by user'
+            });
+
             // Send email notification for task completion
             const completedAt = new Date().toLocaleDateString('en-IN', {
                 year: 'numeric',
@@ -1726,6 +1777,15 @@ const deleteTaskDocument = async (req, res) => {
         // Delete from database
         await TaskDocuments.destroy({
             where: { id: documentId }
+        });
+
+        await recordTaskHistory({
+            req,
+            taskId: task.id,
+            workRequestId: task.work_request_id,
+            action: 'document_deleted',
+            previousData: document,
+            comments: 'Task document deleted by user'
         });
 
 
@@ -2192,6 +2252,17 @@ const acceptIssue = async (req, res) => {
         // Update the issue assignment
         await IssueAssignments.update(updateData, { where: { id: issueId } });
 
+        await recordIssueHistory({
+            req,
+            issueAssignmentId: issueId,
+            action: 'accepted',
+            previousData: issueAssignment,
+            nextData: updateData,
+            previousStatus: issueAssignment.status,
+            newStatus,
+            comments: 'Issue accepted by assigned user'
+        });
+
         res.json({
             success: true,
             message: newStatus === 'in_progress' ? 'Issue accepted and started successfully' : 'Issue accepted successfully (scheduled for future start)',
@@ -2496,6 +2567,23 @@ const submitIssue = async (req, res) => {
             // Commit the issue transaction
             await issueTransaction.commit();
 
+            await recordIssueHistory({
+                req,
+                issueAssignmentId: issueId,
+                taskId: task?.id,
+                workRequestId: workRequest?.id,
+                action: 'submitted',
+                previousData: issueAssignment,
+                nextData: issueUpdateData,
+                previousStatus: issueAssignment.status,
+                newStatus: 'completed',
+                previousReview: issueAssignment.review,
+                newReview: 'pending',
+                previousReviewStage: issueAssignment.review_stage,
+                newReviewStage: 'manager_review',
+                comments: comments || 'Issue submitted by user'
+            });
+
             // Get user details for email
             const user = await User.findByPk(user_id, { attributes: ['id', 'name', 'email'] });
 
@@ -2629,6 +2717,50 @@ const submitIssue = async (req, res) => {
     }
 };
 
+const getUserTaskHistory = async (req, res) => {
+    try {
+        const taskId = parseInt(req.params.taskId, 10);
+        if (isNaN(taskId)) {
+            return res.status(400).json({ success: false, error: 'Invalid task ID' });
+        }
+
+        const limit = parseInt(req.query.limit, 10) || 200;
+        const offset = parseInt(req.query.offset, 10) || 0;
+        const history = await getTaskHistoryRecords(taskId, { limit, offset });
+
+        res.json({
+            success: true,
+            data: history,
+            message: 'Task history retrieved successfully'
+        });
+    } catch (error) {
+        console.error('Error fetching task history:', error);
+        res.status(500).json({ success: false, error: error.message, message: 'Failed to fetch task history' });
+    }
+};
+
+const getUserIssueHistory = async (req, res) => {
+    try {
+        const issueAssignmentId = parseInt(req.params.issueAssignmentId, 10);
+        if (isNaN(issueAssignmentId)) {
+            return res.status(400).json({ success: false, error: 'Invalid issue assignment ID' });
+        }
+
+        const limit = parseInt(req.query.limit, 10) || 200;
+        const offset = parseInt(req.query.offset, 10) || 0;
+        const history = await getIssueHistoryRecords(issueAssignmentId, { limit, offset });
+
+        res.json({
+            success: true,
+            data: history,
+            message: 'Issue history retrieved successfully'
+        });
+    } catch (error) {
+        console.error('Error fetching issue history:', error);
+        res.status(500).json({ success: false, error: error.message, message: 'Failed to fetch issue history' });
+    }
+};
+
 module.exports = {
     getAssignedTasks,
     getMyTeamTasks,
@@ -2641,5 +2773,7 @@ module.exports = {
     // Issue functions
     getAssignedIssues,
     acceptIssue,
-    submitIssue
+    submitIssue,
+    getUserTaskHistory,
+    getUserIssueHistory
 };
