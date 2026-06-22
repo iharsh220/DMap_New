@@ -114,71 +114,56 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdn.datatables.net/fixedcolumns/4.3.0/js/dataTables.fixedColumns.min.js"></script>
 <script>
-const TRUNCATE=['issue_types_with_description','issue_digi_comments','issue_requester_description','about_issue'];
 const HEADERS={
+    issue_status:'Change Status',
     work_request_id:'Project Request ID',
     task_id:'Task ID',
     issue_id:'Change ID',
     task_name:'Task Name',
-    brand:'Brand',
-    issue_request_type_name:'Change Requested To',
-    vertical_manger_name:'Request Accepted By',
     task_type_name:'Task Type',
     issue_requester_name:'Client Name',
     client_division:'Client Division',
-    issue_assignment_type:'Change Assignment Type',
-    assigned_user_name:'Assigned Creative User',
-    vertical_name:'Vertical Name',
-    issue_version:'Change Version',
-    project_count:'Project Count',
-    task_count:'Task Count',
-    issue_task_count:'Issue Task Count',
+    task_manager:'Task Manager',
+    assigned_creative_user:'Assigned Creative User',
+    cu_vertical:'CU Vertical',
+    issue_start_date:'Change Start Date',
+    issue_end_date:'Change End Date',
+    issue_deadline:'Change Deadline',
     task_no_of_work_pages:'No. of Work Pages',
     issue_no_of_work_pages:'No. of Change Pages',
     issue_no_of_options_provided:'No. of Options',
     issue_concept_work:'No. of Concept Created',
-    issue_no_of_concepts:'No. of Concepts',
-    issue_resize_work:'Includes Resize Work',
     issue_no_of_resize:'No. of Resize Pages',
-    issue_ai:'Includes AI Work',
     issue_no_of_ai_page:'No. of AI Pages',
-    issue_duration_minutes:'Change Duration Minutes',
-    issue_duration_seconds:'Change Duration Seconds',
     issue_video_duration:'Video Duration',
     issue_no_of_products_shot:'No. of Products Used',
-    issue_shoot_setup:'Includes Shoot Setup',
     issue_no_of_words_written:'No. of Words Written',
-    issue_responsive_screen:'No. of Responsive UI Created',
-    issue_requested_at_client:'Project Request Timestamp',
-    issue_requested_accept_at_cm:'Project Acceptance Timestamp',
-    issue_requested_at_assign_intimate_cu:'Change Request Timestamp',
-    issue_requested_accept_at_cu:'Change Request Response Timestamp',
-    issue_shared_with_cm_at:'Change Output Shared with CM Timestamp',
-    issue_respond_on_output_cm:'Change Output Response by CM Timestamp',
-    issue_output_shared_with_client_at:'Change Output Shared with Client Timestamp',
-    issue_output_client_responded_approve:'Change Output Client Responded Approved',
-    issue_start_date:'Change Start Date',
-    issue_end_date:'Change End Date',
-    issue_deadline:'Change Deadline',
-    issue_review:'Change Review',
-    issue_review_stage:'Change Review Stage',
-    issue_status:'Change Status',
-    issue_created_at:'Change Created At',
-    issue_updated_at:'Change Updated At',
-    issue_types:'Change Types',
-    issue_types_with_description:'Change Types With Description',
-    issue_digi_comments:'Change Digi Comments',
-    issue_requester_description:'Change Requester Description',
-    about_issue:'About Change',
-    issue_requester_department:'Change Requester Department',
+    issue_no_of_responsive_screen:'No. of Responsive UI Created',
+    issue_resize_work:'Includes Resize Work',
+    issue_ai:'Includes AI Work',
+    issue_shoot_setup:'Includes Shoot Setup',
+    issue_request_timestamp:'Change Request Timestamp',
+    issue_request_response_timestamp:'Change Request Response Timestamp',
+    issue_request_to_response_tat:'Change Request to Response TAT',
+    issue_output_shared_with_cm_timestamp:'Change Output Shared with CM Timestamp',
+    issue_acceptance_to_completion_tat_by_cu:'Change Acceptance to Completion TAT by CU',
+    issue_output_response_by_cm_timestamp:'Change Output Response by CM Timestamp',
+    issue_output_shared_to_response_by_cm_tat:'Change Output Shared to Response by CM TAT',
+    issue_output_shared_with_client_timestamp:'Change Output Shared with Client Timestamp',
+    issue_internal_tat:'Change Internal TAT',
+    issue_output_response_by_client_timestamp:'Change Output Response by Client Timestamp',
+    issue_whole_tat:'Change Whole TAT',
+    issue_request_response_reminder_counter_to_cu:'Change Request Response Reminder Counter To CU',
+    issue_output_response_reminder_counter_to_cm:'Change Output Response Reminder Counter To CM',
+    issue_output_response_reminder_counter_to_client:'Change Output Response Reminder Counter To Client',
+    client_change_requested_counter:'Client Change Requested Counter',
+    cm_change_requested_counter:'CM Change Requested Counter',
+    change_version:'Change Version',
     month:'Month',
-    fy:'FY'
+    fy:'Financial Year'
 };
 const BADGES={
-    issue_status:{m_pending:'status-m_pending',u_pending:'status-u_pending',m_accepted:'status-m_accepted',u_accepted:'status-u_accepted',in_progress:'status-in_progress',completed:'status-completed',rejected:'status-rejected',on_hold:'status-on_hold',cancelled:'status-cancelled'},
-    issue_review:{approved:'review-approved',pending:'review-pending',change_request:'review-change_request'},
-    issue_review_stage:{not_started:'stage-not_started',manager_review:'stage-manager_review',pm_review:'stage-pm_review',change_requested:'stage-change_requested',final_approved:'stage-final_approved'},
-    issue_assignment_type:{new:'status-accepted',mod:'status-assigned'}
+    issue_status:{m_pending:'status-m_pending',u_pending:'status-u_pending',m_accepted:'status-m_accepted',u_accepted:'status-u_accepted',in_progress:'status-in_progress',completed:'status-completed',rejected:'status-rejected',on_hold:'status-on_hold',cancelled:'status-cancelled'}
 };
 const BOOLS=['issue_concept_work','issue_resize_work','issue_shoot_setup','issue_responsive_screen'];
 
@@ -210,7 +195,6 @@ $(function(){
                         var val=v!=null?v:'N/A';
                         if(BADGES[k]&&val&&val!=='N/A'){var c=BADGES[k][val]||'';return '<span class="status-badge '+c+'">'+val+'</span>';}
                         if(BOOLS.indexOf(k)!==-1){var y=val==1||val===true||val==='true';return '<span class="status-badge '+(y?'bool-yes':'bool-no')+'">'+(y?'Yes':'No')+'</span>';}
-                        if(TRUNCATE.indexOf(k)!==-1)return '<span class="truncate-cell" title="'+String(val).replace(/"/g,'&quot;')+'">'+val+'</span>';
                         return val;
                     }
                 });
@@ -221,7 +205,7 @@ $(function(){
             data:data,columns:cols,
             pageLength:25,lengthMenu:[[25,50,100,200,-1],[25,50,100,200,'All']],
             dom:'<"dt-top-row"lf>rt<"dt-bottom-row"ip>',
-            scrollX:true,scrollY:'calc(100vh - 360px)',scrollCollapse:false,autoWidth:false,fixedColumns:{left:4},
+            scrollX:true,scrollY:'calc(100vh - 360px)',scrollCollapse:false,autoWidth:false,fixedColumns:{left:5},
             language:{search:'',searchPlaceholder:'Search all columns...',lengthMenu:'Show _MENU_ rows'},
             initComplete:function(){
                 var api=this.api();
