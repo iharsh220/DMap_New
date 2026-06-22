@@ -617,9 +617,17 @@ const getClientsData = async (req, res) => {
                 'N/A') AS digi_vertical_manager_name,
                 1 AS project_count,
                 COALESCE(NULLIF(TRIM(wr.status), ''), 'N/A') AS project_status,
-                COALESCE(NULLIF(TRIM(wr.description), ''), 'N/A') AS description,
+                COALESCE(NULLIF(TRIM(wr.remarks), ''), 'N/A') AS description,
                 COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A') AS project_requested_at_client,
                 COALESCE(DATE_FORMAT((SELECT MIN(wrm2.created_at) FROM work_request_managers wrm2 WHERE wrm2.work_request_id = wr.id), '%d-%b-%Y %H:%i'), 'N/A') AS response_timestamp,
+                COALESCE(DATE_FORMAT(wr.requested_at, '%M'), 'N/A') AS month,
+                CASE
+                    WHEN wr.created_at IS NOT NULL AND MONTH(wr.created_at) >= 4
+                        THEN CONCAT('FY ', YEAR(wr.created_at), '-', RIGHT(YEAR(wr.created_at) + 1, 2))
+                    WHEN wr.created_at IS NOT NULL
+                        THEN CONCAT('FY ', YEAR(wr.created_at) - 1, '-', RIGHT(YEAR(wr.created_at), 2))
+                    ELSE 'N/A'
+                END AS financial_year,
                 CASE
                     WHEN wr.requested_at IS NOT NULL
                      AND (SELECT MIN(wrm2.created_at) FROM work_request_managers wrm2 WHERE wrm2.work_request_id = wr.id) IS NOT NULL

@@ -118,7 +118,7 @@ const COL_ORDER=[
     'work_request_id','project_name','request_type_name','project_type_name',
     'project_priority','project_requester_name','client_division','digi_vertical_manager_name',
     'project_count','project_status','description','project_requested_at_client',
-    'response_timestamp','request_to_response_tat'
+    'response_timestamp','request_to_response_tat','month','financial_year'
 ];
 const HEADERS={
     work_request_id:'Project Request ID',
@@ -134,11 +134,22 @@ const HEADERS={
     description:'Description',
     project_requested_at_client:'Request Timestamp',
     response_timestamp:'Response Timestamp',
-    request_to_response_tat:'Request to Response TAT'
+    request_to_response_tat:'Request to Response TAT',
+    month:'Month',
+    financial_year:'Financial Year'
 };
 const BADGES={
-    project_status:{draft:'status-draft',pending:'status-pending',accepted:'status-accepted',assigned:'status-assigned',in_progress:'status-in_progress',completed:'status-completed',rejected:'status-rejected',deferred:'status-deferred'},
+    project_status:{draft:'status-draft',pending:'status-pending',accepted:'status-accepted',assigned:'status-assigned',in_progress:'status-in_progress',completed:'status-completed',rejected:'status-rejected',deferred:'status-deferred',cancelled:'status-cancelled'},
     project_priority:{low:'priority-low',medium:'priority-medium',high:'priority-high',critical:'priority-critical'}
+};
+const STATUS_LABELS={
+    pending:'Pending Response',
+    accepted:'Awaiting Assignment',
+    assigned:'Upcoming',
+    in_progress:'Ongoing',
+    completed:'Completed',
+    deferred:'Deferred',
+    cancelled:'Cancelled'
 };
 
 function parseTatMinutes(value){
@@ -177,6 +188,9 @@ $(function(){
                 render:function(v,type){
                     if(type!=='display') return v;
                     var val=v!=null?v:'N/A';
+                    if(k==='project_status' && STATUS_LABELS[val]){
+                        return '<span class="status-badge '+BADGES[k][val]+'">'+STATUS_LABELS[val]+'</span>';
+                    }
                     if(BADGES[k] && val && val!=='N/A'){
                         var c=BADGES[k][val]||'';
                         return '<span class="status-badge '+c+'">'+val+'</span>';
