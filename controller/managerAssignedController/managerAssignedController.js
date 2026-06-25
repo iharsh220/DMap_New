@@ -1752,7 +1752,7 @@ const createTask = async (req, res) => {
         await recordTaskHistory({
             req,
             taskId: taskResult.id,
-            workRequestId,
+            work_request_id,
             action: 'created',
             previousData: null,
             nextData: {
