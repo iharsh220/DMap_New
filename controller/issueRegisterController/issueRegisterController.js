@@ -146,9 +146,9 @@ const createIssueAssignment = async (req, res) => {
 
             return null;
         };
-
+        let taskWorkRequestId = null;
         if (task_id || issue_id) {
-            let taskWorkRequestId = null;
+
             let taskDetails = null;
             let issueChain = [];
             let rootTaskId = null;
@@ -239,59 +239,59 @@ const createIssueAssignment = async (req, res) => {
             notification_alert: 1
         }, { transaction });
 
-        await recordIssueHistory({
-            req,
-            transaction,
-            issueAssignmentId: issueAssignment.id,
-            taskId: task_id || null,
-            workRequestId: taskWorkRequestId,
-            parentIssueId: issue_id || null,
-            action: 'created',
-            previousData: null,
-            nextData: issueAssignment,
-            newStatus: 'm_pending',
-            comments: 'Issue assignment created'
-        });
+        // await recordIssueHistory({
+        //     req,
+        //     transaction,
+        //     issueAssignmentId: issueAssignment.id,
+        //     taskId: task_id || null,
+        //     workRequestId: taskWorkRequestId,
+        //     parentIssueId: issue_id || null,
+        //     action: 'created',
+        //     previousData: null,
+        //     nextData: issueAssignment,
+        //     newStatus: 'm_pending',
+        //     comments: 'Issue assignment created'
+        // });
 
-        if (taskWorkRequestId) {
-            await recordWorkRequestHistory({
-                req,
-                transaction,
-                workRequestId: taskWorkRequestId,
-                action: 'change_request_issue_created',
-                relatedTaskId: task_id || null,
-                relatedIssueId: issueAssignment.id,
-                comments: 'Change request issue created'
-            });
-        }
+        // if (taskWorkRequestId) {
+        //     await recordWorkRequestHistory({
+        //         req,
+        //         transaction,
+        //         workRequestId: taskWorkRequestId,
+        //         action: 'change_request_issue_created',
+        //         relatedTaskId: task_id || null,
+        //         relatedIssueId: issueAssignment.id,
+        //         comments: 'Change request issue created'
+        //     });
+        // }
 
         if (task_id) {
             await Tasks.update({ review: 'change_request' }, { where: { id: task_id }, transaction });
 
-            await recordTaskHistory({
-                req,
-                transaction,
-                taskId: task_id,
-                workRequestId: taskWorkRequestId,
-                action: 'change_request_created',
-                previousReview: 'pending',
-                newReview: 'change_request',
-                previousReviewStage: 'final_approved',
-                newReviewStage: 'change_requested',
-                comments: `New issue request created - ${version}`,
-                relatedIssueId: issueAssignment.id
-            });
+            // await recordTaskHistory({
+            //     req,
+            //     transaction,
+            //     taskId: task_id,
+            //     workRequestId: taskWorkRequestId,
+            //     action: 'change_request_created',
+            //     previousReview: 'pending',
+            //     newReview: 'change_request',
+            //     previousReviewStage: 'final_approved',
+            //     newReviewStage: 'change_requested',
+            //     comments: `New issue request created - ${version}`,
+            //     relatedIssueId: issueAssignment.id
+            // });
 
             // Create review history entry when new issue is created for a task
-            await TaskReviewHistory.create({
-                task_id: task_id,
-                reviewer_id: requested_by_user_id,
-                reviewer_type: 'project_manager',
-                action: 'change_request',
-                comments: `New issue request created - ${version}`,
-                previous_stage: 'final_approved',
-                new_stage: 'change_requested'
-            }, { transaction });
+            // await TaskReviewHistory.create({
+            //     task_id: task_id,
+            //     reviewer_id: requested_by_user_id,
+            //     reviewer_type: 'project_manager',
+            //     action: 'change_request',
+            //     comments: `New issue request created - ${version}`,
+            //     previous_stage: 'final_approved',
+            //     new_stage: 'change_requested'
+            // }, { transaction });
         }
 
         // If issue_id is provided, update the parent issue's review to 'change_request'
@@ -299,32 +299,32 @@ const createIssueAssignment = async (req, res) => {
             await IssueAssignments.update({ review: 'change_request' }, { where: { id: issue_id }, transaction });
 
             const parentIssue = await IssueAssignments.findByPk(issue_id, { attributes: ['task_id'] });
-            await recordIssueHistory({
-                req,
-                transaction,
-                issueAssignmentId: issue_id,
-                taskId: parentIssue?.task_id || null,
-                action: 'child_change_request_created',
-                previousReview: 'pending',
-                newReview: 'change_request',
-                previousReviewStage: 'final_approved',
-                newReviewStage: 'change_requested',
-                comments: `New issue request created for issue - ${version}`,
-                relatedIssueId: issueAssignment.id
-            });
+            // await recordIssueHistory({
+            //     req,
+            //     transaction,
+            //     issueAssignmentId: issue_id,
+            //     taskId: parentIssue?.task_id || null,
+            //     action: 'child_change_request_created',
+            //     previousReview: 'pending',
+            //     newReview: 'change_request',
+            //     previousReviewStage: 'final_approved',
+            //     newReviewStage: 'change_requested',
+            //     comments: `New issue request created for issue - ${version}`,
+            //     relatedIssueId: issueAssignment.id
+            // });
 
             // Get the task_id from the parent issue to create history
-            if (parentIssue && parentIssue.task_id) {
-                await TaskReviewHistory.create({
-                    task_id: parentIssue.task_id,
-                    reviewer_id: requested_by_user_id,
-                    reviewer_type: 'project_manager',
-                    action: 'change_request',
-                    comments: `New issue request created for issue - ${version}`,
-                    previous_stage: 'final_approved',
-                    new_stage: 'change_requested'
-                }, { transaction });
-            }
+            // if (parentIssue && parentIssue.task_id) {
+            //     await TaskReviewHistory.create({
+            //         task_id: parentIssue.task_id,
+            //         reviewer_id: requested_by_user_id,
+            //         reviewer_type: 'project_manager',
+            //         action: 'change_request',
+            //         comments: `New issue request created for issue - ${version}`,
+            //         previous_stage: 'final_approved',
+            //         new_stage: 'change_requested'
+            //     }, { transaction });
+            // }
         }
 
         if (issue_register_ids && issue_register_ids.length > 0) {
@@ -373,14 +373,14 @@ const createIssueAssignment = async (req, res) => {
                 // Get task managers from request type divisions
                 const task = await Tasks.findByPk(targetTaskId, { attributes: ['request_type_id'] });
                 let managers = [];
-                
+
                 if (task && task.request_type_id) {
                     const reqDivRefs = await RequestDivisionReference.findAll({
                         where: { request_id: task.request_type_id }
                     });
-                    
+
                     const divisionIds = reqDivRefs.map(ref => ref.division_id);
-                    
+
                     if (divisionIds.length > 0) {
                         const divisionManagers = await UserDivisions.findAll({
                             where: { division_id: { [Op.in]: divisionIds } },
@@ -390,14 +390,14 @@ const createIssueAssignment = async (req, res) => {
                                 attributes: ['id', 'name', 'email']
                             }]
                         });
-                        
+
                         managers = divisionManagers.filter(dm => dm.User).map(dm => dm.User);
                     }
                 }
 
                 // Collect all unique email recipients (ONLY MANAGERS)
                 const allRecipients = [];
-                
+
                 // Add ONLY managers, not task assigned users
                 managers.forEach(manager => {
                     if (manager.email && !allRecipients.find(r => r.email === manager.email)) {
