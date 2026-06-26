@@ -117,108 +117,60 @@ const createIssueAssignment = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Missing required fields: requested_by_user_id, assignment_type, version' });
         }
 
-        // Function to get root task from issue chain with depth limit
-        const getRootTask = async (issueId, depth = 0) => {
-            if (depth >= 10) return null; // Limit to 10 levels max
+        const actor = req.user || {};
+        const actorId = actor.id || null;
+        const actorType = actor.job_role_id === 2 ? 'manager' : actor.job_role_id === 3 ? 'lead' : 'user';
+        const actorName = actor.name || null;
+        const actorEmail = actor.email || null;
 
-            const issue = await IssueAssignments.findByPk(issueId, {
-                attributes: ['id', 'issue_id', 'task_id', 'version', 'description']
-            });
-
-            if (!issue) return null;
-
-            // If this issue has a task_id, it's the root
-            if (issue.task_id) {
-                return {
-                    taskId: issue.task_id,
-                    issueChain: [{ id: issue.id, version: issue.version, description: issue.description }]
-                };
-            }
-
-            // If this issue has a parent issue, recurse
-            if (issue.issue_id) {
-                const parentResult = await getRootTask(issue.issue_id, depth + 1);
-                if (parentResult) {
-                    parentResult.issueChain.unshift({ id: issue.id, version: issue.version, description: issue.description });
-                    return parentResult;
-                }
-            }
-
-            return null;
-        };
-        let taskWorkRequestId = null;
-        if (task_id || issue_id) {
-
-            let taskDetails = null;
-            let issueChain = [];
-            let rootTaskId = null;
-
-            if (task_id) {
-                // New issue on task - send to task's managers
-                const task = await Tasks.findByPk(task_id, {
-                    attributes: ['id', 'work_request_id']
-                });
-                if (!task) return res.status(404).json({ success: false, error: 'Task not found' });
-
-                // Check if task already has 10 issues - don't allow more
-                const existingIssueCount = await IssueAssignments.count({
-                    where: { task_id: task_id }
-                });
-                if (existingIssueCount >= 10) {
-                    return res.status(400).json({
-                        success: false,
-                        error: 'Maximum issue limit (10) reached for this task. Cannot create more issues.'
-                    });
-                }
-
-                taskWorkRequestId = task.work_request_id;
-                rootTaskId = task_id;
-
-                // Get task details
-                taskDetails = await Tasks.findByPk(task_id, {
-                    include: [
-                        { model: WorkRequests, attributes: ['id', 'project_name', 'brand'] },
-                        { model: TaskType, attributes: ['id', 'task_type'] }
-                    ]
-                });
-            } else if (issue_id) {
-                // New issue on issue - get root task and issue chain
-                const rootResult = await getRootTask(issue_id);
-                if (!rootResult) return res.status(404).json({ success: false, error: 'Could not find root task for this issue chain' });
-
-                rootTaskId = rootResult.taskId;
-                issueChain = rootResult.issueChain;
-
-                // Check if chain already has 10 issues - don't allow more
-                if (issueChain.length >= 10) {
-                    return res.status(400).json({
-                        success: false,
-                        error: 'Maximum issue chain limit (10) reached. Cannot create more nested issues.'
-                    });
-                }
-
-                // Get the task details
-                const task = await Tasks.findByPk(rootTaskId, {
-                    attributes: ['id', 'work_request_id']
-                });
-                if (!task) return res.status(404).json({ success: false, error: 'Root task not found' });
-                taskWorkRequestId = task.work_request_id;
-
-                taskDetails = await Tasks.findByPk(rootTaskId, {
-                    include: [
-                        { model: WorkRequests, attributes: ['id', 'project_name', 'brand'] },
-                        { model: TaskType, attributes: ['id', 'task_type'] }
-                    ]
-                });
-            }
-        }
+        let rootTaskId = task_id;
+        let workRequestId = null;
 
         if (issue_id) {
-            const existingIssue = await IssueAssignments.findByPk(issue_id);
-            if (!existingIssue) return res.status(404).json({ success: false, error: 'Parent issue not found' });
+            const parentIssue = await IssueAssignments.findByPk(issue_id, {
+                attributes: ['id', 'issue_id', 'task_id']
+            });
+            if (!parentIssue) {
+                return res.status(404).json({ success: false, error: 'Parent issue not found' });
+            }
+
+            if (parentIssue.task_id) {
+                rootTaskId = parentIssue.task_id;
+            } else if (parentIssue.issue_id) {
+                rootTaskId = parentIssue.issue_id;
+            }
         }
 
-        const changeType = task_id ? 'task' : 'issue';
+        if (rootTaskId) {
+            const task = await Tasks.findByPk(rootTaskId, {
+                attributes: ['id', 'work_request_id']
+            });
+            if (task) workRequestId = task.work_request_id;
+        }
+
+        if (rootTaskId && !issue_id) {
+            const existingCount = await IssueAssignments.count({
+                where: { task_id: rootTaskId }
+            });
+            if (existingCount >= 10) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Maximum issue limit (10) reached for this task.'
+                });
+            }
+        }
+
+        if (issue_id && rootTaskId) {
+            const chainCount = await IssueAssignments.count({
+                where: { task_id: rootTaskId }
+            });
+            if (chainCount >= 10) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Maximum issue chain limit (10) reached.'
+                });
+            }
+        }
 
         const issueAssignment = await IssueAssignments.create({
             issue_id: issue_id || null,
@@ -239,92 +191,80 @@ const createIssueAssignment = async (req, res) => {
             notification_alert: 1
         }, { transaction });
 
-        // await recordIssueHistory({
-        //     req,
-        //     transaction,
-        //     issueAssignmentId: issueAssignment.id,
-        //     taskId: task_id || null,
-        //     workRequestId: taskWorkRequestId,
-        //     parentIssueId: issue_id || null,
-        //     action: 'created',
-        //     previousData: null,
-        //     nextData: issueAssignment,
-        //     newStatus: 'm_pending',
-        //     comments: 'Issue assignment created'
-        // });
+        const sequelize = require('../../models').sequelize;
 
-        // if (taskWorkRequestId) {
-        //     await recordWorkRequestHistory({
-        //         req,
-        //         transaction,
-        //         workRequestId: taskWorkRequestId,
-        //         action: 'change_request_issue_created',
-        //         relatedTaskId: task_id || null,
-        //         relatedIssueId: issueAssignment.id,
-        //         comments: 'Change request issue created'
-        //     });
-        // }
+        await sequelize.query(
+            `INSERT INTO issue_history 
+            (issue_assignment_id, task_id, work_request_id, parent_issue_id, action, actor_id, actor_type, actor_name, actor_email, new_status, comments, created_at, updated_at) 
+            VALUES (?, ?, ?, ?, 'created', ?, ?, ?, ?, 'm_pending', 'Issue assignment created', NOW(), NOW())`,
+            {
+                replacements: [issueAssignment.id, task_id || null, workRequestId, issue_id || null, actorId, actorType, actorName, actorEmail],
+                transaction
+            }
+        );
+
+        if (workRequestId) {
+            await sequelize.query(
+                `INSERT INTO work_request_history 
+                (work_request_id, action, actor_id, actor_type, actor_name, actor_email, related_task_id, related_issue_id, comments, created_at, updated_at) 
+                VALUES (?, 'change_request_issue_created', ?, ?, ?, ?, ?, ?, 'Change request issue created', NOW(), NOW())`,
+                {
+                    replacements: [workRequestId, actorId, actorType, actorName, actorEmail, task_id || null, issueAssignment.id],
+                    transaction
+                }
+            );
+        }
 
         if (task_id) {
             await Tasks.update({ review: 'change_request' }, { where: { id: task_id }, transaction });
 
-            // await recordTaskHistory({
-            //     req,
-            //     transaction,
-            //     taskId: task_id,
-            //     workRequestId: taskWorkRequestId,
-            //     action: 'change_request_created',
-            //     previousReview: 'pending',
-            //     newReview: 'change_request',
-            //     previousReviewStage: 'final_approved',
-            //     newReviewStage: 'change_requested',
-            //     comments: `New issue request created - ${version}`,
-            //     relatedIssueId: issueAssignment.id
-            // });
+            await sequelize.query(
+                `INSERT INTO task_history 
+                (task_id, work_request_id, action, actor_id, actor_type, actor_name, actor_email, previous_review, new_review, previous_review_stage, new_review_stage, related_issue_id, comments, created_at, updated_at) 
+                VALUES (?, ?, 'change_request_created', ?, ?, ?, ?, 'pending', 'change_request', 'final_approved', 'change_requested', ?, 'New issue request created - ${version}', NOW(), NOW())`,
+                {
+                    replacements: [task_id, workRequestId, actorId, actorType, actorName, actorEmail, issueAssignment.id],
+                    transaction
+                }
+            );
 
-            // Create review history entry when new issue is created for a task
-            // await TaskReviewHistory.create({
-            //     task_id: task_id,
-            //     reviewer_id: requested_by_user_id,
-            //     reviewer_type: 'project_manager',
-            //     action: 'change_request',
-            //     comments: `New issue request created - ${version}`,
-            //     previous_stage: 'final_approved',
-            //     new_stage: 'change_requested'
-            // }, { transaction });
+            await sequelize.query(
+                `INSERT INTO task_review_history 
+                (task_id, reviewer_id, reviewer_type, action, comments, previous_stage, new_stage, created_at, updated_at) 
+                VALUES (?, ?, 'project_manager', 'change_request', 'New issue request created - ${version}', 'final_approved', 'change_requested', NOW(), NOW())`,
+                {
+                    replacements: [task_id, requested_by_user_id],
+                    transaction
+                }
+            );
         }
 
-        // If issue_id is provided, update the parent issue's review to 'change_request'
         if (issue_id) {
             await IssueAssignments.update({ review: 'change_request' }, { where: { id: issue_id }, transaction });
 
             const parentIssue = await IssueAssignments.findByPk(issue_id, { attributes: ['task_id'] });
-            // await recordIssueHistory({
-            //     req,
-            //     transaction,
-            //     issueAssignmentId: issue_id,
-            //     taskId: parentIssue?.task_id || null,
-            //     action: 'child_change_request_created',
-            //     previousReview: 'pending',
-            //     newReview: 'change_request',
-            //     previousReviewStage: 'final_approved',
-            //     newReviewStage: 'change_requested',
-            //     comments: `New issue request created for issue - ${version}`,
-            //     relatedIssueId: issueAssignment.id
-            // });
 
-            // Get the task_id from the parent issue to create history
-            // if (parentIssue && parentIssue.task_id) {
-            //     await TaskReviewHistory.create({
-            //         task_id: parentIssue.task_id,
-            //         reviewer_id: requested_by_user_id,
-            //         reviewer_type: 'project_manager',
-            //         action: 'change_request',
-            //         comments: `New issue request created for issue - ${version}`,
-            //         previous_stage: 'final_approved',
-            //         new_stage: 'change_requested'
-            //     }, { transaction });
-            // }
+            await sequelize.query(
+                `INSERT INTO issue_history 
+                (issue_assignment_id, task_id, work_request_id, parent_issue_id, action, actor_id, actor_type, actor_name, actor_email, previous_review, new_review, previous_review_stage, new_review_stage, related_issue_id, comments, created_at, updated_at) 
+                VALUES (?, ?, ?, ?, 'child_change_request_created', ?, ?, ?, ?, 'pending', 'change_request', 'final_approved', 'change_requested', ?, 'New issue request created for issue - ${version}', NOW(), NOW())`,
+                {
+                    replacements: [issue_id, parentIssue?.task_id || null, workRequestId, issue_id, actorId, actorType, actorName, actorEmail, issueAssignment.id],
+                    transaction
+                }
+            );
+
+            if (parentIssue && parentIssue.task_id) {
+                await sequelize.query(
+                    `INSERT INTO task_review_history 
+                    (task_id, reviewer_id, reviewer_type, action, comments, previous_stage, new_stage, created_at, updated_at) 
+                    VALUES (?, ?, 'project_manager', 'change_request', 'New issue request created for issue - ${version}', 'final_approved', 'change_requested', NOW(), NOW())`,
+                    {
+                        replacements: [parentIssue.task_id, requested_by_user_id],
+                        transaction
+                    }
+                );
+            }
         }
 
         if (issue_register_ids && issue_register_ids.length > 0) {
@@ -346,101 +286,7 @@ const createIssueAssignment = async (req, res) => {
             ]
         });
 
-        // Send email notifications to relevant users
-        try {
-            // Get root task id
-            let targetTaskId = null;
-            if (task_id) {
-                targetTaskId = task_id;
-            } else if (issue_id) {
-                const rootResult = await getRootTask(issue_id);
-                if (rootResult) {
-                    targetTaskId = rootResult.taskId;
-                }
-            }
-
-            if (targetTaskId) {
-                // Get all assigned users for this task
-                const taskAssignedUsers = await Tasks.findByPk(targetTaskId, {
-                    include: [{
-                        model: User,
-                        as: 'assignedUsers',
-                        attributes: ['id', 'name', 'email'],
-                        through: { attributes: [] }
-                    }]
-                });
-
-                // Get task managers from request type divisions
-                const task = await Tasks.findByPk(targetTaskId, { attributes: ['request_type_id'] });
-                let managers = [];
-
-                if (task && task.request_type_id) {
-                    const reqDivRefs = await RequestDivisionReference.findAll({
-                        where: { request_id: task.request_type_id }
-                    });
-
-                    const divisionIds = reqDivRefs.map(ref => ref.division_id);
-
-                    if (divisionIds.length > 0) {
-                        const divisionManagers = await UserDivisions.findAll({
-                            where: { division_id: { [Op.in]: divisionIds } },
-                            include: [{
-                                model: User,
-                                where: { job_role_id: 2, account_status: 'active' },
-                                attributes: ['id', 'name', 'email']
-                            }]
-                        });
-
-                        managers = divisionManagers.filter(dm => dm.User).map(dm => dm.User);
-                    }
-                }
-
-                // Collect all unique email recipients (ONLY MANAGERS)
-                const allRecipients = [];
-
-                // Add ONLY managers, not task assigned users
-                managers.forEach(manager => {
-                    if (manager.email && !allRecipients.find(r => r.email === manager.email)) {
-                        allRecipients.push(manager);
-                    }
-                });
-                // console.log(allRecipients);
-                // Send single email with all managers in TO field
-                if (allRecipients.length > 0) {
-                    const taskDetails = await Tasks.findByPk(targetTaskId, {
-                        include: [
-                            { model: WorkRequests, attributes: ['id', 'project_name'] },
-                            { model: TaskType, attributes: ['task_type'] }
-                        ]
-                    });
-
-                    const emailData = {
-                        issue_version: createdIssueAssignment.version,
-                        issue_description: createdIssueAssignment.description,
-                        task_name: taskDetails?.task_name || 'Unknown Task',
-                        project_name: taskDetails?.WorkRequest?.project_name || 'Unknown Project',
-                        task_type: taskDetails?.TaskType?.task_type || 'Unknown Type',
-                        requested_by: createdIssueAssignment.requester?.name || 'System',
-                        issue_link: `${process.env.FRONTEND_URL || 'https://dmap.alembicdigilabs.com'}/issuedetails/${createdIssueAssignment.id}`
-                    };
-
-                    const emailHtml = renderTemplate('issueAssignmentNotification', emailData);
-
-                    // Collect all manager emails into single comma separated list
-                    const managerEmails = allRecipients.map(recipient => recipient.email).join(', ');
-
-                    // Send one single email to all managers together
-                    await sendMail({
-                        to: managerEmails,
-                        subject: `New Issue Created: ${createdIssueAssignment.version} - ${taskDetails?.task_name || 'Task'}`,
-                        html: emailHtml
-                    });
-                }
-            }
-        } catch (emailError) {
-            console.error('Error sending issue assignment emails:', emailError);
-            // Do not fail the request if email fails
-        }
+        const changeType = task_id ? 'task' : 'issue';
 
         res.status(201).json({ success: true, data: { ...createdIssueAssignment.toJSON(), change_type: changeType }, message: 'Issue assignment created successfully' });
     } catch (error) {
