@@ -475,7 +475,7 @@ const getAdminData = async (req, res) => {
                         ELSE 'N/A'
                     END,
                 'N/A') AS project_end_date,
-                COUNT(DISTINCT CASE WHEN ia.requested_by_user_id = wr.user_id THEN ia.id END) AS client_change_requested_counter,
+                (SELECT COUNT(*) FROM issue_history ih WHERE ih.work_request_id = wr.id AND ih.action = 'created') AS client_change_requested_counter,
                 COUNT(DISTINCT CASE WHEN th.actor_id IN (SELECT manager_id FROM work_request_managers WHERE work_request_id = wr.id) THEN th.id END) AS cm_change_requested_counter,
                 COALESCE(SUM(t.task_count), 0) AS task_no_of_work_pages,
                 COALESCE(SUM(ia.task_count), 0) AS issue_no_of_work_pages,
@@ -491,7 +491,7 @@ const getAdminData = async (req, res) => {
                 COALESCE(SUM(t.no_of_images_videos_audio), 0) AS task_ai,
                 COALESCE(SUM(t.shoot_setup), 0) AS task_shoot_setup,
                 COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A') AS project_request_timestamp,
-                COALESCE(DATE_FORMAT((SELECT MIN(wrm2.created_at) FROM work_request_managers wrm2 WHERE wrm2.work_request_id = wr.id), '%d-%b-%Y %H:%i'), 'N/A') AS project_acceptance_timestamp,
+                COALESCE(DATE_FORMAT((SELECT MIN(wrh.created_at) FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'manager_accepted'), '%d-%b-%Y %H:%i'), 'N/A') AS project_acceptance_timestamp,
                 COALESCE(DATE_FORMAT(MAX(t.end_date), '%d-%b-%Y %H:%i'), 'N/A') AS project_marked_completed_timestamp,
                 'N/A' AS project_marked_completed_by,
                 COALESCE(
@@ -499,8 +499,8 @@ const getAdminData = async (req, res) => {
                     THEN CONCAT(FLOOR(TIMESTAMPDIFF(MINUTE, wr.requested_at, MAX(t.end_date)) / 60), 'h ', MOD(TIMESTAMPDIFF(MINUTE, wr.requested_at, MAX(t.end_date)), 60), 'm')
                     ELSE 'N/A' END, 'N/A') AS project_tat,
                 COALESCE(
-                    CASE WHEN wr.requested_at IS NOT NULL AND (SELECT MIN(wrm2.created_at) FROM work_request_managers wrm2 WHERE wrm2.work_request_id = wr.id) IS NOT NULL
-                    THEN CONCAT(FLOOR(TIMESTAMPDIFF(MINUTE, wr.requested_at, (SELECT MIN(wrm2.created_at) FROM work_request_managers wrm2 WHERE wrm2.work_request_id = wr.id)) / 60), 'h ', MOD(TIMESTAMPDIFF(MINUTE, wr.requested_at, (SELECT MIN(wrm2.created_at) FROM work_request_managers wrm2 WHERE wrm2.work_request_id = wr.id)), 60), 'm')
+                    CASE WHEN wr.requested_at IS NOT NULL AND (SELECT MIN(wrh.created_at) FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'manager_accepted') IS NOT NULL
+                    THEN CONCAT(FLOOR(TIMESTAMPDIFF(MINUTE, wr.requested_at, (SELECT MIN(wrh2.created_at) FROM work_request_history wrh2 WHERE wrh2.work_request_id = wr.id AND wrh2.action = 'manager_accepted')) / 60), 'h ', MOD(TIMESTAMPDIFF(MINUTE, wr.requested_at, (SELECT MIN(wrh2.created_at) FROM work_request_history wrh2 WHERE wrh2.work_request_id = wr.id AND wrh2.action = 'manager_accepted')), 60), 'm')
                     ELSE 'N/A' END, 'N/A') AS project_request_to_response_tat,
                 'N/A' AS task_request_to_response_tat_avg,
                 'N/A' AS task_acceptance_to_completion_tat_by_cu_avg,
@@ -759,7 +759,7 @@ const getTaskDetailsData = async (req, res) => {
                 0 AS task_request_response_reminder_counter_to_cu,
                 0 AS task_output_response_reminder_counter_to_cm,
                 0 AS task_output_response_reminder_counter_to_client,
-                COUNT(DISTINCT CASE WHEN ia.requested_by_user_id = wr.user_id THEN ia.id END) AS client_change_requested_counter,
+                (SELECT COUNT(*) FROM issue_history ih WHERE ih.work_request_id = wr.id AND ih.action = 'created') AS client_change_requested_counter,
                 COUNT(DISTINCT CASE WHEN ia.requested_by_user_id IN (SELECT manager_id FROM work_request_managers WHERE work_request_id = wr.id) THEN ia.id END) AS cm_change_requested_counter,
                 GROUP_CONCAT(DISTINCT ia.version ORDER BY ia.version SEPARATOR ', ') AS change_version,
                 DATE_FORMAT(t.created_at, '%M') AS month,
@@ -906,7 +906,7 @@ const getIssueDetailsData = async (req, res) => {
                 0 AS issue_request_response_reminder_counter_to_cu,
                 0 AS issue_output_response_reminder_counter_to_cm,
                 0 AS issue_output_response_reminder_counter_to_client,
-                COUNT(DISTINCT CASE WHEN ia.requested_by_user_id = wr.user_id THEN ia.id END) AS client_change_requested_counter,
+                (SELECT COUNT(*) FROM issue_history ih WHERE ih.work_request_id = wr.id AND ih.action = 'created') AS client_change_requested_counter,
                 COUNT(DISTINCT CASE WHEN ia.requested_by_user_id IN (SELECT manager_id FROM work_request_managers WHERE work_request_id = wr.id) THEN ia.id END) AS cm_change_requested_counter,
                 GROUP_CONCAT(DISTINCT ia.version ORDER BY ia.version SEPARATOR ', ') AS change_version,
                 DATE_FORMAT(ia.created_at, '%M') AS month,
