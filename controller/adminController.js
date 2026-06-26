@@ -619,7 +619,7 @@ const getClientsData = async (req, res) => {
                 COALESCE(NULLIF(TRIM(wr.status), ''), 'N/A') AS project_status,
                 COALESCE(NULLIF(TRIM(wr.remarks), ''), 'N/A') AS description,
                 COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A') AS project_requested_at_client,
-                COALESCE(DATE_FORMAT((SELECT MIN(wrm2.created_at) FROM work_request_managers wrm2 WHERE wrm2.work_request_id = wr.id), '%d-%b-%Y %H:%i'), 'N/A') AS response_timestamp,
+                COALESCE(DATE_FORMAT((SELECT wrh.created_at FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'manager_accepted' LIMIT 1), '%d-%b-%Y %H:%i'), 'N/A') AS response_timestamp,
                 COALESCE(DATE_FORMAT(wr.requested_at, '%M'), 'N/A') AS month,
                 CASE
                     WHEN wr.created_at IS NOT NULL AND MONTH(wr.created_at) >= 4
@@ -630,11 +630,11 @@ const getClientsData = async (req, res) => {
                 END AS financial_year,
                 CASE
                     WHEN wr.requested_at IS NOT NULL
-                     AND (SELECT MIN(wrm2.created_at) FROM work_request_managers wrm2 WHERE wrm2.work_request_id = wr.id) IS NOT NULL
+                     AND (SELECT wrh2.created_at FROM work_request_history wrh2 WHERE wrh2.work_request_id = wr.id AND wrh2.action = 'manager_accepted' LIMIT 1) IS NOT NULL
                     THEN CONCAT(
-                        FLOOR(TIMESTAMPDIFF(MINUTE, wr.requested_at, (SELECT MIN(wrm2.created_at) FROM work_request_managers wrm2 WHERE wrm2.work_request_id = wr.id)) / 60),
+                        FLOOR(TIMESTAMPDIFF(MINUTE, wr.requested_at, (SELECT wrh3.created_at FROM work_request_history wrh3 WHERE wrh3.work_request_id = wr.id AND wrh3.action = 'manager_accepted' LIMIT 1)) / 60),
                         'h ',
-                        MOD(TIMESTAMPDIFF(MINUTE, wr.requested_at, (SELECT MIN(wrm2.created_at) FROM work_request_managers wrm2 WHERE wrm2.work_request_id = wr.id)), 60),
+                        MOD(TIMESTAMPDIFF(MINUTE, wr.requested_at, (SELECT wrh4.created_at FROM work_request_history wrh4 WHERE wrh4.work_request_id = wr.id AND wrh4.action = 'manager_accepted' LIMIT 1)), 60),
                         'm'
                     )
                     ELSE 'N/A'
