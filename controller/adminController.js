@@ -476,7 +476,7 @@ const getAdminData = async (req, res) => {
                     END,
                 'N/A') AS project_end_date,
                 COUNT(DISTINCT CASE WHEN ia.requested_by_user_id = wr.user_id THEN ia.id END) AS client_change_requested_counter,
-                COUNT(DISTINCT CASE WHEN ia.requested_by_user_id IN (SELECT manager_id FROM work_request_managers WHERE work_request_id = wr.id) THEN ia.id END) AS cm_change_requested_counter,
+                COUNT(DISTINCT CASE WHEN th.actor_id IN (SELECT manager_id FROM work_request_managers WHERE work_request_id = wr.id) THEN th.id END) AS cm_change_requested_counter,
                 COALESCE(SUM(t.task_count), 0) AS task_no_of_work_pages,
                 COALESCE(SUM(ia.task_count), 0) AS issue_no_of_work_pages,
                 COALESCE(SUM(t.no_of_options_provided), 0) AS task_no_of_options_provided,
@@ -533,6 +533,7 @@ const getAdminData = async (req, res) => {
             LEFT JOIN users ru ON ru.id = wr.user_id
             LEFT JOIN tasks t ON t.work_request_id = wr.id
             LEFT JOIN issue_assignments ia ON ia.task_id = t.id
+            LEFT JOIN task_history th ON th.work_request_id = wr.id AND th.action = 'manager_change_requested'
         `;
 
         if (whereClauses.length > 0) {
