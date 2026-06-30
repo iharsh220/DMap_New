@@ -1752,7 +1752,7 @@ const createTask = async (req, res) => {
         await recordTaskHistory({
             req,
             taskId: taskResult.id,
-            work_request_id,
+            workRequestId: work_request_id,
             action: 'created',
             previousData: null,
             nextData: {
@@ -1766,8 +1766,7 @@ const createTask = async (req, res) => {
             },
             newStatus: 'pending',
             comments: 'Task created by manager',
-            relatedManagerId: manager_id,
-            assignedToUserIds: assigned_to_ids
+            relatedManagerId: manager_id
         });
 
         // Send email notification to assigned users
