@@ -1330,19 +1330,15 @@ const submitTask = async (req, res) => {
             });
         }
 
-        // Use a transaction for the task update and file uploads
-        const taskTransaction = await Tasks.sequelize.transaction();
-
-        try {
-            // Update task with task_count and link FIRST
-            const taskUpdateData = {
-                task_count: taskCount,
-                status: 'completed',
-                review: 'pending',
-                end_date: new Date(),
-                review_stage: 'manager_review', // Set review_stage to manager_review when task is completed
-                notification_alert: 1
-            };
+        // Update task with task_count and link FIRST
+        const taskUpdateData = {
+            task_count: taskCount,
+            status: 'completed',
+            review: 'pending',
+            end_date: new Date(),
+            review_stage: 'manager_review', // Set review_stage to manager_review when task is completed
+            notification_alert: 1
+        };
 
             // Add start_date if provided in request body
             let providedStartDate = null;
@@ -1441,13 +1437,11 @@ const submitTask = async (req, res) => {
 
             console.log(`Updating task ${taskId} to completed...`);
             const [affectedRows] = await Tasks.update(taskUpdateData, {
-                where: { id: taskId },
-                transaction: taskTransaction
+                where: { id: taskId }
             });
             console.log(`Task update result: ${affectedRows} rows affected`);
 
-            // Verify the task was actually updated
-            const updatedTask = await Tasks.findByPk(taskId, { transaction: taskTransaction });
+            const updatedTask = await Tasks.findByPk(taskId);
             console.log(`Task ${taskId} status after update: ${updatedTask?.status}`);
 
             // Handle file uploads
@@ -1493,7 +1487,7 @@ const submitTask = async (req, res) => {
                         uploaded_at: new Date()
                     };
 
-                    const docResult = await TaskDocuments.create(documentData, { transaction: taskTransaction });
+                    const docResult = await TaskDocuments.create(documentData);
                     documents.push(docResult);
 
                     // Move file synchronously instead of using queue
@@ -1509,7 +1503,7 @@ const submitTask = async (req, res) => {
                         // Update document status to uploaded
                         await TaskDocuments.update(
                             { status: 'uploaded' },
-                            { where: { id: docResult.id }, transaction: taskTransaction }
+                            { where: { id: docResult.id } }
                         );
 
                         // Clean up temp directory
@@ -1525,7 +1519,7 @@ const submitTask = async (req, res) => {
                         // Update document status to failed
                         await TaskDocuments.update(
                             { status: 'failed' },
-                            { where: { id: docResult.id }, transaction: taskTransaction }
+                            { where: { id: docResult.id } }
                         );
 
                         // Clean up temp directory
@@ -1541,9 +1535,6 @@ const submitTask = async (req, res) => {
                     }
                 }
             }
-
-            // Commit the task transaction
-            await taskTransaction.commit();
 
             await recordTaskHistory({
                 req,
@@ -1615,12 +1606,6 @@ const submitTask = async (req, res) => {
                 },
                 message: 'Task submitted successfully'
             });
-
-        } catch (taskError) {
-            // Rollback task transaction on any error
-            await taskTransaction.rollback();
-            throw taskError;
-        }
 
     } catch (error) {
         console.error('Error submitting task:', error);
@@ -2371,20 +2356,16 @@ const submitIssue = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Issue must be u_accepted or in_progress to submit' });
         }
 
-        // Use a transaction for the issue update and file uploads
-        const issueTransaction = await IssueAssignments.sequelize.transaction();
-
-        try {
-            // Update issue with task_count, link, description FIRST
-            const issueUpdateData = {
-                status: 'completed',
-                end_date: new Date(),
-                review: 'pending',
-                review_stage: 'manager_review', // Set review_stage to manager_review when issue is completed
-                link: link || issueAssignment.link,
-                description: description || issueAssignment.description,
-                notification_alert: 1
-            };
+        // Update issue with task_count, link, description FIRST
+        const issueUpdateData = {
+            status: 'completed',
+            end_date: new Date(),
+            review: 'pending',
+            review_stage: 'manager_review', // Set review_stage to manager_review when issue is completed
+            link: link || issueAssignment.link,
+            description: description || issueAssignment.description,
+            notification_alert: 1
+        };
 
             // Validate that end_date is not before start_date
             // const existingStartDate = issueAssignment.start_date;
@@ -2466,8 +2447,7 @@ const submitIssue = async (req, res) => {
 
             console.log(`Updating issue ${issueId} to completed...`);
             const [affectedRows] = await IssueAssignments.update(issueUpdateData, {
-                where: { id: issueId },
-                transaction: issueTransaction
+                where: { id: issueId }
             });
             console.log(`Issue update result: ${affectedRows} rows affected`);
 
@@ -2515,7 +2495,7 @@ const submitIssue = async (req, res) => {
                         uploaded_at: new Date()
                     };
 
-                    const docResult = await IssueDocuments.create(documentData, { transaction: issueTransaction });
+                    const docResult = await IssueDocuments.create(documentData);
                     documents.push(docResult);
 
                     // Move file synchronously instead of using queue
@@ -2531,7 +2511,7 @@ const submitIssue = async (req, res) => {
                         // Update document status to uploaded
                         await IssueDocuments.update(
                             { status: 'uploaded' },
-                            { where: { id: docResult.id }, transaction: issueTransaction }
+                            { where: { id: docResult.id } }
                         );
 
                         // Clean up temp directory
@@ -2547,7 +2527,7 @@ const submitIssue = async (req, res) => {
                         // Update document status to failed
                         await IssueDocuments.update(
                             { status: 'failed' },
-                            { where: { id: docResult.id }, transaction: issueTransaction }
+                            { where: { id: docResult.id } }
                         );
 
                         // Clean up temp directory
@@ -2563,9 +2543,6 @@ const submitIssue = async (req, res) => {
                     }
                 }
             }
-
-            // Commit the issue transaction
-            await issueTransaction.commit();
 
             await recordIssueHistory({
                 req,
@@ -2683,12 +2660,6 @@ const submitIssue = async (req, res) => {
                 },
                 message: 'Issue submitted successfully'
             });
-
-        } catch (issueError) {
-            // Rollback issue transaction on any error
-            await issueTransaction.rollback();
-            throw issueError;
-        }
 
     } catch (error) {
         console.error('Error submitting issue:', error);

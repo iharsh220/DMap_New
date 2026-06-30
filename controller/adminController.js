@@ -12,29 +12,29 @@ const getClientUsersByDivision = async (userId) => {
     );
 };
 
-const getClientDeleteQueries = async (req, res, transaction) => {
+const getClientDeleteQueries = async (req, res) => {
     const { id } = req.params;
     const taskIds = await sequelize.query(
         `SELECT id FROM tasks WHERE work_request_id = :id`,
-        { replacements: { id }, type: sequelize.QueryTypes.SELECT, transaction }
+        { replacements: { id }, type: sequelize.QueryTypes.SELECT }
     );
     if (taskIds.length) {
         const ids = taskIds.map(r => r.id);
-        await sequelize.query(`DELETE iat FROM issue_assignment_types iat INNER JOIN issue_assignments ia ON iat.issue_assignment_id = ia.id WHERE ia.task_id IN (:ids)`, { replacements: { ids }, transaction });
-        await sequelize.query(`DELETE iua FROM issue_user_assignments iua INNER JOIN issue_assignments ia ON iua.issue_assignment_id = ia.id WHERE ia.task_id IN (:ids)`, { replacements: { ids }, transaction });
-        await sequelize.query(`DELETE FROM issue_assignments WHERE task_id IN (:ids)`, { replacements: { ids }, transaction });
-        await sequelize.query(`DELETE FROM task_assignments WHERE task_id IN (:ids)`, { replacements: { ids }, transaction });
-        await sequelize.query(`DELETE FROM task_review_history WHERE task_id IN (:ids)`, { replacements: { ids }, transaction });
-        await sequelize.query(`DELETE td FROM task_documents td INNER JOIN task_assignments ta ON td.task_assignment_id = ta.id WHERE ta.task_id IN (:ids)`, { replacements: { ids }, transaction });
-        await sequelize.query(`DELETE FROM task_dependencies WHERE task_id IN (:ids) OR dependency_task_id IN (:ids)`, { replacements: { ids }, transaction });
-        await sequelize.query(`DELETE FROM task_project_reference WHERE task_id IN (:ids)`, { replacements: { ids }, transaction });
-        await sequelize.query(`DELETE FROM tasks WHERE work_request_id = :id`, { replacements: { id }, transaction });
+        await sequelize.query(`DELETE iat FROM issue_assignment_types iat INNER JOIN issue_assignments ia ON iat.issue_assignment_id = ia.id WHERE ia.task_id IN (:ids)`, { replacements: { ids } });
+        await sequelize.query(`DELETE iua FROM issue_user_assignments iua INNER JOIN issue_assignments ia ON iua.issue_assignment_id = ia.id WHERE ia.task_id IN (:ids)`, { replacements: { ids } });
+        await sequelize.query(`DELETE FROM issue_assignments WHERE task_id IN (:ids)`, { replacements: { ids } });
+        await sequelize.query(`DELETE FROM task_assignments WHERE task_id IN (:ids)`, { replacements: { ids } });
+        await sequelize.query(`DELETE FROM task_review_history WHERE task_id IN (:ids)`, { replacements: { ids } });
+        await sequelize.query(`DELETE td FROM task_documents td INNER JOIN task_assignments ta ON td.task_assignment_id = ta.id WHERE ta.task_id IN (:ids)`, { replacements: { ids } });
+        await sequelize.query(`DELETE FROM task_dependencies WHERE task_id IN (:ids) OR dependency_task_id IN (:ids)`, { replacements: { ids } });
+        await sequelize.query(`DELETE FROM task_project_reference WHERE task_id IN (:ids)`, { replacements: { ids } });
+        await sequelize.query(`DELETE FROM tasks WHERE work_request_id = :id`, { replacements: { id } });
     }
-    await sequelize.query(`DELETE FROM work_request_managers WHERE work_request_id = :id`, { replacements: { id }, transaction });
-    await sequelize.query(`DELETE FROM work_request_documents WHERE work_request_id = :id`, { replacements: { id }, transaction });
-    await sequelize.query(`DELETE FROM project_request_reference WHERE work_request_id = :id`, { replacements: { id }, transaction });
-    await sequelize.query(`DELETE FROM request_division_reference WHERE work_request_id = :id`, { replacements: { id }, transaction });
-    await sequelize.query(`DELETE FROM work_requests WHERE id = :id`, { replacements: { id }, transaction });
+    await sequelize.query(`DELETE FROM work_request_managers WHERE work_request_id = :id`, { replacements: { id } });
+    await sequelize.query(`DELETE FROM work_request_documents WHERE work_request_id = :id`, { replacements: { id } });
+    await sequelize.query(`DELETE FROM project_request_reference WHERE work_request_id = :id`, { replacements: { id } });
+    await sequelize.query(`DELETE FROM request_division_reference WHERE work_request_id = :id`, { replacements: { id } });
+    await sequelize.query(`DELETE FROM work_requests WHERE id = :id`, { replacements: { id } });
 };
 
 const getEditData = async (req, res) => {
@@ -344,64 +344,52 @@ const getDeletePreview = async (req, res) => {
 };
 
 const deleteProject = async (req, res) => {
-    const t = await sequelize.transaction();
     try {
-        await getClientDeleteQueries(req, res, t);
-        await t.commit();
+        await getClientDeleteQueries(req, res);
         res.json({ success: true, message: 'Project and all related data deleted successfully' });
     } catch (error) {
-        await t.rollback();
         console.error('Error deleting project:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 };
 
 const deleteClient = async (req, res) => {
-    const t = await sequelize.transaction();
     try {
-        await getClientDeleteQueries(req, res, t);
-        await t.commit();
+        await getClientDeleteQueries(req, res);
         res.json({ success: true, message: 'Client request and all related data deleted successfully' });
     } catch (error) {
-        await t.rollback();
         console.error('Error deleting client request:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 };
 
 const deleteTask = async (req, res) => {
-    const t = await sequelize.transaction();
     try {
         const { id } = req.params;
-        await sequelize.query(`DELETE iat FROM issue_assignment_types iat INNER JOIN issue_assignments ia ON iat.issue_assignment_id = ia.id WHERE ia.task_id = :id`, { replacements: { id }, transaction: t });
-        await sequelize.query(`DELETE iua FROM issue_user_assignments iua INNER JOIN issue_assignments ia ON iua.issue_assignment_id = ia.id WHERE ia.task_id = :id`, { replacements: { id }, transaction: t });
-        await sequelize.query(`DELETE FROM issue_assignments WHERE task_id = :id`, { replacements: { id }, transaction: t });
-        await sequelize.query(`DELETE FROM task_assignments WHERE task_id = :id`, { replacements: { id }, transaction: t });
-        await sequelize.query(`DELETE FROM task_review_history WHERE task_id = :id`, { replacements: { id }, transaction: t });
-        await sequelize.query(`DELETE td FROM task_documents td INNER JOIN task_assignments ta ON td.task_assignment_id = ta.id WHERE ta.task_id = :id`, { replacements: { id }, transaction: t });
-        await sequelize.query(`DELETE FROM task_dependencies WHERE task_id = :id OR dependency_task_id = :id`, { replacements: { id }, transaction: t });
-        await sequelize.query(`DELETE FROM task_project_reference WHERE task_id = :id`, { replacements: { id }, transaction: t });
-        await sequelize.query(`DELETE FROM tasks WHERE id = :id`, { replacements: { id }, transaction: t });
-        await t.commit();
+        await sequelize.query(`DELETE iat FROM issue_assignment_types iat INNER JOIN issue_assignments ia ON iat.issue_assignment_id = ia.id WHERE ia.task_id = :id`, { replacements: { id } });
+        await sequelize.query(`DELETE iua FROM issue_user_assignments iua INNER JOIN issue_assignments ia ON iua.issue_assignment_id = ia.id WHERE ia.task_id = :id`, { replacements: { id } });
+        await sequelize.query(`DELETE FROM issue_assignments WHERE task_id = :id`, { replacements: { id } });
+        await sequelize.query(`DELETE FROM task_assignments WHERE task_id = :id`, { replacements: { id } });
+        await sequelize.query(`DELETE FROM task_review_history WHERE task_id = :id`, { replacements: { id } });
+        await sequelize.query(`DELETE td FROM task_documents td INNER JOIN task_assignments ta ON td.task_assignment_id = ta.id WHERE ta.task_id = :id`, { replacements: { id } });
+        await sequelize.query(`DELETE FROM task_dependencies WHERE task_id = :id OR dependency_task_id = :id`, { replacements: { id } });
+        await sequelize.query(`DELETE FROM task_project_reference WHERE task_id = :id`, { replacements: { id } });
+        await sequelize.query(`DELETE FROM tasks WHERE id = :id`, { replacements: { id } });
         res.json({ success: true, message: 'Task and all related issues deleted successfully' });
     } catch (error) {
-        await t.rollback();
         console.error('Error deleting task:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 };
 
 const deleteIssue = async (req, res) => {
-    const t = await sequelize.transaction();
     try {
         const { id } = req.params;
-        await sequelize.query(`DELETE FROM issue_assignment_types WHERE issue_assignment_id = :id`, { replacements: { id }, transaction: t });
-        await sequelize.query(`DELETE FROM issue_user_assignments WHERE issue_assignment_id = :id`, { replacements: { id }, transaction: t });
-        await sequelize.query(`DELETE FROM issue_assignments WHERE id = :id`, { replacements: { id }, transaction: t });
-        await t.commit();
+        await sequelize.query(`DELETE FROM issue_assignment_types WHERE issue_assignment_id = :id`, { replacements: { id } });
+        await sequelize.query(`DELETE FROM issue_user_assignments WHERE issue_assignment_id = :id`, { replacements: { id } });
+        await sequelize.query(`DELETE FROM issue_assignments WHERE id = :id`, { replacements: { id } });
         res.json({ success: true, message: 'Issue deleted successfully' });
     } catch (error) {
-        await t.rollback();
         console.error('Error deleting issue:', error);
         res.status(500).json({ error: 'Internal server error' });
     }

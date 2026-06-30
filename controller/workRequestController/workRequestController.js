@@ -386,8 +386,6 @@ const createWorkRequest = async (req, res) => {
 
 // Update work request by ID
 const updateWorkRequest = async (req, res) => {
-    const transaction = await require('../../models').sequelize.transaction();
-
     try {
         const workRequestId = parseInt(req.params.id, 10);
         if (isNaN(workRequestId)) {
@@ -455,16 +453,21 @@ const updateWorkRequest = async (req, res) => {
 
                 // Validate structure - should have output_devices and target_audience
                 if (!aboutProjectData.output_devices || !aboutProjectData.target_audience) {
-                    await transaction.rollback();
                     return res.status(400).json({
                         success: false,
                         error: 'about_project must contain output_devices and target_audience arrays'
                     });
                 }
 
+                if (!Array.isArray(aboutProjectData.output_devices) || !Array.isArray(aboutProjectData.target_audience)) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'output_devices and target_audience must be arrays'
+                    });
+                }
+
                 // Validate that arrays are not empty
                 if (!Array.isArray(aboutProjectData.output_devices) || !Array.isArray(aboutProjectData.target_audience)) {
-                    await transaction.rollback();
                     return res.status(400).json({
                         success: false,
                         error: 'output_devices and target_audience must be arrays'
@@ -474,7 +477,6 @@ const updateWorkRequest = async (req, res) => {
                 // Store as JSON string
                 updateData.about_project = JSON.stringify(aboutProjectData);
             } catch (error) {
-                await transaction.rollback();
                 return res.status(400).json({
                     success: false,
                     error: 'Invalid JSON format for about_project'
@@ -484,7 +486,7 @@ const updateWorkRequest = async (req, res) => {
 
         // Update the work request
         if (Object.keys(updateData).length > 0) {
-            await workRequest.update(updateData, { transaction });
+            await workRequest.update(updateData);
         }
 
         if (isCreator) {
@@ -493,8 +495,7 @@ const updateWorkRequest = async (req, res) => {
                     work_request_id: workRequestId,
                     client_resubmitted_at: null
                 },
-                order: [['deferred_at', 'DESC']],
-                transaction
+                order: [['deferred_at', 'DESC']]
             });
 
             if (latestOpenDeferral) {
@@ -502,7 +503,7 @@ const updateWorkRequest = async (req, res) => {
                     client_resubmitted_at: new Date(),
                     resubmitted_by_user_id: user_id,
                     resubmission_count: latestOpenDeferral.resubmission_count + 1
-                }, { transaction });
+                });
             }
         }
 
@@ -522,8 +523,7 @@ const updateWorkRequest = async (req, res) => {
 
             // Get existing documents for this work request
             const existingDocuments = await WorkRequestDocuments.findAll({
-                where: { work_request_id: workRequestId },
-                transaction
+                where: { work_request_id: workRequestId }
             });
 
             // Find documents to delete (not in keepDocumentIds)
@@ -537,22 +537,22 @@ const updateWorkRequest = async (req, res) => {
                         // Construct the full file path - the document_path contains the base route
                         // We need to construct the path relative to project root
                         let filePath = doc.document_path;
-                        
+
                         // If the path starts with BASE_ROUTE, remove it
                         if (filePath.startsWith(process.env.BASE_ROUTE)) {
                             filePath = filePath.replace(process.env.BASE_ROUTE, '');
                         }
-                        
+
                         // Also remove leading slash if present
                         if (filePath.startsWith('/')) {
                             filePath = filePath.substring(1);
                         }
-                        
+
                         // Construct full path from project root
                         const fullFilePath = path.join(__dirname, '../../', filePath);
-                        
+
                         console.log(`Attempting to delete file: ${fullFilePath}`);
-                        
+
                         if (fs.existsSync(fullFilePath)) {
                             fs.unlinkSync(fullFilePath);
                             console.log(`Successfully deleted file: ${fullFilePath}`);
@@ -564,7 +564,7 @@ const updateWorkRequest = async (req, res) => {
                     }
                 }
                 // Delete document from database
-                await doc.destroy({ transaction });
+                await doc.destroy();
             }
         }
 
@@ -599,7 +599,7 @@ const updateWorkRequest = async (req, res) => {
                     uploaded_at: new Date()
                 };
 
-                const docResult = await WorkRequestDocuments.create(documentData, { transaction });
+                const docResult = await WorkRequestDocuments.create(documentData);
                 documents.push(docResult);
 
                 // Move file synchronously instead of using queue
@@ -615,7 +615,7 @@ const updateWorkRequest = async (req, res) => {
                     // Update document status to uploaded
                     await WorkRequestDocuments.update(
                         { status: 'uploaded' },
-                        { where: { id: docResult.id }, transaction }
+                        { where: { id: docResult.id } }
                     );
 
                     // Clean up temp directory
@@ -631,7 +631,7 @@ const updateWorkRequest = async (req, res) => {
                     // Update document status to failed
                     await WorkRequestDocuments.update(
                         { status: 'failed' },
-                        { where: { id: docResult.id }, transaction }
+                        { where: { id: docResult.id } }
                     );
 
                     // Clean up temp directory
@@ -647,8 +647,6 @@ const updateWorkRequest = async (req, res) => {
                 }
             }
         }
-
-        await transaction.commit();
 
         await recordWorkRequestHistory({
             req,
@@ -689,7 +687,6 @@ const updateWorkRequest = async (req, res) => {
             message: 'Work request updated successfully'
         });
     } catch (error) {
-        await transaction.rollback();
         console.error('Error updating work request:', error);
         res.status(500).json({
             success: false,
@@ -718,12 +715,12 @@ const getMyWorkRequests = async (req, res) => {
                 } else {
                     statuses = [req.filters.status];
                 }
-                
+
                 // Only apply status filter if user explicitly provided it
                 if (statuses.length > 0) {
                     where.status = { [Op.in]: statuses };
                 }
-                
+
                 // Remove status from req.filters to avoid overriding
                 const { status, ...otherFilters } = req.filters;
                 where = { ...where, ...otherFilters };
@@ -1667,7 +1664,7 @@ const getUserDashboardStats = async (req, res) => {
                 ],
                 attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] }
             });
-            
+
             if (fullManagerDetails) {
                 creativeManagerInfo = {
                     id: fullManagerDetails.id,
@@ -1700,14 +1697,12 @@ const getUserDashboardStats = async (req, res) => {
 // PM Approve Task - Update task status to completed and review to approved
 // Only approves tasks where intimate_client = 1 and associated documents with intimate_client = 1
 const pmApproveTask = async (req, res) => {
-    const transaction = await require('../../models').sequelize.transaction();
-
     try {
         const { task_id, issue_id } = req.body;
 
         // If issue_id is provided, handle issue approval
         if (issue_id) {
-            return await handleIssuePmApproval(req, res, transaction, issue_id);
+            return await handleIssuePmApproval(req, res, issue_id);
         }
 
         if (!task_id) {
@@ -1740,7 +1735,7 @@ const pmApproveTask = async (req, res) => {
             status: 'completed',
             review: 'approved',
             review_stage: 'final_approved'
-        }, { transaction });
+        });
 
         // Find all task assignments for this task
         const taskAssignments = await TaskAssignments.findAll({
@@ -1757,15 +1752,13 @@ const pmApproveTask = async (req, res) => {
                     where: {
                         task_assignment_id: { [Op.in]: taskAssignmentIds },
                         intimate_client: 1
-                    },
-                    transaction
+                    }
                 }
             );
         }
 
         await recordTaskHistory({
             req,
-            transaction,
             taskId: task.id,
             workRequestId: task.work_request_id,
             action: 'pm_approved',
@@ -1786,7 +1779,6 @@ const pmApproveTask = async (req, res) => {
 
         await recordWorkRequestHistory({
             req,
-            transaction,
             workRequestId: task.work_request_id,
             action: 'pm_approved_task',
             previousStatus: task.status,
@@ -1794,8 +1786,6 @@ const pmApproveTask = async (req, res) => {
             relatedTaskId: task.id,
             comments: 'PM approved task'
         });
-
-        await transaction.commit();
 
         // Fetch updated task
         const updatedTask = await Tasks.findByPk(task_id, {
@@ -1822,7 +1812,6 @@ const pmApproveTask = async (req, res) => {
         });
 
     } catch (error) {
-        await transaction.rollback();
         console.error('Error in PM approve task:', error);
         res.status(500).json({
             success: false,
@@ -1833,7 +1822,7 @@ const pmApproveTask = async (req, res) => {
 };
 
 // Handle PM approval for issues
-const handleIssuePmApproval = async (req, res, transaction, issueId) => {
+const handleIssuePmApproval = async (req, res, issueId) => {
     try {
         const manager = req.user;
 
@@ -1852,7 +1841,6 @@ const handleIssuePmApproval = async (req, res, transaction, issueId) => {
         });
 
         if (!issueAssignment) {
-            await transaction.rollback();
             return res.status(404).json({
                 success: false,
                 error: 'Issue not found'
@@ -1861,7 +1849,6 @@ const handleIssuePmApproval = async (req, res, transaction, issueId) => {
 
         // Check if issue has intimate_client = 1
         if (issueAssignment.intimate_client !== 1) {
-            await transaction.rollback();
             return res.status(400).json({
                 success: false,
                 error: 'Issue is not marked for client review (intimate_client must be 1)'
@@ -1875,12 +1862,11 @@ const handleIssuePmApproval = async (req, res, transaction, issueId) => {
         // If issue has a linked task, update all issues with that task_id and the task itself
         if (issueAssignment.task_id) {
             const taskId = issueAssignment.task_id;
-            const allIssuesForTask = await IssueAssignments.findAll({ where: { task_id: taskId }, transaction });
+            const allIssuesForTask = await IssueAssignments.findAll({ where: { task_id: taskId } });
 
             for (const issue of allIssuesForTask) {
                 await recordIssueHistory({
                     req,
-                    transaction,
                     issueAssignmentId: issue.id,
                     taskId,
                     workRequestId: issueAssignment.task ? issueAssignment.task.WorkRequest?.id : null,
@@ -1903,7 +1889,7 @@ const handleIssuePmApproval = async (req, res, transaction, issueId) => {
             // Update ALL issues with the same task_id to review='approved' and review_stage='final_approved'
             await IssueAssignments.update(
                 { review: 'approved', review_stage: 'final_approved' },
-                { where: { task_id: taskId }, transaction }
+                { where: { task_id: taskId } }
             );
 
             // Update the task to status='accepted', review='approved', review_stage='final_approved'
@@ -1912,7 +1898,6 @@ const handleIssuePmApproval = async (req, res, transaction, issueId) => {
             if (linkedTask) {
                 await recordTaskHistory({
                     req,
-                    transaction,
                     taskId: linkedTask.id,
                     workRequestId: linkedTask.work_request_id,
                     action: 'pm_approved_issue_linked_task',
@@ -1935,7 +1920,7 @@ const handleIssuePmApproval = async (req, res, transaction, issueId) => {
                     status: 'accepted',
                     review: 'approved',
                     review_stage: 'final_approved'
-                }, { transaction });
+                });
 
                 // Also update all documents for this task where intimate_client = 1
                 const taskAssignments = await TaskAssignments.findAll({
@@ -1951,8 +1936,7 @@ const handleIssuePmApproval = async (req, res, transaction, issueId) => {
                             where: {
                                 task_assignment_id: { [Op.in]: taskAssignmentIds },
                                 intimate_client: 1
-                            },
-                            transaction
+                            }
                         }
                     );
                 }
@@ -1974,8 +1958,7 @@ const handleIssuePmApproval = async (req, res, transaction, issueId) => {
                     where: {
                         issue_user_assignment_id: { [Op.in]: issueUserAssignmentIds },
                         intimate_client: 1
-                    },
-                    transaction
+                    }
                 }
             );
         }
@@ -1990,12 +1973,11 @@ const handleIssuePmApproval = async (req, res, transaction, issueId) => {
                 comments: 'PM approved the issue',
                 previous_stage: previousStage || 'pm_review',
                 new_stage: 'final_approved'
-            }, { transaction });
+            });
         }
 
         await recordIssueHistory({
             req,
-            transaction,
             issueAssignmentId: issueId,
             taskId: issueAssignment.task_id,
             workRequestId: issueAssignment.task?.WorkRequest?.id,
@@ -2016,7 +1998,6 @@ const handleIssuePmApproval = async (req, res, transaction, issueId) => {
 
         await recordWorkRequestHistory({
             req,
-            transaction,
             workRequestId: issueAssignment.task?.WorkRequest?.id,
             action: 'pm_approved_issue',
             previousStatus,
@@ -2029,8 +2010,6 @@ const handleIssuePmApproval = async (req, res, transaction, issueId) => {
             relatedIssueId: issueId,
             comments: 'PM approved issue'
         });
-
-        await transaction.commit();
 
         // Fetch updated issue
         const updatedIssue = await IssueAssignments.findByPk(issueId, {
@@ -2082,7 +2061,6 @@ const handleIssuePmApproval = async (req, res, transaction, issueId) => {
         });
 
     } catch (error) {
-        await transaction.rollback();
         console.error('Error in PM approve issue:', error);
         res.status(500).json({
             success: false,
@@ -2093,14 +2071,11 @@ const handleIssuePmApproval = async (req, res, transaction, issueId) => {
 };
 
 const pmRejectTask = async (req, res) => {
-    const transaction = await require('../../models').sequelize.transaction();
-
     try {
         const { task_id, issue_id, comments, issue_description, issue_register_ids = [], deadline, start_date, end_date, link, task_count = 0 } = req.body;
         const manager = req.user;
 
         if (!task_id && !issue_id) {
-            await transaction.rollback();
             return res.status(400).json({ success: false, error: 'task_id or issue_id is required' });
         }
 
@@ -2126,14 +2101,14 @@ const pmRejectTask = async (req, res) => {
                 review: 'pending',
                 review_stage: 'manager_review',
                 notification_alert: 1
-            }, { transaction });
+            });
 
             if (issue_register_ids && issue_register_ids.length > 0) {
                 const issueTypeLinks = issue_register_ids.map(registerId => ({
                     issue_assignment_id: issueAssignment.id,
                     issue_register_id: registerId
                 }));
-                await IssueAssignmentTypes.bulkCreate(issueTypeLinks, { transaction });
+                await IssueAssignmentTypes.bulkCreate(issueTypeLinks);
             }
 
             return issueAssignment;
@@ -2142,7 +2117,6 @@ const pmRejectTask = async (req, res) => {
         if (task_id) {
             const taskId = parseInt(task_id, 10);
             if (isNaN(taskId)) {
-                await transaction.rollback();
                 return res.status(400).json({ success: false, error: 'Invalid task ID' });
             }
 
@@ -2156,12 +2130,10 @@ const pmRejectTask = async (req, res) => {
             });
 
             if (!task) {
-                await transaction.rollback();
                 return res.status(404).json({ success: false, error: 'Task not found' });
             }
 
             if (task.intimate_client !== 1) {
-                await transaction.rollback();
                 return res.status(400).json({ success: false, error: 'Task is not marked for client review (intimate_client must be 1)' });
             }
 
@@ -2176,7 +2148,7 @@ const pmRejectTask = async (req, res) => {
 
             await task.update({
                 ...nextTaskData
-            }, { transaction });
+            });
 
             await TaskReviewHistory.create({
                 task_id: taskId,
@@ -2186,11 +2158,10 @@ const pmRejectTask = async (req, res) => {
                 comments: comments || 'PM rejected task and created change request issue',
                 previous_stage: task.review_stage || 'pm_review',
                 new_stage: 'change_requested'
-            }, { transaction });
+            });
 
             await recordTaskHistory({
                 req,
-                transaction,
                 taskId,
                 workRequestId: task.work_request_id,
                 action: 'pm_rejected',
@@ -2208,7 +2179,6 @@ const pmRejectTask = async (req, res) => {
 
             await recordIssueHistory({
                 req,
-                transaction,
                 issueAssignmentId: changeRequestIssue.id,
                 taskId,
                 workRequestId: task.work_request_id,
@@ -2221,7 +2191,6 @@ const pmRejectTask = async (req, res) => {
 
             await recordWorkRequestHistory({
                 req,
-                transaction,
                 workRequestId: task.work_request_id,
                 action: 'pm_rejected_task',
                 previousStatus: task.status,
@@ -2235,7 +2204,6 @@ const pmRejectTask = async (req, res) => {
                 comments: comments || 'PM rejected task and created change request issue'
             });
 
-            await transaction.commit();
             return res.json({
                 success: true,
                 data: {
@@ -2249,7 +2217,6 @@ const pmRejectTask = async (req, res) => {
 
         const issueId = parseInt(issue_id, 10);
         if (isNaN(issueId)) {
-            await transaction.rollback();
             return res.status(400).json({ success: false, error: 'Invalid issue ID' });
         }
 
@@ -2267,12 +2234,10 @@ const pmRejectTask = async (req, res) => {
         });
 
         if (!issueAssignment) {
-            await transaction.rollback();
             return res.status(404).json({ success: false, error: 'Issue not found' });
         }
 
         if (issueAssignment.intimate_client !== 1) {
-            await transaction.rollback();
             return res.status(400).json({ success: false, error: 'Issue is not marked for client review (intimate_client must be 1)' });
         }
 
@@ -2285,12 +2250,12 @@ const pmRejectTask = async (req, res) => {
             comments: comments || null
         };
 
-        await issueAssignment.update(nextIssueData, { transaction });
+        await issueAssignment.update(nextIssueData);
 
         if (issueAssignment.issue_id) {
             await IssueAssignments.update(
                 { review: 'change_request', review_stage: 'change_requested' },
-                { where: { id: issueAssignment.issue_id }, transaction }
+                { where: { id: issueAssignment.issue_id } }
             );
         }
 
@@ -2303,12 +2268,11 @@ const pmRejectTask = async (req, res) => {
                 comments: comments || 'PM rejected issue and created change request issue',
                 previous_stage: issueAssignment.review_stage || 'pm_review',
                 new_stage: 'change_requested'
-            }, { transaction });
+            });
         }
 
         await recordIssueHistory({
             req,
-            transaction,
             issueAssignmentId: issueId,
             taskId: issueAssignment.task_id,
             workRequestId: issueAssignment.task?.work_request_id,
@@ -2327,7 +2291,6 @@ const pmRejectTask = async (req, res) => {
 
         await recordIssueHistory({
             req,
-            transaction,
             issueAssignmentId: changeRequestIssue.id,
             taskId: issueAssignment.task_id,
             workRequestId: issueAssignment.task?.work_request_id,
@@ -2341,7 +2304,6 @@ const pmRejectTask = async (req, res) => {
 
         await recordWorkRequestHistory({
             req,
-            transaction,
             workRequestId: issueAssignment.task?.work_request_id,
             action: 'pm_rejected_issue',
             previousStatus: issueAssignment.status,
@@ -2355,7 +2317,6 @@ const pmRejectTask = async (req, res) => {
             comments: comments || 'PM rejected issue and created change request issue'
         });
 
-        await transaction.commit();
         return res.json({
             success: true,
             data: {
@@ -2366,7 +2327,6 @@ const pmRejectTask = async (req, res) => {
             message: 'Issue rejected by PM and change request issue created successfully'
         });
     } catch (error) {
-        await transaction.rollback();
         console.error('Error in PM reject task:', error);
         res.status(500).json({
             success: false,

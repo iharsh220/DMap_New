@@ -5376,8 +5376,6 @@ const assignIssueToUser = async (req, res) => {
 
 // Complete all tasks and issues for a work request
 const completeAllTasksAndIssues = async (req, res) => {
-    const transaction = await require('../../models').sequelize.transaction();
-
     try {
         const { work_request_id } = req.body;
 
@@ -5445,8 +5443,7 @@ const completeAllTasksAndIssues = async (req, res) => {
                 review_stage: 'final_approved'
             },
             {
-                where: { id: taskIds },
-                transaction
+                where: { id: taskIds }
             }
         );
 
@@ -5456,8 +5453,7 @@ const completeAllTasksAndIssues = async (req, res) => {
                 status: 'completed'
             },
             {
-                where: { id: workRequestId },
-                transaction
+                where: { id: workRequestId }
             }
         );
 
@@ -5480,14 +5476,10 @@ const completeAllTasksAndIssues = async (req, res) => {
                     review_stage: 'final_approved'
                 },
                 {
-                    where: { id: issueIds },
-                    transaction
+                    where: { id: issueIds }
                 }
             );
         }
-
-        // Commit the transaction
-        await transaction.commit();
 
         await recordWorkRequestHistory({
             req,
@@ -5596,9 +5588,7 @@ const completeAllTasksAndIssues = async (req, res) => {
                 work_request_updated: workRequestUpdateResult[0]
             }
         });
-
     } catch (error) {
-        await transaction.rollback();
         console.error('Error completing all tasks and issues:', error);
         return res.status(500).json({
             success: false,
