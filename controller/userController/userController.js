@@ -1173,7 +1173,8 @@ const acceptTask = async (req, res) => {
             nextData: updateData,
             previousStatus: task.status,
             newStatus: updateData.status,
-            comments: 'Task accepted by assigned user'
+            comments: 'Task accepted by assigned user',
+            actorOverride: { ...req.user, actor_type: 'user' }
         });
 
 
@@ -1549,7 +1550,8 @@ const submitTask = async (req, res) => {
                 newReview: 'pending',
                 previousReviewStage: task.review_stage,
                 newReviewStage: 'manager_review',
-                comments: comments || 'Task submitted by user'
+                comments: comments || 'Task submitted by user',
+                actorOverride: { ...req.user, actor_type: 'user' }
             });
 
             // Send email notification for task completion
