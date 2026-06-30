@@ -310,18 +310,18 @@ const scheduleTaskProgression = () => {
   });
 
   // Runs at 9:00 AM and 5:00 PM IST on weekdays only
-  cron.schedule('0 9,17 * * 1-5', async () => {
-    console.log('Running scheduled task: PM review pending reminders');
+  // cron.schedule('0 9,17 * * 1-5', async () => {
+  //   console.log('Running scheduled task: PM review pending reminders');
 
-    try {
-      await taskSchedulerQueue.add('pm-review-reminders', { type: 'pm_review_reminders' });
-      console.log('PM review reminder job queued successfully');
-    } catch (error) {
-      console.error('Failed to queue PM review reminder job:', error);
-    }
-  }, {
-    timezone: 'Asia/Kolkata'
-  });
+  //   try {
+  //     await taskSchedulerQueue.add('pm-review-reminders', { type: 'pm_review_reminders' });
+  //     console.log('PM review reminder job queued successfully');
+  //   } catch (error) {
+  //     console.error('Failed to queue PM review reminder job:', error);
+  //   }
+  // }, {
+  //   timezone: 'Asia/Kolkata'
+  // });
 
   console.log('Task and Issue progression scheduler initialized - runs daily at 12:01 AM IST (checks start_date)');
   console.log('PM review reminder scheduler initialized - runs on weekdays at 9:00 AM and 5:00 PM IST');
