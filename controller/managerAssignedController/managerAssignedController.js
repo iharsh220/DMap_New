@@ -4031,14 +4031,14 @@ const reviewTask = async (req, res) => {
                 req,
                 issueAssignmentId: issueId,
                 taskId: issueAssignment.task_id,
-                workRequestId: issueAssignment.task?.work_request_id,
+                workRequestId: issueAssignment.task_id ? issueAssignment.task?.work_request_id : null,
                 action: action === 'approved' ? 'manager_approved' : 'manager_change_requested',
                 previousData: issueAssignment,
                 nextData: updatedIssue,
                 changes: { review: action, review_stage: newStage, status: newStatus },
                 comments: comments || null,
                 relatedManagerId: manager_id,
-                relatedUserId: updatedIssue?.userAssignments?.[0]?.user_id || null
+                relatedUserId: updatedIssue?.userAssignments?.[0]?.user?.id || null
             });
 
             return res.json({
