@@ -104,8 +104,6 @@ const getIssueRegisterByTaskId = async (req, res) => {
 
 // Create issue assignment
 const createIssueAssignment = async (req, res) => {
-    const transaction = await require('../../models').sequelize.transaction();
-
     try {
         const { task_id, issue_id, requested_by_user_id, assignment_type, version, description, deadline, start_date, end_date, link, task_count = 0, intimate_team = 0, intimate_client = 0, issue_register_ids = [] } = req.body;
 
@@ -189,7 +187,7 @@ const createIssueAssignment = async (req, res) => {
             status: 'm_pending',
             review: 'pending',
             notification_alert: 1
-        }, { transaction });
+        });
 
         const sequelize = require('../../models').sequelize;
 
@@ -198,8 +196,7 @@ const createIssueAssignment = async (req, res) => {
             (issue_assignment_id, task_id, work_request_id, parent_issue_id, action, actor_id, actor_type, actor_name, actor_email, new_status, comments, created_at, updated_at) 
             VALUES (?, ?, ?, ?, 'created', ?, ?, ?, ?, 'm_pending', 'Issue assignment created', NOW(), NOW())`,
             {
-                replacements: [issueAssignment.id, task_id || null, workRequestId, issue_id || null, actorId, actorType, actorName, actorEmail],
-                transaction
+                replacements: [issueAssignment.id, task_id || null, workRequestId, issue_id || null, actorId, actorType, actorName, actorEmail]
             }
         );
 
@@ -209,22 +206,20 @@ const createIssueAssignment = async (req, res) => {
                 (work_request_id, action, actor_id, actor_type, actor_name, actor_email, related_task_id, related_issue_id, comments, created_at, updated_at) 
                 VALUES (?, 'change_request_issue_created', ?, ?, ?, ?, ?, ?, 'Change request issue created', NOW(), NOW())`,
                 {
-                    replacements: [workRequestId, actorId, actorType, actorName, actorEmail, task_id || null, issueAssignment.id],
-                    transaction
+                    replacements: [workRequestId, actorId, actorType, actorName, actorEmail, task_id || null, issueAssignment.id]
                 }
             );
         }
 
         if (task_id) {
-            await Tasks.update({ review: 'change_request' }, { where: { id: task_id }, transaction });
+            await Tasks.update({ review: 'change_request' }, { where: { id: task_id } });
 
             await sequelize.query(
                 `INSERT INTO task_history 
                 (task_id, work_request_id, action, actor_id, actor_type, actor_name, actor_email, previous_review, new_review, previous_review_stage, new_review_stage, related_issue_id, comments, created_at, updated_at) 
                 VALUES (?, ?, 'change_request_created', ?, ?, ?, ?, 'pending', 'change_request', 'final_approved', 'change_requested', ?, 'New issue request created - ${version}', NOW(), NOW())`,
                 {
-                    replacements: [task_id, workRequestId, actorId, actorType, actorName, actorEmail, issueAssignment.id],
-                    transaction
+                    replacements: [task_id, workRequestId, actorId, actorType, actorName, actorEmail, issueAssignment.id]
                 }
             );
 
@@ -233,14 +228,13 @@ const createIssueAssignment = async (req, res) => {
                 (task_id, reviewer_id, reviewer_type, action, comments, previous_stage, new_stage, created_at, updated_at) 
                 VALUES (?, ?, 'project_manager', 'change_request', 'New issue request created - ${version}', 'final_approved', 'change_requested', NOW(), NOW())`,
                 {
-                    replacements: [task_id, requested_by_user_id],
-                    transaction
+                    replacements: [task_id, requested_by_user_id]
                 }
             );
         }
 
         if (issue_id) {
-            await IssueAssignments.update({ review: 'change_request' }, { where: { id: issue_id }, transaction });
+            await IssueAssignments.update({ review: 'change_request' }, { where: { id: issue_id } });
 
             const parentIssue = await IssueAssignments.findByPk(issue_id, { attributes: ['task_id'] });
 
@@ -249,8 +243,7 @@ const createIssueAssignment = async (req, res) => {
                 (issue_assignment_id, task_id, work_request_id, parent_issue_id, action, actor_id, actor_type, actor_name, actor_email, previous_review, new_review, previous_review_stage, new_review_stage, related_issue_id, comments, created_at, updated_at) 
                 VALUES (?, ?, ?, ?, 'child_change_request_created', ?, ?, ?, ?, 'pending', 'change_request', 'final_approved', 'change_requested', ?, 'New issue request created for issue - ${version}', NOW(), NOW())`,
                 {
-                    replacements: [issue_id, parentIssue?.task_id || null, workRequestId, issue_id, actorId, actorType, actorName, actorEmail, issueAssignment.id],
-                    transaction
+                    replacements: [issue_id, parentIssue?.task_id || null, workRequestId, issue_id, actorId, actorType, actorName, actorEmail, issueAssignment.id]
                 }
             );
 
@@ -260,8 +253,7 @@ const createIssueAssignment = async (req, res) => {
                     (task_id, reviewer_id, reviewer_type, action, comments, previous_stage, new_stage, created_at, updated_at) 
                     VALUES (?, ?, 'project_manager', 'change_request', 'New issue request created for issue - ${version}', 'final_approved', 'change_requested', NOW(), NOW())`,
                     {
-                        replacements: [parentIssue.task_id, requested_by_user_id],
-                        transaction
+                        replacements: [parentIssue.task_id, requested_by_user_id]
                     }
                 );
             }
@@ -272,10 +264,8 @@ const createIssueAssignment = async (req, res) => {
                 issue_assignment_id: issueAssignment.id,
                 issue_register_id: registerId
             }));
-            await IssueAssignmentTypes.bulkCreate(issueTypeLinks, { transaction });
+            await IssueAssignmentTypes.bulkCreate(issueTypeLinks);
         }
-
-        await transaction.commit();
 
         const createdIssueAssignment = await IssueAssignments.findByPk(issueAssignment.id, {
             include: [
@@ -290,7 +280,6 @@ const createIssueAssignment = async (req, res) => {
 
         res.status(201).json({ success: true, data: { ...createdIssueAssignment.toJSON(), change_type: changeType }, message: 'Issue assignment created successfully' });
     } catch (error) {
-        await transaction.rollback();
         console.error('Error creating issue assignment:', error);
         res.status(500).json({ success: false, error: error.message, message: 'Failed to create issue assignment' });
     }
