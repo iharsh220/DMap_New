@@ -265,7 +265,7 @@ const getAssignedWorkRequests = async (req, res) => {
             order.push([sortField, sortDirection]);
         }
 
-        let where = { status: { [Op.ne]: 'draft' } };
+        let where = { status: { [Op.ne]: 'draft' }, is_deleted: 0 };
 
         // Handle multiple comma-separated status values
         if (status) {
@@ -412,11 +412,13 @@ const getAssignedWorkRequests = async (req, res) => {
                     required: true,
                     attributes: []
                 },
-                { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
+{ model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
                 { model: RequestType, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, through: { attributes: [] }, attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
                 {
                     model: Tasks,
                     attributes: ['id', 'task_name', 'description', 'request_type_id', 'task_type_id', 'work_request_id', 'deadline', 'status', 'version', 'assignment_type', 'intimate_team', 'intimate_client', 'task_count', 'link', 'start_date', 'end_date', 'review', 'review_stage', 'created_at', 'updated_at'],
+                    where: { is_deleted: 0 },
+                    required: false,
                     include: [
                         {
                             model: User,
@@ -436,6 +438,8 @@ const getAssignedWorkRequests = async (req, res) => {
                         {
                             model: IssueAssignments,
                             as: 'issueAssignments',
+                            where: { is_deleted: 0 },
+                            required: false,
                             include: [
                                 {
                                     model: IssueAssignmentTypes,
@@ -454,8 +458,7 @@ const getAssignedWorkRequests = async (req, res) => {
                                 }
                             ]
                         }
-                    ],
-                    required: false
+                    ]
                 }
             ],
             limit: req.pagination.limit,
