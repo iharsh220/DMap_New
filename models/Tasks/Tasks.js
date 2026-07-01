@@ -197,6 +197,12 @@ const Tasks = sequelize.define('Tasks', {
     allowNull: false,
     comment: 'Notification alert flag for task assignments',
   },
+  is_deleted: {
+    type: DataTypes.TINYINT(1),
+    defaultValue: 0,
+    allowNull: false,
+    comment: 'Soft delete flag - 0=active, 1=deleted',
+  },
 }, {
   tableName: 'tasks',
   timestamps: true,

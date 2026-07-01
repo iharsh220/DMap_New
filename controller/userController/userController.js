@@ -94,7 +94,7 @@ const getAssignedTasks = async (req, res) => {
         }
 
         // Build where condition
-        let whereCondition = {};
+        let whereCondition = { is_deleted: 0 };
 
         // By default exclude fully approved tasks unless explicitly requested
         if (!review && !review_stages) {
@@ -841,7 +841,7 @@ const getTaskById = async (req, res) => {
         }
 
         const taskResult = await Tasks.findOne({
-            where: { id: taskId },
+            where: { id: taskId, is_deleted: 0 },
             include: [
                 {
                     model: User,
@@ -1072,7 +1072,7 @@ const acceptTask = async (req, res) => {
 
         // Check if task exists and is assigned to the user
         const task = await Tasks.findOne({
-            where: { id: taskId },
+            where: { id: taskId, is_deleted: 0 },
             include: [
                 {
                     model: User,
@@ -1723,6 +1723,7 @@ const deleteTaskDocument = async (req, res) => {
                     include: [
                         {
                             model: Tasks,
+                            where: { is_deleted: 0 },
                             attributes: ['id', 'status']
                         }
                     ]
@@ -1739,8 +1740,16 @@ const deleteTaskDocument = async (req, res) => {
 
         const task = document.TaskAssignments[0]?.Task;
 
+        // Check if task exists (not soft-deleted)
+        if (!task) {
+            return res.status(404).json({
+                success: false,
+                error: 'Task no longer exists'
+            });
+        }
+
         // Check if task status is accepted
-        if (!task || task.status !== 'accepted') {
+        if (task.status !== 'accepted') {
             return res.status(400).json({
                 success: false,
                 error: 'Task must be in accepted status to delete documents'
@@ -1833,7 +1842,8 @@ const getMyTeamTasks = async (req, res) => {
         // Get in_progress tasks assigned to these users
         const tasks = await Tasks.findAll({
             where: {
-                status: 'in_progress'
+                status: 'in_progress',
+                is_deleted: 0
             },
             include: [
                 {
@@ -2053,7 +2063,7 @@ const getAssignedIssues = async (req, res) => {
         let allTaskAssignments = {};
         if (workRequestIds.length > 0) {
             const tasksWithAssignments = await Tasks.findAll({
-                where: { work_request_id: { [Op.in]: workRequestIds } },
+                where: { work_request_id: { [Op.in]: workRequestIds }, is_deleted: 0 },
                 include: [{ model: TaskAssignments, include: [{ model: User, attributes: ['id', 'name', 'email'] }] }]
             });
 

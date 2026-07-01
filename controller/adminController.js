@@ -15,7 +15,7 @@ const getClientUsersByDivision = async (userId) => {
 const getClientDeleteQueries = async (req, res) => {
     const { id } = req.params;
     const taskIds = await sequelize.query(
-        `SELECT id FROM tasks WHERE work_request_id = :id`,
+        `SELECT id FROM tasks WHERE work_request_id = :id AND is_deleted = 0`,
         { replacements: { id }, type: sequelize.QueryTypes.SELECT }
     );
     if (taskIds.length) {
@@ -28,7 +28,7 @@ const getClientDeleteQueries = async (req, res) => {
         await sequelize.query(`DELETE td FROM task_documents td INNER JOIN task_assignments ta ON td.task_assignment_id = ta.id WHERE ta.task_id IN (:ids)`, { replacements: { ids } });
         await sequelize.query(`DELETE FROM task_dependencies WHERE task_id IN (:ids) OR dependency_task_id IN (:ids)`, { replacements: { ids } });
         await sequelize.query(`DELETE FROM task_project_reference WHERE task_id IN (:ids)`, { replacements: { ids } });
-        await sequelize.query(`DELETE FROM tasks WHERE work_request_id = :id`, { replacements: { id } });
+        await sequelize.query(`UPDATE tasks SET is_deleted = 1 WHERE work_request_id = :id`, { replacements: { id } });
     }
     await sequelize.query(`DELETE FROM work_request_managers WHERE work_request_id = :id`, { replacements: { id } });
     await sequelize.query(`DELETE FROM work_request_documents WHERE work_request_id = :id`, { replacements: { id } });
@@ -92,7 +92,7 @@ const getEditData = async (req, res) => {
                     ia.no_of_images_videos_audio, ia.duration_minutes, ia.duration_seconds,
                     ia.no_of_products_shot, ia.shoot_setup, ia.no_of_words_written, ia.responsive_screen,
                     ia.link, ia.intimate_team, ia.intimate_client
-                 FROM issue_assignments ia WHERE ia.id = :id`,
+                 FROM issue_assignments ia WHERE ia.id = :id AND ia.is_deleted = 0`,
                 { replacements: { id }, type: sequelize.QueryTypes.SELECT }
             );
             record = row;
@@ -274,7 +274,7 @@ const getDeletePreview = async (req, res) => {
                     COUNT(DISTINCT ia.id) AS issue_count
                  FROM tasks t
                  LEFT JOIN issue_assignments ia ON ia.task_id = t.id
-                 WHERE t.work_request_id = :id GROUP BY t.id`,
+                 WHERE t.work_request_id = :id AND t.is_deleted = 0 GROUP BY t.id`,
                 { replacements: { id }, type: sequelize.QueryTypes.SELECT }
             );
             preview = { record: wr, tasks };
@@ -294,8 +294,8 @@ const getDeletePreview = async (req, res) => {
                         COUNT(DISTINCT ia.id) AS issue_count
                  FROM work_requests wr
                  LEFT JOIN users ru ON ru.id = wr.user_id
-                 LEFT JOIN tasks t ON t.work_request_id = wr.id
-                 LEFT JOIN issue_assignments ia ON ia.task_id = t.id
+                 LEFT JOIN tasks t ON t.work_request_id = wr.id AND t.is_deleted = 0
+                 LEFT JOIN issue_assignments ia ON ia.task_id = t.id AND ia.is_deleted = 0
                  WHERE wr.id = :id GROUP BY wr.id`,
                 { replacements: { id }, type: sequelize.QueryTypes.SELECT }
             );
@@ -304,7 +304,7 @@ const getDeletePreview = async (req, res) => {
                     COUNT(DISTINCT ia.id) AS issue_count
                  FROM tasks t
                  LEFT JOIN issue_assignments ia ON ia.task_id = t.id
-                 WHERE t.work_request_id = :id GROUP BY t.id`,
+                 WHERE t.work_request_id = :id AND t.is_deleted = 0 GROUP BY t.id`,
                 { replacements: { id }, type: sequelize.QueryTypes.SELECT }
             );
             preview = { record: wr, tasks };
@@ -314,12 +314,12 @@ const getDeletePreview = async (req, res) => {
                     COUNT(DISTINCT ia.id) AS issue_count
                  FROM tasks t
                  LEFT JOIN issue_assignments ia ON ia.task_id = t.id
-                 WHERE t.id = :id GROUP BY t.id`,
+                 WHERE t.id = :id AND t.is_deleted = 0 GROUP BY t.id`,
                 { replacements: { id }, type: sequelize.QueryTypes.SELECT }
             );
             const issues = await sequelize.query(
                 `SELECT ia.id, ia.version, ia.status, ia.assignment_type
-                 FROM issue_assignments ia WHERE ia.task_id = :id`,
+                 FROM issue_assignments ia WHERE ia.task_id = :id AND ia.is_deleted = 0`,
                 { replacements: { id }, type: sequelize.QueryTypes.SELECT }
             );
             preview = { record: task, issues };
@@ -328,9 +328,9 @@ const getDeletePreview = async (req, res) => {
                 `SELECT ia.id, ia.version, ia.status, ia.assignment_type,
                     t.task_name, wr.project_name
                  FROM issue_assignments ia
-                 LEFT JOIN tasks t ON t.id = ia.task_id
+                 LEFT JOIN tasks t ON t.id = ia.task_id AND t.is_deleted = 0
                  LEFT JOIN work_requests wr ON wr.id = t.work_request_id
-                 WHERE ia.id = :id`,
+                 WHERE ia.id = :id AND ia.is_deleted = 0`,
                 { replacements: { id }, type: sequelize.QueryTypes.SELECT }
             );
             preview = { record: issue };
@@ -366,16 +366,9 @@ const deleteClient = async (req, res) => {
 const deleteTask = async (req, res) => {
     try {
         const { id } = req.params;
-        await sequelize.query(`DELETE iat FROM issue_assignment_types iat INNER JOIN issue_assignments ia ON iat.issue_assignment_id = ia.id WHERE ia.task_id = :id`, { replacements: { id } });
-        await sequelize.query(`DELETE iua FROM issue_user_assignments iua INNER JOIN issue_assignments ia ON iua.issue_assignment_id = ia.id WHERE ia.task_id = :id`, { replacements: { id } });
-        await sequelize.query(`DELETE FROM issue_assignments WHERE task_id = :id`, { replacements: { id } });
-        await sequelize.query(`DELETE FROM task_assignments WHERE task_id = :id`, { replacements: { id } });
-        await sequelize.query(`DELETE FROM task_review_history WHERE task_id = :id`, { replacements: { id } });
-        await sequelize.query(`DELETE td FROM task_documents td INNER JOIN task_assignments ta ON td.task_assignment_id = ta.id WHERE ta.task_id = :id`, { replacements: { id } });
-        await sequelize.query(`DELETE FROM task_dependencies WHERE task_id = :id OR dependency_task_id = :id`, { replacements: { id } });
-        await sequelize.query(`DELETE FROM task_project_reference WHERE task_id = :id`, { replacements: { id } });
-        await sequelize.query(`DELETE FROM tasks WHERE id = :id`, { replacements: { id } });
-        res.json({ success: true, message: 'Task and all related issues deleted successfully' });
+        await Tasks.update({ is_deleted: 1 }, { where: { id } });
+        await IssueAssignments.update({ is_deleted: 1 }, { where: { task_id: id } });
+        res.json({ success: true, message: 'Task soft deleted successfully' });
     } catch (error) {
         console.error('Error deleting task:', error);
         res.status(500).json({ error: 'Internal server error' });
@@ -385,10 +378,8 @@ const deleteTask = async (req, res) => {
 const deleteIssue = async (req, res) => {
     try {
         const { id } = req.params;
-        await sequelize.query(`DELETE FROM issue_assignment_types WHERE issue_assignment_id = :id`, { replacements: { id } });
-        await sequelize.query(`DELETE FROM issue_user_assignments WHERE issue_assignment_id = :id`, { replacements: { id } });
-        await sequelize.query(`DELETE FROM issue_assignments WHERE id = :id`, { replacements: { id } });
-        res.json({ success: true, message: 'Issue deleted successfully' });
+        await IssueAssignments.update({ is_deleted: 1 }, { where: { id } });
+        res.json({ success: true, message: 'Issue soft deleted successfully' });
     } catch (error) {
         console.error('Error deleting issue:', error);
         res.status(500).json({ error: 'Internal server error' });
@@ -519,9 +510,9 @@ const getAdminData = async (req, res) => {
             LEFT JOIN request_type rt ON rt.id = wr.request_type_id
             LEFT JOIN project_type pt ON pt.id = wr.project_id
             LEFT JOIN users ru ON ru.id = wr.user_id
-            LEFT JOIN tasks t ON t.work_request_id = wr.id
-            LEFT JOIN issue_assignments ia ON ia.task_id = t.id
-            LEFT JOIN task_history th ON th.work_request_id = wr.id AND th.action = 'manager_change_requested'
+LEFT JOIN tasks t ON t.work_request_id = wr.id AND t.is_deleted = 0
+             LEFT JOIN issue_assignments ia ON ia.task_id = t.id AND ia.is_deleted = 0
+             LEFT JOIN task_history th ON th.work_request_id = wr.id AND th.action = 'manager_change_requested'
         `;
 
         if (whereClauses.length > 0) {
@@ -756,16 +747,18 @@ const getTaskDetailsData = async (req, res) => {
                         THEN CONCAT('FY ', YEAR(t.created_at), '-', RIGHT(YEAR(t.created_at) + 1, 2))
                     ELSE
                         CONCAT('FY ', YEAR(t.created_at) - 1, '-', RIGHT(YEAR(t.created_at), 2))
-                END AS fy
-            FROM tasks t
-            LEFT JOIN work_requests wr ON wr.id = t.work_request_id
-            LEFT JOIN task_type tt ON tt.id = t.task_type_id
-            LEFT JOIN users ru ON ru.id = wr.user_id
-             LEFT JOIN issue_assignments ia ON ia.task_id = t.id
-          `;
+END AS fy
+             FROM tasks t
+             LEFT JOIN work_requests wr ON wr.id = t.work_request_id
+             LEFT JOIN task_type tt ON tt.id = t.task_type_id
+             LEFT JOIN users ru ON ru.id = wr.user_id
+             LEFT JOIN issue_assignments ia ON ia.task_id = t.id AND ia.is_deleted = 0
+           `;
 
         if (whereClauses.length > 0) {
-            query += ` WHERE ${whereClauses.join(' AND ')}`;
+            query += ` WHERE ${whereClauses.join(' AND ')} AND t.is_deleted = 0`;
+        } else {
+            query += ` WHERE t.is_deleted = 0`;
         }
 
         query += `
@@ -904,22 +897,24 @@ const getIssueDetailsData = async (req, res) => {
                     ELSE
                         CONCAT('FY ', YEAR(ia.created_at) - 1, '-', RIGHT(YEAR(ia.created_at), 2))
                 END AS fy
-            FROM issue_assignments ia
-            LEFT JOIN tasks t ON t.id = ia.task_id
-            LEFT JOIN work_requests wr ON wr.id = t.work_request_id
-            LEFT JOIN task_type tt ON tt.id = t.task_type_id
-            LEFT JOIN users ru ON ru.id = wr.user_id
+FROM issue_assignments ia
+             LEFT JOIN tasks t ON t.id = ia.task_id AND t.is_deleted = 0
+             LEFT JOIN work_requests wr ON wr.id = t.work_request_id
+             LEFT JOIN task_type tt ON tt.id = t.task_type_id
+             LEFT JOIN users ru ON ru.id = wr.user_id
              LEFT JOIN issue_user_assignments iua ON iua.issue_assignment_id = ia.id
              LEFT JOIN users au ON au.id = iua.user_id
              LEFT JOIN user_divisions ud ON ud.user_id = au.id
-             LEFT JOIN division d ON d.id = ud.division_id
-          `;
+LEFT JOIN division d ON d.id = ud.division_id
+           `;
 
-        if (whereClauses.length > 0) {
-            query += ` WHERE ${whereClauses.join(' AND ')}`;
-        }
+if (whereClauses.length > 0) {
+             query += ` WHERE ${whereClauses.join(' AND ')} AND ia.is_deleted = 0`;
+         } else {
+             query += ` WHERE ia.is_deleted = 0`;
+         }
 
-        query += `
+         query += `
              GROUP BY
                  ia.id, t.id, wr.id, ia.created_at,
                  t.task_name, t.status, t.task_count,
@@ -953,7 +948,7 @@ const getTasksForWorkRequest = async (req, res) => {
                 t.status,
                 t.deadline
             FROM tasks t
-            WHERE t.work_request_id = :workRequestId
+            WHERE t.work_request_id = :workRequestId AND t.is_deleted = 0
         `;
 
         const results = await sequelize.query(query, {
@@ -1032,34 +1027,34 @@ const getWorkRequestTasksData = async (req, res) => {
 
                 COALESCE(DATE_FORMAT((SELECT MIN(wrm2.created_at) FROM work_request_managers wrm2 WHERE wrm2.work_request_id = wr.id), '%d-%b-%Y %H:%i'), 'N/A') AS project_requested_accept_at_cm,
 
-                (SELECT DATE_FORMAT(MIN(t2.start_date), '%d-%b-%Y %H:%i')
-                 FROM tasks t2 WHERE t2.work_request_id = wr.id) AS project_start_date,
+(SELECT DATE_FORMAT(MIN(t2.start_date), '%d-%b-%Y %H:%i')
+                  FROM tasks t2 WHERE t2.work_request_id = wr.id AND t2.is_deleted = 0) AS project_start_date,
 
-                (SELECT DATE_FORMAT(MAX(t2.end_date), '%d-%b-%Y %H:%i')
-                 FROM tasks t2 WHERE t2.work_request_id = wr.id) AS project_end_date,
+                 (SELECT DATE_FORMAT(MAX(t2.end_date), '%d-%b-%Y %H:%i')
+                  FROM tasks t2 WHERE t2.work_request_id = wr.id AND t2.is_deleted = 0) AS project_end_date,
 
-                (SELECT DATE_FORMAT(MAX(t2.deadline), '%d-%b-%Y %H:%i')
-                 FROM tasks t2 WHERE t2.work_request_id = wr.id) AS project_deadline,
+                 (SELECT DATE_FORMAT(MAX(t2.deadline), '%d-%b-%Y %H:%i')
+                  FROM tasks t2 WHERE t2.work_request_id = wr.id AND t2.is_deleted = 0) AS project_deadline,
 
-                (SELECT
-                    CASE
-                        WHEN COUNT(t2.id) = 0 THEN NULL
-                        WHEN SUM(CASE WHEN t2.review = 'approved' THEN 1 ELSE 0 END) = COUNT(t2.id) THEN 'approved'
-                        WHEN SUM(CASE WHEN t2.review = 'change_request' THEN 1 ELSE 0 END) > 0 THEN 'change_request'
-                        ELSE 'pending'
-                    END
-                 FROM tasks t2 WHERE t2.work_request_id = wr.id) AS project_review,
+                 (SELECT
+                     CASE
+                         WHEN COUNT(t2.id) = 0 THEN NULL
+                         WHEN SUM(CASE WHEN t2.review = 'approved' THEN 1 ELSE 0 END) = COUNT(t2.id) THEN 'approved'
+                         WHEN SUM(CASE WHEN t2.review = 'change_request' THEN 1 ELSE 0 END) > 0 THEN 'change_request'
+                         ELSE 'pending'
+                     END
+                  FROM tasks t2 WHERE t2.work_request_id = wr.id AND t2.is_deleted = 0) AS project_review,
 
-                (SELECT
-                    CASE
-                        WHEN COUNT(t2.id) = 0 THEN NULL
-                        WHEN SUM(CASE WHEN t2.review_stage = 'final_approved' THEN 1 ELSE 0 END) = COUNT(t2.id) THEN 'final_approved'
-                        WHEN SUM(CASE WHEN t2.review_stage = 'pm_review' THEN 1 ELSE 0 END) > 0 THEN 'pm_review'
-                        WHEN SUM(CASE WHEN t2.review_stage = 'manager_review' THEN 1 ELSE 0 END) > 0 THEN 'manager_review'
-                        WHEN SUM(CASE WHEN t2.review_stage = 'change_requested' THEN 1 ELSE 0 END) > 0 THEN 'change_requested'
-                        ELSE 'not_started'
-                    END
-                 FROM tasks t2 WHERE t2.work_request_id = wr.id) AS project_stage,
+                 (SELECT
+                     CASE
+                         WHEN COUNT(t2.id) = 0 THEN NULL
+                         WHEN SUM(CASE WHEN t2.review_stage = 'final_approved' THEN 1 ELSE 0 END) = COUNT(t2.id) THEN 'final_approved'
+                         WHEN SUM(CASE WHEN t2.review_stage = 'pm_review' THEN 1 ELSE 0 END) > 0 THEN 'pm_review'
+                         WHEN SUM(CASE WHEN t2.review_stage = 'manager_review' THEN 1 ELSE 0 END) > 0 THEN 'manager_review'
+                         WHEN SUM(CASE WHEN t2.review_stage = 'change_requested' THEN 1 ELSE 0 END) > 0 THEN 'change_requested'
+                         ELSE 'not_started'
+                     END
+                  FROM tasks t2 WHERE t2.work_request_id = wr.id AND t2.is_deleted = 0) AS project_stage,
                 
                 t.id AS task_id,
                 t.task_name,
@@ -1078,7 +1073,7 @@ const getWorkRequestTasksData = async (req, res) => {
                 t.shared_with_client_at AS task_shared_with_client_at,
                 1 AS task_count,
                 t.task_count AS task_no_of_work_pages,
-                (SELECT COUNT(DISTINCT ia2.id) FROM issue_assignments ia2 WHERE ia2.task_id = t.id) AS issue_task_count,
+                (SELECT COUNT(DISTINCT ia2.id) FROM issue_assignments ia2 WHERE ia2.task_id = t.id AND ia2.is_deleted = 0) AS issue_task_count,
                 t.link AS task_link,
                 t.start_date AS task_start_date,
                 t.end_date AS task_end_date,
@@ -1255,17 +1250,17 @@ const getWorkRequestTasksData = async (req, res) => {
             LEFT JOIN designation creator_desig ON creator_desig.id = creator.designation_id
             LEFT JOIN job_role creator_job ON creator_job.id = creator.job_role_id
             LEFT JOIN location creator_loc ON creator_loc.id = creator.location_id
-            LEFT JOIN tasks t ON t.work_request_id = wr.id
-            LEFT JOIN task_type tt ON tt.id = t.task_type_id
-            LEFT JOIN request_type task_rt ON task_rt.id = t.request_type_id
-            LEFT JOIN task_assignments ta ON ta.task_id = t.id
-            LEFT JOIN users assignee ON assignee.id = ta.user_id
-            LEFT JOIN department assignee_dept ON assignee_dept.id = assignee.department_id
-            LEFT JOIN designation assignee_desig ON assignee_desig.id = assignee.designation_id
-            LEFT JOIN job_role assignee_job ON assignee_job.id = assignee.job_role_id
-            LEFT JOIN location assignee_loc ON assignee_loc.id = assignee.location_id
-            LEFT JOIN issue_assignments ia ON ia.task_id = t.id
-            LEFT JOIN users issue_requester ON issue_requester.id = ia.requested_by_user_id
+LEFT JOIN tasks t ON t.work_request_id = wr.id AND t.is_deleted = 0
+             LEFT JOIN task_type tt ON tt.id = t.task_type_id
+             LEFT JOIN request_type task_rt ON task_rt.id = t.request_type_id
+             LEFT JOIN task_assignments ta ON ta.task_id = t.id
+             LEFT JOIN users assignee ON assignee.id = ta.user_id
+             LEFT JOIN department assignee_dept ON assignee_dept.id = assignee.department_id
+             LEFT JOIN designation assignee_desig ON assignee_desig.id = assignee.designation_id
+             LEFT JOIN job_role assignee_job ON assignee_job.id = assignee.job_role_id
+             LEFT JOIN location assignee_loc ON assignee_loc.id = assignee.location_id
+             LEFT JOIN issue_assignments ia ON ia.task_id = t.id AND ia.is_deleted = 0
+             LEFT JOIN users issue_requester ON issue_requester.id = ia.requested_by_user_id
             LEFT JOIN department issue_requester_dept ON issue_requester_dept.id = issue_requester.department_id
             LEFT JOIN designation issue_requester_desig ON issue_requester_desig.id = issue_requester.designation_id
             LEFT JOIN job_role issue_requester_job ON issue_requester_job.id = issue_requester.job_role_id
