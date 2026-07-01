@@ -47,6 +47,7 @@ const progressTasksWithTodayStartDate = async () => {
     const tasksWithTodayStartDate = await Tasks.findAll({
       where: {
         status: 'accepted',
+        is_deleted: 0,
         start_date: {
           [Op.gte]: todayDate,
           [Op.lt]: new Date(todayDate.getTime() + 24 * 60 * 60 * 1000) // Next day
@@ -185,7 +186,8 @@ const sendPmReviewPendingReminders = async () => {
     const pendingTasks = await Tasks.findAll({
       where: {
         review: 'pending',
-        review_stage: 'pm_review'
+        review_stage: 'pm_review',
+        is_deleted: 0
       },
       attributes: ['id', 'task_name', 'deadline', 'work_request_id', 'updated_at'],
       include: [{
@@ -216,12 +218,14 @@ const sendPmReviewPendingReminders = async () => {
     const pendingIssues = await IssueAssignments.findAll({
       where: {
         review: 'pending',
-        review_stage: 'pm_review'
+        review_stage: 'pm_review',
+        is_deleted: 0
       },
       attributes: ['id', 'version', 'description', 'deadline', 'task_id', 'updated_at'],
       include: [{
         model: Tasks,
         as: 'task',
+        where: { is_deleted: 0 },
         attributes: ['id', 'task_name', 'work_request_id'],
         include: [{
           model: WorkRequests,
@@ -310,18 +314,18 @@ const scheduleTaskProgression = () => {
   });
 
   // Runs at 9:00 AM and 5:00 PM IST on weekdays only
-  // cron.schedule('0 9,17 * * 1-5', async () => {
-  //   console.log('Running scheduled task: PM review pending reminders');
+  cron.schedule('0 9,17 * * 1-5', async () => {
+    console.log('Running scheduled task: PM review pending reminders');
 
-  //   try {
-  //     await taskSchedulerQueue.add('pm-review-reminders', { type: 'pm_review_reminders' });
-  //     console.log('PM review reminder job queued successfully');
-  //   } catch (error) {
-  //     console.error('Failed to queue PM review reminder job:', error);
-  //   }
-  // }, {
-  //   timezone: 'Asia/Kolkata'
-  // });
+    try {
+      await taskSchedulerQueue.add('pm-review-reminders', { type: 'pm_review_reminders' });
+      console.log('PM review reminder job queued successfully');
+    } catch (error) {
+      console.error('Failed to queue PM review reminder job:', error);
+    }
+  }, {
+    timezone: 'Asia/Kolkata'
+  });
 
   console.log('Task and Issue progression scheduler initialized - runs daily at 12:01 AM IST (checks start_date)');
   console.log('PM review reminder scheduler initialized - runs on weekdays at 9:00 AM and 5:00 PM IST');

@@ -565,6 +565,8 @@ const getAssignedWorkRequestById = async (req, res) => {
                     { model: WorkRequestDocuments, attributes: { exclude: ['created_at', 'updated_at'] } },
                     {
                         model: Tasks,
+                        where: { is_deleted: 0 },
+                        required: false,
                         attributes: ['id', 'task_name', 'description', 'request_type_id', 'task_type_id', 'work_request_id', 'deadline', 'status', 'version', 'assignment_type', 'intimate_team', 'intimate_client', 'task_count', 'link', 'start_date', 'end_date', 'review', 'review_stage', 'created_at', 'updated_at', 'shared_with_client_at'],
                         include: [
                             {
@@ -611,49 +613,51 @@ const getAssignedWorkRequestById = async (req, res) => {
                                     }
                                 ]
                             },
-                            {
-                                model: IssueAssignments,
-                                as: 'issueAssignments',
-                                include: [
-                                    {
-                                        model: IssueAssignmentTypes,
-                                        as: 'issueTypeLinks',
-                                        include: [
-                                            {
-                                                model: IssueRegister,
-                                                as: 'issueRegister'
-                                            }
-                                        ]
-                                    },
-                                    {
-                                        model: User,
-                                        as: 'requester',
-                                        attributes: ['id', 'name', 'email']
-                                    },
-                                    {
-                                        model: IssueUserAssignments,
-                                        as: 'userAssignments',
-                                        attributes: ['id', 'user_id', 'created_at', 'updated_at'],
-                                        include: [
-                                            {
-                                                model: User,
-                                                as: 'user',
-                                                attributes: ['id', 'name', 'email']
-                                            },
-                                            {
-                                                model: IssueDocuments,
-                                                as: 'documents',
-                                                attributes: ['id', 'document_name', 'document_path', 'document_type', 'document_size', 'uploaded_at', 'status', 'version', 'review']
-                                            }
-                                        ]
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                ],
-                limit: 1
-            });
+{
+                                    model: IssueAssignments,
+                                    as: 'issueAssignments',
+                                    where: { is_deleted: 0 },
+                                    required: false,
+                                    include: [
+                                        {
+                                            model: IssueAssignmentTypes,
+                                            as: 'issueTypeLinks',
+                                            include: [
+                                                {
+                                                    model: IssueRegister,
+                                                    as: 'issueRegister'
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            model: User,
+                                            as: 'requester',
+                                            attributes: ['id', 'name', 'email']
+                                        },
+                                        {
+                                            model: IssueUserAssignments,
+                                            as: 'userAssignments',
+                                            attributes: ['id', 'user_id', 'created_at', 'updated_at'],
+                                            include: [
+                                                {
+                                                    model: User,
+                                                    as: 'user',
+                                                    attributes: ['id', 'name', 'email']
+                                                },
+                                                {
+                                                    model: IssueDocuments,
+                                                    as: 'documents',
+                                                    attributes: ['id', 'document_name', 'document_path', 'document_type', 'document_size', 'uploaded_at', 'status', 'version', 'review']
+                                                }
+                                            ]
+                                        }
+                                    ]
+}
+                            ]
+                        }
+                    ],
+                    limit: 1
+                });
 
             if (managerResult.success && managerResult.data.length > 0) {
                 workRequest = managerResult.data[0];
@@ -665,7 +669,7 @@ const getAssignedWorkRequestById = async (req, res) => {
         if (!hasAccess) {
             // Check if user is assigned to any tasks in this work request
             const taskCheck = await Tasks.findAll({
-                where: { work_request_id: id },
+                where: { work_request_id: id, is_deleted: 0 },
                 include: [
                     {
                         model: TaskAssignments,
@@ -703,6 +707,8 @@ const getAssignedWorkRequestById = async (req, res) => {
                         { model: WorkRequestDocuments, attributes: { exclude: ['created_at', 'updated_at'] } },
                         {
                             model: Tasks,
+                            where: { is_deleted: 0 },
+                            required: false,
                             attributes: ['id', 'task_name', 'description', 'request_type_id', 'task_type_id', 'work_request_id', 'deadline', 'status', 'version', 'assignment_type', 'intimate_team', 'intimate_client', 'task_count', 'link', 'start_date', 'end_date', 'review', 'review_stage', 'created_at', 'updated_at'],
                             include: [
                                 {
@@ -752,6 +758,8 @@ const getAssignedWorkRequestById = async (req, res) => {
                                 {
                                     model: IssueAssignments,
                                     as: 'issueAssignments',
+                                    where: { is_deleted: 0 },
+                                    required: false,
                                     include: [
                                         {
                                             model: IssueAssignmentTypes,
@@ -1906,7 +1914,7 @@ const getTasksByWorkRequestId = async (req, res) => {
 
         // Get all tasks for this work request with basic details, dependencies, assigned users, request type, and task type
         const tasksResult = await Tasks.findAll({
-            where: { work_request_id: workRequestId },
+            where: { work_request_id: workRequestId, is_deleted: 0 },
             attributes: ['id', 'task_name', 'deadline'],
             include: [
                 {
@@ -1916,6 +1924,8 @@ const getTasksByWorkRequestId = async (req, res) => {
                         {
                             model: Tasks,
                             as: 'dependencyTask',
+                            where: { is_deleted: 0 },
+                            required: false,
                             attributes: ['id', 'task_name']
                         }
                     ]
@@ -2624,7 +2634,8 @@ const deleteTask = async (req, res) => {
         const manager_id = req.user.id;
 
         // Find the task with its work request
-        const task = await Tasks.findByPk(taskId, {
+        const task = await Tasks.findOne({
+            where: { id: taskId, is_deleted: 0 },
             include: [
                 {
                     model: WorkRequests,
@@ -2644,40 +2655,24 @@ const deleteTask = async (req, res) => {
             return res.status(404).json({ success: false, error: 'Task not found or not assigned to you' });
         }
 
-        // Get all task assignment IDs for this task
-        const taskAssignments = await TaskAssignments.findAll({ where: { task_id: taskId }, attributes: ['id'] });
-        const taskAssignmentIds = taskAssignments.map(ta => ta.id);
-
-        // Record deletion before removing parent records
+        // Record deletion before soft deleting
         await recordTaskHistory({
             req,
             taskId,
             workRequestId: task.WorkRequest?.id,
             action: 'deleted',
             previousData: task,
-            comments: 'Task deleted by manager',
+            comments: 'Task soft deleted by manager',
             relatedManagerId: manager_id
         });
 
-        // Delete related records first to avoid foreign key constraints
-        // Delete TaskDocuments for these task assignments
-        if (taskAssignmentIds.length > 0) {
-            await TaskDocuments.destroy({ where: { task_assignment_id: { [Op.in]: taskAssignmentIds } } });
-        }
-
-        // Delete TaskAssignments for this task
-        await TaskAssignments.destroy({ where: { task_id: taskId } });
-
-        // Delete TaskDependencies for this task (both as main task and as dependency)
-        await TaskDependencies.destroy({ where: { task_id: taskId } });
-        await TaskDependencies.destroy({ where: { dependency_task_id: taskId } });
-
-        // Delete the Task
-        await Tasks.destroy({ where: { id: taskId } });
+        // Soft delete - Set is_deleted flag instead of actually deleting
+        await Tasks.update({ is_deleted: 1 }, { where: { id: taskId } });
+        await IssueAssignments.update({ is_deleted: 1 }, { where: { task_id: taskId } });
 
         res.json({
             success: true,
-            message: `Task ${taskId} and all related data deleted successfully`
+            message: `Task ${taskId} soft deleted successfully`
         });
     } catch (error) {
         console.error('Error deleting task:', error);
@@ -2691,7 +2686,7 @@ const getMyTasks = async (req, res) => {
         const { status } = req.query;
 
         // Build where condition for tasks
-        let whereCondition = {};
+        let whereCondition = { is_deleted: 0 };
 
         // Apply status filter if provided
         if (status) {
@@ -3644,23 +3639,25 @@ const reviewTask = async (req, res) => {
                         attributes: ['id', 'name', 'email'],
                         through: { attributes: [] }
                     },
-                    {
-                        model: IssueAssignments,
-                        as: 'issueAssignments',
-                        include: [
-                            {
-                                model: IssueAssignmentTypes,
-                                as: 'issueTypeLinks',
-                                include: [
-                                    {
-                                        model: IssueRegister,
-                                        as: 'issueRegister',
-                                        attributes: ['id', 'change_issue_type', 'description']
-                                    }
-                                ]
-                            }
-                        ]
-                    }
+{
+                    model: IssueAssignments,
+                    as: 'issueAssignments',
+                    where: { is_deleted: 0 },
+                    required: false,
+                    include: [
+                        {
+                            model: IssueAssignmentTypes,
+                            as: 'issueTypeLinks',
+                            include: [
+                                {
+                                    model: IssueRegister,
+                                    as: 'issueRegister',
+                                    attributes: ['id', 'change_issue_type', 'description']
+                                }
+                            ]
+                        }
+                    ]
+                }
                 ]
             });
 
