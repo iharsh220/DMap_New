@@ -467,18 +467,69 @@ const getAdminData = async (req, res) => {
                 COALESCE(SUM(t.shoot_setup), 0) AS task_shoot_setup,
                 COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A') AS project_request_timestamp,
                 COALESCE(DATE_FORMAT((SELECT MIN(wrh.created_at) FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'manager_accepted'), '%d-%b-%Y %H:%i'), 'N/A') AS project_acceptance_timestamp,
-                COALESCE(DATE_FORMAT(MAX(t.end_date), '%d-%b-%Y %H:%i'), 'N/A') AS project_marked_completed_timestamp,
-                'N/A' AS project_marked_completed_by,
+                COALESCE(DATE_FORMAT((SELECT MIN(wrh.created_at) FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'completed'), '%d-%b-%Y %H:%i'), 'N/A') AS project_marked_completed_timestamp,
+                COALESCE((SELECT wrh.actor_name FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'completed' ORDER BY wrh.created_at ASC LIMIT 1), 'N/A') AS project_marked_completed_by,
                 COALESCE(
-                    CASE WHEN wr.requested_at IS NOT NULL AND MAX(t.end_date) IS NOT NULL
-                    THEN CONCAT(FLOOR(TIMESTAMPDIFF(MINUTE, wr.requested_at, MAX(t.end_date)) / 60), 'h ', MOD(TIMESTAMPDIFF(MINUTE, wr.requested_at, MAX(t.end_date)), 60), 'm')
-                    ELSE 'N/A' END, 'N/A') AS project_tat,
+                    CASE
+                        WHEN
+                            (SELECT MIN(th1.created_at) FROM task_history th1 JOIN tasks t1 ON t1.id = th1.task_id AND t1.is_deleted = 0 WHERE t1.work_request_id = wr.id AND th1.action = 'created') IS NOT NULL
+                            AND GREATEST(
+                                COALESCE((SELECT MAX(th2.created_at) FROM task_history th2 JOIN tasks t2 ON t2.id = th2.task_id AND t2.is_deleted = 0 WHERE t2.work_request_id = wr.id AND th2.action = 'completed'), '1970-01-01'),
+                                COALESCE((SELECT MIN(wrh.created_at) FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'completed'), '1970-01-01')
+                            ) > '1970-01-01'
+                        THEN CONCAT(
+                            FLOOR(TIMESTAMPDIFF(MINUTE,
+                                (SELECT MIN(th1.created_at) FROM task_history th1 JOIN tasks t1 ON t1.id = th1.task_id AND t1.is_deleted = 0 WHERE t1.work_request_id = wr.id AND th1.action = 'created'),
+                                GREATEST(
+                                    COALESCE((SELECT MAX(th2.created_at) FROM task_history th2 JOIN tasks t2 ON t2.id = th2.task_id AND t2.is_deleted = 0 WHERE t2.work_request_id = wr.id AND th2.action = 'completed'), '1970-01-01'),
+                                    COALESCE((SELECT MIN(wrh.created_at) FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'completed'), '1970-01-01')
+                                )
+                            ) / 60), 'h ',
+                            MOD(TIMESTAMPDIFF(MINUTE,
+                                (SELECT MIN(th1.created_at) FROM task_history th1 JOIN tasks t1 ON t1.id = th1.task_id AND t1.is_deleted = 0 WHERE t1.work_request_id = wr.id AND th1.action = 'created'),
+                                GREATEST(
+                                    COALESCE((SELECT MAX(th2.created_at) FROM task_history th2 JOIN tasks t2 ON t2.id = th2.task_id AND t2.is_deleted = 0 WHERE t2.work_request_id = wr.id AND th2.action = 'completed'), '1970-01-01'),
+                                    COALESCE((SELECT MIN(wrh.created_at) FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'completed'), '1970-01-01')
+                                )
+                            ), 60), 'm'
+                        )
+                        ELSE NULL
+                    END,
+                'N/A') AS project_tat,
                 COALESCE(
                     CASE WHEN wr.requested_at IS NOT NULL AND (SELECT MIN(wrh.created_at) FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'manager_accepted') IS NOT NULL
                     THEN CONCAT(FLOOR(TIMESTAMPDIFF(MINUTE, wr.requested_at, (SELECT MIN(wrh2.created_at) FROM work_request_history wrh2 WHERE wrh2.work_request_id = wr.id AND wrh2.action = 'manager_accepted')) / 60), 'h ', MOD(TIMESTAMPDIFF(MINUTE, wr.requested_at, (SELECT MIN(wrh2.created_at) FROM work_request_history wrh2 WHERE wrh2.work_request_id = wr.id AND wrh2.action = 'manager_accepted')), 60), 'm')
                     ELSE 'N/A' END, 'N/A') AS project_request_to_response_tat,
                 'N/A' AS task_request_to_response_tat_avg,
-                'N/A' AS task_acceptance_to_completion_tat_by_cu_avg,
+                COALESCE(
+                    (
+                        SELECT
+                            CASE
+                                WHEN AVG(TIMESTAMPDIFF(MINUTE, th_start.created_at, th_end.created_at)) IS NOT NULL
+                                THEN CONCAT(
+                                    FLOOR(AVG(TIMESTAMPDIFF(MINUTE, th_start.created_at, th_end.created_at)) / 60), 'h ',
+                                    MOD(ROUND(AVG(TIMESTAMPDIFF(MINUTE, th_start.created_at, th_end.created_at))), 60), 'm'
+                                )
+                                ELSE NULL
+                            END
+                        FROM tasks t_tat
+                        JOIN (
+                            SELECT task_id, MIN(created_at) AS created_at
+                            FROM task_history
+                            WHERE action = 'accepted'
+                              AND actor_type = 'user'
+                              AND new_status IN ('accepted', 'in_progress')
+                            GROUP BY task_id
+                        ) th_start ON th_start.task_id = t_tat.id
+                        JOIN (
+                            SELECT task_id, MIN(created_at) AS created_at
+                            FROM task_history
+                            WHERE action = 'completed'
+                            GROUP BY task_id
+                        ) th_end ON th_end.task_id = t_tat.id
+                        WHERE t_tat.work_request_id = wr.id AND t_tat.is_deleted = 0
+                    ),
+                'N/A') AS task_acceptance_to_completion_tat_by_cu_avg,
                 'N/A' AS task_output_shared_to_response_by_cm_tat_avg,
                 'N/A' AS task_internal_tat_avg,
                 'N/A' AS task_whole_tat_avg,
