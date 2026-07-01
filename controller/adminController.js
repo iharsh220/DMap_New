@@ -28,13 +28,9 @@ const getClientDeleteQueries = async (req, res) => {
         await sequelize.query(`DELETE td FROM task_documents td INNER JOIN task_assignments ta ON td.task_assignment_id = ta.id WHERE ta.task_id IN (:ids)`, { replacements: { ids } });
         await sequelize.query(`DELETE FROM task_dependencies WHERE task_id IN (:ids) OR dependency_task_id IN (:ids)`, { replacements: { ids } });
         await sequelize.query(`DELETE FROM task_project_reference WHERE task_id IN (:ids)`, { replacements: { ids } });
-        await sequelize.query(`UPDATE tasks SET is_deleted = 1 WHERE work_request_id = :id`, { replacements: { id } });
+        await sequelize.query(`UPDATE tasks SET is_deleted = 1 WHERE work_request_id = :id AND is_deleted = 0`, { replacements: { id } });
     }
-    await sequelize.query(`DELETE FROM work_request_managers WHERE work_request_id = :id`, { replacements: { id } });
-    await sequelize.query(`DELETE FROM work_request_documents WHERE work_request_id = :id`, { replacements: { id } });
-    await sequelize.query(`DELETE FROM project_request_reference WHERE work_request_id = :id`, { replacements: { id } });
-    await sequelize.query(`DELETE FROM request_division_reference WHERE work_request_id = :id`, { replacements: { id } });
-    await sequelize.query(`DELETE FROM work_requests WHERE id = :id`, { replacements: { id } });
+    await sequelize.query(`UPDATE work_requests SET is_deleted = 1 WHERE id = :id`, { replacements: { id } });
 };
 
 const getEditData = async (req, res) => {
