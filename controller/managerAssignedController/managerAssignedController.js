@@ -613,51 +613,51 @@ const getAssignedWorkRequestById = async (req, res) => {
                                     }
                                 ]
                             },
-{
-                                    model: IssueAssignments,
-                                    as: 'issueAssignments',
-                                    where: { is_deleted: 0 },
-                                    required: false,
-                                    include: [
-                                        {
-                                            model: IssueAssignmentTypes,
-                                            as: 'issueTypeLinks',
-                                            include: [
-                                                {
-                                                    model: IssueRegister,
-                                                    as: 'issueRegister'
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            model: User,
-                                            as: 'requester',
-                                            attributes: ['id', 'name', 'email']
-                                        },
-                                        {
-                                            model: IssueUserAssignments,
-                                            as: 'userAssignments',
-                                            attributes: ['id', 'user_id', 'created_at', 'updated_at'],
-                                            include: [
-                                                {
-                                                    model: User,
-                                                    as: 'user',
-                                                    attributes: ['id', 'name', 'email']
-                                                },
-                                                {
-                                                    model: IssueDocuments,
-                                                    as: 'documents',
-                                                    attributes: ['id', 'document_name', 'document_path', 'document_type', 'document_size', 'uploaded_at', 'status', 'version', 'review']
-                                                }
-                                            ]
-                                        }
-                                    ]
-}
-                            ]
-                        }
-                    ],
-                    limit: 1
-                });
+                            {
+                                model: IssueAssignments,
+                                as: 'issueAssignments',
+                                where: { is_deleted: 0 },
+                                required: false,
+                                include: [
+                                    {
+                                        model: IssueAssignmentTypes,
+                                        as: 'issueTypeLinks',
+                                        include: [
+                                            {
+                                                model: IssueRegister,
+                                                as: 'issueRegister'
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        model: User,
+                                        as: 'requester',
+                                        attributes: ['id', 'name', 'email']
+                                    },
+                                    {
+                                        model: IssueUserAssignments,
+                                        as: 'userAssignments',
+                                        attributes: ['id', 'user_id', 'created_at', 'updated_at'],
+                                        include: [
+                                            {
+                                                model: User,
+                                                as: 'user',
+                                                attributes: ['id', 'name', 'email']
+                                            },
+                                            {
+                                                model: IssueDocuments,
+                                                as: 'documents',
+                                                attributes: ['id', 'document_name', 'document_path', 'document_type', 'document_size', 'uploaded_at', 'status', 'version', 'review']
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                limit: 1
+            });
 
             if (managerResult.success && managerResult.data.length > 0) {
                 workRequest = managerResult.data[0];
@@ -2566,15 +2566,15 @@ const deleteWorkRequest = async (req, res) => {
 
         const workRequest = existingResult.data[0];
 
-        // Get all task IDs for this work request
-        const tasks = await Tasks.findAll({ where: { work_request_id: id }, attributes: ['id'] });
+        // Get all task IDs for this work request (only non-deleted tasks)
+        const tasks = await Tasks.findAll({ where: { work_request_id: id, is_deleted: 0 }, attributes: ['id'] });
         const taskIds = tasks.map(t => t.id);
 
         // Get all task assignment IDs for these tasks
         const taskAssignments = await TaskAssignments.findAll({ where: { task_id: { [Op.in]: taskIds } }, attributes: ['id'] });
         const taskAssignmentIds = taskAssignments.map(ta => ta.id);
 
-        // Record deletion before removing parent records
+        // Record deletion before soft deleting
         await recordWorkRequestHistory({
             req,
             workRequestId: id,
@@ -2585,40 +2585,16 @@ const deleteWorkRequest = async (req, res) => {
             relatedManagerId: manager_id
         });
 
-        // Delete related records first to avoid foreign key constraints
-        // Delete TaskDocuments for these task assignments
-        if (taskAssignmentIds.length > 0) {
-            await TaskDocuments.destroy({ where: { task_assignment_id: { [Op.in]: taskAssignmentIds } } });
-        }
-
-        // Delete TaskAssignments for these tasks
+        // Soft delete - Set is_deleted flag instead of actually deleting
         if (taskIds.length > 0) {
-            await TaskAssignments.destroy({ where: { task_id: { [Op.in]: taskIds } } });
+            await Tasks.update({ is_deleted: 1 }, { where: { work_request_id: id } });
+            await IssueAssignments.update({ is_deleted: 1 }, { where: { task_id: { [Op.in]: taskIds } } });
         }
 
-        // Delete TaskDependencies for these tasks
-        if (taskIds.length > 0) {
-            await TaskDependencies.destroy({ where: { task_id: { [Op.in]: taskIds } } });
-            await TaskDependencies.destroy({ where: { dependency_task_id: { [Op.in]: taskIds } } });
-        }
+        // Soft delete the work request
+        await WorkRequests.update({ is_deleted: 1 }, { where: { id } });
 
-        // Delete Tasks
-        await Tasks.destroy({ where: { work_request_id: id } });
-
-        // Delete WorkRequestDocuments
-        await WorkRequestDocuments.destroy({ where: { work_request_id: id } });
-
-        // Delete WorkRequestManagers
-        await WorkRequestManagers.destroy({ where: { work_request_id: id } });
-
-        // Finally, delete the WorkRequest
-        const deleteResult = await workRequestService.deleteById(id);
-
-        if (deleteResult.success) {
-            res.json({ success: true, message: 'Work request and all related data deleted successfully' });
-        } else {
-            res.status(500).json({ success: false, error: 'Failed to delete work request' });
-        }
+        res.json({ success: true, message: 'Work request and all related tasks soft deleted successfully' });
     } catch (error) {
         console.error('Error deleting work request:', error);
         res.status(500).json({ success: false, error: error.message });
@@ -3639,25 +3615,25 @@ const reviewTask = async (req, res) => {
                         attributes: ['id', 'name', 'email'],
                         through: { attributes: [] }
                     },
-{
-                    model: IssueAssignments,
-                    as: 'issueAssignments',
-                    where: { is_deleted: 0 },
-                    required: false,
-                    include: [
-                        {
-                            model: IssueAssignmentTypes,
-                            as: 'issueTypeLinks',
-                            include: [
-                                {
-                                    model: IssueRegister,
-                                    as: 'issueRegister',
-                                    attributes: ['id', 'change_issue_type', 'description']
-                                }
-                            ]
-                        }
-                    ]
-                }
+                    {
+                        model: IssueAssignments,
+                        as: 'issueAssignments',
+                        where: { is_deleted: 0 },
+                        required: false,
+                        include: [
+                            {
+                                model: IssueAssignmentTypes,
+                                as: 'issueTypeLinks',
+                                include: [
+                                    {
+                                        model: IssueRegister,
+                                        as: 'issueRegister',
+                                        attributes: ['id', 'change_issue_type', 'description']
+                                    }
+                                ]
+                            }
+                        ]
+                    }
                 ]
             });
 
