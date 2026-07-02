@@ -497,10 +497,49 @@ const getAdminData = async (req, res) => {
                     END,
                 'N/A') AS project_tat,
                 COALESCE(
-                    CASE WHEN wr.requested_at IS NOT NULL AND (SELECT MIN(wrh.created_at) FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'manager_accepted') IS NOT NULL
-                    THEN CONCAT(FLOOR(TIMESTAMPDIFF(MINUTE, wr.requested_at, (SELECT MIN(wrh2.created_at) FROM work_request_history wrh2 WHERE wrh2.work_request_id = wr.id AND wrh2.action = 'manager_accepted')) / 60), 'h ', MOD(TIMESTAMPDIFF(MINUTE, wr.requested_at, (SELECT MIN(wrh2.created_at) FROM work_request_history wrh2 WHERE wrh2.work_request_id = wr.id AND wrh2.action = 'manager_accepted')), 60), 'm')
-                    ELSE 'N/A' END, 'N/A') AS project_request_to_response_tat,
-                'N/A' AS task_request_to_response_tat_avg,
+                    CASE
+                        WHEN (SELECT MIN(wrh.created_at) FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'created') IS NOT NULL
+                          AND (SELECT MIN(wrh.created_at) FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'manager_accepted') IS NOT NULL
+                        THEN CONCAT(
+                            FLOOR(TIMESTAMPDIFF(MINUTE,
+                                (SELECT MIN(wrh.created_at) FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'created'),
+                                (SELECT MIN(wrh.created_at) FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'manager_accepted')
+                            ) / 60), 'h ',
+                            MOD(TIMESTAMPDIFF(MINUTE,
+                                (SELECT MIN(wrh.created_at) FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'created'),
+                                (SELECT MIN(wrh.created_at) FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'manager_accepted')
+                            ), 60), 'm'
+                        )
+                        ELSE NULL
+                    END,
+                'N/A') AS project_request_to_response_tat,
+                COALESCE(
+                    (
+                        SELECT
+                            CASE
+                                WHEN AVG(TIMESTAMPDIFF(MINUTE, th_start.created_at, th_end.created_at)) IS NOT NULL
+                                THEN CONCAT(
+                                    FLOOR(AVG(TIMESTAMPDIFF(MINUTE, th_start.created_at, th_end.created_at)) / 60), 'h ',
+                                    MOD(ROUND(AVG(TIMESTAMPDIFF(MINUTE, th_start.created_at, th_end.created_at))), 60), 'm'
+                                )
+                                ELSE NULL
+                            END
+                        FROM tasks t_tat
+                        JOIN (
+                            SELECT task_id, MIN(created_at) AS created_at
+                            FROM task_history
+                            WHERE action = 'created' AND actor_type = 'manager'
+                            GROUP BY task_id
+                        ) th_start ON th_start.task_id = t_tat.id
+                        JOIN (
+                            SELECT task_id, MIN(created_at) AS created_at
+                            FROM task_history
+                            WHERE action = 'accepted' AND actor_type = 'user'
+                            GROUP BY task_id
+                        ) th_end ON th_end.task_id = t_tat.id
+                        WHERE t_tat.work_request_id = wr.id AND t_tat.is_deleted = 0
+                    ),
+                'N/A') AS task_request_to_response_tat_avg,
                 COALESCE(
                     (
                         SELECT
@@ -546,13 +585,34 @@ const getAdminData = async (req, res) => {
                 0 AS chnage_output_response_reminder_counter_to_cm,
                 0 AS change_output_response_reminder_counter_to_client,
                 0 AS project_closure_reminder_counter_to_client,
-                DATE_FORMAT(wr.created_at, '%M') AS month,
-                CASE
-                    WHEN MONTH(wr.created_at) >= 4
-                        THEN CONCAT('FY ', YEAR(wr.created_at), '-', RIGHT(YEAR(wr.created_at) + 1, 2))
-                    ELSE
-                        CONCAT('FY ', YEAR(wr.created_at) - 1, '-', RIGHT(YEAR(wr.created_at), 2))
-                END AS fy
+                COALESCE(DATE_FORMAT(
+                    COALESCE(
+                        (SELECT ia2.deadline FROM issue_assignments ia2 JOIN tasks t2 ON t2.id = ia2.task_id AND t2.is_deleted = 0 WHERE t2.work_request_id = wr.id AND ia2.is_deleted = 0 AND t2.id = (SELECT MAX(t3.id) FROM tasks t3 WHERE t3.work_request_id = wr.id AND t3.is_deleted = 0) ORDER BY ia2.id DESC LIMIT 1),
+                        (SELECT t2.deadline FROM tasks t2 WHERE t2.work_request_id = wr.id AND t2.is_deleted = 0 ORDER BY t2.id DESC LIMIT 1)
+                    )
+                , '%M'), 'N/A') AS month,
+                COALESCE(
+                    CASE
+                        WHEN MONTH(COALESCE(
+                            (SELECT ia2.deadline FROM issue_assignments ia2 JOIN tasks t2 ON t2.id = ia2.task_id AND t2.is_deleted = 0 WHERE t2.work_request_id = wr.id AND ia2.is_deleted = 0 AND t2.id = (SELECT MAX(t3.id) FROM tasks t3 WHERE t3.work_request_id = wr.id AND t3.is_deleted = 0) ORDER BY ia2.id DESC LIMIT 1),
+                            (SELECT t2.deadline FROM tasks t2 WHERE t2.work_request_id = wr.id AND t2.is_deleted = 0 ORDER BY t2.id DESC LIMIT 1)
+                        )) >= 4
+                        THEN CONCAT('FY ', YEAR(COALESCE(
+                            (SELECT ia2.deadline FROM issue_assignments ia2 JOIN tasks t2 ON t2.id = ia2.task_id AND t2.is_deleted = 0 WHERE t2.work_request_id = wr.id AND ia2.is_deleted = 0 AND t2.id = (SELECT MAX(t3.id) FROM tasks t3 WHERE t3.work_request_id = wr.id AND t3.is_deleted = 0) ORDER BY ia2.id DESC LIMIT 1),
+                            (SELECT t2.deadline FROM tasks t2 WHERE t2.work_request_id = wr.id AND t2.is_deleted = 0 ORDER BY t2.id DESC LIMIT 1)
+                        )), '-', RIGHT(YEAR(COALESCE(
+                            (SELECT ia2.deadline FROM issue_assignments ia2 JOIN tasks t2 ON t2.id = ia2.task_id AND t2.is_deleted = 0 WHERE t2.work_request_id = wr.id AND ia2.is_deleted = 0 AND t2.id = (SELECT MAX(t3.id) FROM tasks t3 WHERE t3.work_request_id = wr.id AND t3.is_deleted = 0) ORDER BY ia2.id DESC LIMIT 1),
+                            (SELECT t2.deadline FROM tasks t2 WHERE t2.work_request_id = wr.id AND t2.is_deleted = 0 ORDER BY t2.id DESC LIMIT 1)
+                        )) + 1, 2))
+                        ELSE CONCAT('FY ', YEAR(COALESCE(
+                            (SELECT ia2.deadline FROM issue_assignments ia2 JOIN tasks t2 ON t2.id = ia2.task_id AND t2.is_deleted = 0 WHERE t2.work_request_id = wr.id AND ia2.is_deleted = 0 AND t2.id = (SELECT MAX(t3.id) FROM tasks t3 WHERE t3.work_request_id = wr.id AND t3.is_deleted = 0) ORDER BY ia2.id DESC LIMIT 1),
+                            (SELECT t2.deadline FROM tasks t2 WHERE t2.work_request_id = wr.id AND t2.is_deleted = 0 ORDER BY t2.id DESC LIMIT 1)
+                        )) - 1, '-', RIGHT(YEAR(COALESCE(
+                            (SELECT ia2.deadline FROM issue_assignments ia2 JOIN tasks t2 ON t2.id = ia2.task_id AND t2.is_deleted = 0 WHERE t2.work_request_id = wr.id AND ia2.is_deleted = 0 AND t2.id = (SELECT MAX(t3.id) FROM tasks t3 WHERE t3.work_request_id = wr.id AND t3.is_deleted = 0) ORDER BY ia2.id DESC LIMIT 1),
+                            (SELECT t2.deadline FROM tasks t2 WHERE t2.work_request_id = wr.id AND t2.is_deleted = 0 ORDER BY t2.id DESC LIMIT 1)
+                        )), 2))
+                    END,
+                'N/A') AS fy
             FROM work_requests wr
             LEFT JOIN request_type rt ON rt.id = wr.request_type_id
             LEFT JOIN project_type pt ON pt.id = wr.project_id
@@ -647,14 +707,34 @@ const getClientsData = async (req, res) => {
                 COALESCE(NULLIF(TRIM(wr.remarks), ''), 'N/A') AS description,
                 COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A') AS project_requested_at_client,
                 COALESCE(DATE_FORMAT((SELECT wrh.created_at FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'manager_accepted' LIMIT 1), '%d-%b-%Y %H:%i'), 'N/A') AS response_timestamp,
-                COALESCE(DATE_FORMAT(wr.requested_at, '%M'), 'N/A') AS month,
-                CASE
-                    WHEN wr.created_at IS NOT NULL AND MONTH(wr.created_at) >= 4
-                        THEN CONCAT('FY ', YEAR(wr.created_at), '-', RIGHT(YEAR(wr.created_at) + 1, 2))
-                    WHEN wr.created_at IS NOT NULL
-                        THEN CONCAT('FY ', YEAR(wr.created_at) - 1, '-', RIGHT(YEAR(wr.created_at), 2))
-                    ELSE 'N/A'
-                END AS financial_year,
+                COALESCE(DATE_FORMAT(
+                    COALESCE(
+                        (SELECT ia2.deadline FROM issue_assignments ia2 JOIN tasks t2 ON t2.id = ia2.task_id AND t2.is_deleted = 0 WHERE t2.work_request_id = wr.id AND ia2.is_deleted = 0 AND t2.id = (SELECT MAX(t3.id) FROM tasks t3 WHERE t3.work_request_id = wr.id AND t3.is_deleted = 0) ORDER BY ia2.id DESC LIMIT 1),
+                        (SELECT t2.deadline FROM tasks t2 WHERE t2.work_request_id = wr.id AND t2.is_deleted = 0 ORDER BY t2.id DESC LIMIT 1)
+                    )
+                , '%M'), 'N/A') AS month,
+                COALESCE(
+                    CASE
+                        WHEN MONTH(COALESCE(
+                            (SELECT ia2.deadline FROM issue_assignments ia2 JOIN tasks t2 ON t2.id = ia2.task_id AND t2.is_deleted = 0 WHERE t2.work_request_id = wr.id AND ia2.is_deleted = 0 AND t2.id = (SELECT MAX(t3.id) FROM tasks t3 WHERE t3.work_request_id = wr.id AND t3.is_deleted = 0) ORDER BY ia2.id DESC LIMIT 1),
+                            (SELECT t2.deadline FROM tasks t2 WHERE t2.work_request_id = wr.id AND t2.is_deleted = 0 ORDER BY t2.id DESC LIMIT 1)
+                        )) >= 4
+                        THEN CONCAT('FY ', YEAR(COALESCE(
+                            (SELECT ia2.deadline FROM issue_assignments ia2 JOIN tasks t2 ON t2.id = ia2.task_id AND t2.is_deleted = 0 WHERE t2.work_request_id = wr.id AND ia2.is_deleted = 0 AND t2.id = (SELECT MAX(t3.id) FROM tasks t3 WHERE t3.work_request_id = wr.id AND t3.is_deleted = 0) ORDER BY ia2.id DESC LIMIT 1),
+                            (SELECT t2.deadline FROM tasks t2 WHERE t2.work_request_id = wr.id AND t2.is_deleted = 0 ORDER BY t2.id DESC LIMIT 1)
+                        )), '-', RIGHT(YEAR(COALESCE(
+                            (SELECT ia2.deadline FROM issue_assignments ia2 JOIN tasks t2 ON t2.id = ia2.task_id AND t2.is_deleted = 0 WHERE t2.work_request_id = wr.id AND ia2.is_deleted = 0 AND t2.id = (SELECT MAX(t3.id) FROM tasks t3 WHERE t3.work_request_id = wr.id AND t3.is_deleted = 0) ORDER BY ia2.id DESC LIMIT 1),
+                            (SELECT t2.deadline FROM tasks t2 WHERE t2.work_request_id = wr.id AND t2.is_deleted = 0 ORDER BY t2.id DESC LIMIT 1)
+                        )) + 1, 2))
+                        ELSE CONCAT('FY ', YEAR(COALESCE(
+                            (SELECT ia2.deadline FROM issue_assignments ia2 JOIN tasks t2 ON t2.id = ia2.task_id AND t2.is_deleted = 0 WHERE t2.work_request_id = wr.id AND ia2.is_deleted = 0 AND t2.id = (SELECT MAX(t3.id) FROM tasks t3 WHERE t3.work_request_id = wr.id AND t3.is_deleted = 0) ORDER BY ia2.id DESC LIMIT 1),
+                            (SELECT t2.deadline FROM tasks t2 WHERE t2.work_request_id = wr.id AND t2.is_deleted = 0 ORDER BY t2.id DESC LIMIT 1)
+                        )) - 1, '-', RIGHT(YEAR(COALESCE(
+                            (SELECT ia2.deadline FROM issue_assignments ia2 JOIN tasks t2 ON t2.id = ia2.task_id AND t2.is_deleted = 0 WHERE t2.work_request_id = wr.id AND ia2.is_deleted = 0 AND t2.id = (SELECT MAX(t3.id) FROM tasks t3 WHERE t3.work_request_id = wr.id AND t3.is_deleted = 0) ORDER BY ia2.id DESC LIMIT 1),
+                            (SELECT t2.deadline FROM tasks t2 WHERE t2.work_request_id = wr.id AND t2.is_deleted = 0 ORDER BY t2.id DESC LIMIT 1)
+                        )), 2))
+                    END,
+                'N/A') AS financial_year,
                 CASE
                     WHEN wr.requested_at IS NOT NULL
                      AND (SELECT wrh2.created_at FROM work_request_history wrh2 WHERE wrh2.work_request_id = wr.id AND wrh2.action = 'manager_accepted' LIMIT 1) IS NOT NULL
@@ -788,13 +868,14 @@ const getTaskDetailsData = async (req, res) => {
                 (SELECT COUNT(*) FROM issue_history ih WHERE ih.work_request_id = wr.id AND ih.action = 'created') AS client_change_requested_counter,
                 COUNT(DISTINCT CASE WHEN ia.requested_by_user_id IN (SELECT manager_id FROM work_request_managers WHERE work_request_id = wr.id) THEN ia.id END) AS cm_change_requested_counter,
                 GROUP_CONCAT(DISTINCT ia.version ORDER BY ia.version SEPARATOR ', ') AS change_version,
-                DATE_FORMAT(t.created_at, '%M') AS month,
-                CASE
-                    WHEN MONTH(t.created_at) >= 4
-                        THEN CONCAT('FY ', YEAR(t.created_at), '-', RIGHT(YEAR(t.created_at) + 1, 2))
-                    ELSE
-                        CONCAT('FY ', YEAR(t.created_at) - 1, '-', RIGHT(YEAR(t.created_at), 2))
-END AS fy
+                COALESCE(DATE_FORMAT(t.deadline, '%M'), 'N/A') AS month,
+                COALESCE(
+                    CASE
+                        WHEN MONTH(t.deadline) >= 4
+                            THEN CONCAT('FY ', YEAR(t.deadline), '-', RIGHT(YEAR(t.deadline) + 1, 2))
+                        ELSE CONCAT('FY ', YEAR(t.deadline) - 1, '-', RIGHT(YEAR(t.deadline), 2))
+                    END,
+                'N/A') AS fy
              FROM tasks t
              LEFT JOIN work_requests wr ON wr.id = t.work_request_id
              LEFT JOIN task_type tt ON tt.id = t.task_type_id
@@ -937,13 +1018,14 @@ const getIssueDetailsData = async (req, res) => {
                 (SELECT COUNT(*) FROM issue_history ih WHERE ih.work_request_id = wr.id AND ih.action = 'created') AS client_change_requested_counter,
                 COUNT(DISTINCT CASE WHEN ia.requested_by_user_id IN (SELECT manager_id FROM work_request_managers WHERE work_request_id = wr.id) THEN ia.id END) AS cm_change_requested_counter,
                 GROUP_CONCAT(DISTINCT ia.version ORDER BY ia.version SEPARATOR ', ') AS change_version,
-                DATE_FORMAT(ia.created_at, '%M') AS month,
-                CASE
-                    WHEN MONTH(ia.created_at) >= 4
-                        THEN CONCAT('FY ', YEAR(ia.created_at), '-', RIGHT(YEAR(ia.created_at) + 1, 2))
-                    ELSE
-                        CONCAT('FY ', YEAR(ia.created_at) - 1, '-', RIGHT(YEAR(ia.created_at), 2))
-                END AS fy
+                COALESCE(DATE_FORMAT(ia.deadline, '%M'), 'N/A') AS month,
+                COALESCE(
+                    CASE
+                        WHEN MONTH(ia.deadline) >= 4
+                            THEN CONCAT('FY ', YEAR(ia.deadline), '-', RIGHT(YEAR(ia.deadline) + 1, 2))
+                        ELSE CONCAT('FY ', YEAR(ia.deadline) - 1, '-', RIGHT(YEAR(ia.deadline), 2))
+                    END,
+                'N/A') AS fy
 FROM issue_assignments ia
              LEFT JOIN tasks t ON t.id = ia.task_id AND t.is_deleted = 0
              LEFT JOIN work_requests wr ON wr.id = t.work_request_id
