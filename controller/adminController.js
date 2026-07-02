@@ -556,14 +556,12 @@ const getAdminData = async (req, res) => {
                             SELECT task_id, MIN(created_at) AS created_at
                             FROM task_history
                             WHERE action = 'accepted'
-                              AND actor_type = 'user'
-                              AND new_status IN ('accepted', 'in_progress')
                             GROUP BY task_id
                         ) th_start ON th_start.task_id = t_tat.id
                         JOIN (
                             SELECT task_id, MIN(created_at) AS created_at
                             FROM task_history
-                            WHERE action = 'completed'
+                            WHERE action = 'submitted'
                             GROUP BY task_id
                         ) th_end ON th_end.task_id = t_tat.id
                         WHERE t_tat.work_request_id = wr.id AND t_tat.is_deleted = 0
