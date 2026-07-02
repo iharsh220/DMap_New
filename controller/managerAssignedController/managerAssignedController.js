@@ -1,4 +1,5 @@
 const { Op, col, literal } = require('sequelize');
+const { sequelize } = require('../../config/databaseConfig');
 const fs = require('fs');
 const path = require('path');
 
@@ -412,7 +413,7 @@ const getAssignedWorkRequests = async (req, res) => {
                     required: true,
                     attributes: []
                 },
-{ model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
+                { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
                 { model: RequestType, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, through: { attributes: [] }, attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
                 {
                     model: Tasks,
@@ -806,6 +807,78 @@ const getAssignedWorkRequestById = async (req, res) => {
 
                 if (userResult.success && userResult.data.length > 0) {
                     workRequest = userResult.data[0];
+                    hasAccess = true;
+                }
+            }
+        }
+
+        // Check if logged in user is a creative manager in the same division as any task-assigned user
+        if (!hasAccess) {
+            const divisionManagerCheck = await sequelize.query(
+                `SELECT COUNT(*) AS cnt
+                 FROM task_assignments ta
+                 JOIN tasks t ON t.id = ta.task_id AND t.is_deleted = 0 AND t.work_request_id = :workRequestId
+                 JOIN user_divisions ud_assignee ON ud_assignee.user_id = ta.user_id
+                 JOIN user_divisions ud_manager ON ud_manager.division_id = ud_assignee.division_id AND ud_manager.user_id = :userId
+                 JOIN users u ON u.id = ud_manager.user_id
+                 JOIN job_role jr ON jr.id = u.job_role_id AND jr.role_title = 'creative manager'`,
+                { replacements: { workRequestId: id, userId: user_id }, type: sequelize.QueryTypes.SELECT }
+            );
+
+            if (divisionManagerCheck[0].cnt > 0) {
+                const divResult = await workRequestService.getAll({
+                    where: { id },
+                    attributes: { exclude: ['request_type_id', 'requested_manager_link_id', 'updated_at'] },
+                    include: [
+                        {
+                            model: User, as: 'users', attributes: { exclude: ['password', 'created_at', 'updated_at', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] },
+                            include: [
+                                { model: Department, attributes: ['id', 'department_name'] },
+                                { model: JobRole, attributes: ['id', 'role_title'] },
+                                { model: Location, attributes: ['id', 'location_name'] },
+                                { model: Designation, attributes: ['id', 'designation_name'] },
+                                { model: Division, as: 'Divisions', attributes: ['id', 'title'], through: { attributes: [] } }
+                            ]
+                        },
+                        { model: RequestType, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, through: { attributes: [] }, attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
+                        { model: ProjectType, attributes: { exclude: ['created_at', 'updated_at'] } },
+                        { model: WorkRequestDocuments, attributes: { exclude: ['created_at', 'updated_at'] } },
+                        {
+                            model: Tasks,
+                            where: { is_deleted: 0 },
+                            required: false,
+                            attributes: ['id', 'task_name', 'description', 'request_type_id', 'task_type_id', 'work_request_id', 'deadline', 'status', 'version', 'assignment_type', 'intimate_team', 'intimate_client', 'task_count', 'link', 'start_date', 'end_date', 'review', 'review_stage', 'created_at', 'updated_at', 'shared_with_client_at'],
+                            include: [
+                                {
+                                    model: TaskAssignments,
+                                    include: [
+                                        { model: User, attributes: ['id', 'name', 'email'] },
+                                        { model: TaskDocuments, attributes: ['id', 'document_name', 'document_path', 'document_type', 'document_size', 'uploaded_at', 'status', 'version', 'review'] }
+                                    ]
+                                },
+                                { model: TaskType, attributes: ['id', 'task_type', 'description'] },
+                                { model: RequestType, attributes: ['id', 'request_type', 'description'] },
+                                { model: TaskDependencies, as: 'dependencies', include: [{ model: Tasks, as: 'dependencyTask', attributes: ['id', 'task_name', 'deadline', 'status'] }] },
+                                { model: TaskReviewHistory, as: 'reviewHistory', attributes: ['id', 'reviewer_id', 'reviewer_type', 'action', 'comments', 'previous_stage', 'new_stage', 'created_at'], include: [{ model: User, as: 'reviewer', attributes: ['id', 'name', 'email'] }] },
+                                {
+                                    model: IssueAssignments,
+                                    as: 'issueAssignments',
+                                    where: { is_deleted: 0 },
+                                    required: false,
+                                    include: [
+                                        { model: IssueAssignmentTypes, as: 'issueTypeLinks', include: [{ model: IssueRegister, as: 'issueRegister' }] },
+                                        { model: User, as: 'requester', attributes: ['id', 'name', 'email'] },
+                                        { model: IssueUserAssignments, as: 'userAssignments', attributes: ['id', 'user_id', 'created_at', 'updated_at'], include: [{ model: User, as: 'user', attributes: ['id', 'name', 'email'] }, { model: IssueDocuments, as: 'documents', attributes: ['id', 'document_name', 'document_path', 'document_type', 'document_size', 'uploaded_at', 'status', 'version', 'review'] }] }
+                                    ]
+                                }
+                            ]
+                        }
+                    ],
+                    limit: 1
+                });
+
+                if (divResult.success && divResult.data.length > 0) {
+                    workRequest = divResult.data[0];
                     hasAccess = true;
                 }
             }
