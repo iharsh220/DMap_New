@@ -471,6 +471,23 @@ const getAdminData = async (req, res) => {
                 COALESCE((SELECT wrh.actor_name FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'completed' ORDER BY wrh.created_at ASC LIMIT 1), 'N/A') AS project_marked_completed_by,
                 COALESCE(
                     CASE
+                        WHEN (SELECT MIN(wrh.created_at) FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'created') IS NOT NULL
+                          AND (SELECT MIN(wrh.created_at) FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'completed') IS NOT NULL
+                        THEN CONCAT(
+                            FLOOR(TIMESTAMPDIFF(MINUTE,
+                                (SELECT MIN(wrh.created_at) FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'created'),
+                                (SELECT MIN(wrh.created_at) FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'completed')
+                            ) / 60), 'h ',
+                            MOD(TIMESTAMPDIFF(MINUTE,
+                                (SELECT MIN(wrh.created_at) FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'created'),
+                                (SELECT MIN(wrh.created_at) FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'completed')
+                            ), 60), 'm'
+                        )
+                        ELSE NULL
+                    END,
+                'N/A') AS internal_project_tat,
+                COALESCE(
+                    CASE
                         WHEN
                             (SELECT MIN(th1.created_at) FROM task_history th1 JOIN tasks t1 ON t1.id = th1.task_id AND t1.is_deleted = 0 WHERE t1.work_request_id = wr.id AND th1.action = 'created') IS NOT NULL
                             AND GREATEST(
@@ -567,9 +584,87 @@ const getAdminData = async (req, res) => {
                         WHERE t_tat.work_request_id = wr.id AND t_tat.is_deleted = 0
                     ),
                 'N/A') AS task_acceptance_to_completion_tat_by_cu_avg,
-                'N/A' AS task_output_shared_to_response_by_cm_tat_avg,
-                'N/A' AS task_internal_tat_avg,
-                'N/A' AS task_whole_tat_avg,
+                COALESCE(
+                    (
+                        SELECT
+                            CASE
+                                WHEN AVG(TIMESTAMPDIFF(MINUTE, th_start.created_at, th_end.created_at)) IS NOT NULL
+                                THEN CONCAT(
+                                    FLOOR(AVG(TIMESTAMPDIFF(MINUTE, th_start.created_at, th_end.created_at)) / 60), 'h ',
+                                    MOD(ROUND(AVG(TIMESTAMPDIFF(MINUTE, th_start.created_at, th_end.created_at))), 60), 'm'
+                                )
+                                ELSE NULL
+                            END
+                        FROM tasks t_tat
+                        JOIN (
+                            SELECT task_id, MIN(created_at) AS created_at
+                            FROM task_history
+                            WHERE action = 'submitted'
+                            GROUP BY task_id
+                        ) th_start ON th_start.task_id = t_tat.id
+                        JOIN (
+                            SELECT task_id, MIN(created_at) AS created_at
+                            FROM task_history
+                            WHERE action IN ('manager_approved', 'manager_change_requested')
+                            GROUP BY task_id
+                        ) th_end ON th_end.task_id = t_tat.id
+                        WHERE t_tat.work_request_id = wr.id AND t_tat.is_deleted = 0
+                    ),
+                'N/A') AS task_output_shared_to_response_by_cm_tat_avg,
+                COALESCE(
+                    (
+                        SELECT
+                            CASE
+                                WHEN AVG(TIMESTAMPDIFF(MINUTE, th_start.created_at, th_end.created_at)) IS NOT NULL
+                                THEN CONCAT(
+                                    FLOOR(AVG(TIMESTAMPDIFF(MINUTE, th_start.created_at, th_end.created_at)) / 60), 'h ',
+                                    MOD(ROUND(AVG(TIMESTAMPDIFF(MINUTE, th_start.created_at, th_end.created_at))), 60), 'm'
+                                )
+                                ELSE NULL
+                            END
+                        FROM tasks t_tat
+                        JOIN (
+                            SELECT task_id, MIN(created_at) AS created_at
+                            FROM task_history
+                            WHERE action = 'accepted'
+                            GROUP BY task_id
+                        ) th_start ON th_start.task_id = t_tat.id
+                        JOIN (
+                            SELECT task_id, MIN(created_at) AS created_at
+                            FROM task_history
+                            WHERE action = 'manager_approved'
+                            GROUP BY task_id
+                        ) th_end ON th_end.task_id = t_tat.id
+                        WHERE t_tat.work_request_id = wr.id AND t_tat.is_deleted = 0
+                    ),
+                'N/A') AS task_internal_tat_avg,
+                COALESCE(
+                    (
+                        SELECT
+                            CASE
+                                WHEN AVG(TIMESTAMPDIFF(MINUTE, th_start.created_at, th_end.created_at)) IS NOT NULL
+                                THEN CONCAT(
+                                    FLOOR(AVG(TIMESTAMPDIFF(MINUTE, th_start.created_at, th_end.created_at)) / 60), 'h ',
+                                    MOD(ROUND(AVG(TIMESTAMPDIFF(MINUTE, th_start.created_at, th_end.created_at))), 60), 'm'
+                                )
+                                ELSE NULL
+                            END
+                        FROM tasks t_tat
+                        JOIN (
+                            SELECT task_id, MIN(created_at) AS created_at
+                            FROM task_history
+                            WHERE action = 'accepted'
+                            GROUP BY task_id
+                        ) th_start ON th_start.task_id = t_tat.id
+                        JOIN (
+                            SELECT task_id, MIN(created_at) AS created_at
+                            FROM task_history
+                            WHERE action = 'completed'
+                            GROUP BY task_id
+                        ) th_end ON th_end.task_id = t_tat.id
+                        WHERE t_tat.work_request_id = wr.id AND t_tat.is_deleted = 0
+                    ),
+                'N/A') AS task_whole_tat_avg,
                 'N/A' AS change_request_to_response_tat,
                 'N/A' AS change_acceptance_to_completion_tat_by_cu,
                 'N/A' AS change_output_shared_to_response_by_cm_tat,
