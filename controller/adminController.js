@@ -1156,30 +1156,100 @@ const getIssueDetailsData = async (req, res) => {
                          WHERE trh.task_id = t.id AND trh.reviewer_type = 'manager'),
                     '%d-%b-%Y %H:%i'),
                 'N/A') AS issue_request_response_timestamp,
-                'N/A' AS issue_request_to_response_tat,
-                COALESCE(DATE_FORMAT(ia.shared_with_client_at, '%d-%b-%Y %H:%i'), 'N/A') AS issue_output_shared_with_cm_timestamp,
-                'N/A' AS issue_acceptance_to_completion_tat_by_cu,
                 COALESCE(
-                    DATE_FORMAT(
-                        (SELECT MIN(trh.created_at) FROM task_review_history trh
-                         WHERE trh.task_id = t.id AND trh.reviewer_type = 'manager'),
-                    '%d-%b-%Y %H:%i'),
-                'N/A') AS issue_output_response_by_cm_timestamp,
-                'N/A' AS issue_output_shared_to_response_by_cm_tat,
-                COALESCE(DATE_FORMAT(ia.shared_with_client_at, '%d-%b-%Y %H:%i'), 'N/A') AS issue_output_shared_with_client_timestamp,
-                'N/A' AS issue_internal_tat,
+                    CASE
+                        WHEN (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'created' AND actor_type = 'manager') IS NOT NULL
+                          AND (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'accepted' AND actor_type = 'user') IS NOT NULL
+                        THEN CONCAT(
+                            FLOOR(TIMESTAMPDIFF(MINUTE,
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'created' AND actor_type = 'manager'),
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'accepted' AND actor_type = 'user')
+                            ) / 60), 'h ',
+                            MOD(TIMESTAMPDIFF(MINUTE,
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'created' AND actor_type = 'manager'),
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'accepted' AND actor_type = 'user')
+                            ), 60), 'm'
+                        )
+                        ELSE NULL
+                    END,
+                'N/A') AS issue_request_to_response_tat,
+                COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'submitted'), '%d-%b-%Y %H:%i'), 'N/A') AS issue_output_shared_with_cm_timestamp,
                 COALESCE(
-                    DATE_FORMAT(
-                        (SELECT MIN(trh.created_at) FROM task_review_history trh
-                         WHERE trh.task_id = t.id AND trh.action = 'approved' AND trh.reviewer_type = 'project_manager'),
-                    '%d-%b-%Y %H:%i'),
-                'N/A') AS issue_output_response_by_client_timestamp,
-                'N/A' AS issue_whole_tat,
+                    CASE
+                        WHEN (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'accepted') IS NOT NULL
+                          AND (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'submitted') IS NOT NULL
+                        THEN CONCAT(
+                            FLOOR(TIMESTAMPDIFF(MINUTE,
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'accepted'),
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'submitted')
+                            ) / 60), 'h ',
+                            MOD(TIMESTAMPDIFF(MINUTE,
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'accepted'),
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'submitted')
+                            ), 60), 'm'
+                        )
+                        ELSE NULL
+                    END,
+                'N/A') AS issue_acceptance_to_completion_tat_by_cu,
+                COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'shared_for_client_review'), '%d-%b-%Y %H:%i'), 'N/A') AS issue_output_response_by_cm_timestamp,
+                COALESCE(
+                    CASE
+                        WHEN (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'submitted') IS NOT NULL
+                          AND (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action IN ('manager_approved', 'manager_change_requested')) IS NOT NULL
+                        THEN CONCAT(
+                            FLOOR(TIMESTAMPDIFF(MINUTE,
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'submitted'),
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action IN ('manager_approved', 'manager_change_requested'))
+                            ) / 60), 'h ',
+                            MOD(TIMESTAMPDIFF(MINUTE,
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'submitted'),
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action IN ('manager_approved', 'manager_change_requested'))
+                            ), 60), 'm'
+                        )
+                        ELSE NULL
+                    END,
+                'N/A') AS issue_output_shared_to_response_by_cm_tat,
+                COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'shared_for_client_review'), '%d-%b-%Y %H:%i'), 'N/A') AS issue_output_shared_with_client_timestamp,
+                COALESCE(
+                    CASE
+                        WHEN (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'accepted') IS NOT NULL
+                          AND (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action IN ('manager_approved', 'manager_change_requested')) IS NOT NULL
+                        THEN CONCAT(
+                            FLOOR(TIMESTAMPDIFF(MINUTE,
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'accepted'),
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action IN ('manager_approved', 'manager_change_requested'))
+                            ) / 60), 'h ',
+                            MOD(TIMESTAMPDIFF(MINUTE,
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'accepted'),
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action IN ('manager_approved', 'manager_change_requested'))
+                            ), 60), 'm'
+                        )
+                        ELSE NULL
+                    END,
+                'N/A') AS issue_internal_tat,
+                COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action IN ('completed', 'change_request_created')), '%d-%b-%Y %H:%i'), 'N/A') AS issue_output_response_by_client_timestamp,
+                COALESCE(
+                    CASE
+                        WHEN (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'created') IS NOT NULL
+                          AND (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'completed') IS NOT NULL
+                        THEN CONCAT(
+                            FLOOR(TIMESTAMPDIFF(MINUTE,
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'created'),
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'completed')
+                            ) / 60), 'h ',
+                            MOD(TIMESTAMPDIFF(MINUTE,
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'created'),
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'completed')
+                            ), 60), 'm'
+                        )
+                        ELSE NULL
+                    END,
+                'N/A') AS issue_whole_tat,
                 0 AS issue_request_response_reminder_counter_to_cu,
                 0 AS issue_output_response_reminder_counter_to_cm,
                 0 AS issue_output_response_reminder_counter_to_client,
-                (SELECT COUNT(*) FROM issue_history ih WHERE ih.work_request_id = wr.id AND ih.action = 'created') AS client_change_requested_counter,
-                COUNT(DISTINCT CASE WHEN ia.requested_by_user_id IN (SELECT manager_id FROM work_request_managers WHERE work_request_id = wr.id) THEN ia.id END) AS cm_change_requested_counter,
+                (SELECT COUNT(*) FROM issue_history ih WHERE ih.issue_assignment_id = ia.id AND ih.action = 'created') AS client_change_requested_counter,
+                (SELECT COUNT(*) FROM issue_history ih WHERE ih.issue_assignment_id = ia.id AND ih.action = 'manager_change_requested') AS cm_change_requested_counter,
                 GROUP_CONCAT(DISTINCT ia.version ORDER BY ia.version SEPARATOR ', ') AS change_version,
                 COALESCE(DATE_FORMAT(ia.deadline, '%M'), 'N/A') AS month,
                 COALESCE(
