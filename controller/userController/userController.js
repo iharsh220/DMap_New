@@ -1341,273 +1341,273 @@ const submitTask = async (req, res) => {
             notification_alert: 1
         };
 
-            // Add start_date if provided in request body
-            let providedStartDate = null;
-            if (start_date) {
-                // Validate and parse the start_date
-                const startDateObj = new Date(start_date);
-                if (isNaN(startDateObj.getTime())) {
-                    return res.status(400).json({
-                        success: false,
-                        error: 'Invalid start_date format. Use YYYY-MM-DD format.'
-                    });
+        // Add start_date if provided in request body
+        let providedStartDate = null;
+        if (start_date) {
+            // Validate and parse the start_date
+            const startDateObj = new Date(start_date);
+            if (isNaN(startDateObj.getTime())) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Invalid start_date format. Use YYYY-MM-DD format.'
+                });
+            }
+            providedStartDate = startDateObj;
+            taskUpdateData.start_date = startDateObj;
+        } else if (task.start_date) {
+            // If no new start_date provided, use the existing one from the task
+            providedStartDate = new Date(task.start_date);
+        }
+
+        // Validate that end_date is not before start_date
+        if (providedStartDate) {
+            const endDate = new Date(); // Current date/time when submitting
+            endDate.setHours(0, 0, 0, 0); // Set to start of day for comparison
+            const startDateOnly = new Date(providedStartDate);
+            startDateOnly.setHours(0, 0, 0, 0);
+
+            if (endDate < startDateOnly) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'End date cannot be before start date'
+                });
+            }
+        }
+
+        if (link) {
+            taskUpdateData.link = link;
+        }
+
+        // Add comments if provided
+        if (comments) {
+            taskUpdateData.comments = comments;
+        }
+
+        // Add Content Work fields if provided
+        if (no_of_options_provided !== undefined) {
+            taskUpdateData.no_of_options_provided = parseInt(no_of_options_provided, 10) || 0;
+        }
+        if (no_of_words_written !== undefined) {
+            taskUpdateData.no_of_words_written = parseInt(no_of_words_written, 10) || 0;
+        }
+        if (options_submitted !== undefined) {
+            taskUpdateData.options_submitted = parseInt(options_submitted, 10) || 0;
+        }
+        if (concept_work !== undefined) {
+            taskUpdateData.concept_work = concept_work === true || concept_work === 'true' || concept_work === 1 || concept_work === '1' ? 1 : 0;
+        }
+        if (resize_work !== undefined) {
+            taskUpdateData.resize_work = resize_work === true || resize_work === 'true' || resize_work === 1 || resize_work === '1' ? 1 : 0;
+        }
+        if (no_of_concepts !== undefined) {
+            taskUpdateData.no_of_concepts = parseInt(no_of_concepts, 10) || 0;
+        }
+        // Duration fields
+        if (duration_minutes !== undefined) {
+            taskUpdateData.duration_minutes = parseInt(duration_minutes, 10) || 0;
+        }
+        if (duration_seconds !== undefined) {
+            taskUpdateData.duration_seconds = parseInt(duration_seconds, 10) || 0;
+        }
+        // Shoot/Product work fields
+        if (product_shoot !== undefined) {
+            taskUpdateData.product_shoot = product_shoot === true || product_shoot === 'true' || product_shoot === 1 || product_shoot === '1' ? 1 : 0;
+        }
+        if (no_of_products_shot !== undefined) {
+            taskUpdateData.no_of_products_shot = parseInt(no_of_products_shot, 10) || 0;
+        }
+        if (shoot_setup !== undefined) {
+            taskUpdateData.shoot_setup = shoot_setup === true || shoot_setup === 'true' || shoot_setup === 1 || shoot_setup === '1' ? 1 : 0;
+        }
+        // Video/Web work fields
+        if (no_of_resize !== undefined) {
+            taskUpdateData.no_of_resize = parseInt(no_of_resize, 10) || 0;
+        }
+        // Responsive work fields
+        if (responsive_screen !== undefined) {
+            taskUpdateData.responsive_screen = responsive_screen === true || responsive_screen === 'true' || responsive_screen === 1 || responsive_screen === '1' ? 1 : 0;
+        }
+        if (no_of_responsive_screen !== undefined) {
+            taskUpdateData.no_of_responsive_screen = parseInt(no_of_responsive_screen, 10) || 0;
+        }
+
+        // Media count field
+        if (no_of_images_videos_audio !== undefined) {
+            taskUpdateData.no_of_images_videos_audio = parseInt(no_of_images_videos_audio, 10) || 0;
+        }
+
+        console.log(`Updating task ${taskId} to completed...`);
+        const [affectedRows] = await Tasks.update(taskUpdateData, {
+            where: { id: taskId }
+        });
+        console.log(`Task update result: ${affectedRows} rows affected`);
+
+        const updatedTask = await Tasks.findByPk(taskId);
+        console.log(`Task ${taskId} status after update: ${updatedTask?.status}`);
+
+        // Handle file uploads
+        const documents = [];
+        if (req.files && req.files.documents) {
+            const files = Array.isArray(req.files.documents) ? req.files.documents : [req.files.documents];
+
+            // Create user folder with V1 structure if it doesn't exist
+            const uploadDir = path.join(__dirname, '../../uploads');
+            const sanitizedProjectName = workRequest.project_name.replace(/[^a-zA-Z0-9]/g, '_');
+            const projectFolder = path.join(uploadDir, sanitizedProjectName);
+            const taskFolder = path.join(projectFolder, task.task_name);
+            const userFolder = path.join(taskFolder, user.name);
+            const versionFolder = path.join(userFolder, 'V1');
+
+            if (!fs.existsSync(versionFolder)) {
+                fs.mkdirSync(versionFolder, { recursive: true });
+            }
+
+            for (const file of files) {
+                // Generate unique filename for each file
+                const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+                const filename = file.name.replace(/[^a-zA-Z0-9.]/g, '_') + '-' + uniqueSuffix + path.extname(file.name);
+
+                // Create unique temp directory for this file to avoid conflicts
+                const tempDir = path.join('temp', 'uploads', uniqueSuffix);
+                if (!fs.existsSync(tempDir)) {
+                    fs.mkdirSync(tempDir, { recursive: true });
                 }
-                providedStartDate = startDateObj;
-                taskUpdateData.start_date = startDateObj;
-            } else if (task.start_date) {
-                // If no new start_date provided, use the existing one from the task
-                providedStartDate = new Date(task.start_date);
-            }
 
-            // Validate that end_date is not before start_date
-            if (providedStartDate) {
-                const endDate = new Date(); // Current date/time when submitting
-                endDate.setHours(0, 0, 0, 0); // Set to start of day for comparison
-                const startDateOnly = new Date(providedStartDate);
-                startDateOnly.setHours(0, 0, 0, 0);
+                // Save file to temp location
+                const tempFilename = `${filename}`;
+                const tempFilepath = path.join(tempDir, tempFilename);
+                await file.mv(tempFilepath);
 
-                if (endDate < startDateOnly) {
-                    return res.status(400).json({
-                        success: false,
-                        error: 'End date cannot be before start date'
-                    });
-                }
-            }
-
-            if (link) {
-                taskUpdateData.link = link;
-            }
-
-            // Add comments if provided
-            if (comments) {
-                taskUpdateData.comments = comments;
-            }
-
-            // Add Content Work fields if provided
-            if (no_of_options_provided !== undefined) {
-                taskUpdateData.no_of_options_provided = parseInt(no_of_options_provided, 10) || 0;
-            }
-            if (no_of_words_written !== undefined) {
-                taskUpdateData.no_of_words_written = parseInt(no_of_words_written, 10) || 0;
-            }
-            if (options_submitted !== undefined) {
-                taskUpdateData.options_submitted = parseInt(options_submitted, 10) || 0;
-            }
-            if (concept_work !== undefined) {
-                taskUpdateData.concept_work = concept_work === true || concept_work === 'true' || concept_work === 1 || concept_work === '1' ? 1 : 0;
-            }
-            if (resize_work !== undefined) {
-                taskUpdateData.resize_work = resize_work === true || resize_work === 'true' || resize_work === 1 || resize_work === '1' ? 1 : 0;
-            }
-            if (no_of_concepts !== undefined) {
-                taskUpdateData.no_of_concepts = parseInt(no_of_concepts, 10) || 0;
-            }
-            // Duration fields
-            if (duration_minutes !== undefined) {
-                taskUpdateData.duration_minutes = parseInt(duration_minutes, 10) || 0;
-            }
-            if (duration_seconds !== undefined) {
-                taskUpdateData.duration_seconds = parseInt(duration_seconds, 10) || 0;
-            }
-            // Shoot/Product work fields
-            if (product_shoot !== undefined) {
-                taskUpdateData.product_shoot = product_shoot === true || product_shoot === 'true' || product_shoot === 1 || product_shoot === '1' ? 1 : 0;
-            }
-            if (no_of_products_shot !== undefined) {
-                taskUpdateData.no_of_products_shot = parseInt(no_of_products_shot, 10) || 0;
-            }
-            if (shoot_setup !== undefined) {
-                taskUpdateData.shoot_setup = shoot_setup === true || shoot_setup === 'true' || shoot_setup === 1 || shoot_setup === '1' ? 1 : 0;
-            }
-            // Video/Web work fields
-            if (no_of_resize !== undefined) {
-                taskUpdateData.no_of_resize = parseInt(no_of_resize, 10) || 0;
-            }
-            // Responsive work fields
-            if (responsive_screen !== undefined) {
-                taskUpdateData.responsive_screen = responsive_screen === true || responsive_screen === 'true' || responsive_screen === 1 || responsive_screen === '1' ? 1 : 0;
-            }
-            if (no_of_responsive_screen !== undefined) {
-                taskUpdateData.no_of_responsive_screen = parseInt(no_of_responsive_screen, 10) || 0;
-            }
-
-            // Media count field
-            if (no_of_images_videos_audio !== undefined) {
-                taskUpdateData.no_of_images_videos_audio = parseInt(no_of_images_videos_audio, 10) || 0;
-            }
-
-            console.log(`Updating task ${taskId} to completed...`);
-            const [affectedRows] = await Tasks.update(taskUpdateData, {
-                where: { id: taskId }
-            });
-            console.log(`Task update result: ${affectedRows} rows affected`);
-
-            const updatedTask = await Tasks.findByPk(taskId);
-            console.log(`Task ${taskId} status after update: ${updatedTask?.status}`);
-
-            // Handle file uploads
-            const documents = [];
-            if (req.files && req.files.documents) {
-                const files = Array.isArray(req.files.documents) ? req.files.documents : [req.files.documents];
-
-                // Create user folder with V1 structure if it doesn't exist
-                const uploadDir = path.join(__dirname, '../../uploads');
-                const sanitizedProjectName = workRequest.project_name.replace(/[^a-zA-Z0-9]/g, '_');
-                const projectFolder = path.join(uploadDir, sanitizedProjectName);
-                const taskFolder = path.join(projectFolder, task.task_name);
-                const userFolder = path.join(taskFolder, user.name);
-                const versionFolder = path.join(userFolder, 'V1');
-
-                if (!fs.existsSync(versionFolder)) {
-                    fs.mkdirSync(versionFolder, { recursive: true });
-                }
-
-                for (const file of files) {
-                    // Generate unique filename for each file
-                    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-                    const filename = file.name.replace(/[^a-zA-Z0-9.]/g, '_') + '-' + uniqueSuffix + path.extname(file.name);
-
-                    // Create unique temp directory for this file to avoid conflicts
-                    const tempDir = path.join('temp', 'uploads', uniqueSuffix);
-                    if (!fs.existsSync(tempDir)) {
-                        fs.mkdirSync(tempDir, { recursive: true });
-                    }
-
-                    // Save file to temp location
-                    const tempFilename = `${filename}`;
-                    const tempFilepath = path.join(tempDir, tempFilename);
-                    await file.mv(tempFilepath);
-
-                    const documentData = {
-                        task_assignment_id: taskAssignment.id,
-                        document_name: file.name,
-                        document_path: `${process.env.BASE_ROUTE}/uploads/${sanitizedProjectName}/${task.task_name}/${user.name}/V1/${filename}`,
-                        document_type: file.mimetype,
-                        document_size: file.size,
-                        status: 'uploading',
-                        uploaded_at: new Date()
-                    };
-
-                    const docResult = await TaskDocuments.create(documentData);
-                    documents.push(docResult);
-
-                    // Move file synchronously instead of using queue
-                    try {
-                        // Ensure V1 directory exists
-                        if (!fs.existsSync(versionFolder)) {
-                            fs.mkdirSync(versionFolder, { recursive: true });
-                        }
-
-                        const finalFilepath = path.join(versionFolder, filename);
-                        fs.renameSync(tempFilepath, finalFilepath);
-
-                        // Update document status to uploaded
-                        await TaskDocuments.update(
-                            { status: 'uploaded' },
-                            { where: { id: docResult.id } }
-                        );
-
-                        // Clean up temp directory
-                        try {
-                            fs.rmdirSync(tempDir);
-                        } catch (cleanupError) {
-                            console.error('Failed to cleanup temp directory:', cleanupError);
-                        }
-
-                    } catch (uploadError) {
-                        console.error(`Failed to upload task file ${filename}:`, uploadError);
-
-                        // Update document status to failed
-                        await TaskDocuments.update(
-                            { status: 'failed' },
-                            { where: { id: docResult.id } }
-                        );
-
-                        // Clean up temp directory
-                        try {
-                            if (fs.existsSync(tempDir)) {
-                                fs.rmSync(tempDir, { recursive: true, force: true });
-                            }
-                        } catch (cleanupError) {
-                            console.error('Failed to cleanup temp directory on error:', cleanupError);
-                        }
-
-                        throw uploadError;
-                    }
-                }
-            }
-
-            await recordTaskHistory({
-                req,
-                taskId,
-                workRequestId: workRequest.id,
-                action: 'submitted',
-                previousData: task,
-                nextData: taskUpdateData,
-                previousStatus: task.status,
-                newStatus: 'completed',
-                previousReview: task.review,
-                newReview: 'pending',
-                previousReviewStage: task.review_stage,
-                newReviewStage: 'manager_review',
-                comments: comments || 'Task submitted by user',
-                actorOverride: { ...req.user, actor_type: 'user' }
-            });
-
-            // Send email notification for task completion
-            const completedAt = new Date().toLocaleDateString('en-IN', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-
-            const emailData = {
-                project_name: workRequest.project_name,
-                brand: workRequest.brand,
-                request_type: workRequest.RequestType?.request_type || 'N/A',
-                priority: workRequest.priority,
-                request_id: workRequest.id,
-                completed_at: completedAt,
-                task_id: task.id,
-                task_name: task.task_name,
-                description: task.description,
-                completed_by: user.name,
-                task_count: taskCount,
-                link: link || null,
-                frontend_url: process.env.FRONTEND_URL
-            };
-
-            const html = renderTemplate('taskCompletionNotification', emailData);
-
-            // Find the creative lead manager (assuming the first manager is the creative lead)
-            const creativeLead = workRequest.WorkRequestManagers && workRequest.WorkRequestManagers.length > 0
-                ? workRequest.WorkRequestManagers[0].manager
-                : null;
-
-            if (creativeLead) {
-                const mailOptions = {
-                    to: creativeLead.email,
-                    cc: user.email,
-                    subject: 'Task Completed - D-Map',
-                    html
+                const documentData = {
+                    task_assignment_id: taskAssignment.id,
+                    document_name: file.name,
+                    document_path: `${process.env.BASE_ROUTE}/uploads/${sanitizedProjectName}/${task.task_name}/${user.name}/V1/${filename}`,
+                    document_type: file.mimetype,
+                    document_size: file.size,
+                    status: 'uploading',
+                    uploaded_at: new Date()
                 };
 
-                await sendMail(mailOptions);
-            }
+                const docResult = await TaskDocuments.create(documentData);
+                documents.push(docResult);
 
-            res.json({
-                success: true,
-                data: {
-                    task_id: taskId,
-                    task_count: taskCount,
-                    link: link || null,
-                    documents: documents,
-                    work_request_id: workRequest.id
-                },
-                message: 'Task submitted successfully'
-            });
+                // Move file synchronously instead of using queue
+                try {
+                    // Ensure V1 directory exists
+                    if (!fs.existsSync(versionFolder)) {
+                        fs.mkdirSync(versionFolder, { recursive: true });
+                    }
+
+                    const finalFilepath = path.join(versionFolder, filename);
+                    fs.renameSync(tempFilepath, finalFilepath);
+
+                    // Update document status to uploaded
+                    await TaskDocuments.update(
+                        { status: 'uploaded' },
+                        { where: { id: docResult.id } }
+                    );
+
+                    // Clean up temp directory
+                    try {
+                        fs.rmdirSync(tempDir);
+                    } catch (cleanupError) {
+                        console.error('Failed to cleanup temp directory:', cleanupError);
+                    }
+
+                } catch (uploadError) {
+                    console.error(`Failed to upload task file ${filename}:`, uploadError);
+
+                    // Update document status to failed
+                    await TaskDocuments.update(
+                        { status: 'failed' },
+                        { where: { id: docResult.id } }
+                    );
+
+                    // Clean up temp directory
+                    try {
+                        if (fs.existsSync(tempDir)) {
+                            fs.rmSync(tempDir, { recursive: true, force: true });
+                        }
+                    } catch (cleanupError) {
+                        console.error('Failed to cleanup temp directory on error:', cleanupError);
+                    }
+
+                    throw uploadError;
+                }
+            }
+        }
+
+        await recordTaskHistory({
+            req,
+            taskId,
+            workRequestId: workRequest.id,
+            action: 'submitted',
+            previousData: task,
+            nextData: taskUpdateData,
+            previousStatus: task.status,
+            newStatus: 'completed',
+            previousReview: task.review,
+            newReview: 'pending',
+            previousReviewStage: task.review_stage,
+            newReviewStage: 'manager_review',
+            comments: comments || 'Task submitted by user',
+            actorOverride: { ...req.user, actor_type: 'user' }
+        });
+
+        // Send email notification for task completion
+        const completedAt = new Date().toLocaleDateString('en-IN', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        const emailData = {
+            project_name: workRequest.project_name,
+            brand: workRequest.brand,
+            request_type: workRequest.RequestType?.request_type || 'N/A',
+            priority: workRequest.priority,
+            request_id: workRequest.id,
+            completed_at: completedAt,
+            task_id: task.id,
+            task_name: task.task_name,
+            description: task.description,
+            completed_by: user.name,
+            task_count: taskCount,
+            link: link || null,
+            frontend_url: process.env.FRONTEND_URL
+        };
+
+        const html = renderTemplate('taskCompletionNotification', emailData);
+
+        // Find the creative lead manager (assuming the first manager is the creative lead)
+        const creativeLead = workRequest.WorkRequestManagers && workRequest.WorkRequestManagers.length > 0
+            ? workRequest.WorkRequestManagers[0].manager
+            : null;
+
+        if (creativeLead) {
+            const mailOptions = {
+                to: creativeLead.email,
+                cc: user.email,
+                subject: 'Task Completed - D-Map',
+                html
+            };
+
+            await sendMail(mailOptions);
+        }
+
+        res.json({
+            success: true,
+            data: {
+                task_id: taskId,
+                task_count: taskCount,
+                link: link || null,
+                documents: documents,
+                work_request_id: workRequest.id
+            },
+            message: 'Task submitted successfully'
+        });
 
     } catch (error) {
         console.error('Error submitting task:', error);
@@ -1980,7 +1980,7 @@ const getMyTeamTasks = async (req, res) => {
 const getAssignedIssues = async (req, res) => {
     try {
         const user_id = req.user.id;
-        const { status,sort } = req.query;
+        const { status, sort } = req.query;
 
         // Get issue_user_assignments for this user
         const userIssueAssignments = await IssueUserAssignments.findAll({
@@ -2181,8 +2181,12 @@ const acceptIssue = async (req, res) => {
             return res.status(404).json({ success: false, error: 'Issue not found or not assigned to you' });
         }
 
-        // Get the issue assignment
-        const issueAssignment = await IssueAssignments.findByPk(issueId);
+        // Get the issue assignment with task
+        const issueAssignment = await IssueAssignments.findByPk(issueId, {
+            include: [
+                { model: Tasks, as: 'task', attributes: ['id', 'work_request_id'] }
+            ]
+        });
 
         if (!issueAssignment) {
             return res.status(404).json({ success: false, error: 'Issue assignment not found' });
@@ -2192,6 +2196,9 @@ const acceptIssue = async (req, res) => {
         if (issueAssignment.intimate_team !== 1) {
             return res.status(403).json({ success: false, error: 'You do not have permission to accept this issue' });
         }
+
+        const taskId = issueAssignment.task?.id || null;
+        const workRequestId = issueAssignment.task?.work_request_id || null;
 
         // Check if issue is already accepted or in progress
         if (issueAssignment.status === 'u_accepted' || issueAssignment.status === 'in_progress') {
@@ -2252,6 +2259,8 @@ const acceptIssue = async (req, res) => {
         await recordIssueHistory({
             req,
             issueAssignmentId: issueId,
+            taskId,
+            workRequestId,
             action: 'accepted',
             previousData: issueAssignment,
             nextData: updateData,
@@ -2265,6 +2274,8 @@ const acceptIssue = async (req, res) => {
             message: newStatus === 'in_progress' ? 'Issue accepted and started successfully' : 'Issue accepted successfully (scheduled for future start)',
             data: {
                 issue_id: issueId,
+                task_id: taskId,
+                work_request_id: workRequestId,
                 status: updateData.status,
                 start_date: updateData.start_date
             }
@@ -2379,299 +2390,299 @@ const submitIssue = async (req, res) => {
             notification_alert: 1
         };
 
-            // Validate that end_date is not before start_date
-            // const existingStartDate = issueAssignment.start_date;
-            // if (existingStartDate) {
-            //     const endDate = new Date(); // Current date/time when submitting
-            //     endDate.setHours(0, 0, 0, 0); // Set to start of day for comparison
-            //     const startDateOnly = new Date(existingStartDate);
-            //     startDateOnly.setHours(0, 0, 0, 0);
+        // Validate that end_date is not before start_date
+        // const existingStartDate = issueAssignment.start_date;
+        // if (existingStartDate) {
+        //     const endDate = new Date(); // Current date/time when submitting
+        //     endDate.setHours(0, 0, 0, 0); // Set to start of day for comparison
+        //     const startDateOnly = new Date(existingStartDate);
+        //     startDateOnly.setHours(0, 0, 0, 0);
 
-            //     if (endDate < startDateOnly) {
-            //         return res.status(400).json({
-            //             success: false,
-            //             error: 'End date cannot be before start date'
-            //         });
-            //     }
-            // }
+        //     if (endDate < startDateOnly) {
+        //         return res.status(400).json({
+        //             success: false,
+        //             error: 'End date cannot be before start date'
+        //         });
+        //     }
+        // }
 
-            if (task_count) {
-                issueUpdateData.task_count = parseInt(task_count, 10);
+        if (task_count) {
+            issueUpdateData.task_count = parseInt(task_count, 10);
+        }
+
+        // Add comments if provided
+        if (comments) {
+            issueUpdateData.comments = comments;
+        }
+
+        // Add Content Work fields if provided
+        if (no_of_options_provided !== undefined) {
+            issueUpdateData.no_of_options_provided = parseInt(no_of_options_provided, 10) || 0;
+        }
+        if (no_of_words_written !== undefined) {
+            issueUpdateData.no_of_words_written = parseInt(no_of_words_written, 10) || 0;
+        }
+        if (options_submitted !== undefined) {
+            issueUpdateData.options_submitted = parseInt(options_submitted, 10) || 0;
+        }
+        if (concept_work !== undefined) {
+            issueUpdateData.concept_work = concept_work === true || concept_work === 'true' || concept_work === 1 || concept_work === '1' ? 1 : 0;
+        }
+        if (resize_work !== undefined) {
+            issueUpdateData.resize_work = resize_work === true || resize_work === 'true' || resize_work === 1 || resize_work === '1' ? 1 : 0;
+        }
+        if (no_of_concepts !== undefined) {
+            issueUpdateData.no_of_concepts = parseInt(no_of_concepts, 10) || 0;
+        }
+        // Duration fields
+        if (duration_minutes !== undefined) {
+            issueUpdateData.duration_minutes = parseInt(duration_minutes, 10) || 0;
+        }
+        if (duration_seconds !== undefined) {
+            issueUpdateData.duration_seconds = parseInt(duration_seconds, 10) || 0;
+        }
+        // Shoot/Product work fields
+        if (product_shoot !== undefined) {
+            issueUpdateData.product_shoot = product_shoot === true || product_shoot === 'true' || product_shoot === 1 || product_shoot === '1' ? 1 : 0;
+        }
+        if (no_of_products_shot !== undefined) {
+            issueUpdateData.no_of_products_shot = parseInt(no_of_products_shot, 10) || 0;
+        }
+        if (shoot_setup !== undefined) {
+            issueUpdateData.shoot_setup = shoot_setup === true || shoot_setup === 'true' || shoot_setup === 1 || shoot_setup === '1' ? 1 : 0;
+        }
+        // Video/Web work fields
+        if (no_of_resize !== undefined) {
+            issueUpdateData.no_of_resize = parseInt(no_of_resize, 10) || 0;
+        }
+        // Responsive work fields
+        if (responsive_screen !== undefined) {
+            issueUpdateData.responsive_screen = responsive_screen === true || responsive_screen === 'true' || responsive_screen === 1 || responsive_screen === '1' ? 1 : 0;
+        }
+        if (no_of_responsive_screen !== undefined) {
+            issueUpdateData.no_of_responsive_screen = parseInt(no_of_responsive_screen, 10) || 0;
+        }
+
+        // Media count field
+        if (no_of_images_videos_audio !== undefined) {
+            issueUpdateData.no_of_images_videos_audio = parseInt(no_of_images_videos_audio, 10) || 0;
+        }
+
+        console.log(`Updating issue ${issueId} to completed...`);
+        const [affectedRows] = await IssueAssignments.update(issueUpdateData, {
+            where: { id: issueId }
+        });
+        console.log(`Issue update result: ${affectedRows} rows affected`);
+
+        // Handle file uploads for issue documents
+        const documents = [];
+        if (req.files && req.files.documents) {
+            const files = Array.isArray(req.files.documents) ? req.files.documents : [req.files.documents];
+
+            // Create user folder with version structure if it doesn't exist
+            const uploadDir = path.join(__dirname, '../../uploads');
+            const sanitizedProjectName = workRequest ? workRequest.project_name.replace(/[^a-zA-Z0-9]/g, '_') : 'Issue';
+            const projectFolder = path.join(uploadDir, sanitizedProjectName);
+            const taskFolder = task ? path.join(projectFolder, task.task_name) : path.join(projectFolder, 'Issue_' + issueId);
+            const userFolder = path.join(taskFolder, req.user.name);
+            const versionFolder = path.join(userFolder, issueAssignment.version || 'V1');
+
+            if (!fs.existsSync(versionFolder)) {
+                fs.mkdirSync(versionFolder, { recursive: true });
             }
 
-            // Add comments if provided
-            if (comments) {
-                issueUpdateData.comments = comments;
-            }
+            for (const file of files) {
+                // Generate unique filename for each file
+                const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+                const filename = file.name.replace(/[^a-zA-Z0-9.]/g, '_') + '-' + uniqueSuffix + path.extname(file.name);
 
-            // Add Content Work fields if provided
-            if (no_of_options_provided !== undefined) {
-                issueUpdateData.no_of_options_provided = parseInt(no_of_options_provided, 10) || 0;
-            }
-            if (no_of_words_written !== undefined) {
-                issueUpdateData.no_of_words_written = parseInt(no_of_words_written, 10) || 0;
-            }
-            if (options_submitted !== undefined) {
-                issueUpdateData.options_submitted = parseInt(options_submitted, 10) || 0;
-            }
-            if (concept_work !== undefined) {
-                issueUpdateData.concept_work = concept_work === true || concept_work === 'true' || concept_work === 1 || concept_work === '1' ? 1 : 0;
-            }
-            if (resize_work !== undefined) {
-                issueUpdateData.resize_work = resize_work === true || resize_work === 'true' || resize_work === 1 || resize_work === '1' ? 1 : 0;
-            }
-            if (no_of_concepts !== undefined) {
-                issueUpdateData.no_of_concepts = parseInt(no_of_concepts, 10) || 0;
-            }
-            // Duration fields
-            if (duration_minutes !== undefined) {
-                issueUpdateData.duration_minutes = parseInt(duration_minutes, 10) || 0;
-            }
-            if (duration_seconds !== undefined) {
-                issueUpdateData.duration_seconds = parseInt(duration_seconds, 10) || 0;
-            }
-            // Shoot/Product work fields
-            if (product_shoot !== undefined) {
-                issueUpdateData.product_shoot = product_shoot === true || product_shoot === 'true' || product_shoot === 1 || product_shoot === '1' ? 1 : 0;
-            }
-            if (no_of_products_shot !== undefined) {
-                issueUpdateData.no_of_products_shot = parseInt(no_of_products_shot, 10) || 0;
-            }
-            if (shoot_setup !== undefined) {
-                issueUpdateData.shoot_setup = shoot_setup === true || shoot_setup === 'true' || shoot_setup === 1 || shoot_setup === '1' ? 1 : 0;
-            }
-            // Video/Web work fields
-            if (no_of_resize !== undefined) {
-                issueUpdateData.no_of_resize = parseInt(no_of_resize, 10) || 0;
-            }
-            // Responsive work fields
-            if (responsive_screen !== undefined) {
-                issueUpdateData.responsive_screen = responsive_screen === true || responsive_screen === 'true' || responsive_screen === 1 || responsive_screen === '1' ? 1 : 0;
-            }
-            if (no_of_responsive_screen !== undefined) {
-                issueUpdateData.no_of_responsive_screen = parseInt(no_of_responsive_screen, 10) || 0;
-            }
-
-            // Media count field
-            if (no_of_images_videos_audio !== undefined) {
-                issueUpdateData.no_of_images_videos_audio = parseInt(no_of_images_videos_audio, 10) || 0;
-            }
-
-            console.log(`Updating issue ${issueId} to completed...`);
-            const [affectedRows] = await IssueAssignments.update(issueUpdateData, {
-                where: { id: issueId }
-            });
-            console.log(`Issue update result: ${affectedRows} rows affected`);
-
-            // Handle file uploads for issue documents
-            const documents = [];
-            if (req.files && req.files.documents) {
-                const files = Array.isArray(req.files.documents) ? req.files.documents : [req.files.documents];
-
-                // Create user folder with version structure if it doesn't exist
-                const uploadDir = path.join(__dirname, '../../uploads');
-                const sanitizedProjectName = workRequest ? workRequest.project_name.replace(/[^a-zA-Z0-9]/g, '_') : 'Issue';
-                const projectFolder = path.join(uploadDir, sanitizedProjectName);
-                const taskFolder = task ? path.join(projectFolder, task.task_name) : path.join(projectFolder, 'Issue_' + issueId);
-                const userFolder = path.join(taskFolder, req.user.name);
-                const versionFolder = path.join(userFolder, issueAssignment.version || 'V1');
-
-                if (!fs.existsSync(versionFolder)) {
-                    fs.mkdirSync(versionFolder, { recursive: true });
+                // Create unique temp directory for this file to avoid conflicts
+                const tempDir = path.join('temp', 'uploads', uniqueSuffix);
+                if (!fs.existsSync(tempDir)) {
+                    fs.mkdirSync(tempDir, { recursive: true });
                 }
 
-                for (const file of files) {
-                    // Generate unique filename for each file
-                    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-                    const filename = file.name.replace(/[^a-zA-Z0-9.]/g, '_') + '-' + uniqueSuffix + path.extname(file.name);
+                // Save file to temp location
+                const tempFilename = `${filename}`;
+                const tempFilepath = path.join(tempDir, tempFilename);
+                await file.mv(tempFilepath);
 
-                    // Create unique temp directory for this file to avoid conflicts
-                    const tempDir = path.join('temp', 'uploads', uniqueSuffix);
-                    if (!fs.existsSync(tempDir)) {
-                        fs.mkdirSync(tempDir, { recursive: true });
+                const documentData = {
+                    issue_user_assignment_id: userIssueAssignment.id,
+                    document_name: file.name,
+                    document_path: `${process.env.BASE_ROUTE}/uploads/${sanitizedProjectName}/${task ? task.task_name : 'Issue_' + issueId}/${req.user.name}/${issueAssignment.version || 'V1'}/${filename}`,
+                    document_type: file.mimetype,
+                    document_size: file.size,
+                    version: issueAssignment.version || 'V1',
+                    status: 'uploading',
+                    uploaded_at: new Date()
+                };
+
+                const docResult = await IssueDocuments.create(documentData);
+                documents.push(docResult);
+
+                // Move file synchronously instead of using queue
+                try {
+                    // Ensure version directory exists
+                    if (!fs.existsSync(versionFolder)) {
+                        fs.mkdirSync(versionFolder, { recursive: true });
                     }
 
-                    // Save file to temp location
-                    const tempFilename = `${filename}`;
-                    const tempFilepath = path.join(tempDir, tempFilename);
-                    await file.mv(tempFilepath);
+                    const finalFilepath = path.join(versionFolder, filename);
+                    fs.renameSync(tempFilepath, finalFilepath);
 
-                    const documentData = {
-                        issue_user_assignment_id: userIssueAssignment.id,
-                        document_name: file.name,
-                        document_path: `${process.env.BASE_ROUTE}/uploads/${sanitizedProjectName}/${task ? task.task_name : 'Issue_' + issueId}/${req.user.name}/${issueAssignment.version || 'V1'}/${filename}`,
-                        document_type: file.mimetype,
-                        document_size: file.size,
-                        version: issueAssignment.version || 'V1',
-                        status: 'uploading',
-                        uploaded_at: new Date()
-                    };
+                    // Update document status to uploaded
+                    await IssueDocuments.update(
+                        { status: 'uploaded' },
+                        { where: { id: docResult.id } }
+                    );
 
-                    const docResult = await IssueDocuments.create(documentData);
-                    documents.push(docResult);
-
-                    // Move file synchronously instead of using queue
+                    // Clean up temp directory
                     try {
-                        // Ensure version directory exists
-                        if (!fs.existsSync(versionFolder)) {
-                            fs.mkdirSync(versionFolder, { recursive: true });
-                        }
-
-                        const finalFilepath = path.join(versionFolder, filename);
-                        fs.renameSync(tempFilepath, finalFilepath);
-
-                        // Update document status to uploaded
-                        await IssueDocuments.update(
-                            { status: 'uploaded' },
-                            { where: { id: docResult.id } }
-                        );
-
-                        // Clean up temp directory
-                        try {
-                            fs.rmdirSync(tempDir);
-                        } catch (cleanupError) {
-                            console.error('Failed to cleanup temp directory:', cleanupError);
-                        }
-
-                    } catch (uploadError) {
-                        console.error(`Failed to upload issue file ${filename}:`, uploadError);
-
-                        // Update document status to failed
-                        await IssueDocuments.update(
-                            { status: 'failed' },
-                            { where: { id: docResult.id } }
-                        );
-
-                        // Clean up temp directory
-                        try {
-                            if (fs.existsSync(tempDir)) {
-                                fs.rmSync(tempDir, { recursive: true, force: true });
-                            }
-                        } catch (cleanupError) {
-                            console.error('Failed to cleanup temp directory on error:', cleanupError);
-                        }
-
-                        throw uploadError;
+                        fs.rmdirSync(tempDir);
+                    } catch (cleanupError) {
+                        console.error('Failed to cleanup temp directory:', cleanupError);
                     }
+
+                } catch (uploadError) {
+                    console.error(`Failed to upload issue file ${filename}:`, uploadError);
+
+                    // Update document status to failed
+                    await IssueDocuments.update(
+                        { status: 'failed' },
+                        { where: { id: docResult.id } }
+                    );
+
+                    // Clean up temp directory
+                    try {
+                        if (fs.existsSync(tempDir)) {
+                            fs.rmSync(tempDir, { recursive: true, force: true });
+                        }
+                    } catch (cleanupError) {
+                        console.error('Failed to cleanup temp directory on error:', cleanupError);
+                    }
+
+                    throw uploadError;
                 }
             }
+        }
 
-            await recordIssueHistory({
-                req,
-                issueAssignmentId: issueId,
-                taskId: task?.id,
-                workRequestId: workRequest?.id,
-                action: 'submitted',
-                previousData: issueAssignment,
-                nextData: issueUpdateData,
-                previousStatus: issueAssignment.status,
-                newStatus: 'completed',
-                previousReview: issueAssignment.review,
-                newReview: 'pending',
-                previousReviewStage: issueAssignment.review_stage,
-                newReviewStage: 'manager_review',
-                comments: comments || 'Issue submitted by user'
+        await recordIssueHistory({
+            req,
+            issueAssignmentId: issueId,
+            taskId: task?.id,
+            workRequestId: workRequest?.id,
+            action: 'submitted',
+            previousData: issueAssignment,
+            nextData: issueUpdateData,
+            previousStatus: issueAssignment.status,
+            newStatus: 'completed',
+            previousReview: issueAssignment.review,
+            newReview: 'pending',
+            previousReviewStage: issueAssignment.review_stage,
+            newReviewStage: 'manager_review',
+            comments: comments || 'Issue submitted by user'
+        });
+
+        // Get user details for email
+        const user = await User.findByPk(user_id, { attributes: ['id', 'name', 'email'] });
+
+        // Send email notification for issue completion to the issue's manager(s)
+        const completedAt = new Date().toLocaleDateString('en-IN', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        // Get the issue's requester (manager who created the issue)
+        const issueRequester = issueAssignment.requester;
+
+        // Collect all unique manager emails from:
+        // 1. Issue requester (the manager who created the issue)
+        // 2. All work request managers
+        const managerEmails = new Set();
+
+        // Add issue requester email if exists
+        if (issueRequester && issueRequester.email) {
+            managerEmails.add(issueRequester.email);
+        }
+
+        // Add all work request managers
+        if (workRequest && workRequest.WorkRequestManagers) {
+            workRequest.WorkRequestManagers.forEach(wrm => {
+                if (wrm.manager && wrm.manager.email) {
+                    managerEmails.add(wrm.manager.email);
+                }
             });
+        }
 
-            // Get user details for email
-            const user = await User.findByPk(user_id, { attributes: ['id', 'name', 'email'] });
+        // Get issue type details for email
+        const issueRegisters = issueAssignment.issueTypeLinks ? issueAssignment.issueTypeLinks.map(itl => ({
+            change_issue_type: itl.issueRegister ? itl.issueRegister.change_issue_type : null,
+            description: itl.issueRegister ? itl.issueRegister.description : null,
+            quantification: itl.issueRegister ? itl.issueRegister.quantification : null
+        })) : [];
 
-            // Send email notification for issue completion to the issue's manager(s)
-            const completedAt = new Date().toLocaleDateString('en-IN', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
+        // Get task type if available
+        let taskType = 'N/A';
+        if (task && task.TaskType) {
+            taskType = task.TaskType.task_type;
+        } else if (issueAssignment.issueTypeLinks && issueAssignment.issueTypeLinks.length > 0) {
+            // Try to get from first issue type link
+            taskType = issueAssignment.issueTypeLinks[0].issueRegister?.change_issue_type || 'Issue';
+        }
 
-            // Get the issue's requester (manager who created the issue)
-            const issueRequester = issueAssignment.requester;
+        if (managerEmails.size > 0) {
+            // Prepare email data for issueAssignmentNotification template
+            const emailData = {
+                manager_name: issueRequester ? issueRequester.name : 'Manager',
+                task_id: task ? task.id : null,
+                task_name: task ? task.task_name : 'Issue ' + issueAssignment.version,
+                issue_id: issueAssignment.id,
+                task_type: taskType,
+                project_name: workRequest ? workRequest.project_name : 'N/A',
+                brand: workRequest ? workRequest.brand : 'N/A',
+                priority: workRequest ? workRequest.priority : 'N/A',
+                request_type: workRequest?.RequestType?.request_type || 'N/A',
+                issue_version: issueAssignment.version || 'V1',
+                assigned_by: issueRequester ? issueRequester.name : 'System',
+                created_at: completedAt,
+                issue_description: description || issueAssignment.description || 'No description provided',
+                issue_registers: issueRegisters,
+                assigned_users: [{ name: user.name, email: user.email }],
+                frontend_url: process.env.FRONTEND_URL
+            };
 
-            // Collect all unique manager emails from:
-            // 1. Issue requester (the manager who created the issue)
-            // 2. All work request managers
-            const managerEmails = new Set();
+            const html = renderTemplate('issueAssignmentNotification', emailData);
 
-            // Add issue requester email if exists
-            if (issueRequester && issueRequester.email) {
-                managerEmails.add(issueRequester.email);
-            }
+            // Convert Set to array and take first as TO, rest as CC
+            const emailArray = Array.from(managerEmails);
+            const toEmail = emailArray[0];
+            const ccEmails = emailArray.slice(1);
 
-            // Add all work request managers
-            if (workRequest && workRequest.WorkRequestManagers) {
-                workRequest.WorkRequestManagers.forEach(wrm => {
-                    if (wrm.manager && wrm.manager.email) {
-                        managerEmails.add(wrm.manager.email);
-                    }
-                });
-            }
+            const mailOptions = {
+                to: toEmail,
+                cc: ccEmails.length > 0 ? ccEmails.join(',') : undefined,
+                subject: 'Issue Completed - D-Map',
+                html
+            };
 
-            // Get issue type details for email
-            const issueRegisters = issueAssignment.issueTypeLinks ? issueAssignment.issueTypeLinks.map(itl => ({
-                change_issue_type: itl.issueRegister ? itl.issueRegister.change_issue_type : null,
-                description: itl.issueRegister ? itl.issueRegister.description : null,
-                quantification: itl.issueRegister ? itl.issueRegister.quantification : null
-            })) : [];
+            await sendMail(mailOptions);
+        }
 
-            // Get task type if available
-            let taskType = 'N/A';
-            if (task && task.TaskType) {
-                taskType = task.TaskType.task_type;
-            } else if (issueAssignment.issueTypeLinks && issueAssignment.issueTypeLinks.length > 0) {
-                // Try to get from first issue type link
-                taskType = issueAssignment.issueTypeLinks[0].issueRegister?.change_issue_type || 'Issue';
-            }
-
-            if (managerEmails.size > 0) {
-                // Prepare email data for issueAssignmentNotification template
-                const emailData = {
-                    manager_name: issueRequester ? issueRequester.name : 'Manager',
-                    task_id: task ? task.id : null,
-                    task_name: task ? task.task_name : 'Issue ' + issueAssignment.version,
-                    issue_id: issueAssignment.id,
-                    task_type: taskType,
-                    project_name: workRequest ? workRequest.project_name : 'N/A',
-                    brand: workRequest ? workRequest.brand : 'N/A',
-                    priority: workRequest ? workRequest.priority : 'N/A',
-                    request_type: workRequest?.RequestType?.request_type || 'N/A',
-                    issue_version: issueAssignment.version || 'V1',
-                    assigned_by: issueRequester ? issueRequester.name : 'System',
-                    created_at: completedAt,
-                    issue_description: description || issueAssignment.description || 'No description provided',
-                    issue_registers: issueRegisters,
-                    assigned_users: [{ name: user.name, email: user.email }],
-                    frontend_url: process.env.FRONTEND_URL
-                };
-
-                const html = renderTemplate('issueAssignmentNotification', emailData);
-
-                // Convert Set to array and take first as TO, rest as CC
-                const emailArray = Array.from(managerEmails);
-                const toEmail = emailArray[0];
-                const ccEmails = emailArray.slice(1);
-
-                const mailOptions = {
-                    to: toEmail,
-                    cc: ccEmails.length > 0 ? ccEmails.join(',') : undefined,
-                    subject: 'Issue Completed - D-Map',
-                    html
-                };
-
-                await sendMail(mailOptions);
-            }
-
-            res.json({
-                success: true,
-                data: {
-                    issue_id: issueId,
-                    task_count: task_count || issueAssignment.task_count || 0,
-                    link: link || null,
-                    documents: documents,
-                    work_request_id: workRequest ? workRequest.id : null
-                },
-                message: 'Issue submitted successfully'
-            });
+        res.json({
+            success: true,
+            data: {
+                issue_id: issueId,
+                task_count: task_count || issueAssignment.task_count || 0,
+                link: link || null,
+                documents: documents,
+                work_request_id: workRequest ? workRequest.id : null
+            },
+            message: 'Issue submitted successfully'
+        });
 
     } catch (error) {
         console.error('Error submitting issue:', error);
