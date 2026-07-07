@@ -1149,49 +1149,44 @@ const getIssueDetailsData = async (req, res) => {
                 COALESCE(ia.resize_work, 0) AS issue_resize_work,
                 COALESCE(ia.no_of_images_videos_audio, 0) AS issue_ai,
                 COALESCE(ia.shoot_setup, 0) AS issue_shoot_setup,
-                COALESCE(DATE_FORMAT(ia.created_at, '%d-%b-%Y %H:%i'), 'N/A') AS issue_request_timestamp,
-                COALESCE(
-                    DATE_FORMAT(
-                        (SELECT MIN(trh.created_at) FROM task_review_history trh
-                         WHERE trh.task_id = t.id AND trh.reviewer_type = 'manager'),
-                    '%d-%b-%Y %H:%i'),
-                'N/A') AS issue_request_response_timestamp,
+                COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'assigned' AND actor_type = 'manager'), '%d-%b-%Y %H:%i'), 'N/A') AS issue_request_timestamp,
+                COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'accepted' AND actor_type = 'user'), '%d-%b-%Y %H:%i'), 'N/A') AS issue_request_response_timestamp,
                 COALESCE(
                     CASE
-                        WHEN (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'created' AND actor_type = 'manager') IS NOT NULL
+                        WHEN (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'assigned' AND actor_type = 'manager') IS NOT NULL
                           AND (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'accepted' AND actor_type = 'user') IS NOT NULL
                         THEN CONCAT(
                             FLOOR(TIMESTAMPDIFF(MINUTE,
-                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'created' AND actor_type = 'manager'),
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'assigned' AND actor_type = 'manager'),
                                 (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'accepted' AND actor_type = 'user')
                             ) / 60), 'h ',
                             MOD(TIMESTAMPDIFF(MINUTE,
-                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'created' AND actor_type = 'manager'),
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'assigned' AND actor_type = 'manager'),
                                 (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'accepted' AND actor_type = 'user')
                             ), 60), 'm'
                         )
                         ELSE NULL
                     END,
                 'N/A') AS issue_request_to_response_tat,
-                COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'submitted'), '%d-%b-%Y %H:%i'), 'N/A') AS issue_output_shared_with_cm_timestamp,
+                COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'submitted' AND actor_type = 'user'), '%d-%b-%Y %H:%i'), 'N/A') AS issue_output_shared_with_cm_timestamp,
                 COALESCE(
                     CASE
-                        WHEN (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'accepted') IS NOT NULL
-                          AND (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'submitted') IS NOT NULL
+                        WHEN (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'accepted' AND actor_type = 'user') IS NOT NULL
+                          AND (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'submitted' AND actor_type = 'user') IS NOT NULL
                         THEN CONCAT(
                             FLOOR(TIMESTAMPDIFF(MINUTE,
-                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'accepted'),
-                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'submitted')
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'accepted' AND actor_type = 'user'),
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'submitted' AND actor_type = 'user')
                             ) / 60), 'h ',
                             MOD(TIMESTAMPDIFF(MINUTE,
-                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'accepted'),
-                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'submitted')
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'accepted' AND actor_type = 'user'),
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'submitted' AND actor_type = 'user')
                             ), 60), 'm'
                         )
                         ELSE NULL
                     END,
                 'N/A') AS issue_acceptance_to_completion_tat_by_cu,
-                COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'shared_for_client_review'), '%d-%b-%Y %H:%i'), 'N/A') AS issue_output_response_by_cm_timestamp,
+                COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'manager_approved' AND actor_type = 'manager'), '%d-%b-%Y %H:%i'), 'N/A') AS issue_output_response_by_cm_timestamp,
                 COALESCE(
                     CASE
                         WHEN (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'submitted') IS NOT NULL
@@ -1270,13 +1265,13 @@ FROM issue_assignments ia
 LEFT JOIN division d ON d.id = ud.division_id
            `;
 
-if (whereClauses.length > 0) {
-             query += ` WHERE ${whereClauses.join(' AND ')} AND ia.is_deleted = 0`;
-         } else {
-             query += ` WHERE ia.is_deleted = 0`;
-         }
+        if (whereClauses.length > 0) {
+            query += ` WHERE ${whereClauses.join(' AND ')} AND ia.is_deleted = 0`;
+        } else {
+            query += ` WHERE ia.is_deleted = 0`;
+        }
 
-         query += `
+        query += `
              GROUP BY
                  ia.id, t.id, wr.id, ia.created_at,
                  t.task_name, t.status, t.task_count,
