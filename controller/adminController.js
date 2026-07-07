@@ -665,9 +665,57 @@ const getAdminData = async (req, res) => {
                         WHERE t_tat.work_request_id = wr.id AND t_tat.is_deleted = 0
                     ),
                 'N/A') AS task_whole_tat_avg,
-                'N/A' AS change_request_to_response_tat,
-                'N/A' AS change_acceptance_to_completion_tat_by_cu,
-                'N/A' AS change_output_shared_to_response_by_cm_tat,
+                COALESCE(
+                    CASE
+                        WHEN (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'assigned' AND actor_type = 'manager') IS NOT NULL
+                          AND (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'accepted' AND actor_type = 'user') IS NOT NULL
+                        THEN CONCAT(
+                            FLOOR(TIMESTAMPDIFF(MINUTE,
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'assigned' AND actor_type = 'manager'),
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'accepted' AND actor_type = 'user')
+                            ) / 60), 'h ',
+                            MOD(TIMESTAMPDIFF(MINUTE,
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'assigned' AND actor_type = 'manager'),
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'accepted' AND actor_type = 'user')
+                            ), 60), 'm'
+                        )
+                        ELSE NULL
+                    END,
+                'N/A') AS change_request_to_response_tat,
+                COALESCE(
+                    CASE
+                        WHEN (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'accepted' AND actor_type = 'user') IS NOT NULL
+                          AND (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'submitted' AND actor_type = 'user') IS NOT NULL
+                        THEN CONCAT(
+                            FLOOR(TIMESTAMPDIFF(MINUTE,
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'accepted' AND actor_type = 'user'),
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'submitted' AND actor_type = 'user')
+                            ) / 60), 'h ',
+                            MOD(TIMESTAMPDIFF(MINUTE,
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'accepted' AND actor_type = 'user'),
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'submitted' AND actor_type = 'user')
+                            ), 60), 'm'
+                        )
+                        ELSE NULL
+                    END,
+                'N/A') AS change_acceptance_to_completion_tat_by_cu,
+                COALESCE(
+                    CASE
+                        WHEN (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'submitted' AND actor_type = 'user') IS NOT NULL
+                          AND (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'manager_approved' AND actor_type = 'manager') IS NOT NULL
+                        THEN CONCAT(
+                            FLOOR(TIMESTAMPDIFF(MINUTE,
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'submitted' AND actor_type = 'user'),
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'manager_approved' AND actor_type = 'manager')
+                            ) / 60), 'h ',
+                            MOD(TIMESTAMPDIFF(MINUTE,
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'submitted' AND actor_type = 'user'),
+                                (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'manager_approved' AND actor_type = 'manager')
+                            ), 60), 'm'
+                        )
+                        ELSE NULL
+                    END,
+                'N/A') AS change_output_shared_to_response_by_cm_tat,
                 'N/A' AS change_internal_tat,
                 'N/A' AS change_whole_tat,
                 0 AS project_request_response_reminder_counter_to_cm,
