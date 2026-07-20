@@ -3006,7 +3006,7 @@ const getUserTask = async (req, res) => {
         }
 
         // Build where condition for tasks
-        let taskWhereCondition = {};
+        let taskWhereCondition = { is_deleted: 0 };
 
         // Apply status filter from query parameter if provided
         if (status) {
