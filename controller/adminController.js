@@ -401,7 +401,7 @@ const getAdminData = async (req, res) => {
 
         let query = `
             SELECT
-                COALESCE(NULLIF(TRIM(wr.status), ''), 'N/A') AS project_request_status,
+                COALESCE(NULLIF(TRIM(wr.status), ''), '00h 00m') AS project_request_status,
                 wr.id AS work_request_id,
                 COALESCE(NULLIF(TRIM(wr.project_name), ''), 'N/A') AS project_name,
                 COALESCE(NULLIF(TRIM(rt.request_type), ''), 'N/A') AS request_type_name,
@@ -427,7 +427,7 @@ const getAdminData = async (req, res) => {
                 1 AS project_count,
                 COUNT(DISTINCT t.id) AS task_count,
                 COUNT(DISTINCT ia.id) AS change_count,
-                COALESCE(DATE_FORMAT(MIN(t.start_date), '%d-%b-%Y %H:%i'), 'N/A') AS project_start_date,
+                COALESCE(DATE_FORMAT(MIN(t.start_date), '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS project_start_date,
                 COALESCE(
                     CASE
                         WHEN wr.status = 'completed'
@@ -445,11 +445,11 @@ const getAdminData = async (req, res) => {
                             (SELECT DATE_FORMAT(MAX(t2.end_date), '%d-%b-%Y %H:%i')
                              FROM tasks t2
                              WHERE t2.work_request_id = wr.id),
-                            'N/A'
+                            '00-00-0000 00:00'
                         )
-                        ELSE 'N/A'
+                        ELSE '00-00-0000 00:00'
                     END,
-                'N/A') AS project_end_date,
+                '00-00-0000 00:00') AS project_end_date,
                 (SELECT COUNT(*) FROM issue_history ih WHERE ih.work_request_id = wr.id AND ih.action = 'created') AS client_change_requested_counter,
                 COUNT(DISTINCT CASE WHEN th.actor_id IN (SELECT manager_id FROM work_request_managers WHERE work_request_id = wr.id) THEN th.id END) AS cm_change_requested_counter,
                 COALESCE(SUM(t.task_count), 0) AS task_no_of_work_pages,
@@ -465,9 +465,9 @@ const getAdminData = async (req, res) => {
                 COALESCE(SUM(t.resize_work), 0) AS task_resize_work,
                 COALESCE(SUM(t.no_of_images_videos_audio), 0) AS task_ai,
                 COALESCE(SUM(t.shoot_setup), 0) AS task_shoot_setup,
-                COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A') AS project_request_timestamp,
-                COALESCE(DATE_FORMAT((SELECT MIN(wrh.created_at) FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'manager_accepted'), '%d-%b-%Y %H:%i'), 'N/A') AS project_acceptance_timestamp,
-                COALESCE(DATE_FORMAT((SELECT MIN(wrh.created_at) FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'completed'), '%d-%b-%Y %H:%i'), 'N/A') AS project_marked_completed_timestamp,
+                COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS project_request_timestamp,
+                COALESCE(DATE_FORMAT((SELECT MIN(wrh.created_at) FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'manager_accepted'), '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS project_acceptance_timestamp,
+                COALESCE(DATE_FORMAT((SELECT MIN(wrh.created_at) FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'completed'), '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS project_marked_completed_timestamp,
                 COALESCE((SELECT wrh.actor_name FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'completed' ORDER BY wrh.created_at ASC LIMIT 1), 'N/A') AS project_marked_completed_by,
                 COALESCE(
                     CASE
@@ -485,7 +485,7 @@ const getAdminData = async (req, res) => {
                         )
                         ELSE NULL
                     END,
-                'N/A') AS internal_project_tat,
+                '00h 00m') AS internal_project_tat,
                 COALESCE(
                     CASE
                         WHEN
@@ -512,7 +512,7 @@ const getAdminData = async (req, res) => {
                         )
                         ELSE NULL
                     END,
-                'N/A') AS project_tat,
+                '00h 00m') AS project_tat,
                 COALESCE(
                     CASE
                         WHEN (SELECT MIN(wrh.created_at) FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'created') IS NOT NULL
@@ -529,7 +529,7 @@ const getAdminData = async (req, res) => {
                         )
                         ELSE NULL
                     END,
-                'N/A') AS project_request_to_response_tat,
+                '00h 00m') AS project_request_to_response_tat,
                 COALESCE(
                     (
                         SELECT
@@ -556,7 +556,7 @@ const getAdminData = async (req, res) => {
                         ) th_end ON th_end.task_id = t_tat.id
                         WHERE t_tat.work_request_id = wr.id AND t_tat.is_deleted = 0
                     ),
-                'N/A') AS task_request_to_response_tat_avg,
+                '00h 00m') AS task_request_to_response_tat_avg,
                 COALESCE(
                     (
                         SELECT
@@ -583,7 +583,7 @@ const getAdminData = async (req, res) => {
                         ) th_end ON th_end.task_id = t_tat.id
                         WHERE t_tat.work_request_id = wr.id AND t_tat.is_deleted = 0
                     ),
-                'N/A') AS task_acceptance_to_completion_tat_by_cu_avg,
+                '00h 00m') AS task_acceptance_to_completion_tat_by_cu_avg,
                 COALESCE(
                     (
                         SELECT
@@ -610,7 +610,7 @@ const getAdminData = async (req, res) => {
                         ) th_end ON th_end.task_id = t_tat.id
                         WHERE t_tat.work_request_id = wr.id AND t_tat.is_deleted = 0
                     ),
-                'N/A') AS task_output_shared_to_response_by_cm_tat_avg,
+                '00h 00m') AS task_output_shared_to_response_by_cm_tat_avg,
                 COALESCE(
                     (
                         SELECT
@@ -637,7 +637,7 @@ const getAdminData = async (req, res) => {
                         ) th_end ON th_end.task_id = t_tat.id
                         WHERE t_tat.work_request_id = wr.id AND t_tat.is_deleted = 0
                     ),
-                'N/A') AS task_internal_tat_avg,
+                '00h 00m') AS task_internal_tat_avg,
                 COALESCE(
                     (
                         SELECT
@@ -664,7 +664,7 @@ const getAdminData = async (req, res) => {
                         ) th_end ON th_end.task_id = t_tat.id
                         WHERE t_tat.work_request_id = wr.id AND t_tat.is_deleted = 0
                     ),
-                'N/A') AS task_whole_tat_avg,
+                '00h 00m') AS task_whole_tat_avg,
                 COALESCE(
                     CASE
                         WHEN (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'assigned' AND actor_type = 'manager') IS NOT NULL
@@ -681,7 +681,7 @@ const getAdminData = async (req, res) => {
                         )
                         ELSE NULL
                     END,
-                'N/A') AS change_request_to_response_tat,
+                '00h 00m') AS change_request_to_response_tat,
                 COALESCE(
                     CASE
                         WHEN (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'accepted' AND actor_type = 'user') IS NOT NULL
@@ -698,7 +698,7 @@ const getAdminData = async (req, res) => {
                         )
                         ELSE NULL
                     END,
-                'N/A') AS change_acceptance_to_completion_tat_by_cu,
+                '00h 00m') AS change_acceptance_to_completion_tat_by_cu,
                 COALESCE(
                     CASE
                         WHEN (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'submitted' AND actor_type = 'user') IS NOT NULL
@@ -715,9 +715,9 @@ const getAdminData = async (req, res) => {
                         )
                         ELSE NULL
                     END,
-                'N/A') AS change_output_shared_to_response_by_cm_tat,
-                'N/A' AS change_internal_tat,
-                'N/A' AS change_whole_tat,
+                '00h 00m') AS change_output_shared_to_response_by_cm_tat,
+                '00h 00m' AS change_internal_tat,
+                '00h 00m' AS change_whole_tat,
                 0 AS project_request_response_reminder_counter_to_cm,
                 0 AS task_request_response_reminder_counter_to_cu,
                 0 AS task_output_response_reminder_counter_to_cm,
@@ -731,7 +731,7 @@ const getAdminData = async (req, res) => {
                         (SELECT ia2.deadline FROM issue_assignments ia2 JOIN tasks t2 ON t2.id = ia2.task_id AND t2.is_deleted = 0 WHERE t2.work_request_id = wr.id AND ia2.is_deleted = 0 AND t2.id = (SELECT MAX(t3.id) FROM tasks t3 WHERE t3.work_request_id = wr.id AND t3.is_deleted = 0) ORDER BY ia2.id DESC LIMIT 1),
                         (SELECT t2.deadline FROM tasks t2 WHERE t2.work_request_id = wr.id AND t2.is_deleted = 0 ORDER BY t2.id DESC LIMIT 1)
                     )
-                , '%M'), 'N/A') AS month,
+                , '%M'), '00') AS month,
                 COALESCE(
                     CASE
                         WHEN MONTH(COALESCE(
@@ -753,7 +753,7 @@ const getAdminData = async (req, res) => {
                             (SELECT t2.deadline FROM tasks t2 WHERE t2.work_request_id = wr.id AND t2.is_deleted = 0 ORDER BY t2.id DESC LIMIT 1)
                         )), 2))
                     END,
-                'N/A') AS fy
+                '00') AS fy
             FROM work_requests wr
             LEFT JOIN request_type rt ON rt.id = wr.request_type_id
             LEFT JOIN project_type pt ON pt.id = wr.project_id
@@ -844,16 +844,16 @@ const getClientsData = async (req, res) => {
                     ''),
                 'N/A') AS digi_vertical_manager_name,
                 1 AS project_count,
-                COALESCE(NULLIF(TRIM(wr.status), ''), 'N/A') AS project_status,
+                COALESCE(NULLIF(TRIM(wr.status), ''), '00h 00m') AS project_status,
                 COALESCE(NULLIF(TRIM(wr.remarks), ''), 'N/A') AS description,
-                COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A') AS project_requested_at_client,
-                COALESCE(DATE_FORMAT((SELECT wrh.created_at FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'manager_accepted' LIMIT 1), '%d-%b-%Y %H:%i'), 'N/A') AS response_timestamp,
+                COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS project_requested_at_client,
+                COALESCE(DATE_FORMAT((SELECT wrh.created_at FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'manager_accepted' LIMIT 1), '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS response_timestamp,
                 COALESCE(DATE_FORMAT(
                     COALESCE(
                         (SELECT ia2.deadline FROM issue_assignments ia2 JOIN tasks t2 ON t2.id = ia2.task_id AND t2.is_deleted = 0 WHERE t2.work_request_id = wr.id AND ia2.is_deleted = 0 AND t2.id = (SELECT MAX(t3.id) FROM tasks t3 WHERE t3.work_request_id = wr.id AND t3.is_deleted = 0) ORDER BY ia2.id DESC LIMIT 1),
                         (SELECT t2.deadline FROM tasks t2 WHERE t2.work_request_id = wr.id AND t2.is_deleted = 0 ORDER BY t2.id DESC LIMIT 1)
                     )
-                , '%M'), 'N/A') AS month,
+                , '%M'), '00') AS month,
                 COALESCE(
                     CASE
                         WHEN MONTH(COALESCE(
@@ -875,7 +875,7 @@ const getClientsData = async (req, res) => {
                             (SELECT t2.deadline FROM tasks t2 WHERE t2.work_request_id = wr.id AND t2.is_deleted = 0 ORDER BY t2.id DESC LIMIT 1)
                         )), 2))
                     END,
-                'N/A') AS financial_year,
+                '00') AS financial_year,
                 CASE
                     WHEN wr.requested_at IS NOT NULL
                      AND (SELECT wrh2.created_at FROM work_request_history wrh2 WHERE wrh2.work_request_id = wr.id AND wrh2.action = 'manager_accepted' LIMIT 1) IS NOT NULL
@@ -885,7 +885,7 @@ const getClientsData = async (req, res) => {
                         MOD(TIMESTAMPDIFF(MINUTE, wr.requested_at, (SELECT wrh4.created_at FROM work_request_history wrh4 WHERE wrh4.work_request_id = wr.id AND wrh4.action = 'manager_accepted' LIMIT 1)), 60),
                         'm'
                     )
-                    ELSE 'N/A'
+                    ELSE '00h 00m'
                 END AS request_to_response_tat
             FROM work_requests wr
             LEFT JOIN request_type rt ON rt.id = wr.request_type_id
@@ -926,7 +926,7 @@ const getTaskDetailsData = async (req, res) => {
 
         let query = `
             SELECT
-                COALESCE(NULLIF(TRIM(t.status), ''), 'N/A') AS task_status,
+                COALESCE(NULLIF(TRIM(t.status), ''), '00h 00m') AS task_status,
                 wr.id AS work_request_id,
                 t.id AS task_id,
                 GROUP_CONCAT(DISTINCT ia.id ORDER BY ia.id SEPARATOR ', ') AS change_id,
@@ -966,9 +966,9 @@ const getTaskDetailsData = async (req, res) => {
                          WHERE ta3.task_id = t.id),
                     ''),
                 'N/A') AS cu_vertical,
-                COALESCE(DATE_FORMAT(t.start_date, '%d-%b-%Y %H:%i'), 'N/A') AS task_start_date,
-                COALESCE(DATE_FORMAT(t.end_date, '%d-%b-%Y %H:%i'), 'N/A') AS task_end_date,
-                COALESCE(DATE_FORMAT(t.deadline, '%d-%b-%Y %H:%i'), 'N/A') AS task_deadline,
+                COALESCE(DATE_FORMAT(t.start_date, '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS task_start_date,
+                COALESCE(DATE_FORMAT(t.end_date, '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS task_end_date,
+                COALESCE(DATE_FORMAT(t.deadline, '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS task_deadline,
                 COALESCE(t.task_count, 0) AS task_no_of_work_pages,
                 COALESCE(SUM(DISTINCT ia.task_count), 0) AS issue_no_of_work_pages,
                 COALESCE(t.no_of_options_provided, 0) AS task_no_of_options_provided,
@@ -982,8 +982,8 @@ const getTaskDetailsData = async (req, res) => {
                 COALESCE(t.resize_work, 0) AS task_resize_work,
                 COALESCE(t.no_of_images_videos_audio, 0) AS task_ai,
                 COALESCE(t.shoot_setup, 0) AS task_shoot_setup,
-                COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A') AS task_request_timestamp,
-                COALESCE(DATE_FORMAT((SELECT MIN(wrm2.created_at) FROM work_request_managers wrm2 WHERE wrm2.work_request_id = wr.id), '%d-%b-%Y %H:%i'), 'N/A') AS task_request_response_timestamp,
+                COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS task_request_timestamp,
+                COALESCE(DATE_FORMAT((SELECT MIN(wrm2.created_at) FROM work_request_managers wrm2 WHERE wrm2.work_request_id = wr.id), '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS task_request_response_timestamp,
                 COALESCE(
                     CASE
                         WHEN (SELECT MIN(created_at) FROM task_history WHERE task_id = t.id AND action = 'created' AND actor_type = 'manager') IS NOT NULL
@@ -1000,8 +1000,8 @@ const getTaskDetailsData = async (req, res) => {
                         )
                         ELSE NULL
                     END,
-                'N/A') AS task_request_to_response_tat,
-                COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM task_history WHERE task_id = t.id AND action = 'submitted'), '%d-%b-%Y %H:%i'), 'N/A') AS task_output_shared_with_cm_timestamp,
+                '00h 00m') AS task_request_to_response_tat,
+                COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM task_history WHERE task_id = t.id AND action = 'submitted'), '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS task_output_shared_with_cm_timestamp,
                 COALESCE(
                     CASE
                         WHEN (SELECT MIN(created_at) FROM task_history WHERE task_id = t.id AND action = 'accepted') IS NOT NULL
@@ -1018,8 +1018,8 @@ const getTaskDetailsData = async (req, res) => {
                         )
                         ELSE NULL
                     END,
-                'N/A') AS task_acceptance_to_completion_tat_by_cu,
-                COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM task_history WHERE task_id = t.id AND action = 'shared_for_client_review'), '%d-%b-%Y %H:%i'), 'N/A') AS task_output_response_by_cm_timestamp,
+                '00h 00m') AS task_acceptance_to_completion_tat_by_cu,
+                COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM task_history WHERE task_id = t.id AND action = 'shared_for_client_review'), '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS task_output_response_by_cm_timestamp,
                 COALESCE(
                     CASE
                         WHEN (SELECT MIN(created_at) FROM task_history WHERE task_id = t.id AND action = 'submitted') IS NOT NULL
@@ -1036,8 +1036,8 @@ const getTaskDetailsData = async (req, res) => {
                         )
                         ELSE NULL
                     END,
-                'N/A') AS task_output_shared_to_response_by_cm_tat,
-                COALESCE(DATE_FORMAT(t.shared_with_client_at, '%d-%b-%Y %H:%i'), 'N/A') AS task_output_shared_with_client_timestamp,
+                '00h 00m') AS task_output_shared_to_response_by_cm_tat,
+                COALESCE(DATE_FORMAT(t.shared_with_client_at, '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS task_output_shared_with_client_timestamp,
                 COALESCE(
                     CASE
                         WHEN (SELECT MIN(created_at) FROM task_history WHERE task_id = t.id AND action = 'accepted') IS NOT NULL
@@ -1054,8 +1054,8 @@ const getTaskDetailsData = async (req, res) => {
                         )
                         ELSE NULL
                     END,
-                'N/A') AS task_internal_tat,
-                COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM task_history WHERE task_id = t.id AND action IN ('completed', 'change_request_created')), '%d-%b-%Y %H:%i'), 'N/A') AS task_output_response_by_client_timestamp,
+                '00h 00m') AS task_internal_tat,
+                COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM task_history WHERE task_id = t.id AND action IN ('completed', 'change_request_created')), '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS task_output_response_by_client_timestamp,
                 COALESCE(
                     CASE
                         WHEN (SELECT MIN(created_at) FROM task_history WHERE task_id = t.id AND action = 'created') IS NOT NULL
@@ -1072,21 +1072,21 @@ const getTaskDetailsData = async (req, res) => {
                         )
                         ELSE NULL
                     END,
-                'N/A') AS task_whole_tat,
+                '00h 00m') AS task_whole_tat,
                 0 AS task_request_response_reminder_counter_to_cu,
                 0 AS task_output_response_reminder_counter_to_cm,
                 0 AS task_output_response_reminder_counter_to_client,
                 (SELECT COUNT(*) FROM issue_history ih WHERE ih.task_id = t.id AND ih.action = 'created') AS client_change_requested_counter,
                 (SELECT COUNT(*) FROM task_history th WHERE th.task_id = t.id AND th.action = 'manager_change_requested') AS cm_change_requested_counter,
                 GROUP_CONCAT(DISTINCT ia.version ORDER BY ia.version SEPARATOR ', ') AS change_version,
-                COALESCE(DATE_FORMAT(t.deadline, '%M'), 'N/A') AS month,
+                COALESCE(DATE_FORMAT(t.deadline, '%M'), '00') AS month,
                 COALESCE(
                     CASE
                         WHEN MONTH(t.deadline) >= 4
                             THEN CONCAT('FY ', YEAR(t.deadline), '-', RIGHT(YEAR(t.deadline) + 1, 2))
                         ELSE CONCAT('FY ', YEAR(t.deadline) - 1, '-', RIGHT(YEAR(t.deadline), 2))
                     END,
-                'N/A') AS fy
+                '00') AS fy
              FROM tasks t
              LEFT JOIN work_requests wr ON wr.id = t.work_request_id
              LEFT JOIN task_type tt ON tt.id = t.task_type_id
@@ -1141,7 +1141,7 @@ const getIssueDetailsData = async (req, res) => {
 
         let query = `
             SELECT
-                COALESCE(NULLIF(TRIM(ia.status), ''), 'N/A') AS issue_status,
+                COALESCE(NULLIF(TRIM(ia.status), ''), '00h 00m') AS issue_status,
                 wr.id AS work_request_id,
                 t.id AS task_id,
                 ia.id AS issue_id,
@@ -1181,9 +1181,9 @@ const getIssueDetailsData = async (req, res) => {
                          WHERE iua3.issue_assignment_id = ia.id),
                     ''),
                 'N/A') AS cu_vertical,
-                COALESCE(DATE_FORMAT(ia.start_date, '%d-%b-%Y %H:%i'), 'N/A') AS issue_start_date,
-                COALESCE(DATE_FORMAT(ia.end_date, '%d-%b-%Y %H:%i'), 'N/A') AS issue_end_date,
-                COALESCE(DATE_FORMAT(ia.deadline, '%d-%b-%Y %H:%i'), 'N/A') AS issue_deadline,
+                COALESCE(DATE_FORMAT(ia.start_date, '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS issue_start_date,
+                COALESCE(DATE_FORMAT(ia.end_date, '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS issue_end_date,
+                COALESCE(DATE_FORMAT(ia.deadline, '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS issue_deadline,
                 COALESCE(t.task_count, 0) AS task_no_of_work_pages,
                 COALESCE(ia.task_count, 0) AS issue_no_of_work_pages,
                 COALESCE(ia.no_of_options_provided, 0) AS issue_no_of_options_provided,
@@ -1197,8 +1197,8 @@ const getIssueDetailsData = async (req, res) => {
                 COALESCE(ia.resize_work, 0) AS issue_resize_work,
                 COALESCE(ia.no_of_images_videos_audio, 0) AS issue_ai,
                 COALESCE(ia.shoot_setup, 0) AS issue_shoot_setup,
-                COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'assigned' AND actor_type = 'manager'), '%d-%b-%Y %H:%i'), 'N/A') AS issue_request_timestamp,
-                COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'accepted' AND actor_type = 'user'), '%d-%b-%Y %H:%i'), 'N/A') AS issue_request_response_timestamp,
+                COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'assigned' AND actor_type = 'manager'), '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS issue_request_timestamp,
+                COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'accepted' AND actor_type = 'user'), '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS issue_request_response_timestamp,
                 COALESCE(
                     CASE
                         WHEN (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'assigned' AND actor_type = 'manager') IS NOT NULL
@@ -1215,8 +1215,8 @@ const getIssueDetailsData = async (req, res) => {
                         )
                         ELSE NULL
                     END,
-                'N/A') AS issue_request_to_response_tat,
-                COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'submitted' AND actor_type = 'user'), '%d-%b-%Y %H:%i'), 'N/A') AS issue_output_shared_with_cm_timestamp,
+                '00h 00m') AS issue_request_to_response_tat,
+                COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'submitted' AND actor_type = 'user'), '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS issue_output_shared_with_cm_timestamp,
                 COALESCE(
                     CASE
                         WHEN (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'accepted' AND actor_type = 'user') IS NOT NULL
@@ -1233,8 +1233,8 @@ const getIssueDetailsData = async (req, res) => {
                         )
                         ELSE NULL
                     END,
-                'N/A') AS issue_acceptance_to_completion_tat_by_cu,
-                COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'manager_approved' AND actor_type = 'manager'), '%d-%b-%Y %H:%i'), 'N/A') AS issue_output_response_by_cm_timestamp,
+                '00h 00m') AS issue_acceptance_to_completion_tat_by_cu,
+                COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'manager_approved' AND actor_type = 'manager'), '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS issue_output_response_by_cm_timestamp,
                 COALESCE(
                     CASE
                         WHEN (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'submitted') IS NOT NULL
@@ -1251,8 +1251,8 @@ const getIssueDetailsData = async (req, res) => {
                         )
                         ELSE NULL
                     END,
-                'N/A') AS issue_output_shared_to_response_by_cm_tat,
-                COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'shared_for_client_review'), '%d-%b-%Y %H:%i'), 'N/A') AS issue_output_shared_with_client_timestamp,
+                '00h 00m') AS issue_output_shared_to_response_by_cm_tat,
+                COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'shared_for_client_review'), '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS issue_output_shared_with_client_timestamp,
                 COALESCE(
                     CASE
                         WHEN (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'accepted') IS NOT NULL
@@ -1269,8 +1269,8 @@ const getIssueDetailsData = async (req, res) => {
                         )
                         ELSE NULL
                     END,
-                'N/A') AS issue_internal_tat,
-                COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action IN ('completed', 'change_request_created')), '%d-%b-%Y %H:%i'), 'N/A') AS issue_output_response_by_client_timestamp,
+                '00h 00m') AS issue_internal_tat,
+                COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action IN ('completed', 'change_request_created')), '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS issue_output_response_by_client_timestamp,
                 COALESCE(
                     CASE
                         WHEN (SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'created') IS NOT NULL
@@ -1287,21 +1287,21 @@ const getIssueDetailsData = async (req, res) => {
                         )
                         ELSE NULL
                     END,
-                'N/A') AS issue_whole_tat,
+                '00h 00m') AS issue_whole_tat,
                 0 AS issue_request_response_reminder_counter_to_cu,
                 0 AS issue_output_response_reminder_counter_to_cm,
                 0 AS issue_output_response_reminder_counter_to_client,
                 (SELECT COUNT(*) FROM issue_history ih WHERE ih.issue_assignment_id = ia.id AND ih.action = 'created') AS client_change_requested_counter,
                 (SELECT COUNT(*) FROM issue_history ih WHERE ih.issue_assignment_id = ia.id AND ih.action = 'manager_change_requested') AS cm_change_requested_counter,
                 GROUP_CONCAT(DISTINCT ia.version ORDER BY ia.version SEPARATOR ', ') AS change_version,
-                COALESCE(DATE_FORMAT(ia.deadline, '%M'), 'N/A') AS month,
+                COALESCE(DATE_FORMAT(ia.deadline, '%M'), '00') AS month,
                 COALESCE(
                     CASE
                         WHEN MONTH(ia.deadline) >= 4
                             THEN CONCAT('FY ', YEAR(ia.deadline), '-', RIGHT(YEAR(ia.deadline) + 1, 2))
                         ELSE CONCAT('FY ', YEAR(ia.deadline) - 1, '-', RIGHT(YEAR(ia.deadline), 2))
                     END,
-                'N/A') AS fy
+                '00') AS fy
 FROM issue_assignments ia
              LEFT JOIN tasks t ON t.id = ia.task_id AND t.is_deleted = 0
              LEFT JOIN work_requests wr ON wr.id = t.work_request_id
@@ -1430,7 +1430,7 @@ const getWorkRequestTasksData = async (req, res) => {
                  FROM work_request_managers wrm
                  WHERE wrm.work_request_id = wr.id) AS manager_ids,
 
-                COALESCE(DATE_FORMAT((SELECT MIN(wrm2.created_at) FROM work_request_managers wrm2 WHERE wrm2.work_request_id = wr.id), '%d-%b-%Y %H:%i'), 'N/A') AS project_requested_accept_at_cm,
+                COALESCE(DATE_FORMAT((SELECT MIN(wrm2.created_at) FROM work_request_managers wrm2 WHERE wrm2.work_request_id = wr.id), '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS project_requested_accept_at_cm,
 
 (SELECT DATE_FORMAT(MIN(t2.start_date), '%d-%b-%Y %H:%i')
                   FROM tasks t2 WHERE t2.work_request_id = wr.id AND t2.is_deleted = 0) AS project_start_date,
@@ -1514,24 +1514,24 @@ const getWorkRequestTasksData = async (req, res) => {
 
                 COALESCE(DATE_FORMAT(
                     (SELECT MIN(ta2.created_at) FROM task_assignments ta2 WHERE ta2.task_id = t.id),
-                '%d-%b-%Y %H:%i'), 'N/A') AS task_requested_at_assign_intimate_cu,
+                '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS task_requested_at_assign_intimate_cu,
 
                 COALESCE(DATE_FORMAT(
                     (SELECT MIN(trh.created_at) FROM task_review_history trh
                      WHERE trh.task_id = t.id AND trh.action = 'approved' AND trh.reviewer_type = 'manager'),
-                '%d-%b-%Y %H:%i'), 'N/A') AS task_requested_accept_at_cu,
+                '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS task_requested_accept_at_cu,
 
-                COALESCE(DATE_FORMAT(t.shared_with_client_at, '%d-%b-%Y %H:%i'), 'N/A') AS task_shared_with_cm_at,
+                COALESCE(DATE_FORMAT(t.shared_with_client_at, '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS task_shared_with_cm_at,
 
                 COALESCE(DATE_FORMAT(
                     (SELECT MIN(trh.created_at) FROM task_review_history trh
                      WHERE trh.task_id = t.id AND trh.reviewer_type = 'manager'),
-                '%d-%b-%Y %H:%i'), 'N/A') AS task_respond_on_output_cm,
+                '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS task_respond_on_output_cm,
 
                 COALESCE(DATE_FORMAT(
                     (SELECT MIN(trh.created_at) FROM task_review_history trh
                      WHERE trh.task_id = t.id AND trh.action = 'approved' AND trh.reviewer_type = 'project_manager'),
-                '%d-%b-%Y %H:%i'), 'N/A') AS task_output_client_responded_approved,
+                '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS task_output_client_responded_approved,
 
                 tt.id AS task_type_id,
                 tt.task_type AS task_type_name,
@@ -1599,29 +1599,29 @@ const getWorkRequestTasksData = async (req, res) => {
                 ia.updated_at AS issue_updated_at,
                 ia.comments AS issue_comments,
 
-                COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), 'N/A') AS issue_requested_at_client,
-                COALESCE(DATE_FORMAT((SELECT MIN(wrm2.created_at) FROM work_request_managers wrm2 WHERE wrm2.work_request_id = wr.id), '%d-%b-%Y %H:%i'), 'N/A') AS issue_requested_accept_at_cm,
+                COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS issue_requested_at_client,
+                COALESCE(DATE_FORMAT((SELECT MIN(wrm2.created_at) FROM work_request_managers wrm2 WHERE wrm2.work_request_id = wr.id), '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS issue_requested_accept_at_cm,
 
                 COALESCE(DATE_FORMAT(
                     (SELECT MIN(iua2.created_at) FROM issue_user_assignments iua2 WHERE iua2.issue_assignment_id = ia.id),
-                '%d-%b-%Y %H:%i'), 'N/A') AS issue_requested_at_assign_intimate_cu,
+                '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS issue_requested_at_assign_intimate_cu,
 
                 COALESCE(DATE_FORMAT(
                     (SELECT MIN(trh.created_at) FROM task_review_history trh
                      WHERE trh.task_id = t.id AND trh.action = 'approved' AND trh.reviewer_type = 'manager'),
-                '%d-%b-%Y %H:%i'), 'N/A') AS issue_requested_accept_at_cu,
+                '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS issue_requested_accept_at_cu,
 
-                COALESCE(DATE_FORMAT(ia.shared_with_client_at, '%d-%b-%Y %H:%i'), 'N/A') AS issue_shared_with_cm_at,
+                COALESCE(DATE_FORMAT(ia.shared_with_client_at, '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS issue_shared_with_cm_at,
 
                 COALESCE(DATE_FORMAT(
                     (SELECT MIN(trh.created_at) FROM task_review_history trh
                      WHERE trh.task_id = t.id AND trh.reviewer_type = 'manager'),
-                '%d-%b-%Y %H:%i'), 'N/A') AS issue_respond_on_output_cm,
+                '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS issue_respond_on_output_cm,
 
                 COALESCE(DATE_FORMAT(
                     (SELECT MIN(trh.created_at) FROM task_review_history trh
                      WHERE trh.task_id = t.id AND trh.action = 'approved' AND trh.reviewer_type = 'project_manager'),
-                '%d-%b-%Y %H:%i'), 'N/A') AS issue_output_client_responded_approve,
+                '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS issue_output_client_responded_approve,
                 
                 issue_requester.id AS issue_requester_id,
                 issue_requester.name AS issue_requester_name,
