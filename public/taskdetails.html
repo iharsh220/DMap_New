@@ -227,7 +227,7 @@ $(function(){
                     var labelText=idx===0?'Action':(HEADERS[Object.keys(data[0])[idx-1]]||Object.keys(data[0])[idx-1]);
                     th.empty();
                     var wrap=$('<div class="th-wrap"></div>');
-                    wrap.append('<div class="th-label"><span>'+labelText+'</span><span class="th-sort"></span></div>');
+                    wrap.append('<div class="th-label"><span title="'+labelText+'">'+labelText+'</span><span class="th-sort"></span></div>');
                     if(idx===0){ th.append(wrap); return; }
                     var key=Object.keys(data[0])[idx-1];
                     if(BADGES[key]){
