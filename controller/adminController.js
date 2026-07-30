@@ -845,7 +845,7 @@ const getClientsData = async (req, res) => {
                 'N/A') AS digi_vertical_manager_name,
                 1 AS project_count,
                 COALESCE(NULLIF(TRIM(wr.status), ''), '00h 00m') AS project_status,
-                COALESCE(NULLIF(TRIM(wr.remarks), ''), 'N/A') AS description,
+                COALESCE(NULLIF(TRIM(wr.description), ''), 'N/A') AS description,
                 COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS project_requested_at_client,
                 COALESCE(DATE_FORMAT((SELECT wrh.created_at FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'manager_accepted' LIMIT 1), '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS response_timestamp,
                 COALESCE(DATE_FORMAT(
