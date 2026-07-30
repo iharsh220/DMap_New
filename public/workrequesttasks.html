@@ -336,7 +336,7 @@ $(function(){
                     var labelText=HEADERS[key]||key;
                     th.empty();
                     var wrap=$('<div class="th-wrap"></div>');
-                    wrap.append('<div class="th-label"><span>'+labelText+'</span><span class="th-sort"></span></div>');
+                    wrap.append('<div class="th-label"><span title="'+labelText+'">'+labelText+'</span><span class="th-sort"></span></div>');
                     if(STATUS_KEYS.indexOf(key)!==-1){
                         var sel=$('<select class="col-filter"><option value="">All</option></select>');
                         Object.keys(STATUS_MAP).forEach(function(o){sel.append('<option value="'+o+'">'+o+'</option>');});

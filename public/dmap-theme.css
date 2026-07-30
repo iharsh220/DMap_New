@@ -252,17 +252,16 @@ table.dataTable {
 
 /* HEADER */
 table.dataTable thead th {
-    background: #f8fafc !important;
-    color: var(--text-2) !important;
-    font-size: 11px !important;
-    font-weight: 600 !important;
-    padding: 0 !important;
-    white-space: nowrap !important;
-    border-bottom: 2px solid #e2e8f0 !important;
-    border-right: 1px solid #e9eef4 !important;
-    letter-spacing: 0.2px;
-    vertical-align: top !important;
-}
+     background: #f8fafc !important;
+     color: var(--text-2) !important;
+     font-size: 11px !important;
+     font-weight: 600 !important;
+     padding: 0 !important;
+     border-bottom: 2px solid #e2e8f0 !important;
+     border-right: 1px solid #e9eef4 !important;
+     letter-spacing: 0.2px;
+     vertical-align: top !important;
+ }
 
 /* th inner wrapper — label + filter input stacked */
 table.dataTable thead th .th-wrap {
@@ -271,14 +270,13 @@ table.dataTable thead th .th-wrap {
     padding: 0;
 }
 table.dataTable thead th .th-label {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 8px 10px 6px;
-    cursor: pointer;
-    user-select: none;
-    white-space: nowrap;
-}
+     display: flex;
+     align-items: center;
+     gap: 4px;
+     padding: 8px 10px 6px;
+     cursor: pointer;
+     user-select: none;
+ }
 table.dataTable thead th .th-label:hover { color: var(--text-1) !important; }
 table.dataTable thead th .th-sort { font-size: 9px; color: var(--text-3); }
 table.dataTable thead th.sorting_asc  .th-sort::after { content: ' ↑'; color: var(--accent); }
