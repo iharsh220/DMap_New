@@ -913,6 +913,7 @@ const getWorkRequestById = async (req, res) => {
                 {
                     model: Tasks,
                     required: false,
+                    where: { is_deleted: 0 },
                     attributes: ['id', 'task_name', 'description', 'request_type_id', 'task_type_id', 'work_request_id', 'deadline', 'status', 'version', 'assignment_type', 'intimate_team', 'intimate_client', 'task_count', 'link', 'start_date', 'end_date', 'review', 'review_stage', 'shared_with_client_at', 'created_at', 'updated_at'],
                     include: [
                         {

@@ -427,29 +427,8 @@ const getAdminData = async (req, res) => {
                 1 AS project_count,
                 COUNT(DISTINCT t.id) AS task_count,
                 COUNT(DISTINCT ia.id) AS change_count,
-                COALESCE(DATE_FORMAT(MIN(t.start_date), '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS project_start_date,
-                COALESCE(
-                    CASE
-                        WHEN wr.status = 'completed'
-                            AND NOT EXISTS (
-                                SELECT 1 FROM tasks t2
-                                WHERE t2.work_request_id = wr.id
-                                  AND (t2.status <> 'completed' OR t2.review <> 'approved' OR t2.review_stage <> 'final_approved')
-                            )
-                        THEN COALESCE(
-                            (SELECT DATE_FORMAT(MAX(ia2.end_date), '%d-%b-%Y %H:%i')
-                             FROM issue_assignments ia2
-                             JOIN tasks t3 ON t3.id = ia2.task_id
-                             WHERE t3.work_request_id = wr.id
-                               AND ia2.status = 'completed'),
-                            (SELECT DATE_FORMAT(MAX(t2.end_date), '%d-%b-%Y %H:%i')
-                             FROM tasks t2
-                             WHERE t2.work_request_id = wr.id),
-                            '00-00-0000 00:00'
-                        )
-                        ELSE '00-00-0000 00:00'
-                    END,
-                '00-00-0000 00:00') AS project_end_date,
+                COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM task_history WHERE work_request_id = wr.id AND action = 'accepted'), '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS project_start_date,
+                COALESCE(DATE_FORMAT((SELECT MAX(wrh.created_at) FROM work_request_history wrh WHERE wrh.work_request_id = wr.id AND wrh.action = 'completed'), '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS project_end_date,
                 (SELECT COUNT(*) FROM issue_history ih WHERE ih.work_request_id = wr.id AND ih.action = 'created') AS client_change_requested_counter,
                 COUNT(DISTINCT CASE WHEN th.actor_id IN (SELECT manager_id FROM work_request_managers WHERE work_request_id = wr.id) THEN th.id END) AS cm_change_requested_counter,
                 COALESCE(SUM(t.task_count), 0) AS task_no_of_work_pages,
@@ -982,8 +961,8 @@ const getTaskDetailsData = async (req, res) => {
                 COALESCE(t.resize_work, 0) AS task_resize_work,
                 COALESCE(t.no_of_images_videos_audio, 0) AS task_ai,
                 COALESCE(t.shoot_setup, 0) AS task_shoot_setup,
-                COALESCE(DATE_FORMAT(wr.requested_at, '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS task_request_timestamp,
-                COALESCE(DATE_FORMAT((SELECT MIN(wrm2.created_at) FROM work_request_managers wrm2 WHERE wrm2.work_request_id = wr.id), '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS task_request_response_timestamp,
+                COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM task_history WHERE task_id = t.id AND action = 'created'), '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS task_request_timestamp,
+                COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM task_history WHERE task_id = t.id AND action = 'accepted'), '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS task_request_response_timestamp,
                 COALESCE(
                     CASE
                         WHEN (SELECT MIN(created_at) FROM task_history WHERE task_id = t.id AND action = 'created' AND actor_type = 'manager') IS NOT NULL
