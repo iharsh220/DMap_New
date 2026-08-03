@@ -4,6 +4,7 @@
 
 :root {
     --sidebar-w:      220px;
+    --sidebar-w-collapsed: 60px;
     --topbar-h:       54px;
     --sidebar-bg:     #0f172a;
     --sidebar-border: #1e293b;
@@ -77,11 +78,50 @@ html, body { height: 100%; font-family: var(--font); background: var(--body-bg);
 .nav-item.active { background: var(--sidebar-active); color: #93c5fd; font-weight: 600; }
 .nav-icon { font-size: 14px; width: 16px; text-align: center; flex-shrink: 0; }
 .sidebar-footer {
-    padding: 10px 14px;
-    border-top: 1px solid var(--sidebar-border);
-    font-size: 11px; color: #334155;
-    display: flex; align-items: center; gap: 6px;
-}
+     padding: 10px 14px;
+     border-top: 1px solid var(--sidebar-border);
+     font-size: 11px; color: #334155;
+     display: flex; align-items: center; gap: 6px;
+ }
+ 
+ /* Sidebar toggle button */
+ .sidebar-toggle {
+     background: none;
+     border: none;
+     color: var(--sidebar-text);
+     cursor: pointer;
+     padding: 6px;
+     border-radius: 6px;
+     display: flex;
+     align-items: center;
+     justify-content: center;
+     font-size: 16px;
+     transition: background .12s, color .12s;
+ }
+ .sidebar-toggle:hover { background: var(--sidebar-hover); color: #cbd5e1; }
+ 
+  /* Collapsed sidebar */
+  .sidebar-collapsed .sidebar {
+      width: var(--sidebar-w-collapsed) !important;
+      min-width: var(--sidebar-w-collapsed) !important;
+  }
+  .sidebar-collapsed .sidebar-brand .brand-name,
+  .sidebar-collapsed .sidebar-brand .brand-sub,
+  .sidebar-collapsed .sidebar-section,
+  .sidebar-collapsed .nav-item .nav-label,
+  .sidebar-collapsed .sidebar-footer .footer-text { display: none !important; }
+  .sidebar-collapsed .sidebar-brand {
+      justify-content: center;
+      padding: 0;
+      height: 54px;
+  }
+  .sidebar-collapsed .sidebar-nav { padding: 8px 4px; }
+  .sidebar-collapsed .nav-item {
+      justify-content: center;
+      padding: 10px 0;
+  }
+  .sidebar-collapsed .nav-item .nav-icon { margin-right: 0; }
+  .sidebar-collapsed .sidebar-footer { justify-content: center; padding: 10px 0; }
 
 /* ─── MAIN ─────────────────────────────────────────────── */
 .main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
@@ -395,3 +435,18 @@ table.dataTable thead .sorting_desc::after { display: none !important; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* ─── POWER BI IFRAME PAGE ───────────────────────────────── */
+.powerbi-page {
+    height: 100vh;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+.powerbi-iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+}
