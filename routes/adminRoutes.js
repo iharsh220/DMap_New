@@ -35,6 +35,11 @@ router.get('/admin/workrequesttasks', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'workrequesttasks.html'));
 });
 
+// Serve Power BI dashboard HTML
+router.get('/admin/powerbi', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'powerbi.html'));
+});
+
 // API endpoint for project details data
 router.get('/admin/projectsdetails/data', cachedAdminData(getAdminData));
 
