@@ -347,10 +347,40 @@ function openEditModal(type, id){
         html+=fs('Status','status',r.status,['draft','pending','accepted','assigned','in_progress','completed','rejected']);
         html+=fi('Requested At','requested_at',r.requested_at?String(r.requested_at).slice(0,16):'','datetime-local');
         html+='</div>';
+        if(type==='project'){
+            html+='<div style="margin-bottom:12px;"><label style="display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;">Project Type</label>'
+                +'<select name="project_id" style="width:100%;background:#131929;border:1px solid #2d3548;border-radius:6px;padding:7px 10px;color:#e2e8f0;font-size:13px;">'
+                +'<option value="">Loading project types...</option>'
+                +'</select></div>';
+        }
         html+=ft('Remarks','remarks',r.remarks);
         html+=ft('Description','description',r.description);
         html+=ft('About Project','about_project',r.about_project);
         $('#editModalBody').html(html);
+
+        if(type==='project'){
+            $.getJSON(getApiBase()+'datatable/admin/edit/project/'+id+'/project-types', function(ptRes){
+                var ptypes = ptRes.data||[];
+                var $sel = $('#editModalBody select[name="project_id"]');
+                $sel.empty();
+                var currentType = ptypes.find(function(pt){ return String(pt.id)===String(r.project_id); });
+                if(r.project_id && currentType){
+                    $sel.append('<option value="'+currentType.id+'" selected>'+currentType.project_type+'</option>');
+                    ptypes.forEach(function(pt){
+                        if(String(pt.id)!==String(r.project_id))
+                            $sel.append('<option value="'+pt.id+'">'+pt.project_type+'</option>');
+                    });
+                } else {
+                    $sel.append('<option value="">Select project type</option>');
+                    ptypes.forEach(function(pt){
+                        $sel.append('<option value="'+pt.id+'">'+(pt.project_type)+'</option>');
+                    });
+                }
+            }).fail(function(){
+                $('#editModalBody select[name="project_id"]').empty().append('<option value="">Failed to load</option>');
+            });
+        }
+
         $('#confirmEditBtn').off('click').on('click',function(){ submitEdit(type,id); });
     }).fail(function(){ $('#editModalBody').html('<div style="color:#f43f5e;">Failed to load data.</div>'); });
 }

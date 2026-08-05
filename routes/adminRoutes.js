@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const { cachedAdminData, invalidateAdminCache } = require('../services/adminCacheService');
-const { getAdminData, getClientsData, getTaskDetailsData, getTasksForWorkRequest, getIssueDetailsData, getWorkRequestTasksData, getDeletePreview, deleteProject, deleteClient, deleteTask, deleteIssue, getEditData, updateProject, updateClient, updateTask, updateIssue } = require('../controller/adminController');
+const { getAdminData, getClientsData, getTaskDetailsData, getTasksForWorkRequest, getIssueDetailsData, getWorkRequestTasksData, getDeletePreview, deleteProject, deleteClient, deleteTask, deleteIssue, getEditData, getProjectTypesByProject, updateProject, updateClient, updateTask, updateIssue } = require('../controller/adminController');
 
 // Serve shared CSS theme
 router.get('/admin/dmap-theme.css', (req, res) => {
@@ -69,6 +69,9 @@ router.delete('/admin/delete/issue/:id', invalidateAdminCache, deleteIssue);
 
 // Edit - get current data
 router.get('/admin/edit/:type/:id', getEditData);
+
+// Get project types for a project's user (for dropdown)
+router.get('/admin/edit/project/:id/project-types', getProjectTypesByProject);
 
 // Edit - update endpoints
 router.put('/admin/edit/project/:id', invalidateAdminCache, updateProject);

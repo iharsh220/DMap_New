@@ -40,7 +40,7 @@ const getEditData = async (req, res) => {
 
         if (type === 'project') {
             const [row] = await sequelize.query(
-                `SELECT id, project_name, brand, priority, status, remarks, description, about_project, requested_at FROM work_requests WHERE id = :id`,
+                `SELECT id, project_name, brand, priority, status, remarks, description, about_project, requested_at, project_id, user_id FROM work_requests WHERE id = :id`,
                 { replacements: { id }, type: sequelize.QueryTypes.SELECT }
             );
             record = row;
@@ -101,13 +101,43 @@ const getEditData = async (req, res) => {
     }
 };
 
+const getProjectTypesByProject = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const projectTypes = await sequelize.query(
+            `SELECT DISTINCT pt.id, pt.project_type, pt.description
+             FROM work_requests wr
+             JOIN project_request_reference prr ON prr.request_id = wr.request_type_id
+             JOIN project_type pt ON pt.id = prr.project_id
+             WHERE wr.id = :id
+             ORDER BY pt.project_type ASC`,
+            { replacements: { id }, type: sequelize.QueryTypes.SELECT }
+        );
+        res.json({ success: true, data: projectTypes });
+    } catch (error) {
+        console.error('Error fetching project types:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
 const updateProject = async (req, res) => {
     try {
         const { id } = req.params;
-        const { project_name, brand, priority, status, remarks, description } = req.body;
+        const { project_name, brand, priority, status, remarks, description, project_id } = req.body;
+
+        let setClause = 'project_name=:project_name, brand=:brand, priority=:priority, status=:status, remarks=:remarks, description=:description';
+        const replacements = { id, project_name, brand, priority, status, remarks, description };
+
+        if (project_id !== undefined && project_id !== '') {
+            setClause += ', project_id=:project_id';
+            replacements.project_id = project_id;
+        }
+
+        setClause += ', updated_at=NOW()';
+
         await sequelize.query(
-            `UPDATE work_requests SET project_name=:project_name, brand=:brand, priority=:priority, status=:status, remarks=:remarks, description=:description, updated_at=NOW() WHERE id=:id`,
-            { replacements: { id, project_name, brand, priority, status, remarks, description }, type: sequelize.QueryTypes.UPDATE }
+            `UPDATE work_requests SET ${setClause} WHERE id=:id`,
+            { replacements, type: sequelize.QueryTypes.UPDATE }
         );
         res.json({ success: true, message: 'Project updated successfully' });
     } catch (error) {
@@ -1683,6 +1713,7 @@ module.exports = {
     deleteTask,
     deleteIssue,
     getEditData,
+    getProjectTypesByProject,
     updateProject,
     updateClient,
     updateTask,
