@@ -1,4 +1,5 @@
 const { sequelize } = require('../config/databaseConfig');
+const { Tasks, IssueAssignments } = require('../models');
 
 const getClientUsersByDivision = async (userId) => {
     return sequelize.query(
