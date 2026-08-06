@@ -2000,7 +2000,8 @@ const getAssignedIssues = async (req, res) => {
 
         // Build where condition
         let whereCondition = {
-            id: { [Op.in]: issueAssignmentIds }
+            id: { [Op.in]: issueAssignmentIds },
+            is_deleted: 0
         };
 
         // Apply status filter
