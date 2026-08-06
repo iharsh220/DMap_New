@@ -343,41 +343,107 @@ function openEditModal(type, id){
         html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 16px;">';
         html+=fi('Project Name','project_name',r.project_name);
         html+=fi('Brand','brand',r.brand);
-        html+=fs('Priority','priority',r.priority,['low','medium','high','critical']);
-        html+=fs('Status','status',r.status,['draft','pending','accepted','assigned','in_progress','completed','rejected']);
-        html+=fi('Requested At','requested_at',r.requested_at?String(r.requested_at).slice(0,16):'','datetime-local');
-        html+='</div>';
         if(type==='project'){
+            html+='<div style="margin-bottom:12px;"><label style="display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;">Request Type</label>'
+                +'<select name="request_type_id" style="width:100%;background:#131929;border:1px solid #2d3548;border-radius:6px;padding:7px 10px;color:#e2e8f0;font-size:13px;">'
+                +'<option value="">Loading...</option>'
+                +'</select></div>';
+            html+=fs('Priority','priority',r.priority,['low','medium','high','critical']);
             html+='<div style="margin-bottom:12px;"><label style="display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;">Project Type</label>'
                 +'<select name="project_id" style="width:100%;background:#131929;border:1px solid #2d3548;border-radius:6px;padding:7px 10px;color:#e2e8f0;font-size:13px;">'
-                +'<option value="">Loading project types...</option>'
+                +'<option value="">Loading...</option>'
                 +'</select></div>';
+        } else {
+            html+=fs('Priority','priority',r.priority,['low','medium','high','critical']);
         }
+        html+=fs('Status','status',r.status,['draft','pending','accepted','assigned','in_progress','completed','rejected']);
+        if(type==='project'){
+            html+='<div style="margin-bottom:12px;"><label style="display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;">Creative Manager</label>'
+                +'<input type="text" name="creative_manager" readonly style="width:100%;background:#131929;border:1px solid #2d3548;border-radius:6px;padding:7px 10px;color:#94a3b8;font-size:13px;" value="Loading..."></div>';
+            html+=fi('Requested At','requested_at',r.requested_at?String(r.requested_at).slice(0,16):'','datetime-local');
+        } else {
+            html+=fi('Requested At','requested_at',r.requested_at?String(r.requested_at).slice(0,16):'','datetime-local');
+        }
+        html+='</div>';
         html+=ft('Remarks','remarks',r.remarks);
         html+=ft('Description','description',r.description);
         html+=ft('About Project','about_project',r.about_project);
         $('#editModalBody').html(html);
 
         if(type==='project'){
-            $.getJSON(getApiBase()+'datatable/admin/edit/project/'+id+'/project-types', function(ptRes){
-                var ptypes = ptRes.data||[];
-                var $sel = $('#editModalBody select[name="project_id"]');
-                $sel.empty();
-                var currentType = ptypes.find(function(pt){ return String(pt.id)===String(r.project_id); });
-                if(r.project_id && currentType){
-                    $sel.append('<option value="'+currentType.id+'" selected>'+currentType.project_type+'</option>');
-                    ptypes.forEach(function(pt){
-                        if(String(pt.id)!==String(r.project_id))
-                            $sel.append('<option value="'+pt.id+'">'+pt.project_type+'</option>');
-                    });
-                } else {
-                    $sel.append('<option value="">Select project type</option>');
-                    ptypes.forEach(function(pt){
-                        $sel.append('<option value="'+pt.id+'">'+(pt.project_type)+'</option>');
-                    });
-                }
-            }).fail(function(){
-                $('#editModalBody select[name="project_id"]').empty().append('<option value="">Failed to load</option>');
+            var $rtSel = $('#editModalBody select[name="request_type_id"]');
+            var $ptSel = $('#editModalBody select[name="project_id"]');
+            var $cmInput = $('#editModalBody input[readonly]');
+
+            function loadRequestTypes(){
+                $.getJSON(getApiBase()+'datatable/admin/edit/project/'+id+'/request-types', function(rtRes){
+                    var rts = rtRes.data||[];
+                    $rtSel.empty();
+                    var currentRt = rts.find(function(rt){ return String(rt.id)===String(r.request_type_id); });
+                    if(r.request_type_id && currentRt){
+                        $rtSel.append('<option value="'+currentRt.id+'" selected>'+currentRt.request_type+'</option>');
+                        rts.forEach(function(rt){
+                            if(String(rt.id)!==String(r.request_type_id))
+                                $rtSel.append('<option value="'+rt.id+'">'+rt.request_type+'</option>');
+                        });
+                    } else if(rts.length){
+                        $rtSel.append('<option value="'+rts[0].id+'" selected>'+rts[0].request_type+'</option>');
+                        rts.forEach(function(rt){
+                            if(String(rt.id)!==String(rts[0].id))
+                                $rtSel.append('<option value="'+rt.id+'">'+rt.request_type+'</option>');
+                        });
+                    } else {
+                        $rtSel.append('<option value="">No request types available</option>');
+                    }
+                    loadProjectTypes();
+                }).fail(function(){ $rtSel.empty().append('<option value="">Failed to load</option>'); });
+            }
+
+            function loadProjectTypes(){
+                var rtId = $rtSel.val();
+                var url = getApiBase()+'datatable/admin/edit/project/'+id+'/project-types';
+                if(rtId) url += '?request_type_id='+rtId;
+                $.getJSON(url, function(ptRes){
+                    var pts = ptRes.data||[];
+                    $ptSel.empty();
+                    var currentPt = pts.find(function(pt){ return String(pt.id)===String(r.project_id); });
+                    if(r.project_id && currentPt){
+                        $ptSel.append('<option value="'+currentPt.id+'" selected>'+currentPt.project_type+'</option>');
+                        pts.forEach(function(pt){
+                            if(String(pt.id)!==String(r.project_id))
+                                $ptSel.append('<option value="'+pt.id+'">'+pt.project_type+'</option>');
+                        });
+                    } else if(pts.length){
+                        $ptSel.append('<option value="'+pts[0].id+'" selected>'+pts[0].project_type+'</option>');
+                        pts.forEach(function(pt){
+                            if(String(pt.id)!==String(pts[0].id))
+                                $ptSel.append('<option value="'+pt.id+'">'+pt.project_type+'</option>');
+                        });
+                    } else {
+                        $ptSel.append('<option value="">No project types available</option>');
+                    }
+                }).fail(function(){ $ptSel.empty().append('<option value="">Failed to load</option>'); });
+                loadCreativeManager();
+            }
+
+            function loadCreativeManager(){
+                var rtId = $rtSel.val();
+                var url = getApiBase()+'datatable/admin/edit/project/'+id+'/creative-manager';
+                if(rtId) url += '?request_type_id='+rtId;
+                $.getJSON(url, function(cmRes){
+                    var cm = cmRes.data||[];
+                    if(cm.length && cm[0].name){
+                        $cmInput.val(cm[0].name);
+                    } else {
+                        $cmInput.val('N/A');
+                    }
+                }).fail(function(){ $cmInput.val('N/A'); });
+            }
+
+            loadRequestTypes();
+
+            $rtSel.on('change', function(){
+                loadProjectTypes();
             });
         }
 

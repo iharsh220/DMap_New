@@ -40,7 +40,7 @@ const getEditData = async (req, res) => {
 
         if (type === 'project') {
             const [row] = await sequelize.query(
-                `SELECT id, project_name, brand, priority, status, remarks, description, about_project, requested_at, project_id, user_id FROM work_requests WHERE id = :id`,
+                `SELECT id, project_name, brand, priority, status, remarks, description, about_project, requested_at, project_id, user_id, request_type_id FROM work_requests WHERE id = :id`,
                 { replacements: { id }, type: sequelize.QueryTypes.SELECT }
             );
             record = row;
@@ -101,18 +101,43 @@ const getEditData = async (req, res) => {
     }
 };
 
+const getRequestTypes = async (req, res) => {
+    try {
+        const requestTypes = await sequelize.query(
+            `SELECT id, request_type, description FROM request_type ORDER BY request_type ASC`,
+            { type: sequelize.QueryTypes.SELECT }
+        );
+        res.json({ success: true, data: requestTypes });
+    } catch (error) {
+        console.error('Error fetching request types:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
 const getProjectTypesByProject = async (req, res) => {
     try {
         const { id } = req.params;
-        const projectTypes = await sequelize.query(
-            `SELECT DISTINCT pt.id, pt.project_type, pt.description
-             FROM work_requests wr
-             JOIN project_request_reference prr ON prr.request_id = wr.request_type_id
-             JOIN project_type pt ON pt.id = prr.project_id
-             WHERE wr.id = :id
-             ORDER BY pt.project_type ASC`,
-            { replacements: { id }, type: sequelize.QueryTypes.SELECT }
-        );
+        const { request_type_id } = req.query;
+
+        let sql = `
+            SELECT DISTINCT pt.id, pt.project_type, pt.description
+            FROM work_requests wr
+            JOIN project_request_reference prr ON prr.request_id = wr.request_type_id
+            JOIN project_type pt ON pt.id = prr.project_id
+            WHERE wr.id = :id`;
+        const replacements = { id };
+
+        if (request_type_id) {
+            sql = `
+                SELECT DISTINCT pt.id, pt.project_type, pt.description
+                FROM project_request_reference prr
+                JOIN project_type pt ON pt.id = prr.project_id
+                WHERE prr.request_id = :request_type_id
+                ORDER BY pt.project_type ASC`;
+            replacements.request_type_id = request_type_id;
+        }
+
+        const projectTypes = await sequelize.query(sql, { replacements, type: sequelize.QueryTypes.SELECT });
         res.json({ success: true, data: projectTypes });
     } catch (error) {
         console.error('Error fetching project types:', error);
@@ -120,13 +145,61 @@ const getProjectTypesByProject = async (req, res) => {
     }
 };
 
+const getCreativeManagerByProject = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { request_type_id } = req.query;
+
+        let sql;
+        let replacements;
+
+        if (request_type_id) {
+            sql = `
+                SELECT DISTINCT u.id, u.name, u.email
+                FROM request_division_reference rdr
+                JOIN user_divisions ud ON ud.division_id = rdr.division_id
+                JOIN users u ON u.id = ud.user_id
+                WHERE rdr.request_id = :request_type_id
+                  AND u.job_role_id = 2
+                  AND u.account_status = 'active'
+                ORDER BY u.name ASC
+                LIMIT 1`;
+            replacements = { request_type_id };
+        } else {
+            sql = `
+                SELECT DISTINCT u.id, u.name, u.email
+                FROM work_requests wr
+                JOIN request_division_reference rdr ON rdr.request_id = wr.request_type_id
+                JOIN user_divisions ud ON ud.division_id = rdr.division_id
+                JOIN users u ON u.id = ud.user_id
+                WHERE wr.id = :id
+                  AND u.job_role_id = 2
+                  AND u.account_status = 'active'
+                ORDER BY u.name ASC
+                LIMIT 1`;
+            replacements = { id };
+        }
+
+        const managers = await sequelize.query(sql, { replacements, type: sequelize.QueryTypes.SELECT });
+        res.json({ success: true, data: managers });
+    } catch (error) {
+        console.error('Error fetching creative manager:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
 const updateProject = async (req, res) => {
     try {
         const { id } = req.params;
-        const { project_name, brand, priority, status, remarks, description, project_id } = req.body;
+        const { project_name, brand, priority, status, remarks, description, project_id, request_type_id } = req.body;
 
         let setClause = 'project_name=:project_name, brand=:brand, priority=:priority, status=:status, remarks=:remarks, description=:description';
         const replacements = { id, project_name, brand, priority, status, remarks, description };
+
+        if (request_type_id !== undefined && request_type_id !== '') {
+            setClause += ', request_type_id=:request_type_id';
+            replacements.request_type_id = request_type_id;
+        }
 
         if (project_id !== undefined && project_id !== '') {
             setClause += ', project_id=:project_id';
@@ -1713,7 +1786,9 @@ module.exports = {
     deleteTask,
     deleteIssue,
     getEditData,
+    getRequestTypes,
     getProjectTypesByProject,
+    getCreativeManagerByProject,
     updateProject,
     updateClient,
     updateTask,
