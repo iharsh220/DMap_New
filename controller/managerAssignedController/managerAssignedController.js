@@ -2677,6 +2677,52 @@ const deleteWorkRequest = async (req, res) => {
     }
 };
 
+const cancelWorkRequest = async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) {
+            return res.status(400).json({ success: false, error: 'Invalid work request ID' });
+        }
+        const manager_id = req.user.id;
+
+        const existingResult = await workRequestService.getAll({
+            where: { id },
+            include: [
+                {
+                    model: WorkRequestManagers,
+                    where: { manager_id: manager_id },
+                    required: true,
+                    attributes: []
+                }
+            ],
+            limit: 1
+        });
+
+        if (!existingResult.success || existingResult.data.length === 0) {
+            return res.status(404).json({ success: false, error: 'Work request not found or not assigned to you' });
+        }
+
+        const workRequest = existingResult.data[0];
+
+        await recordWorkRequestHistory({
+            req,
+            workRequestId: id,
+            action: 'cancelled',
+            previousData: workRequest,
+            comments: 'Work request cancelled by manager',
+            relatedUserId: workRequest.user_id,
+            relatedManagerId: manager_id
+        });
+
+        await WorkRequests.update({ status: 'cancelled' }, { where: { id } });
+
+        res.json({ success: true, message: 'Work request cancelled successfully' });
+    } catch (error) {
+        console.error('Error cancelling work request:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
 const deleteTask = async (req, res) => {
     try {
         const taskId = parseInt(req.params.taskId, 10);
@@ -5697,6 +5743,7 @@ module.exports = {
     deferWorkRequest,
     updateWorkRequestProject,
     deleteWorkRequest,
+    cancelWorkRequest,
     deleteTask,
     getMyTasks,
     getAssignableUsers,
