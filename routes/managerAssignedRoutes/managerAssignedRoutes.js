@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getAssignedWorkRequests, getAssignedWorkRequestById, acceptWorkRequest, acceptIssueRequest, deferWorkRequest, updateWorkRequestProject, deleteWorkRequest, deleteTask, getMyTasks, getAssignableUsers, getTaskTypesByWorkRequest, createTask, getTasksByWorkRequestId, getTaskAnalytics, getMyTeam, getAssignedRequestsWithStatus, getUserTask, updateTask, reviewTaskDocument, reviewIssueDocument, reviewTask, shareForClientReview, assignIssueToUser, getIssueAssignments, completeAllTasksAndIssues, getTaskHistory, getIssueHistory } = require('../../controller/managerAssignedController/managerAssignedController');
+const { getAssignedWorkRequests, getAssignedWorkRequestById, acceptWorkRequest, acceptIssueRequest, deferWorkRequest, updateWorkRequestProject, deleteWorkRequest, cancelWorkRequest, deleteTask, getMyTasks, getAssignableUsers, getTaskTypesByWorkRequest, createTask, getTasksByWorkRequestId, getTaskAnalytics, getMyTeam, getAssignedRequestsWithStatus, getUserTask, updateTask, reviewTaskDocument, reviewIssueDocument, reviewTask, shareForClientReview, assignIssueToUser, getIssueAssignments, completeAllTasksAndIssues, getTaskHistory, getIssueHistory } = require('../../controller/managerAssignedController/managerAssignedController');
 const { authenticateToken } = require('../../middleware/jwtMiddleware');
 const { checkRole } = require('../../middleware/roleMiddleware');
 const filterMiddleware = require('../../middleware/filterMiddleware');
@@ -40,6 +40,7 @@ router.put('/:id/defer', authenticateToken, checkRole([1, 2, 3]), deferWorkReque
 // latest code..!!
 router.put('/:id/project', authenticateToken, checkRole([1, 2, 3]), updateWorkRequestProject); // Update work request project
 router.delete('/:id', authenticateToken, checkRole([1, 2, 3]), deleteWorkRequest); // Delete a work request
+router.put('/:id/cancel', authenticateToken, checkRole([1, 2, 3]), cancelWorkRequest); // Cancel a work request
 
 router.get('/:id/assignable-users', authenticateToken, checkRole([1, 2, 3]), getAssignableUsers); // Get users that can be assigned tasks for a specific work request
 router.get('/id/task-types', authenticateToken, checkRole([1, 2, 3]), getTaskTypesByWorkRequest); // Get task types for a specific work request based on its project_id or directly by project_id query param
