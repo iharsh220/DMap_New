@@ -273,7 +273,7 @@ const getAssignedWorkRequests = async (req, res) => {
             const statusArray = status.split(',').map(s => s.trim());
 
             // Validate status values
-            const validStatuses = ['assigned', 'pending', 'accepted', 'in_progress', 'completed', 'rejected', 'deferred'];
+            const validStatuses = ['assigned', 'pending', 'accepted', 'in_progress', 'completed', 'rejected', 'deferred', 'cancelled'];
             const invalidStatuses = statusArray.filter(s => !validStatuses.includes(s));
 
             if (invalidStatuses.length > 0) {
