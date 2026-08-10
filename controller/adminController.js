@@ -522,7 +522,7 @@ const getAdminData = async (req, res) => {
         const { startDate, endDate } = req.query;
 
         const replacements = {};
-        const whereClauses = [];
+        const whereClauses = ['wr.is_deleted = 0'];
 
         if (startDate) {
             whereClauses.push('wr.created_at >= :startDate');
@@ -1488,7 +1488,7 @@ const getWorkRequestTasksData = async (req, res) => {
         const { startDate, endDate } = req.query;
 
         const replacements = {};
-        const whereClauses = ['wr.id IN (SELECT work_request_id FROM work_request_managers)'];
+        const whereClauses = ['wr.is_deleted = 0'];
 
         if (startDate) {
             whereClauses.push('wr.requested_at >= :startDate');
