@@ -32,7 +32,7 @@ const Tasks = sequelize.define('Tasks', {
     allowNull: true,
   },
   status: {
-    type: DataTypes.ENUM('draft', 'pending', 'accepted', 'assigned', 'in_progress', 'completed', 'rejected', 'deferred'),
+    type: DataTypes.ENUM('draft', 'pending', 'accepted', 'assigned', 'in_progress', 'completed', 'rejected', 'deferred', 'cancelled'),
     defaultValue: 'pending',
   },
   version: {

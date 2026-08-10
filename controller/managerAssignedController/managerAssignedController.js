@@ -2716,7 +2716,26 @@ const cancelWorkRequest = async (req, res) => {
 
         await WorkRequests.update({ status: 'cancelled' }, { where: { id } });
 
-        res.json({ success: true, message: 'Work request cancelled successfully' });
+        const tasks = await Tasks.findAll({ where: { work_request_id: id }, attributes: ['id', 'task_name', 'status', 'work_request_id', 'is_deleted'] });
+        const taskIds = tasks.map(t => t.id);
+
+        if (taskIds.length > 0) {
+            await Tasks.update({ status: 'cancelled' }, { where: { id: { [Op.in]: taskIds } } });
+
+            await IssueAssignments.update({ status: 'cancelled' }, { where: { task_id: { [Op.in]: taskIds } } });
+
+            for (const task of tasks) { 
+                await recordTaskHistory({
+                    taskId: task.id,
+                    action: 'cancelled',
+                    actor_id: manager_id,
+                    actor_type: 'manager',
+                    comments: 'Task cancelled due to project cancellation'
+                });
+            }
+        }
+
+        res.json({ success: true, message: 'Work request and all related tasks/issues cancelled successfully' });
     } catch (error) {
         console.error('Error cancelling work request:', error);
         res.status(500).json({ success: false, error: error.message });
