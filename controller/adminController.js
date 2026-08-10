@@ -194,6 +194,12 @@ const updateProject = async (req, res) => {
         const { id } = req.params;
         const { project_name, brand, priority, status, remarks, description, project_id, request_type_id } = req.body;
 
+        const [existing] = await sequelize.query(
+            `SELECT request_type_id FROM work_requests WHERE id = :id`,
+            { replacements: { id }, type: sequelize.QueryTypes.SELECT }
+        );
+        const oldRequestTypeId = existing ? existing.request_type_id : null;
+
         let setClause = 'project_name=:project_name, brand=:brand, priority=:priority, status=:status, remarks=:remarks, description=:description';
         const replacements = { id, project_name, brand, priority, status, remarks, description };
 
@@ -213,6 +219,31 @@ const updateProject = async (req, res) => {
             `UPDATE work_requests SET ${setClause} WHERE id=:id`,
             { replacements, type: sequelize.QueryTypes.UPDATE }
         );
+
+        if (request_type_id !== undefined && request_type_id !== '' && String(oldRequestTypeId) !== String(request_type_id)) {
+            const manager = await sequelize.query(
+                `SELECT DISTINCT u.id, u.name, u.email
+                 FROM request_division_reference rdr
+                 JOIN user_divisions ud ON ud.division_id = rdr.division_id
+                 JOIN users u ON u.id = ud.user_id
+                 WHERE rdr.request_id = :request_type_id
+                   AND u.job_role_id = 2
+                   AND u.account_status = 'active'
+                 ORDER BY u.name ASC
+                 LIMIT 1`,
+                { replacements: { request_type_id }, type: sequelize.QueryTypes.SELECT }
+            );
+
+            await sequelize.query(`DELETE FROM work_request_managers WHERE work_request_id = :id`, { replacements: { id } });
+
+            if (manager.length > 0 && manager[0].id) {
+                await sequelize.query(
+                    `INSERT INTO work_request_managers (work_request_id, manager_id, created_at, updated_at) VALUES (:work_request_id, :manager_id, NOW(), NOW())`,
+                    { replacements: { work_request_id: id, manager_id: manager[0].id }, type: sequelize.QueryTypes.INSERT }
+                );
+            }
+        }
+
         res.json({ success: true, message: 'Project updated successfully' });
     } catch (error) {
         console.error('Error updating project:', error);
