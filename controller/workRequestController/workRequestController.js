@@ -1697,6 +1697,26 @@ const getUserDashboardStats = async (req, res) => {
 
 // PM Approve Task - Update task status to completed and review to approved
 // Only approves tasks where intimate_client = 1 and associated documents with intimate_client = 1
+const checkAndCompleteWorkRequest = async (workRequestId) => {
+    const tasks = await Tasks.findAll({ where: { work_request_id: workRequestId, is_deleted: 0 } });
+    if (tasks.length === 0) {
+        await WorkRequests.update({ status: 'completed' }, { where: { id: workRequestId } });
+        return;
+    }
+    const allTasksCompleted = tasks.every(t => t.status === 'completed');
+    if (!allTasksCompleted) return;
+    const taskIds = tasks.map(t => t.id);
+    const issues = await IssueAssignments.findAll({ where: { task_id: { [Op.in]: taskIds }, is_deleted: 0 } });
+    if (issues.length === 0) {
+        await WorkRequests.update({ status: 'completed' }, { where: { id: workRequestId } });
+        return;
+    }
+    const allIssuesCompleted = issues.every(i => i.status === 'completed');
+    if (allIssuesCompleted) {
+        await WorkRequests.update({ status: 'completed' }, { where: { id: workRequestId } });
+    }
+};
+
 const pmApproveTask = async (req, res) => {
     try {
         const { task_id, issue_id } = req.body;
@@ -1787,6 +1807,8 @@ const pmApproveTask = async (req, res) => {
             relatedTaskId: task.id,
             comments: 'PM approved task'
         });
+
+        await checkAndCompleteWorkRequest(task.work_request_id);
 
         // Fetch updated task
         const updatedTask = await Tasks.findByPk(task_id, {
@@ -2011,6 +2033,10 @@ const handleIssuePmApproval = async (req, res, issueId) => {
             relatedIssueId: issueId,
             comments: 'PM approved issue'
         });
+
+        if (issueAssignment.task?.WorkRequest?.id) {
+            await checkAndCompleteWorkRequest(issueAssignment.task.WorkRequest.id);
+        }
 
         // Fetch updated issue
         const updatedIssue = await IssueAssignments.findByPk(issueId, {
