@@ -261,19 +261,33 @@ const getAssignedWorkRequests = async (req, res) => {
         if (Array.isArray(sortField)) {
             order.push([...sortField, sortDirection]);
         } else if (sortField === 'deadline') {
-            order.push([literal('(SELECT MAX(`deadline`) FROM `tasks` WHERE `tasks`.`work_request_id` = `WorkRequests`.`id`)'), sortDirection]);
+            order.push([literal(`(
+                IFNULL(
+                    (SELECT MAX(ia.deadline)
+                     FROM issue_assignments ia
+                     JOIN tasks t ON t.id = ia.task_id
+                     WHERE t.work_request_id = WorkRequests.id
+                       AND ia.is_deleted = 0
+                       AND ia.deadline IS NOT NULL),
+                    (SELECT MAX(t.deadline)
+                     FROM tasks t
+                     WHERE t.work_request_id = WorkRequests.id
+                       AND t.is_deleted = 0
+                       AND t.deadline IS NOT NULL)
+                )
+            )`), sortDirection]);
         } else {
             order.push([sortField, sortDirection]);
         }
 
-        let where = { status: { [Op.ne]: 'draft' }, is_deleted: 0 };
+        let where = { is_deleted: 0 };
+        const andConditions = [];
+        let hasOverdue = false;
 
-        // Handle multiple comma-separated status values
         if (status) {
             const statusArray = status.split(',').map(s => s.trim());
 
-            // Validate status values
-            const validStatuses = ['assigned', 'pending', 'accepted', 'in_progress', 'completed', 'rejected', 'deferred', 'cancelled'];
+            const validStatuses = ['assigned', 'pending', 'accepted', 'in_progress', 'completed', 'rejected', 'deferred', 'cancelled', 'overdue'];
             const invalidStatuses = statusArray.filter(s => !validStatuses.includes(s));
 
             if (invalidStatuses.length > 0) {
@@ -283,20 +297,54 @@ const getAssignedWorkRequests = async (req, res) => {
                 });
             }
 
-            // If multiple statuses, use OR condition
-            if (statusArray.length > 1) {
-                where.status = { [Op.in]: statusArray };
-            } else {
-                // Single status
-                where.status = statusArray[0];
+            hasOverdue = statusArray.includes('overdue');
+            const normalStatuses = statusArray.filter(s => s !== 'overdue');
+
+            if (normalStatuses.length > 0) {
+                if (normalStatuses.length > 1) {
+                    andConditions.push({ status: { [Op.in]: normalStatuses } });
+                } else {
+                    andConditions.push({ status: normalStatuses[0] });
+                }
             }
+
+            if (hasOverdue) {
+                const overdueResult = await sequelize.query(
+                    `SELECT DISTINCT wr.id FROM work_requests wr
+                     INNER JOIN tasks t ON t.work_request_id = wr.id AND t.is_deleted = 0
+                       AND t.deadline < CURDATE()
+                       AND t.status NOT IN ('completed', 'cancelled')
+                       AND t.review != 'approved'
+                       AND t.review_stage != 'final_approved'
+                     WHERE wr.status NOT IN ('completed', 'cancelled')
+                     UNION
+                     SELECT DISTINCT wr.id FROM work_requests wr
+                     INNER JOIN tasks t ON t.work_request_id = wr.id AND t.is_deleted = 0
+                     INNER JOIN issue_assignments ia ON ia.task_id = t.id AND ia.is_deleted = 0
+                       AND ia.deadline < CURDATE()
+                       AND ia.status NOT IN ('completed', 'cancelled')
+                       AND ia.review != 'approved'
+                       AND ia.review_stage != 'final_approved'
+                     WHERE wr.status NOT IN ('completed', 'cancelled')`,
+                    { type: sequelize.QueryTypes.SELECT }
+                );
+
+                const overdueWorkRequestIds = overdueResult.map(r => r.id);
+                if (overdueWorkRequestIds.length > 0) {
+                    andConditions.push({ id: { [Op.in]: overdueWorkRequestIds } });
+                } else {
+                    andConditions.push({ id: { [Op.in]: [] } });
+                }
+
+                andConditions.push({ status: { [Op.ne]: 'completed' } });
+            }
+        } else {
+            where.status = { [Op.ne]: 'draft' };
         }
 
-        // Handle multiple comma-separated review values
         if (review) {
             const reviewArray = review.split(',').map(r => r.trim());
 
-            // Validate review values
             const validReviews = ['pending', 'approved', 'change_request'];
             const invalidReviews = reviewArray.filter(r => !validReviews.includes(r));
 
@@ -307,20 +355,16 @@ const getAssignedWorkRequests = async (req, res) => {
                 });
             }
 
-            // If multiple reviews, use OR condition
             if (reviewArray.length > 1) {
-                where.review = { [Op.in]: reviewArray };
+                andConditions.push({ review: { [Op.in]: reviewArray } });
             } else {
-                // Single review
-                where.review = reviewArray[0];
+                andConditions.push({ review: reviewArray[0] });
             }
         }
 
-        // Handle multiple comma-separated review_stages values
         if (review_stages) {
             const reviewStageArray = review_stages.split(',').map(rs => rs.trim());
 
-            // Validate review_stage values
             const validReviewStages = ['not_started', 'manager_review', 'pm_review', 'change_requested', 'final_approved'];
             const invalidReviewStages = reviewStageArray.filter(rs => !validReviewStages.includes(rs));
 
@@ -331,16 +375,13 @@ const getAssignedWorkRequests = async (req, res) => {
                 });
             }
 
-            // If multiple review_stages, use OR condition
             if (reviewStageArray.length > 1) {
-                where.review_stage = { [Op.in]: reviewStageArray };
+                andConditions.push({ review_stage: { [Op.in]: reviewStageArray } });
             } else {
-                // Single review_stage
-                where.review_stage = reviewStageArray[0];
+                andConditions.push({ review_stage: reviewStageArray[0] });
             }
         }
 
-        // Handle user_id filter - filter by exact user ID
         if (user_id) {
             const userIdInt = parseInt(user_id, 10);
             if (isNaN(userIdInt)) {
@@ -349,28 +390,23 @@ const getAssignedWorkRequests = async (req, res) => {
                     error: 'Invalid user_id. Must be a valid integer'
                 });
             }
-            where.user_id = userIdInt;
+            andConditions.push({ user_id: userIdInt });
         }
 
-        // Apply filters from middleware, but exclude user_name/username as they may be handled via search
         if (req.filters) {
-            const { user_name, username, ...otherFilters } = req.filters;
-            where = { ...where, ...otherFilters };
+            const { user_name, username, status, ...otherFilters } = req.filters;
+            Object.entries(otherFilters).forEach(([key, value]) => {
+                andConditions.push({ [key]: value });
+            });
         }
 
-        // Apply search - handle user_name/username specially since it's on the associated User model
         if (req.search.term && req.search.fields.length > 0) {
             const searchFields = req.search.fields;
-            // Check for user_name or username in search fields
             const hasUserNameSearch = searchFields.includes('user_name') || searchFields.includes('username');
-
-            // Remove user_name and username from search fields for the direct query
             const directSearchFields = searchFields.filter(field => field !== 'user_name' && field !== 'username');
 
-            // Build OR condition array combining direct fields and user_id (if applicable)
             const orConditions = [];
 
-            // Add direct field conditions (project_name, brand, etc.)
             if (directSearchFields.length > 0) {
                 directSearchFields.forEach(field => {
                     orConditions.push({
@@ -379,9 +415,7 @@ const getAssignedWorkRequests = async (req, res) => {
                 });
             }
 
-            // If user_name/username search is requested, add user_id IN condition
             if (hasUserNameSearch) {
-                // Find users matching the name (case-insensitive search)
                 const matchingUsers = await User.findAll({
                     where: {
                         name: { [Op.like]: `%${req.search.term}%` }
@@ -393,14 +427,15 @@ const getAssignedWorkRequests = async (req, res) => {
                     const userIds = matchingUsers.map(u => u.id);
                     orConditions.push({ user_id: { [Op.in]: userIds } });
                 }
-                // If no matching users found, we simply skip adding user_id condition.
-                // The search will still match on other direct fields if they match.
             }
 
-            // Apply the combined OR condition if we have any conditions
             if (orConditions.length > 0) {
-                where[Op.or] = orConditions;
+                andConditions.push({ [Op.or]: orConditions });
             }
+        }
+
+        if (andConditions.length > 0) {
+            where[Op.and] = andConditions;
         }
 
         const result = await workRequestService.getAll({
