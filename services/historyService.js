@@ -1,7 +1,8 @@
 const {
   WorkRequestHistory,
   TaskHistory,
-  IssueHistory
+  IssueHistory,
+  TaskReviewHistory
 } = require('../models');
 
 const normalizeValue = (value) => {
@@ -224,6 +225,28 @@ const recordIssueHistory = async ({
   return safeCreate(IssueHistory, transaction ? { ...payload, transaction } : payload);
 };
 
+const recordTaskReviewHistory = async ({
+  task_id,
+  reviewer_id,
+  reviewer_type = 'project_manager',
+  action = 'change_request',
+  comments = null,
+  previous_stage = null,
+  new_stage = null
+}) => {
+  const payload = {
+    task_id,
+    reviewer_id,
+    reviewer_type,
+    action,
+    comments,
+    previous_stage,
+    new_stage
+  };
+
+  return safeCreate(TaskReviewHistory, payload);
+};
+
 const getWorkRequestHistory = async (workRequestId, { limit = 200, offset = 0 } = {}) => {
   return WorkRequestHistory.findAll({
     where: { work_request_id: workRequestId },
@@ -255,6 +278,7 @@ module.exports = {
   recordWorkRequestHistory,
   recordTaskHistory,
   recordIssueHistory,
+  recordTaskReviewHistory,
   getWorkRequestHistory,
   getTaskHistory,
   getIssueHistory,
