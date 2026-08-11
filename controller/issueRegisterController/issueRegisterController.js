@@ -1,7 +1,7 @@
 const { Op } = require('sequelize');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
-const { recordTaskHistory, recordIssueHistory, recordWorkRequestHistory } = require('../../services/historyService');
+const { recordTaskHistory, recordIssueHistory, recordWorkRequestHistory, recordTaskReviewHistory } = require('../../services/historyService');
 const {
     IssueRegister,
     ChangeIssueTasktype,
@@ -189,48 +189,63 @@ const createIssueAssignment = async (req, res) => {
             notification_alert: 1
         });
 
-        const sequelize = require('../../models').sequelize;
+        const actorOverride = {
+            id: actorId,
+            actor_type: actorType,
+            name: actorName,
+            email: actorEmail
+        };
 
-        await sequelize.query(
-            `INSERT INTO issue_history 
-            (issue_assignment_id, task_id, work_request_id, parent_issue_id, action, actor_id, actor_type, actor_name, actor_email, new_status, comments, created_at, updated_at) 
-            VALUES (?, ?, ?, ?, 'created', ?, ?, ?, ?, 'm_pending', 'Issue assignment created', NOW(), NOW())`,
-            {
-                replacements: [issueAssignment.id, task_id || null, workRequestId, issue_id || null, actorId, actorType, actorName, actorEmail]
-            }
-        );
+        await recordIssueHistory({
+            req,
+            issueAssignmentId: issueAssignment.id,
+            taskId: task_id || null,
+            workRequestId,
+            action: 'created',
+            previousStatus: null,
+            newStatus: 'm_pending',
+            comments: 'Issue assignment created',
+            actorOverride
+        });
 
         if (workRequestId) {
-            await sequelize.query(
-                `INSERT INTO work_request_history 
-                (work_request_id, action, actor_id, actor_type, actor_name, actor_email, related_task_id, related_issue_id, comments, created_at, updated_at) 
-                VALUES (?, 'change_request_issue_created', ?, ?, ?, ?, ?, ?, 'Change request issue created', NOW(), NOW())`,
-                {
-                    replacements: [workRequestId, actorId, actorType, actorName, actorEmail, task_id || null, issueAssignment.id]
-                }
-            );
+            await recordWorkRequestHistory({
+                req,
+                workRequestId,
+                action: 'change_request_issue_created',
+                relatedTaskId: task_id || null,
+                relatedIssueId: issueAssignment.id,
+                comments: 'Change request issue created',
+                actorOverride
+            });
         }
 
         if (task_id) {
             await Tasks.update({ review: 'change_request' }, { where: { id: task_id } });
 
-            await sequelize.query(
-                `INSERT INTO task_history 
-                (task_id, work_request_id, action, actor_id, actor_type, actor_name, actor_email, previous_review, new_review, previous_review_stage, new_review_stage, related_issue_id, comments, created_at, updated_at) 
-                VALUES (?, ?, 'change_request_created', ?, ?, ?, ?, 'pending', 'change_request', 'final_approved', 'change_requested', ?, 'New issue request created - ${version}', NOW(), NOW())`,
-                {
-                    replacements: [task_id, workRequestId, actorId, actorType, actorName, actorEmail, issueAssignment.id]
-                }
-            );
+            await recordTaskHistory({
+                req,
+                taskId: task_id,
+                workRequestId,
+                action: 'change_request_created',
+                previousReview: 'pending',
+                newReview: 'change_request',
+                previousReviewStage: 'final_approved',
+                newReviewStage: 'change_requested',
+                relatedIssueId: issueAssignment.id,
+                comments: `New issue request created - ${version}`,
+                actorOverride
+            });
 
-            await sequelize.query(
-                `INSERT INTO task_review_history 
-                (task_id, reviewer_id, reviewer_type, action, comments, previous_stage, new_stage, created_at, updated_at) 
-                VALUES (?, ?, 'project_manager', 'change_request', 'New issue request created - ${version}', 'final_approved', 'change_requested', NOW(), NOW())`,
-                {
-                    replacements: [task_id, requested_by_user_id]
-                }
-            );
+            await recordTaskReviewHistory({
+                task_id: task_id,
+                reviewer_id: requested_by_user_id,
+                reviewer_type: 'project_manager',
+                action: 'change_request',
+                comments: `New issue request created - ${version}`,
+                previous_stage: 'final_approved',
+                new_stage: 'change_requested'
+            });
         }
 
         if (issue_id) {
@@ -238,24 +253,31 @@ const createIssueAssignment = async (req, res) => {
 
             const parentIssue = await IssueAssignments.findByPk(issue_id, { attributes: ['task_id'] });
 
-            await sequelize.query(
-                `INSERT INTO issue_history 
-                (issue_assignment_id, task_id, work_request_id, parent_issue_id, action, actor_id, actor_type, actor_name, actor_email, previous_review, new_review, previous_review_stage, new_review_stage, related_issue_id, comments, created_at, updated_at) 
-                VALUES (?, ?, ?, ?, 'child_change_request_created', ?, ?, ?, ?, 'pending', 'change_request', 'final_approved', 'change_requested', ?, 'New issue request created for issue - ${version}', NOW(), NOW())`,
-                {
-                    replacements: [issue_id, parentIssue?.task_id || null, workRequestId, issue_id, actorId, actorType, actorName, actorEmail, issueAssignment.id]
-                }
-            );
+            await recordIssueHistory({
+                req,
+                issueAssignmentId: issue_id,
+                taskId: parentIssue?.task_id || null,
+                workRequestId,
+                action: 'child_change_request_created',
+                previousReview: 'pending',
+                newReview: 'change_request',
+                previousReviewStage: 'final_approved',
+                newReviewStage: 'change_requested',
+                relatedIssueId: issueAssignment.id,
+                comments: `New issue request created for issue - ${version}`,
+                actorOverride
+            });
 
             if (parentIssue && parentIssue.task_id) {
-                await sequelize.query(
-                    `INSERT INTO task_review_history 
-                    (task_id, reviewer_id, reviewer_type, action, comments, previous_stage, new_stage, created_at, updated_at) 
-                    VALUES (?, ?, 'project_manager', 'change_request', 'New issue request created for issue - ${version}', 'final_approved', 'change_requested', NOW(), NOW())`,
-                    {
-                        replacements: [parentIssue.task_id, requested_by_user_id]
-                    }
-                );
+                await recordTaskReviewHistory({
+                    task_id: parentIssue.task_id,
+                    reviewer_id: requested_by_user_id,
+                    reviewer_type: 'project_manager',
+                    action: 'change_request',
+                    comments: `New issue request created for issue - ${version}`,
+                    previous_stage: 'final_approved',
+                    new_stage: 'change_requested'
+                });
             }
         }
 

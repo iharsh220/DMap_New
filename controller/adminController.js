@@ -1311,7 +1311,7 @@ const getIssueDetailsData = async (req, res) => {
                 COALESCE(ia.resize_work, 0) AS issue_resize_work,
                 COALESCE(ia.no_of_images_videos_audio, 0) AS issue_ai,
                 COALESCE(ia.shoot_setup, 0) AS issue_shoot_setup,
-                COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'assigned' AND actor_type = 'manager'), '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS issue_request_timestamp,
+                COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action IN ('created', 'child_change_request_created') AND actor_type IN ('manager', 'user')), '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS issue_request_timestamp,
                 COALESCE(DATE_FORMAT((SELECT MIN(created_at) FROM issue_history WHERE issue_assignment_id = ia.id AND action = 'accepted' AND actor_type = 'user'), '%d-%b-%Y %H:%i'), '00-00-0000 00:00') AS issue_request_response_timestamp,
                 COALESCE(
                     CASE
