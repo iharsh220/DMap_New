@@ -36,6 +36,7 @@ const ChangeIssueTasktype = require('./ChangeIssueTasktype/ChangeIssueTasktype')
 const TaskReviewHistory = require('./TaskReviewHistory/TaskReviewHistory');
 const TaskHistory = require('./TaskHistory/TaskHistory');
 const IssueHistory = require('./IssueHistory/IssueHistory');
+const Feedbacks = require('./Feedbacks/Feedbacks');
 
 // Associations
 Department.hasMany(Division, { foreignKey: 'department_id', as: 'divisions' });
@@ -189,6 +190,12 @@ TaskReviewHistory.belongsTo(User, { foreignKey: 'reviewer_id', as: 'reviewer' })
 Tasks.hasMany(TaskReviewHistory, { foreignKey: 'task_id', as: 'reviewHistory' });
 User.hasMany(TaskReviewHistory, { foreignKey: 'reviewer_id', as: 'taskReviews' });
 
+// Feedback Associations
+Feedbacks.belongsTo(Tasks, { foreignKey: 'task_id', as: 'task' });
+Feedbacks.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+Tasks.hasMany(Feedbacks, { foreignKey: 'task_id', as: 'feedbacks' });
+User.hasMany(Feedbacks, { foreignKey: 'user_id', as: 'userFeedbacks' });
+
 module.exports = {
   sequelize,
   Department,
@@ -225,5 +232,6 @@ module.exports = {
   ChangeIssueTasktype,
   TaskReviewHistory,
   TaskHistory,
-  IssueHistory
+  IssueHistory,
+  Feedbacks
 };
