@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createWorkRequest, updateWorkRequest, getMyWorkRequests, getMyTaskRequests, getWorkRequestById, getProjectTypesByRequestType, getAboutProjectOptions, getDivisionWorkRequests, getDivisionWorkRequestById, getUserDashboardStats, pmApproveTask, pmRejectTask, getWorkRequestHistory } = require('../../controller/workRequestController/workRequestController');
+const { createWorkRequest, updateWorkRequest, getMyWorkRequests, getMyTaskRequests, getWorkRequestById, getProjectTypesByRequestType, getAboutProjectOptions, getDivisionWorkRequests, getDivisionWorkRequestById, getUserDashboardStats, pmApproveTask, pmRejectTask, getWorkRequestHistory, submitFeedback, getFeedback } = require('../../controller/workRequestController/workRequestController');
 const { authenticateToken } = require('../../middleware/jwtMiddleware');
 const filterMiddleware = require('../../middleware/filterMiddleware');
 const paginationMiddleware = require('../../middleware/paginationMiddleware');
@@ -68,5 +68,12 @@ router.put('/:id', authenticateToken, (req, res, next) => {
 
     next();
 }, updateWorkRequest);
+
+// Feedback Routes
+// POST /work-requests/tasks/:taskId/feedback - Submit feedback for a task
+router.post('/tasks/:taskId/feedback', authenticateToken, submitFeedback);
+
+// GET /work-requests/tasks/:taskId/feedback - Get feedback for a task
+router.get('/tasks/:taskId/feedback', authenticateToken, getFeedback);
 
 module.exports = router;

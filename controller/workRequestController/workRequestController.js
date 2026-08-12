@@ -27,7 +27,8 @@ const {
     AboutProject,
     RequestDivisionReference,
     TaskReviewHistory,
-    TaskProjectReference
+    TaskProjectReference,
+    Feedbacks
 } = require('../../models');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
@@ -2391,6 +2392,136 @@ const getWorkRequestHistory = async (req, res) => {
     }
 };
 
+// Submit feedback for a task
+const submitFeedback = async (req, res) => {
+    try {
+        const taskId = parseInt(req.params.taskId, 10);
+        const user_id = req.user.id;
+        const { rating_functionality, rating_timeliness, rating_communication, recommendation_score, comments } = req.body;
+
+        if (isNaN(taskId)) {
+            return res.status(400).json({ success: false, error: 'Invalid task ID' });
+        }
+
+        // Validate required fields
+        if (!rating_functionality || !rating_timeliness || !rating_communication || recommendation_score === undefined) {
+            return res.status(400).json({ success: false, error: 'All ratings are required' });
+        }
+
+        // Validate rating ranges
+        if (rating_functionality < 1 || rating_functionality > 5) {
+            return res.status(400).json({ success: false, error: 'rating_functionality must be between 1 and 5' });
+        }
+        if (rating_timeliness < 1 || rating_timeliness > 5) {
+            return res.status(400).json({ success: false, error: 'rating_timeliness must be between 1 and 5' });
+        }
+        if (rating_communication < 1 || rating_communication > 5) {
+            return res.status(400).json({ success: false, error: 'rating_communication must be between 1 and 5' });
+        }
+        if (recommendation_score < 0 || recommendation_score > 10) {
+            return res.status(400).json({ success: false, error: 'recommendation_score must be between 0 and 10' });
+        }
+
+        // Check if task exists
+        const task = await Tasks.findByPk(taskId);
+        if (!task) {
+            return res.status(404).json({ success: false, error: 'Task not found' });
+        }
+
+        // Check if user has already submitted feedback for this task
+        const existingFeedback = await Feedbacks.findOne({
+            where: { task_id: taskId, user_id, is_deleted: 0 }
+        });
+
+        if (existingFeedback) {
+            return res.status(400).json({ success: false, error: 'You have already submitted feedback for this task' });
+        }
+
+        // Create feedback
+        const feedback = await Feedbacks.create({
+            task_id: taskId,
+            user_id,
+            rating_functionality,
+            rating_timeliness,
+            rating_communication,
+            recommendation_score,
+            comments: comments || null
+        });
+
+        res.json({
+            success: true,
+            message: 'Feedback submitted successfully',
+            data: feedback
+        });
+    } catch (error) {
+        console.error('Error submitting feedback:', error);
+        res.status(500).json({ success: false, error: error.message, message: 'Failed to submit feedback' });
+    }
+};
+
+// Get feedback for a task
+const getFeedback = async (req, res) => {
+    try {
+        const taskId = parseInt(req.params.taskId, 10);
+
+        if (isNaN(taskId)) {
+            return res.status(400).json({ success: false, error: 'Invalid task ID' });
+        }
+
+        // Check if task exists
+        const task = await Tasks.findByPk(taskId);
+        if (!task) {
+            return res.status(404).json({ success: false, error: 'Task not found' });
+        }
+
+        // Get all non-deleted feedbacks for this task with user details
+        const feedbacks = await Feedbacks.findAll({
+            where: { task_id: taskId, is_deleted: 0 },
+            include: [{
+                model: User,
+                as: 'user',
+                attributes: ['id', 'name', 'email']
+            }],
+            order: [['created_at', 'DESC']]
+        });
+
+        // Calculate average ratings
+        let totalFunctionality = 0;
+        let totalTimeliness = 0;
+        let totalCommunication = 0;
+        let totalRecommendation = 0;
+        const feedbackCount = feedbacks.length;
+
+        if (feedbackCount > 0) {
+            feedbacks.forEach(fb => {
+                totalFunctionality += fb.rating_functionality;
+                totalTimeliness += fb.rating_timeliness;
+                totalCommunication += fb.rating_communication;
+                totalRecommendation += fb.recommendation_score;
+            });
+        }
+
+        const averages = feedbackCount > 0 ? {
+            avg_functionality: (totalFunctionality / feedbackCount).toFixed(2),
+            avg_timeliness: (totalTimeliness / feedbackCount).toFixed(2),
+            avg_communication: (totalCommunication / feedbackCount).toFixed(2),
+            avg_recommendation: (totalRecommendation / feedbackCount).toFixed(2)
+        } : null;
+
+        res.json({
+            success: true,
+            data: {
+                feedbacks,
+                averages,
+                total_feedbacks: feedbackCount
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching feedback:', error);
+        res.status(500).json({ success: false, error: error.message, message: 'Failed to fetch feedback' });
+    }
+};
+
 module.exports = {
     createWorkRequest,
     updateWorkRequest,
@@ -2404,5 +2535,7 @@ module.exports = {
     getUserDashboardStats,
     pmApproveTask,
     pmRejectTask,
-    getWorkRequestHistory
+    getWorkRequestHistory,
+    submitFeedback,
+    getFeedback
 };
