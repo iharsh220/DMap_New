@@ -2245,7 +2245,7 @@ const acceptIssue = async (req, res) => {
 
         if (providedStartDate) {
             // Check if start_date is today or in the future
-            const isToday = providedStartDate.getTime() === today.getTime();
+            const isToday = providedStartDate.toDateString() === today.toDateString();
 
             if (isToday) {
                 newStatus = 'in_progress';
