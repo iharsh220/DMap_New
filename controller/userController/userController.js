@@ -291,6 +291,20 @@ const getAssignedTasks = async (req, res) => {
             };
         }
 
+        const assignedTaskAssignments = await TaskAssignments.findAll({
+            where: { user_id: { [Op.in]: userIds } },
+            attributes: ['task_id'],
+            group: ['task_id'],
+            raw: true
+        });
+        const assignedTaskIds = assignedTaskAssignments.map(ta => ta.task_id);
+
+        if (assignedTaskIds.length > 0) {
+            whereCondition.id = { [Op.in]: assignedTaskIds };
+        } else {
+            whereCondition.id = { [Op.in]: [] };
+        }
+
         const tasks = await Tasks.findAll({
             where: whereCondition,
             include: [
