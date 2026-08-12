@@ -2494,7 +2494,8 @@ const getAssignedRequestsWithStatus = async (req, res) => {
 
         // Apply filters
         if (req.filters) {
-            where = { ...where, ...req.filters };
+            const { status, ...otherFilters } = req.filters;
+            where = { ...where, ...otherFilters };
         }
 
         // Handle array values for status (from comma-separated)
@@ -4822,7 +4823,7 @@ const getIssueAssignments = async (req, res) => {
         const { status, review_stage, review, intimate_team, sort } = req.query;
 
         // Define valid enum values
-        const validStatuses = ['m_pending', 'u_pending', 'm_accepted', 'u_accepted', 'in_progress', 'completed', 'rejected', 'on_hold', 'cancelled'];
+        const validStatuses = ['m_pending', 'u_pending', 'm_accepted', 'u_accepted', 'in_progress', 'completed', 'rejected', 'on_hold', 'cancelled', 'overdue'];
         const validReviewStages = ['not_started', 'manager_review', 'pm_review', 'change_requested', 'final_approved'];
         const validReviews = ['pending', 'approved', 'change_request'];
 
@@ -4959,12 +4960,26 @@ const getIssueAssignments = async (req, res) => {
                 });
             }
 
-            // If multiple statuses, use OR condition
-            if (statusArray.length > 1) {
-                where.status = { [Op.in]: statusArray };
-            } else {
-                // Single status
-                where.status = statusArray[0];
+            const hasOverdue = statusArray.includes('overdue');
+            const normalStatuses = statusArray.filter(s => s !== 'overdue');
+
+            if (normalStatuses.length > 0) {
+                if (normalStatuses.length > 1) {
+                    where.status = { [Op.in]: normalStatuses };
+                } else {
+                    where.status = normalStatuses[0];
+                }
+            }
+
+            if (hasOverdue) {
+                where.deadline = { [Op.lt]: new Date() };
+                where.status = { [Op.notIn]: ['completed', 'cancelled'] };
+                where.review = { [Op.ne]: 'approved' };
+                where.review_stage = { [Op.ne]: 'final_approved' };
+                where[Op.or] = [
+                    { review: { [Op.ne]: 'change_request' } },
+                    { review_stage: { [Op.ne]: 'pm_review' } }
+                ];
             }
         }
 
