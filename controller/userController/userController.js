@@ -106,9 +106,9 @@ const getAssignedTasks = async (req, res) => {
             ];
         }
 
-        // Apply filters (excluding user_name/username as they're handled separately)
+        // Apply filters (excluding user_name/username/status as they're handled separately)
         if (req.filters) {
-            const { user_name, username, ...otherFilters } = req.filters;
+            const { user_name, username, status, ...otherFilters } = req.filters;
             whereCondition = { ...whereCondition, ...otherFilters };
         }
 
@@ -173,7 +173,7 @@ const getAssignedTasks = async (req, res) => {
             const statusArray = status.split(',').map(s => s.trim());
 
             // Validate status values
-            const validStatuses = ['pending', 'accepted', 'assigned', 'in_progress', 'completed', 'rejected', 'deferred', 'cancelled'];
+            const validStatuses = ['pending', 'accepted', 'assigned', 'in_progress', 'completed', 'rejected', 'deferred', 'cancelled', 'overdue'];
             const invalidStatuses = statusArray.filter(s => !validStatuses.includes(s));
 
             if (invalidStatuses.length > 0) {
@@ -183,17 +183,31 @@ const getAssignedTasks = async (req, res) => {
                 });
             }
 
-            // If multiple statuses, use OR condition
-            if (statusArray.length > 1) {
-                whereCondition.status = { [Op.in]: statusArray };
-            } else {
-                // Single status
-                whereCondition.status = statusArray[0];
+            const hasOverdue = statusArray.includes('overdue');
+            const normalStatuses = statusArray.filter(s => s !== 'overdue');
 
-                // For pending status, also require intimate_team = 1
-                if (statusArray[0] === 'pending') {
-                    whereCondition.intimate_team = 1;
+            if (normalStatuses.length > 0) {
+                if (normalStatuses.length > 1) {
+                    whereCondition.status = { [Op.in]: normalStatuses };
+                } else {
+                    whereCondition.status = normalStatuses[0];
+
+                    // For pending status, also require intimate_team = 1
+                    if (normalStatuses[0] === 'pending') {
+                        whereCondition.intimate_team = 1;
+                    }
                 }
+            }
+
+            if (hasOverdue) {
+                whereCondition.deadline = { [Op.lt]: new Date() };
+                whereCondition.status = { [Op.notIn]: ['completed', 'cancelled'] };
+                whereCondition.review = { [Op.ne]: 'approved' };
+                whereCondition.review_stage = { [Op.ne]: 'final_approved' };
+                whereCondition[Op.or] = [
+                    { review: { [Op.ne]: 'change_request' } },
+                    { review_stage: { [Op.ne]: 'pm_review' } }
+                ];
             }
         }
         // If no status filter, show all tasks (no default filter applied)
