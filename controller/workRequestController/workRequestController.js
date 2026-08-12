@@ -701,7 +701,7 @@ const getMyWorkRequests = async (req, res) => {
         const user_id = req.user.id;
 
 
-        let where = { user_id };
+        let where = { user_id, is_deleted: 0 };
 
         // Apply filters
         if (req.filters) {

@@ -290,16 +290,16 @@ const getAssignedTasks = async (req, res) => {
                 [Op.between]: [deadlineStart, deadlineEnd]
             };
         }
+
         const tasks = await Tasks.findAll({
             where: whereCondition,
             include: [
                 {
                     model: User,
                     as: 'assignedUsers',
-                    where: { id: { [Op.in]: userIds } },
                     attributes: ['id', 'name', 'email'],
                     through: { attributes: [] },
-                    required: true
+                    required: false
                 },
                 {
                     model: TaskType,

@@ -241,7 +241,7 @@ const getAssignedWorkRequests = async (req, res) => {
         TaskAssignments.belongsTo(Tasks, { foreignKey: 'task_id' });
 
         const manager_id = req.user.id;
-        const { status, review, review_stages, user_id, sort, sort_by } = req.query;
+        const { status, review, review_stages, review_stage, user_id, sort, sort_by } = req.query;
         const allowedSortFields = {
             id: 'id',
             project_name: 'project_name',
@@ -283,6 +283,8 @@ const getAssignedWorkRequests = async (req, res) => {
         let where = { is_deleted: 0 };
         const andConditions = [];
         let hasOverdue = false;
+        let taskReviewIncludeWhere = { is_deleted: 0 };
+        let issueReviewIncludeWhere = { is_deleted: 0 };
 
         if (status) {
             const statusArray = status.split(',').map(s => s.trim());
@@ -342,43 +344,69 @@ const getAssignedWorkRequests = async (req, res) => {
             where.status = { [Op.ne]: 'draft' };
         }
 
-        if (review) {
-            const reviewArray = review.split(',').map(r => r.trim());
+        if (review || review_stages || review_stage) {
+            const taskReviewConditions = [];
+            const issueReviewConditions = [];
 
-            const validReviews = ['pending', 'approved', 'change_request'];
-            const invalidReviews = reviewArray.filter(r => !validReviews.includes(r));
+            if (review) {
+                const reviewArray = review.split(',').map(r => r.trim());
 
-            if (invalidReviews.length > 0) {
-                return res.status(400).json({
-                    success: false,
-                    error: `Invalid review values: ${invalidReviews.join(', ')}. Valid values are: ${validReviews.join(', ')}`
-                });
+                const validReviews = ['pending', 'approved', 'change_request'];
+                const invalidReviews = reviewArray.filter(r => !validReviews.includes(r));
+
+                if (invalidReviews.length > 0) {
+                    return res.status(400).json({
+                        success: false,
+                        error: `Invalid review values: ${invalidReviews.join(', ')}. Valid values are: ${validReviews.join(', ')}`
+                    });
+                }
+
+                taskReviewConditions.push(`t.review IN ('${reviewArray.join("','")}')`);
+                issueReviewConditions.push(`ia.review IN ('${reviewArray.join("','")}')`);
+                taskReviewIncludeWhere.review = { [Op.in]: reviewArray };
+                issueReviewIncludeWhere.review = { [Op.in]: reviewArray };
             }
 
-            if (reviewArray.length > 1) {
-                andConditions.push({ review: { [Op.in]: reviewArray } });
+            if (review_stages || review_stage) {
+                const reviewStageParam = review_stages || review_stage;
+                const reviewStageArray = reviewStageParam.split(',').map(rs => rs.trim());
+
+                const validReviewStages = ['not_started', 'manager_review', 'pm_review', 'change_requested', 'final_approved'];
+                const invalidReviewStages = reviewStageArray.filter(rs => !validReviewStages.includes(rs));
+
+                if (invalidReviewStages.length > 0) {
+                    return res.status(400).json({
+                        success: false,
+                        error: `Invalid review_stage values: ${invalidReviewStages.join(', ')}. Valid values are: ${validReviewStages.join(', ')}`
+                    });
+                }
+
+                taskReviewConditions.push(`t.review_stage IN ('${reviewStageArray.join("','")}')`);
+                issueReviewConditions.push(`ia.review_stage IN ('${reviewStageArray.join("','")}')`);
+                taskReviewIncludeWhere.review_stage = { [Op.in]: reviewStageArray };
+                issueReviewIncludeWhere.review_stage = { [Op.in]: reviewStageArray };
+            }
+
+            const taskReviewWhereSql = taskReviewConditions.join(' AND ');
+            const issueReviewWhereSql = issueReviewConditions.join(' AND ');
+
+            const reviewWorkRequestResult = await sequelize.query(
+                `SELECT DISTINCT wr.id FROM work_requests wr
+                 INNER JOIN tasks t ON t.work_request_id = wr.id AND t.is_deleted = 0
+                 WHERE wr.is_deleted = 0 AND ${taskReviewWhereSql}
+                 UNION
+                 SELECT DISTINCT wr.id FROM work_requests wr
+                 INNER JOIN tasks t ON t.work_request_id = wr.id AND t.is_deleted = 0
+                 INNER JOIN issue_assignments ia ON ia.task_id = t.id AND ia.is_deleted = 0
+                 WHERE wr.is_deleted = 0 AND ${issueReviewWhereSql}`,
+                { type: sequelize.QueryTypes.SELECT }
+            );
+
+            const reviewWorkRequestIds = reviewWorkRequestResult.map(r => r.id);
+            if (reviewWorkRequestIds.length > 0) {
+                andConditions.push({ id: { [Op.in]: reviewWorkRequestIds } });
             } else {
-                andConditions.push({ review: reviewArray[0] });
-            }
-        }
-
-        if (review_stages) {
-            const reviewStageArray = review_stages.split(',').map(rs => rs.trim());
-
-            const validReviewStages = ['not_started', 'manager_review', 'pm_review', 'change_requested', 'final_approved'];
-            const invalidReviewStages = reviewStageArray.filter(rs => !validReviewStages.includes(rs));
-
-            if (invalidReviewStages.length > 0) {
-                return res.status(400).json({
-                    success: false,
-                    error: `Invalid review_stage values: ${invalidReviewStages.join(', ')}. Valid values are: ${validReviewStages.join(', ')}`
-                });
-            }
-
-            if (reviewStageArray.length > 1) {
-                andConditions.push({ review_stage: { [Op.in]: reviewStageArray } });
-            } else {
-                andConditions.push({ review_stage: reviewStageArray[0] });
+                andConditions.push({ id: { [Op.in]: [] } });
             }
         }
 
@@ -394,7 +422,7 @@ const getAssignedWorkRequests = async (req, res) => {
         }
 
         if (req.filters) {
-            const { user_name, username, status, ...otherFilters } = req.filters;
+            const { user_name, username, status, review, review_stages, review_stage, ...otherFilters } = req.filters;
             Object.entries(otherFilters).forEach(([key, value]) => {
                 andConditions.push({ [key]: value });
             });
@@ -453,7 +481,7 @@ const getAssignedWorkRequests = async (req, res) => {
                 {
                     model: Tasks,
                     attributes: ['id', 'task_name', 'description', 'request_type_id', 'task_type_id', 'work_request_id', 'deadline', 'status', 'version', 'assignment_type', 'intimate_team', 'intimate_client', 'task_count', 'link', 'start_date', 'end_date', 'review', 'review_stage', 'created_at', 'updated_at'],
-                    where: { is_deleted: 0 },
+                    where: taskReviewIncludeWhere,
                     required: false,
                     include: [
                         {
@@ -474,7 +502,7 @@ const getAssignedWorkRequests = async (req, res) => {
                         {
                             model: IssueAssignments,
                             as: 'issueAssignments',
-                            where: { is_deleted: 0 },
+                            where: issueReviewIncludeWhere,
                             required: false,
                             include: [
                                 {
@@ -2494,7 +2522,7 @@ const getAssignedRequestsWithStatus = async (req, res) => {
 
         // Apply filters
         if (req.filters) {
-            const { status, ...otherFilters } = req.filters;
+            const { status, review, review_stages, review_stage, ...otherFilters } = req.filters;
             where = { ...where, ...otherFilters };
         }
 
