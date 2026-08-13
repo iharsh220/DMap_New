@@ -700,9 +700,52 @@ const updateWorkRequest = async (req, res) => {
 const getMyWorkRequests = async (req, res) => {
     try {
         const user_id = req.user.id;
+        const { review, review_stages, review_stage } = req.query;
 
 
         let where = { user_id, is_deleted: 0 };
+
+        // Build task and issue review filters
+        let taskReviewWhere = { is_deleted: 0 };
+        let issueReviewWhere = { is_deleted: 0 };
+
+        if (review || review_stages || review_stage) {
+            taskReviewWhere.intimate_client = 1;
+            issueReviewWhere.intimate_client = 1;
+
+            if (review) {
+                const reviewArray = review.split(',').map(r => r.trim());
+                const validReviews = ['pending', 'approved', 'change_request'];
+                const invalidReviews = reviewArray.filter(r => !validReviews.includes(r));
+
+                if (invalidReviews.length > 0) {
+                    return res.status(400).json({
+                        success: false,
+                        error: `Invalid review values: ${invalidReviews.join(', ')}. Valid values are: ${validReviews.join(', ')}`
+                    });
+                }
+
+                taskReviewWhere.review = { [Op.in]: reviewArray };
+                issueReviewWhere.review = { [Op.in]: reviewArray };
+            }
+
+            if (review_stages || review_stage) {
+                const reviewStageParam = review_stages || review_stage;
+                const reviewStageArray = reviewStageParam.split(',').map(rs => rs.trim());
+                const validReviewStages = ['not_started', 'manager_review', 'pm_review', 'change_requested', 'final_approved'];
+                const invalidReviewStages = reviewStageArray.filter(rs => !validReviewStages.includes(rs));
+
+                if (invalidReviewStages.length > 0) {
+                    return res.status(400).json({
+                        success: false,
+                        error: `Invalid review_stage values: ${invalidReviewStages.join(', ')}. Valid values are: ${validReviewStages.join(', ')}`
+                    });
+                }
+
+                taskReviewWhere.review_stage = { [Op.in]: reviewStageArray };
+                issueReviewWhere.review_stage = { [Op.in]: reviewStageArray };
+            }
+        }
 
         // Apply filters
         if (req.filters) {
@@ -722,11 +765,12 @@ const getMyWorkRequests = async (req, res) => {
                     where.status = { [Op.in]: statuses };
                 }
 
-                // Remove status from req.filters to avoid overriding
-                const { status, ...otherFilters } = req.filters;
+                // Remove status, review, review_stages, review_stage from req.filters to avoid overriding
+                const { status, review, review_stages, review_stage, ...otherFilters } = req.filters;
                 where = { ...where, ...otherFilters };
             } else {
-                where = { ...where, ...req.filters };
+                const { review, review_stages, review_stage, ...otherFilters } = req.filters;
+                where = { ...where, ...otherFilters };
             }
         }
 
@@ -758,6 +802,7 @@ const getMyWorkRequests = async (req, res) => {
                 {
                     model: Tasks,
                     attributes: { exclude: ['created_at', 'updated_at'] },
+                    where: taskReviewWhere,
                     include: [
                         {
                             model: User,
@@ -783,6 +828,8 @@ const getMyWorkRequests = async (req, res) => {
                         {
                             model: IssueAssignments,
                             as: 'issueAssignments',
+                            where: issueReviewWhere,
+                            required: false,
                             include: [
                                 {
                                     model: IssueUserAssignments,
