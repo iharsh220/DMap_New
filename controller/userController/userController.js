@@ -2035,7 +2035,7 @@ const getAssignedIssues = async (req, res) => {
         // Apply status filter
         if (status) {
             const statusArray = status.split(',').map(s => s.trim());
-            const validStatuses = ['m_pending', 'u_pending', 'm_accepted', 'u_accepted', 'in_progress', 'completed', 'rejected', 'on_hold', 'cancelled'];
+            const validStatuses = ['m_pending', 'u_pending', 'm_accepted', 'u_accepted', 'in_progress', 'completed', 'rejected', 'on_hold', 'cancelled', 'overdue'];
             const invalidStatuses = statusArray.filter(s => !validStatuses.includes(s));
 
             if (invalidStatuses.length > 0) {
@@ -2045,10 +2045,26 @@ const getAssignedIssues = async (req, res) => {
                 });
             }
 
-            if (statusArray.length > 1) {
-                whereCondition.status = { [Op.in]: statusArray };
-            } else {
-                whereCondition.status = statusArray[0];
+            const hasOverdue = statusArray.includes('overdue');
+            const normalStatuses = statusArray.filter(s => s !== 'overdue');
+
+            if (normalStatuses.length > 0) {
+                if (normalStatuses.length > 1) {
+                    whereCondition.status = { [Op.in]: normalStatuses };
+                } else {
+                    whereCondition.status = normalStatuses[0];
+                }
+            }
+
+            if (hasOverdue) {
+                whereCondition.deadline = { [Op.lt]: new Date() };
+                whereCondition.status = { [Op.notIn]: ['completed', 'cancelled'] };
+                whereCondition.review = { [Op.ne]: 'approved' };
+                whereCondition.review_stage = { [Op.ne]: 'final_approved' };
+                whereCondition[Op.or] = [
+                    { review: { [Op.ne]: 'change_request' } },
+                    { review_stage: { [Op.ne]: 'pm_review' } }
+                ];
             }
         } else {
             // Default: show u_pending issues
