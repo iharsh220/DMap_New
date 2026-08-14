@@ -1206,6 +1206,19 @@ const getAssignedWorkRequestById = async (req, res) => {
         // Add task users to the work request response
         workRequest.dataValues.taskUsers = taskUsers;
 
+        // Calculate project deadline from tasks
+        let projectDeadline = null;
+        if (workRequest.Tasks && workRequest.Tasks.length > 0) {
+            const deadlines = workRequest.Tasks
+                .map(task => task.deadline)
+                .filter(deadline => deadline !== null && deadline !== undefined)
+                .map(deadline => new Date(deadline));
+            if (deadlines.length > 0) {
+                projectDeadline = new Date(Math.max(...deadlines));
+            }
+        }
+        workRequest.dataValues.deadline = projectDeadline;
+
         // Reset notification_alert to 0 for all tasks in this work request where it is 1
         if (workRequest.Tasks && workRequest.Tasks.length > 0) {
             const taskIds = workRequest.Tasks.map(t => t.id);
