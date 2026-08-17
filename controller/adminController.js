@@ -585,19 +585,22 @@ const getAdminData = async (req, res) => {
                    Return real DATETIME or NULL
                    ===================================================== */
 
-                (
-                    SELECT MIN(created_at)
-                    FROM task_history
-                    WHERE work_request_id = wr.id
-                      AND action = 'accepted'
-                ) AS project_start_date,
+                MIN(t.start_date) AS project_start_date,
 
-                (
-                    SELECT MAX(wrh.created_at)
-                    FROM work_request_history wrh
-                    WHERE wrh.work_request_id = wr.id
-                      AND wrh.action = 'completed'
-                ) AS project_end_date,
+                CASE
+                    WHEN COUNT(DISTINCT CASE WHEN t.status IS NULL OR t.status != 'completed' THEN t.id END) = 0
+                     AND COUNT(DISTINCT CASE WHEN t.end_date IS NULL THEN t.id END) = 0
+                     AND COUNT(DISTINCT CASE WHEN ia.id IS NOT NULL AND ia.end_date IS NULL THEN ia.id END) = 0
+                    THEN COALESCE(
+                        GREATEST(
+                            MAX(t.end_date),
+                            MAX(ia.end_date)
+                        ),
+                        MAX(t.end_date),
+                        MAX(ia.end_date)
+                    )
+                    ELSE NULL
+                END AS project_end_date,
 
                 (
                     SELECT COUNT(*)
