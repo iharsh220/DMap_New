@@ -299,14 +299,16 @@ const getAssignedWorkRequests = async (req, res) => {
                 });
             }
 
-            hasOverdue = statusArray.includes('overdue');
+            const hasOverdue = statusArray.includes('overdue');
             const normalStatuses = statusArray.filter(s => s !== 'overdue');
+
+            const statusConditions = [];
 
             if (normalStatuses.length > 0) {
                 if (normalStatuses.length > 1) {
-                    andConditions.push({ status: { [Op.in]: normalStatuses } });
+                    statusConditions.push({ status: { [Op.in]: normalStatuses } });
                 } else {
-                    andConditions.push({ status: normalStatuses[0] });
+                    statusConditions.push({ status: normalStatuses[0] });
                 }
             }
 
@@ -333,17 +335,20 @@ const getAssignedWorkRequests = async (req, res) => {
 
                 const overdueWorkRequestIds = overdueResult.map(r => r.id);
                 if (overdueWorkRequestIds.length > 0) {
-                    andConditions.push({ id: { [Op.in]: overdueWorkRequestIds } });
-                } else {
-                    andConditions.push({ id: { [Op.in]: [] } });
+                    statusConditions.push({ id: { [Op.in]: overdueWorkRequestIds } });
                 }
+            }
 
-                andConditions.push({ status: { [Op.ne]: 'completed' } });
+            if (statusConditions.length > 0) {
+                if (statusConditions.length === 1) {
+                    andConditions.push(statusConditions[0]);
+                } else {
+                    andConditions.push({ [Op.or]: statusConditions });
+                }
             }
         } else {
             where.status = { [Op.ne]: 'draft' };
         }
-
         if (review || review_stages || review_stage) {
             const taskReviewConditions = [];
             const issueReviewConditions = [];
