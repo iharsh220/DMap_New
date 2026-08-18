@@ -19,13 +19,13 @@
             <div><div class="brand-name">D-Map</div><div class="brand-sub">Analytics Dashboard</div></div>
         </div>
         <div class="sidebar-section">Reports</div>
-    <nav class="sidebar-nav">
+        <nav class="sidebar-nav">
+            <a href="./powerbi" class="nav-item"><i class="bi bi-pie-chart nav-icon"></i><span class="nav-label">Dashboard</span></a>
             <a href="./clients" class="nav-item"><i class="bi bi-people nav-icon"></i><span class="nav-label">Clients</span></a>
             <a href="./projectsdetails" class="nav-item"><i class="bi bi-folder2-open nav-icon"></i><span class="nav-label">Projects</span></a>
             <a href="./taskdetails" class="nav-item active"><i class="bi bi-check2-square nav-icon"></i><span class="nav-label">Tasks</span></a>
-            <a href="./issuedetails" class="nav-item"><i class="bi bi-exclamation-circle nav-icon"></i><span class="nav-label">Issues</span></a>
+            <a href="./issuedetails" class="nav-item"><i class="bi bi-exclamation-circle nav-icon"></i><span class="nav-label">Changes</span></a>
             <a href="./workrequesttasks" class="nav-item"><i class="bi bi-table nav-icon"></i><span class="nav-label">Raw Data</span></a>
-            <a href="./powerbi" class="nav-item"><i class="bi bi-pie-chart nav-icon"></i><span class="nav-label">Power BI</span></a>
         </nav>
         <div class="sidebar-footer"><i class="bi bi-circle-fill" style="color:#22c55e;font-size:8px;"></i><span class="footer-text"> System Online</span></div>
     </aside>
@@ -372,10 +372,10 @@ function openDeleteModal(type, id){
         html+='<div><span style="color:#64748b;">ID:</span> <span style="color:#e2e8f0;">'+r.id+'</span></div>';
         html+='<div><span style="color:#64748b;">Name:</span> <span style="color:#e2e8f0;">'+(r.task_name||'N/A')+'</span></div>';
         html+='<div><span style="color:#64748b;">Status:</span> <span style="color:#e2e8f0;">'+(r.status||'N/A')+'</span></div>';
-        html+='<div><span style="color:#64748b;">Issues:</span> <span style="color:#e2e8f0;">'+r.issue_count+'</span></div>';
+        html+='<div><span style="color:#64748b;">Changes:</span> <span style="color:#e2e8f0;">'+r.issue_count+'</span></div>';
         html+='</div></div>';
         if(p.issues && p.issues.length){
-            html+='<div style="color:#f59e0b;font-size:12px;font-weight:600;margin-bottom:8px;"><i class="bi bi-exclamation-triangle"></i> '+p.issues.length+' issue(s) will also be deleted:</div>';
+            html+='<div style="color:#f59e0b;font-size:12px;font-weight:600;margin-bottom:8px;"><i class="bi bi-exclamation-triangle"></i> '+p.issues.length+' change(s) will also be deleted:</div>';
             html+='<div style="max-height:200px;overflow-y:auto;">';
             p.issues.forEach(function(i){
                 html+='<div style="background:#1a2035;border:1px solid #2d3548;border-radius:6px;padding:8px 12px;margin-bottom:6px;display:flex;justify-content:space-between;">';
@@ -385,7 +385,7 @@ function openDeleteModal(type, id){
             });
             html+='</div>';
         } else {
-            html+='<div style="color:#22c55e;font-size:12px;"><i class="bi bi-check-circle"></i> No issues linked to this task.</div>';
+            html+='<div style="color:#22c55e;font-size:12px;"><i class="bi bi-check-circle"></i> No changes linked to this task.</div>';
         }
         $('#deleteModalBody').html(html);
         $('#confirmDeleteBtn').off('click').on('click',function(){ confirmDelete(type,id); });
