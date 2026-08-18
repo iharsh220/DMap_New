@@ -702,7 +702,6 @@ const getMyWorkRequests = async (req, res) => {
         const user_id = req.user.id;
         const { review, review_stages, review_stage } = req.query;
 
-
         let where = { user_id, is_deleted: 0 };
 
         // Build task and issue review filters
@@ -784,6 +783,7 @@ const getMyWorkRequests = async (req, res) => {
         const result = await workRequestService.getAll({
             where,
             attributes: { exclude: ['request_type_id', 'updated_at'] },
+            paranoid: false,
             include: [
                 { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
                 { model: RequestType, attributes: { exclude: ['created_at', 'updated_at'] } },
@@ -803,6 +803,7 @@ const getMyWorkRequests = async (req, res) => {
                     model: Tasks,
                     attributes: { exclude: ['created_at', 'updated_at'] },
                     where: taskReviewWhere,
+                    required: false,
                     include: [
                         {
                             model: User,
