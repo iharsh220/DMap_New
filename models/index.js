@@ -36,6 +36,7 @@ const ChangeIssueTasktype = require('./ChangeIssueTasktype/ChangeIssueTasktype')
 const TaskReviewHistory = require('./TaskReviewHistory/TaskReviewHistory');
 const TaskHistory = require('./TaskHistory/TaskHistory');
 const IssueHistory = require('./IssueHistory/IssueHistory');
+const PmReviewReminderHistory = require('./PmReviewReminderHistory/PmReviewReminderHistory');
 const Feedbacks = require('./Feedbacks/Feedbacks');
 
 // Associations
@@ -233,5 +234,6 @@ module.exports = {
   TaskReviewHistory,
   TaskHistory,
   IssueHistory,
+  PmReviewReminderHistory,
   Feedbacks
 };

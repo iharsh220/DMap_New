@@ -2,7 +2,8 @@ const {
   WorkRequestHistory,
   TaskHistory,
   IssueHistory,
-  TaskReviewHistory
+  TaskReviewHistory,
+  PmReviewReminderHistory
 } = require('../models');
 
 const normalizeValue = (value) => {
@@ -247,6 +248,30 @@ const recordTaskReviewHistory = async ({
   return safeCreate(TaskReviewHistory, payload);
 };
 
+const recordPmReviewReminderHistory = async ({
+  workRequestId,
+  userId,
+  taskId = null,
+  issueAssignmentId = null,
+  reminderType = 'pm_review_pending',
+  itemsCount = 0,
+  itemsData = null,
+  emailStatus = 'sent'
+}) => {
+  const payload = {
+    work_request_id: workRequestId,
+    user_id: userId,
+    task_id: taskId,
+    issue_assignment_id: issueAssignmentId,
+    reminder_type: reminderType,
+    items_count: itemsCount,
+    items_data: itemsData,
+    email_status: emailStatus
+  };
+
+  return safeCreate(PmReviewReminderHistory, payload);
+};
+
 const getWorkRequestHistory = async (workRequestId, { limit = 200, offset = 0 } = {}) => {
   return WorkRequestHistory.findAll({
     where: { work_request_id: workRequestId },
@@ -279,6 +304,7 @@ module.exports = {
   recordTaskHistory,
   recordIssueHistory,
   recordTaskReviewHistory,
+  recordPmReviewReminderHistory,
   getWorkRequestHistory,
   getTaskHistory,
   getIssueHistory,
