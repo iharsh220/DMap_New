@@ -4,6 +4,7 @@ const { Op } = require('sequelize');
 const { Tasks, WorkRequests, IssueAssignments, User } = require('../models');
 const { sendMail } = require('./mailService');
 const { renderTemplate } = require('./templateService');
+const { recordPmReviewReminderHistory } = require('./historyService');
 
 // Create task scheduler queue
 const taskSchedulerQueue = new Queue('task-scheduler-queue', {
@@ -273,7 +274,18 @@ const sendPmReviewPendingReminders = async () => {
 
       sentEmails++;
 
-      // Add delay between emails to avoid SMTP rate limiting
+      for (const item of reminder.items) {
+        await recordPmReviewReminderHistory({
+          workRequestId: item.work_request_id,
+          userId: reminder.client.id,
+          taskId: item.type === 'Task' ? item.id : null,
+          issueAssignmentId: item.type === 'Issue' ? item.id : null,
+          itemsCount: reminder.items.length,
+          itemsData: reminder.items,
+          emailStatus: 'sent'
+        });
+      }
+
       if (sentEmails < remindersByEmail.size) {
         await new Promise(resolve => setTimeout(resolve, 1000));
       }

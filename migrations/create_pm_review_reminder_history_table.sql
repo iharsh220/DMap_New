@@ -1,0 +1,25 @@
+-- Create pm_review_reminder_history table
+CREATE TABLE IF NOT EXISTS `pm_review_reminder_history` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `work_request_id` INT NOT NULL,
+  `user_id` INT NOT NULL,
+  `task_id` INT NULL DEFAULT NULL,
+  `issue_assignment_id` INT NULL DEFAULT NULL,
+  `reminder_type` VARCHAR(50) NOT NULL DEFAULT 'pm_review_pending',
+  `items_count` INT NOT NULL DEFAULT 0,
+  `items_data` JSON NULL DEFAULT NULL,
+  `email_status` VARCHAR(50) NOT NULL DEFAULT 'sent',
+  `sent_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  INDEX `idx_pm_review_reminder_work_request_id` (`work_request_id`),
+  INDEX `idx_pm_review_reminder_user_id` (`user_id`),
+  INDEX `idx_pm_review_reminder_task_id` (`task_id`),
+  INDEX `idx_pm_review_reminder_issue_assignment_id` (`issue_assignment_id`),
+  INDEX `idx_pm_review_reminder_sent_at` (`sent_at`),
+  CONSTRAINT `fk_pm_review_reminder_work_request_id` FOREIGN KEY (`work_request_id`) REFERENCES `work_requests`(`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_pm_review_reminder_user_id` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_pm_review_reminder_task_id` FOREIGN KEY (`task_id`) REFERENCES `tasks`(`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_pm_review_reminder_issue_assignment_id` FOREIGN KEY (`issue_assignment_id`) REFERENCES `issue_assignments`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
