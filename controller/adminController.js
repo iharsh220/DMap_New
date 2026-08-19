@@ -588,18 +588,42 @@ const getAdminData = async (req, res) => {
                 MIN(t.start_date) AS project_start_date,
 
                 CASE
-                    WHEN COUNT(DISTINCT CASE WHEN t.status IS NULL OR t.status != 'completed' THEN t.id END) = 0
-                     AND COUNT(DISTINCT CASE WHEN t.end_date IS NULL THEN t.id END) = 0
-                     AND COUNT(DISTINCT CASE WHEN ia.id IS NOT NULL AND ia.end_date IS NULL THEN ia.id END) = 0
-                    THEN COALESCE(
-                        GREATEST(
-                            MAX(t.end_date),
-                            MAX(ia.end_date)
-                        ),
-                        MAX(t.end_date),
-                        MAX(ia.end_date)
+                    WHEN EXISTS (
+                        SELECT 1
+                        FROM tasks t2
+                        WHERE t2.work_request_id = wr.id
+                          AND t2.is_deleted = 0
+                          AND t2.end_date IS NULL
                     )
-                    ELSE NULL
+                    OR EXISTS (
+                        SELECT 1
+                        FROM issue_assignments ia2
+                        JOIN tasks t3
+                            ON t3.id = ia2.task_id
+                           AND t3.is_deleted = 0
+                        WHERE t3.work_request_id = wr.id
+                          AND ia2.is_deleted = 0
+                          AND ia2.end_date IS NULL
+                    )
+                    THEN NULL
+                    ELSE COALESCE(
+                        (
+                            SELECT MAX(
+                                CASE
+                                    WHEN t2.end_date IS NOT NULL AND ia2.end_date IS NOT NULL THEN GREATEST(t2.end_date, ia2.end_date)
+                                    WHEN t2.end_date IS NOT NULL THEN t2.end_date
+                                    WHEN ia2.end_date IS NOT NULL THEN ia2.end_date
+                                END
+                            )
+                            FROM tasks t2
+                            LEFT JOIN issue_assignments ia2
+                                ON ia2.task_id = t2.id
+                               AND ia2.is_deleted = 0
+                            WHERE t2.work_request_id = wr.id
+                              AND t2.is_deleted = 0
+                        ),
+                        NULL
+                    )
                 END AS project_end_date,
 
                 (
@@ -1536,213 +1560,183 @@ const getAdminData = async (req, res) => {
                 0 AS task_output_response_reminder_counter_to_client,
                 0 AS change_request_response_reminder_counter_to_cu,
                 0 AS chnage_output_response_reminder_counter_to_cm,
-                0 AS change_output_response_reminder_counter_to_client,
-                0 AS project_closure_reminder_counter_to_client,
+                 0 AS change_output_response_reminder_counter_to_client,
+                 0 AS project_closure_reminder_counter_to_client,
 
-                /* =====================================================
-                   MONTH
-                   ===================================================== */
+                 /* =====================================================
+                    MONTH
+                    ===================================================== */
 
-                COALESCE(
-                    DATE_FORMAT(
-                        COALESCE(
+                CASE
+                    WHEN EXISTS (
+                        SELECT 1
+                        FROM tasks t2
+                        WHERE t2.work_request_id = wr.id
+                          AND t2.is_deleted = 0
+                          AND t2.end_date IS NULL
+                    )
+                    OR EXISTS (
+                        SELECT 1
+                        FROM issue_assignments ia2
+                        JOIN tasks t3
+                            ON t3.id = ia2.task_id
+                           AND t3.is_deleted = 0
+                        WHERE t3.work_request_id = wr.id
+                          AND ia2.is_deleted = 0
+                          AND ia2.end_date IS NULL
+                    )
+                    THEN '00'
+                    ELSE COALESCE(
+                        DATE_FORMAT(
                             (
-                                SELECT ia2.deadline
-                                FROM issue_assignments ia2
-                                JOIN tasks t2
-                                    ON t2.id = ia2.task_id
-                                   AND t2.is_deleted = 0
-                                WHERE t2.work_request_id = wr.id
-                                  AND ia2.is_deleted = 0
-                                  AND t2.id = (
-                                      SELECT MAX(t3.id)
-                                      FROM tasks t3
-                                      WHERE t3.work_request_id = wr.id
-                                        AND t3.is_deleted = 0
-                                  )
-                                ORDER BY ia2.id DESC
-                                LIMIT 1
-                            ),
-                            (
-                                SELECT t2.deadline
+                                SELECT MAX(
+                                CASE
+                                    WHEN t2.end_date IS NOT NULL AND ia2.end_date IS NOT NULL THEN GREATEST(t2.end_date, ia2.end_date)
+                                    WHEN t2.end_date IS NOT NULL THEN t2.end_date
+                                    WHEN ia2.end_date IS NOT NULL THEN ia2.end_date
+                                END
+                            )
                                 FROM tasks t2
+                                LEFT JOIN issue_assignments ia2
+                                    ON ia2.task_id = t2.id
+                                   AND ia2.is_deleted = 0
                                 WHERE t2.work_request_id = wr.id
                                   AND t2.is_deleted = 0
-                                ORDER BY t2.id DESC
-                                LIMIT 1
-                            )
+                            ),
+                            '%M'
                         ),
-                        '%M'
-                    ),
-                    '00'
-                ) AS month,
+                        '00'
+                    )
+                END AS month,
 
-                /* =====================================================
-                   FINANCIAL YEAR
-                   ===================================================== */
+                 /* =====================================================
+                    FINANCIAL YEAR
+                    ===================================================== */
 
                 COALESCE(
                     CASE
-                        WHEN MONTH(
-                            COALESCE(
-                                (
-                                    SELECT ia2.deadline
-                                    FROM issue_assignments ia2
-                                    JOIN tasks t2
-                                        ON t2.id = ia2.task_id
-                                       AND t2.is_deleted = 0
-                                    WHERE t2.work_request_id = wr.id
-                                      AND ia2.is_deleted = 0
-                                      AND t2.id = (
-                                          SELECT MAX(t3.id)
-                                          FROM tasks t3
-                                          WHERE t3.work_request_id = wr.id
-                                            AND t3.is_deleted = 0
-                                      )
-                                    ORDER BY ia2.id DESC
-                                    LIMIT 1
-                                ),
-                                (
-                                    SELECT t2.deadline
-                                    FROM tasks t2
-                                    WHERE t2.work_request_id = wr.id
-                                      AND t2.is_deleted = 0
-                                    ORDER BY t2.id DESC
-                                    LIMIT 1
-                                )
-                            )
-                        ) >= 4
-
-                        THEN CONCAT(
-                            'FY ',
-                            YEAR(
-                                COALESCE(
-                                    (
-                                        SELECT ia2.deadline
-                                        FROM issue_assignments ia2
-                                        JOIN tasks t2
-                                            ON t2.id = ia2.task_id
-                                           AND t2.is_deleted = 0
-                                        WHERE t2.work_request_id = wr.id
-                                          AND ia2.is_deleted = 0
-                                          AND t2.id = (
-                                              SELECT MAX(t3.id)
-                                              FROM tasks t3
-                                              WHERE t3.work_request_id = wr.id
-                                                AND t3.is_deleted = 0
-                                          )
-                                        ORDER BY ia2.id DESC
-                                        LIMIT 1
-                                    ),
-                                    (
-                                        SELECT t2.deadline
-                                        FROM tasks t2
-                                        WHERE t2.work_request_id = wr.id
-                                          AND t2.is_deleted = 0
-                                        ORDER BY t2.id DESC
-                                        LIMIT 1
-                                    )
-                                )
-                            ),
-                            '-',
-                            RIGHT(
-                                YEAR(
-                                    COALESCE(
-                                        (
-                                            SELECT ia2.deadline
-                                            FROM issue_assignments ia2
-                                            JOIN tasks t2
-                                                ON t2.id = ia2.task_id
-                                               AND t2.is_deleted = 0
-                                            WHERE t2.work_request_id = wr.id
-                                              AND ia2.is_deleted = 0
-                                              AND t2.id = (
-                                                  SELECT MAX(t3.id)
-                                                  FROM tasks t3
-                                                  WHERE t3.work_request_id = wr.id
-                                                    AND t3.is_deleted = 0
-                                              )
-                                            ORDER BY ia2.id DESC
-                                            LIMIT 1
-                                        ),
-                                        (
-                                            SELECT t2.deadline
-                                            FROM tasks t2
-                                            WHERE t2.work_request_id = wr.id
-                                              AND t2.is_deleted = 0
-                                            ORDER BY t2.id DESC
-                                            LIMIT 1
-                                        )
-                                    )
-                                ) + 1,
-                                2
-                            )
+                        WHEN EXISTS (
+                            SELECT 1
+                            FROM tasks t2
+                            WHERE t2.work_request_id = wr.id
+                              AND t2.is_deleted = 0
+                              AND t2.end_date IS NULL
                         )
-
-                        ELSE CONCAT(
-                            'FY ',
-                            YEAR(
-                                COALESCE(
+                        OR EXISTS (
+                            SELECT 1
+                            FROM issue_assignments ia2
+                            JOIN tasks t3
+                                ON t3.id = ia2.task_id
+                               AND t3.is_deleted = 0
+                            WHERE t3.work_request_id = wr.id
+                              AND ia2.is_deleted = 0
+                              AND ia2.end_date IS NULL
+                        )
+                        THEN '00'
+                        ELSE (
+                            CASE
+                                WHEN MONTH(
                                     (
-                                        SELECT ia2.deadline
-                                        FROM issue_assignments ia2
-                                        JOIN tasks t2
-                                            ON t2.id = ia2.task_id
-                                           AND t2.is_deleted = 0
-                                        WHERE t2.work_request_id = wr.id
-                                          AND ia2.is_deleted = 0
-                                          AND t2.id = (
-                                              SELECT MAX(t3.id)
-                                              FROM tasks t3
-                                              WHERE t3.work_request_id = wr.id
-                                                AND t3.is_deleted = 0
-                                          )
-                                        ORDER BY ia2.id DESC
-                                        LIMIT 1
-                                    ),
-                                    (
-                                        SELECT t2.deadline
+                                        SELECT MAX(
+                                CASE
+                                    WHEN t2.end_date IS NOT NULL AND ia2.end_date IS NOT NULL THEN GREATEST(t2.end_date, ia2.end_date)
+                                    WHEN t2.end_date IS NOT NULL THEN t2.end_date
+                                    WHEN ia2.end_date IS NOT NULL THEN ia2.end_date
+                                END
+                            )
                                         FROM tasks t2
+                                        LEFT JOIN issue_assignments ia2
+                                            ON ia2.task_id = t2.id
+                                           AND ia2.is_deleted = 0
                                         WHERE t2.work_request_id = wr.id
                                           AND t2.is_deleted = 0
-                                        ORDER BY t2.id DESC
-                                        LIMIT 1
                                     )
-                                )
-                            ) - 1,
-                            '-',
-                            RIGHT(
-                                YEAR(
-                                    COALESCE(
+                                ) >= 4
+
+                                THEN CONCAT(
+                                    'FY ',
+                                    YEAR(
                                         (
-                                            SELECT ia2.deadline
-                                            FROM issue_assignments ia2
-                                            JOIN tasks t2
-                                                ON t2.id = ia2.task_id
-                                               AND t2.is_deleted = 0
-                                            WHERE t2.work_request_id = wr.id
-                                              AND ia2.is_deleted = 0
-                                              AND t2.id = (
-                                                  SELECT MAX(t3.id)
-                                                  FROM tasks t3
-                                                  WHERE t3.work_request_id = wr.id
-                                                    AND t3.is_deleted = 0
-                                              )
-                                            ORDER BY ia2.id DESC
-                                            LIMIT 1
-                                        ),
-                                        (
-                                            SELECT t2.deadline
+                                            SELECT MAX(
+                                CASE
+                                    WHEN t2.end_date IS NOT NULL AND ia2.end_date IS NOT NULL THEN GREATEST(t2.end_date, ia2.end_date)
+                                    WHEN t2.end_date IS NOT NULL THEN t2.end_date
+                                    WHEN ia2.end_date IS NOT NULL THEN ia2.end_date
+                                END
+                            )
                                             FROM tasks t2
+                                            LEFT JOIN issue_assignments ia2
+                                                ON ia2.task_id = t2.id
+                                               AND ia2.is_deleted = 0
                                             WHERE t2.work_request_id = wr.id
                                               AND t2.is_deleted = 0
-                                            ORDER BY t2.id DESC
-                                            LIMIT 1
                                         )
-                                    )
-                                ),
-                                2
+                                    ),
+                                    '-',
+                                    RIGHT(
+                                        YEAR(
+                                            (
+                                                SELECT MAX(
+                                CASE
+                                    WHEN t2.end_date IS NOT NULL AND ia2.end_date IS NOT NULL THEN GREATEST(t2.end_date, ia2.end_date)
+                                    WHEN t2.end_date IS NOT NULL THEN t2.end_date
+                                    WHEN ia2.end_date IS NOT NULL THEN ia2.end_date
+                                END
                             )
+                                                FROM tasks t2
+                                                LEFT JOIN issue_assignments ia2
+                                                    ON ia2.task_id = t2.id
+                                                   AND ia2.is_deleted = 0
+                                                WHERE t2.work_request_id = wr.id
+                                                  AND t2.is_deleted = 0
+                                            )
+                                        ) + 1,
+                                        2
+                                    )
+                                )
+
+                                ELSE CONCAT(
+                                    'FY ',
+                                    YEAR(
+                                        (
+                                            SELECT MAX(
+                                CASE
+                                    WHEN t2.end_date IS NOT NULL AND ia2.end_date IS NOT NULL THEN GREATEST(t2.end_date, ia2.end_date)
+                                    WHEN t2.end_date IS NOT NULL THEN t2.end_date
+                                    WHEN ia2.end_date IS NOT NULL THEN ia2.end_date
+                                END
+                            )
+                                            FROM tasks t2
+                                            LEFT JOIN issue_assignments ia2
+                                                ON ia2.task_id = t2.id
+                                               AND ia2.is_deleted = 0
+                                            WHERE t2.work_request_id = wr.id
+                                              AND t2.is_deleted = 0
+                                        )
+                                    ) - 1,
+                                    '-',
+                                    RIGHT(
+                                        YEAR(
+                                            (
+                                                SELECT MAX(
+                                CASE
+                                    WHEN t2.end_date IS NOT NULL AND ia2.end_date IS NOT NULL THEN GREATEST(t2.end_date, ia2.end_date)
+                                    WHEN t2.end_date IS NOT NULL THEN t2.end_date
+                                    WHEN ia2.end_date IS NOT NULL THEN ia2.end_date
+                                END
+                            )
+                                                FROM tasks t2
+                                                LEFT JOIN issue_assignments ia2
+                                                    ON ia2.task_id = t2.id
+                                                   AND ia2.is_deleted = 0
+                                                WHERE t2.work_request_id = wr.id
+                                                  AND t2.is_deleted = 0
+                                            )
+                                        ),
+                                        2
+                                    )
+                                )
+                            END
                         )
                     END,
                     '00'
@@ -1910,6 +1904,49 @@ const getClientsData = async (req, res) => {
                 ) AS description,
 
                 /* =====================================================
+                   PROJECT END DATE
+                   ===================================================== */
+
+                CASE
+                    WHEN EXISTS (
+                        SELECT 1
+                        FROM tasks t2
+                        WHERE t2.work_request_id = wr.id
+                          AND t2.is_deleted = 0
+                          AND t2.end_date IS NULL
+                    )
+                    OR EXISTS (
+                        SELECT 1
+                        FROM issue_assignments ia2
+                        JOIN tasks t3
+                            ON t3.id = ia2.task_id
+                           AND t3.is_deleted = 0
+                        WHERE t3.work_request_id = wr.id
+                          AND ia2.is_deleted = 0
+                          AND ia2.end_date IS NULL
+                    )
+                    THEN NULL
+                    ELSE COALESCE(
+                        (
+                            SELECT MAX(
+                                CASE
+                                    WHEN t2.end_date IS NOT NULL AND ia2.end_date IS NOT NULL THEN GREATEST(t2.end_date, ia2.end_date)
+                                    WHEN t2.end_date IS NOT NULL THEN t2.end_date
+                                    WHEN ia2.end_date IS NOT NULL THEN ia2.end_date
+                                END
+                            )
+                            FROM tasks t2
+                            LEFT JOIN issue_assignments ia2
+                                ON ia2.task_id = t2.id
+                               AND ia2.is_deleted = 0
+                            WHERE t2.work_request_id = wr.id
+                              AND t2.is_deleted = 0
+                        ),
+                        NULL
+                    )
+                END AS project_end_date,
+
+                /* =====================================================
                    POWER BI DATE/TIME
                    Return actual DATETIME or NULL
                    ===================================================== */
@@ -1923,212 +1960,182 @@ const getClientsData = async (req, res) => {
                       AND wrh.action = 'manager_accepted'
                     ORDER BY wrh.created_at ASC
                     LIMIT 1
-                ) AS response_timestamp,
+                 ) AS response_timestamp,
 
-                /* =====================================================
-                   MONTH
-                   ===================================================== */
+                 /* =====================================================
+                    MONTH
+                    ===================================================== */
 
-                COALESCE(
-                    DATE_FORMAT(
-                        COALESCE(
+                CASE
+                    WHEN EXISTS (
+                        SELECT 1
+                        FROM tasks t2
+                        WHERE t2.work_request_id = wr.id
+                          AND t2.is_deleted = 0
+                          AND t2.end_date IS NULL
+                    )
+                    OR EXISTS (
+                        SELECT 1
+                        FROM issue_assignments ia2
+                        JOIN tasks t3
+                            ON t3.id = ia2.task_id
+                           AND t3.is_deleted = 0
+                        WHERE t3.work_request_id = wr.id
+                          AND ia2.is_deleted = 0
+                          AND ia2.end_date IS NULL
+                    )
+                    THEN '00'
+                    ELSE COALESCE(
+                        DATE_FORMAT(
                             (
-                                SELECT ia2.deadline
-                                FROM issue_assignments ia2
-                                JOIN tasks t2
-                                    ON t2.id = ia2.task_id
-                                   AND t2.is_deleted = 0
-                                WHERE t2.work_request_id = wr.id
-                                  AND ia2.is_deleted = 0
-                                  AND t2.id = (
-                                      SELECT MAX(t3.id)
-                                      FROM tasks t3
-                                      WHERE t3.work_request_id = wr.id
-                                        AND t3.is_deleted = 0
-                                  )
-                                ORDER BY ia2.id DESC
-                                LIMIT 1
-                            ),
-                            (
-                                SELECT t2.deadline
+                                SELECT MAX(
+                                CASE
+                                    WHEN t2.end_date IS NOT NULL AND ia2.end_date IS NOT NULL THEN GREATEST(t2.end_date, ia2.end_date)
+                                    WHEN t2.end_date IS NOT NULL THEN t2.end_date
+                                    WHEN ia2.end_date IS NOT NULL THEN ia2.end_date
+                                END
+                            )
                                 FROM tasks t2
+                                LEFT JOIN issue_assignments ia2
+                                    ON ia2.task_id = t2.id
+                                   AND ia2.is_deleted = 0
                                 WHERE t2.work_request_id = wr.id
                                   AND t2.is_deleted = 0
-                                ORDER BY t2.id DESC
-                                LIMIT 1
-                            )
+                            ),
+                            '%M'
                         ),
-                        '%M'
-                    ),
-                    '00'
-                ) AS month,
+                        '00'
+                    )
+                END AS month,
 
-                /* =====================================================
-                   FINANCIAL YEAR
-                   ===================================================== */
+                 /* =====================================================
+                    FINANCIAL YEAR
+                    ===================================================== */
 
                 COALESCE(
                     CASE
-                        WHEN MONTH(
-                            COALESCE(
-                                (
-                                    SELECT ia2.deadline
-                                    FROM issue_assignments ia2
-                                    JOIN tasks t2
-                                        ON t2.id = ia2.task_id
-                                       AND t2.is_deleted = 0
-                                    WHERE t2.work_request_id = wr.id
-                                      AND ia2.is_deleted = 0
-                                      AND t2.id = (
-                                          SELECT MAX(t3.id)
-                                          FROM tasks t3
-                                          WHERE t3.work_request_id = wr.id
-                                            AND t3.is_deleted = 0
-                                      )
-                                    ORDER BY ia2.id DESC
-                                    LIMIT 1
-                                ),
-                                (
-                                    SELECT t2.deadline
-                                    FROM tasks t2
-                                    WHERE t2.work_request_id = wr.id
-                                      AND t2.is_deleted = 0
-                                    ORDER BY t2.id DESC
-                                    LIMIT 1
-                                )
-                            )
-                        ) >= 4
-
-                        THEN CONCAT(
-                            'FY ',
-                            YEAR(
-                                COALESCE(
-                                    (
-                                        SELECT ia2.deadline
-                                        FROM issue_assignments ia2
-                                        JOIN tasks t2
-                                            ON t2.id = ia2.task_id
-                                           AND t2.is_deleted = 0
-                                        WHERE t2.work_request_id = wr.id
-                                          AND ia2.is_deleted = 0
-                                          AND t2.id = (
-                                              SELECT MAX(t3.id)
-                                              FROM tasks t3
-                                              WHERE t3.work_request_id = wr.id
-                                                AND t3.is_deleted = 0
-                                          )
-                                        ORDER BY ia2.id DESC
-                                        LIMIT 1
-                                    ),
-                                    (
-                                        SELECT t2.deadline
-                                        FROM tasks t2
-                                        WHERE t2.work_request_id = wr.id
-                                          AND t2.is_deleted = 0
-                                        ORDER BY t2.id DESC
-                                        LIMIT 1
-                                    )
-                                )
-                            ),
-                            '-',
-                            RIGHT(
-                                YEAR(
-                                    COALESCE(
-                                        (
-                                            SELECT ia2.deadline
-                                            FROM issue_assignments ia2
-                                            JOIN tasks t2
-                                                ON t2.id = ia2.task_id
-                                               AND t2.is_deleted = 0
-                                            WHERE t2.work_request_id = wr.id
-                                              AND ia2.is_deleted = 0
-                                              AND t2.id = (
-                                                  SELECT MAX(t3.id)
-                                                  FROM tasks t3
-                                                  WHERE t3.work_request_id = wr.id
-                                                    AND t3.is_deleted = 0
-                                              )
-                                            ORDER BY ia2.id DESC
-                                            LIMIT 1
-                                        ),
-                                        (
-                                            SELECT t2.deadline
-                                            FROM tasks t2
-                                            WHERE t2.work_request_id = wr.id
-                                              AND t2.is_deleted = 0
-                                            ORDER BY t2.id DESC
-                                            LIMIT 1
-                                        )
-                                    )
-                                ) + 1,
-                                2
-                            )
+                        WHEN EXISTS (
+                            SELECT 1
+                            FROM tasks t2
+                            WHERE t2.work_request_id = wr.id
+                              AND t2.is_deleted = 0
+                              AND t2.end_date IS NULL
                         )
-
-                        ELSE CONCAT(
-                            'FY ',
-                            YEAR(
-                                COALESCE(
+                        OR EXISTS (
+                            SELECT 1
+                            FROM issue_assignments ia2
+                            JOIN tasks t3
+                                ON t3.id = ia2.task_id
+                               AND t3.is_deleted = 0
+                            WHERE t3.work_request_id = wr.id
+                              AND ia2.is_deleted = 0
+                              AND ia2.end_date IS NULL
+                        )
+                        THEN '00'
+                        ELSE (
+                            CASE
+                                WHEN MONTH(
                                     (
-                                        SELECT ia2.deadline
-                                        FROM issue_assignments ia2
-                                        JOIN tasks t2
-                                            ON t2.id = ia2.task_id
-                                           AND t2.is_deleted = 0
-                                        WHERE t2.work_request_id = wr.id
-                                          AND ia2.is_deleted = 0
-                                          AND t2.id = (
-                                              SELECT MAX(t3.id)
-                                              FROM tasks t3
-                                              WHERE t3.work_request_id = wr.id
-                                                AND t3.is_deleted = 0
-                                          )
-                                        ORDER BY ia2.id DESC
-                                        LIMIT 1
-                                    ),
-                                    (
-                                        SELECT t2.deadline
+                                        SELECT MAX(
+                                CASE
+                                    WHEN t2.end_date IS NOT NULL AND ia2.end_date IS NOT NULL THEN GREATEST(t2.end_date, ia2.end_date)
+                                    WHEN t2.end_date IS NOT NULL THEN t2.end_date
+                                    WHEN ia2.end_date IS NOT NULL THEN ia2.end_date
+                                END
+                            )
                                         FROM tasks t2
+                                        LEFT JOIN issue_assignments ia2
+                                            ON ia2.task_id = t2.id
+                                           AND ia2.is_deleted = 0
                                         WHERE t2.work_request_id = wr.id
                                           AND t2.is_deleted = 0
-                                        ORDER BY t2.id DESC
-                                        LIMIT 1
                                     )
-                                )
-                            ) - 1,
-                            '-',
-                            RIGHT(
-                                YEAR(
-                                    COALESCE(
+                                ) >= 4
+
+                                THEN CONCAT(
+                                    'FY ',
+                                    YEAR(
                                         (
-                                            SELECT ia2.deadline
-                                            FROM issue_assignments ia2
-                                            JOIN tasks t2
-                                                ON t2.id = ia2.task_id
-                                               AND t2.is_deleted = 0
-                                            WHERE t2.work_request_id = wr.id
-                                              AND ia2.is_deleted = 0
-                                              AND t2.id = (
-                                                  SELECT MAX(t3.id)
-                                                  FROM tasks t3
-                                                  WHERE t3.work_request_id = wr.id
-                                                    AND t3.is_deleted = 0
-                                              )
-                                            ORDER BY ia2.id DESC
-                                            LIMIT 1
-                                        ),
-                                        (
-                                            SELECT t2.deadline
+                                            SELECT MAX(
+                                CASE
+                                    WHEN t2.end_date IS NOT NULL AND ia2.end_date IS NOT NULL THEN GREATEST(t2.end_date, ia2.end_date)
+                                    WHEN t2.end_date IS NOT NULL THEN t2.end_date
+                                    WHEN ia2.end_date IS NOT NULL THEN ia2.end_date
+                                END
+                            )
                                             FROM tasks t2
+                                            LEFT JOIN issue_assignments ia2
+                                                ON ia2.task_id = t2.id
+                                               AND ia2.is_deleted = 0
                                             WHERE t2.work_request_id = wr.id
                                               AND t2.is_deleted = 0
-                                            ORDER BY t2.id DESC
-                                            LIMIT 1
                                         )
-                                    )
-                                ),
-                                2
+                                    ),
+                                    '-',
+                                    RIGHT(
+                                        YEAR(
+                                            (
+                                                SELECT MAX(
+                                CASE
+                                    WHEN t2.end_date IS NOT NULL AND ia2.end_date IS NOT NULL THEN GREATEST(t2.end_date, ia2.end_date)
+                                    WHEN t2.end_date IS NOT NULL THEN t2.end_date
+                                    WHEN ia2.end_date IS NOT NULL THEN ia2.end_date
+                                END
                             )
+                                                FROM tasks t2
+                                                LEFT JOIN issue_assignments ia2
+                                                    ON ia2.task_id = t2.id
+                                                   AND ia2.is_deleted = 0
+                                                WHERE t2.work_request_id = wr.id
+                                                  AND t2.is_deleted = 0
+                                            )
+                                        ) + 1,
+                                        2
+                                    )
+                                )
+
+                                ELSE CONCAT(
+                                    'FY ',
+                                    YEAR(
+                                        (
+                                            SELECT MAX(
+                                CASE
+                                    WHEN t2.end_date IS NOT NULL AND ia2.end_date IS NOT NULL THEN GREATEST(t2.end_date, ia2.end_date)
+                                    WHEN t2.end_date IS NOT NULL THEN t2.end_date
+                                    WHEN ia2.end_date IS NOT NULL THEN ia2.end_date
+                                END
+                            )
+                                            FROM tasks t2
+                                            LEFT JOIN issue_assignments ia2
+                                                ON ia2.task_id = t2.id
+                                               AND ia2.is_deleted = 0
+                                            WHERE t2.work_request_id = wr.id
+                                              AND t2.is_deleted = 0
+                                        )
+                                    ) - 1,
+                                    '-',
+                                    RIGHT(
+                                        YEAR(
+                                            (
+                                                SELECT MAX(
+                                CASE
+                                    WHEN t2.end_date IS NOT NULL AND ia2.end_date IS NOT NULL THEN GREATEST(t2.end_date, ia2.end_date)
+                                    WHEN t2.end_date IS NOT NULL THEN t2.end_date
+                                    WHEN ia2.end_date IS NOT NULL THEN ia2.end_date
+                                END
+                            )
+                                                FROM tasks t2
+                                                LEFT JOIN issue_assignments ia2
+                                                    ON ia2.task_id = t2.id
+                                                   AND ia2.is_deleted = 0
+                                                WHERE t2.work_request_id = wr.id
+                                                  AND t2.is_deleted = 0
+                                            )
+                                        ),
+                                        2
+                                    )
+                                )
+                            END
                         )
                     END,
                     '00'
@@ -3904,12 +3911,44 @@ const getWorkRequestTasksData = async (req, res) => {
                    PROJECT END DATE
                    ===================================================== */
 
-                (
-                    SELECT MAX(t2.end_date)
-                    FROM tasks t2
-                    WHERE t2.work_request_id = wr.id
-                      AND t2.is_deleted = 0
-                ) AS project_end_date,
+                CASE
+                    WHEN EXISTS (
+                        SELECT 1
+                        FROM tasks t2
+                        WHERE t2.work_request_id = wr.id
+                          AND t2.is_deleted = 0
+                          AND t2.end_date IS NULL
+                    )
+                    OR EXISTS (
+                        SELECT 1
+                        FROM issue_assignments ia2
+                        JOIN tasks t3
+                            ON t3.id = ia2.task_id
+                           AND t3.is_deleted = 0
+                        WHERE t3.work_request_id = wr.id
+                          AND ia2.is_deleted = 0
+                          AND ia2.end_date IS NULL
+                    )
+                    THEN NULL
+                    ELSE COALESCE(
+                        (
+                            SELECT MAX(
+                                CASE
+                                    WHEN t2.end_date IS NOT NULL AND ia2.end_date IS NOT NULL THEN GREATEST(t2.end_date, ia2.end_date)
+                                    WHEN t2.end_date IS NOT NULL THEN t2.end_date
+                                    WHEN ia2.end_date IS NOT NULL THEN ia2.end_date
+                                END
+                            )
+                            FROM tasks t2
+                            LEFT JOIN issue_assignments ia2
+                                ON ia2.task_id = t2.id
+                               AND ia2.is_deleted = 0
+                            WHERE t2.work_request_id = wr.id
+                              AND t2.is_deleted = 0
+                        ),
+                        NULL
+                    )
+                END AS project_end_date,
 
 
                 /* =====================================================
