@@ -2301,31 +2301,31 @@ const getTaskDetailsData = async (req, res) => {
                                 ORDER BY mu2.name
                                 SEPARATOR ', '
                             )
-                            FROM work_request_managers wrm2
-                            JOIN users mu2
-                                ON mu2.id = wrm2.manager_id
-                            WHERE wrm2.work_request_id = wr.id
-                        ),
-                    ''),
-                    'N/A'
-                ) AS task_manager,
+                             FROM work_request_managers wrm2
+                             JOIN users mu2
+                                 ON mu2.id = wrm2.manager_id
+                             WHERE wrm2.work_request_id = wr.id
+                         ),
+                     ''),
+                     'N/A'
+                 ) AS project_manager,
 
-                COALESCE(
-                    NULLIF(
-                        (
-                            SELECT GROUP_CONCAT(
-                                DISTINCT au.name
-                                ORDER BY au.name
-                                SEPARATOR ', '
-                            )
-                            FROM task_assignments ta2
-                            JOIN users au
-                                ON au.id = ta2.user_id
-                            WHERE ta2.task_id = t.id
-                        ),
-                    ''),
-                    'N/A'
-                ) AS assigned_creative_user,
+                 COALESCE(
+                     NULLIF(
+                         (
+                             SELECT GROUP_CONCAT(
+                                 DISTINCT au.name
+                                 ORDER BY au.name
+                                 SEPARATOR ', '
+                             )
+                             FROM task_assignments ta2
+                             JOIN users au
+                                 ON au.id = ta2.user_id
+                             WHERE ta2.task_id = t.id
+                         ),
+                     ''),
+                     'N/A'
+                 ) AS assigned_creative_user,
 
                 COALESCE(
                     NULLIF(
@@ -3029,31 +3029,31 @@ const getIssueDetailsData = async (req, res) => {
                                 ORDER BY mu2.name
                                 SEPARATOR ', '
                             )
-                            FROM work_request_managers wrm2
-                            JOIN users mu2
-                                ON mu2.id = wrm2.manager_id
-                            WHERE wrm2.work_request_id = wr.id
-                        ),
-                    ''),
-                    'N/A'
-                ) AS task_manager,
+                             FROM work_request_managers wrm2
+                             JOIN users mu2
+                                 ON mu2.id = wrm2.manager_id
+                             WHERE wrm2.work_request_id = wr.id
+                         ),
+                     ''),
+                     'N/A'
+                 ) AS project_manager,
 
-                COALESCE(
-                    NULLIF(
-                        (
-                            SELECT GROUP_CONCAT(
-                                DISTINCT au2.name
-                                ORDER BY au2.name
-                                SEPARATOR ', '
-                            )
-                            FROM issue_user_assignments iua2
-                            JOIN users au2
-                                ON au2.id = iua2.user_id
-                            WHERE iua2.issue_assignment_id = ia.id
-                        ),
-                    ''),
-                    'N/A'
-                ) AS assigned_creative_user,
+                 COALESCE(
+                     NULLIF(
+                         (
+                             SELECT GROUP_CONCAT(
+                                 DISTINCT au2.name
+                                 ORDER BY au2.name
+                                 SEPARATOR ', '
+                             )
+                             FROM issue_user_assignments iua2
+                             JOIN users au2
+                                 ON au2.id = iua2.user_id
+                             WHERE iua2.issue_assignment_id = ia.id
+                         ),
+                     ''),
+                     'N/A'
+                 ) AS assigned_creative_user,
 
                 COALESCE(
                     NULLIF(
