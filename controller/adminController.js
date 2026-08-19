@@ -2842,7 +2842,7 @@ const getTaskDetailsData = async (req, res) => {
 
                 COALESCE(
                     DATE_FORMAT(
-                        t.deadline,
+                        t.end_date,
                         '%M'
                     ),
                     '00'
@@ -2854,24 +2854,24 @@ const getTaskDetailsData = async (req, res) => {
 
                 COALESCE(
                     CASE
-                        WHEN MONTH(t.deadline) >= 4
+                        WHEN MONTH(t.end_date) >= 4
 
                         THEN CONCAT(
                             'FY ',
-                            YEAR(t.deadline),
+                            YEAR(t.end_date),
                             '-',
                             RIGHT(
-                                YEAR(t.deadline) + 1,
+                                YEAR(t.end_date) + 1,
                                 2
                             )
                         )
 
                         ELSE CONCAT(
                             'FY ',
-                            YEAR(t.deadline) - 1,
+                            YEAR(t.end_date) - 1,
                             '-',
                             RIGHT(
-                                YEAR(t.deadline),
+                                YEAR(t.end_date),
                                 2
                             )
                         )
@@ -3592,7 +3592,7 @@ const getIssueDetailsData = async (req, res) => {
 
                 COALESCE(
                     DATE_FORMAT(
-                        ia.deadline,
+                        ia.end_date,
                         '%M'
                     ),
                     '00'
@@ -3604,24 +3604,24 @@ const getIssueDetailsData = async (req, res) => {
 
                 COALESCE(
                     CASE
-                        WHEN MONTH(ia.deadline) >= 4
+                        WHEN MONTH(ia.end_date) >= 4
 
                         THEN CONCAT(
                             'FY ',
-                            YEAR(ia.deadline),
+                            YEAR(ia.end_date),
                             '-',
                             RIGHT(
-                                YEAR(ia.deadline) + 1,
+                                YEAR(ia.end_date) + 1,
                                 2
                             )
                         )
 
                         ELSE CONCAT(
                             'FY ',
-                            YEAR(ia.deadline) - 1,
+                            YEAR(ia.end_date) - 1,
                             '-',
                             RIGHT(
-                                YEAR(ia.deadline),
+                                YEAR(ia.end_date),
                                 2
                             )
                         )
