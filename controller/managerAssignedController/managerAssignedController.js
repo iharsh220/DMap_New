@@ -5153,7 +5153,8 @@ const getIssueAssignments = async (req, res) => {
         const issueAssignments = await IssueAssignments.findAll({
             where: {
                 ...where,
-                task_id: { [Op.in]: taskIds }
+                task_id: { [Op.in]: taskIds },
+                is_deleted: 0
             },
             include: [
                 {
