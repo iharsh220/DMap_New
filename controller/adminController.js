@@ -2308,7 +2308,28 @@ const getTaskDetailsData = async (req, res) => {
                          ),
                      ''),
                      'N/A'
-                 ) AS project_manager,
+                  ) AS project_manager,
+
+                 COALESCE(
+                     NULLIF(
+                         (
+                             SELECT GROUP_CONCAT(
+                                 DISTINCT d2.title
+                                 ORDER BY d2.title
+                                 SEPARATOR ', '
+                             )
+                             FROM work_request_managers wrm3
+                             JOIN users mu3
+                                 ON mu3.id = wrm3.manager_id
+                             JOIN user_divisions ud3
+                                 ON ud3.user_id = mu3.id
+                             JOIN division d2
+                                 ON d2.id = ud3.division_id
+                             WHERE wrm3.work_request_id = wr.id
+                         ),
+                     ''),
+                     'N/A'
+                 ) AS project_manager_vertical,
 
                  COALESCE(
                      NULLIF(
@@ -3036,7 +3057,28 @@ const getIssueDetailsData = async (req, res) => {
                          ),
                      ''),
                      'N/A'
-                 ) AS project_manager,
+                  ) AS project_manager,
+
+                 COALESCE(
+                     NULLIF(
+                         (
+                             SELECT GROUP_CONCAT(
+                                 DISTINCT d2.title
+                                 ORDER BY d2.title
+                                 SEPARATOR ', '
+                             )
+                             FROM work_request_managers wrm3
+                             JOIN users mu3
+                                 ON mu3.id = wrm3.manager_id
+                             JOIN user_divisions ud3
+                                 ON ud3.user_id = mu3.id
+                             JOIN division d2
+                                 ON d2.id = ud3.division_id
+                             WHERE wrm3.work_request_id = wr.id
+                         ),
+                     ''),
+                     'N/A'
+                 ) AS project_manager_vertical,
 
                  COALESCE(
                      NULLIF(
