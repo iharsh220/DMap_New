@@ -2329,24 +2329,73 @@ const getTaskDetailsData = async (req, res) => {
                          ),
                      ''),
                      'N/A'
-                 ) AS project_manager_vertical,
+                  ) AS project_manager_vertical,
 
-                 COALESCE(
-                     NULLIF(
-                         (
-                             SELECT GROUP_CONCAT(
-                                 DISTINCT au.name
-                                 ORDER BY au.name
-                                 SEPARATOR ', '
-                             )
-                             FROM task_assignments ta2
-                             JOIN users au
-                                 ON au.id = ta2.user_id
-                             WHERE ta2.task_id = t.id
-                         ),
-                     ''),
-                     'N/A'
-                 ) AS assigned_creative_user,
+                  COALESCE(
+                      NULLIF(
+                          (
+                              SELECT GROUP_CONCAT(
+                                  DISTINCT d3.title
+                                  ORDER BY d3.title
+                                  SEPARATOR ', '
+                              )
+                              FROM task_assignments ta4
+                              JOIN users au3
+                                  ON au3.id = ta4.user_id
+                              JOIN user_divisions ud5
+                                  ON ud5.user_id = au3.id
+                              JOIN division d3
+                                  ON d3.id = ud5.division_id
+                              WHERE ta4.task_id = t.id
+                          ),
+                      ''),
+                      'N/A'
+                  ) AS task_manager_vertical,
+
+                  COALESCE(
+                      NULLIF(
+                          (
+                              SELECT GROUP_CONCAT(
+                                  DISTINCT mu4.name
+                                  ORDER BY mu4.name
+                                  SEPARATOR ', '
+                              )
+                              FROM task_assignments ta4
+                              JOIN users au3
+                                  ON au3.id = ta4.user_id
+                              JOIN user_divisions ud5
+                                  ON ud5.user_id = au3.id
+                              JOIN division d3
+                                  ON d3.id = ud5.division_id
+                              JOIN user_divisions ud6
+                                  ON ud6.division_id = d3.id
+                              JOIN users mu4
+                                  ON mu4.id = ud6.user_id
+                              JOIN job_role jr
+                                  ON jr.id = mu4.job_role_id
+                              WHERE ta4.task_id = t.id
+                                AND jr.role_title = 'Creative Manager'
+                          ),
+                      ''),
+                      'N/A'
+                  ) AS task_manager,
+
+                  COALESCE(
+                      NULLIF(
+                          (
+                              SELECT GROUP_CONCAT(
+                                  DISTINCT au.name
+                                  ORDER BY au.name
+                                  SEPARATOR ', '
+                              )
+                              FROM task_assignments ta2
+                              JOIN users au
+                                  ON au.id = ta2.user_id
+                              WHERE ta2.task_id = t.id
+                          ),
+                      ''),
+                      'N/A'
+                  ) AS assigned_creative_user,
 
                 COALESCE(
                     NULLIF(
@@ -3078,24 +3127,73 @@ const getIssueDetailsData = async (req, res) => {
                          ),
                      ''),
                      'N/A'
-                 ) AS project_manager_vertical,
+                   ) AS project_manager_vertical,
 
-                 COALESCE(
-                     NULLIF(
-                         (
-                             SELECT GROUP_CONCAT(
-                                 DISTINCT au2.name
-                                 ORDER BY au2.name
-                                 SEPARATOR ', '
-                             )
-                             FROM issue_user_assignments iua2
-                             JOIN users au2
-                                 ON au2.id = iua2.user_id
-                             WHERE iua2.issue_assignment_id = ia.id
-                         ),
-                     ''),
-                     'N/A'
-                 ) AS assigned_creative_user,
+                  COALESCE(
+                      NULLIF(
+                          (
+                              SELECT GROUP_CONCAT(
+                                  DISTINCT d3.title
+                                  ORDER BY d3.title
+                                  SEPARATOR ', '
+                              )
+                              FROM issue_user_assignments iua3
+                              JOIN users au3
+                                  ON au3.id = iua3.user_id
+                              JOIN user_divisions ud5
+                                  ON ud5.user_id = au3.id
+                              JOIN division d3
+                                  ON d3.id = ud5.division_id
+                              WHERE iua3.issue_assignment_id = ia.id
+                          ),
+                      ''),
+                      'N/A'
+                  ) AS task_manager_vertical,
+
+                  COALESCE(
+                      NULLIF(
+                          (
+                              SELECT GROUP_CONCAT(
+                                  DISTINCT mu4.name
+                                  ORDER BY mu4.name
+                                  SEPARATOR ', '
+                              )
+                              FROM issue_user_assignments iua3
+                              JOIN users au3
+                                  ON au3.id = iua3.user_id
+                              JOIN user_divisions ud5
+                                  ON ud5.user_id = au3.id
+                              JOIN division d3
+                                  ON d3.id = ud5.division_id
+                              JOIN user_divisions ud6
+                                  ON ud6.division_id = d3.id
+                              JOIN users mu4
+                                  ON mu4.id = ud6.user_id
+                              JOIN job_role jr
+                                  ON jr.id = mu4.job_role_id
+                              WHERE iua3.issue_assignment_id = ia.id
+                                AND jr.role_title = 'Creative Manager'
+                          ),
+                      ''),
+                      'N/A'
+                  ) AS task_manager,
+
+                  COALESCE(
+                      NULLIF(
+                          (
+                              SELECT GROUP_CONCAT(
+                                  DISTINCT au2.name
+                                  ORDER BY au2.name
+                                  SEPARATOR ', '
+                              )
+                              FROM issue_user_assignments iua2
+                              JOIN users au2
+                                  ON au2.id = iua2.user_id
+                              WHERE iua2.issue_assignment_id = ia.id
+                          ),
+                      ''),
+                      'N/A'
+                  ) AS assigned_creative_user,
 
                 COALESCE(
                     NULLIF(
