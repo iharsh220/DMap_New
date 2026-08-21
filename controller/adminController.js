@@ -519,1291 +519,416 @@ const deleteIssue = async (req, res) => {
 
 const getAdminData = async (req, res) => {
     try {
-        const { startDate, endDate } = req.query;
+        const {
+            startDate,
+            endDate,
+            status,
+            priority,
+            requestType,
+            projectType,
+            requester,
+            brand
+        } = req.query;
 
+        const whereClauses = [];
         const replacements = {};
-        const whereClauses = ['wr.is_deleted = 0'];
+
+        // ---------------------------------------
+        // WORK REQUEST FILTERS
+        // ---------------------------------------
+
+        whereClauses.push(`wr.is_deleted = 0`);
 
         if (startDate) {
-            whereClauses.push('wr.created_at >= :startDate');
+            whereClauses.push(`DATE(wr.created_at) >= :startDate`);
             replacements.startDate = startDate;
         }
 
         if (endDate) {
-            whereClauses.push('wr.created_at <= :endDate');
+            whereClauses.push(`DATE(wr.created_at) <= :endDate`);
             replacements.endDate = endDate;
         }
 
+        if (status) {
+            whereClauses.push(`wr.status = :status`);
+            replacements.status = status;
+        }
+
+        if (priority) {
+            whereClauses.push(`wr.priority = :priority`);
+            replacements.priority = priority;
+        }
+
+        if (requestType) {
+            whereClauses.push(`wr.request_type_id = :requestType`);
+            replacements.requestType = requestType;
+        }
+
+        if (projectType) {
+            whereClauses.push(`wr.project_id = :projectType`);
+            replacements.projectType = projectType;
+        }
+
+        if (requester) {
+            whereClauses.push(`wr.user_id = :requester`);
+            replacements.requester = requester;
+        }
+
+        if (brand) {
+            whereClauses.push(`wr.brand = :brand`);
+            replacements.brand = brand;
+        }
+
+
+        // ---------------------------------------
+        // MAIN QUERY
+        // ---------------------------------------
+
         let query = `
             SELECT
-                COALESCE(NULLIF(TRIM(wr.status), ''), '00h 00m') AS project_request_status,
+
                 wr.id AS work_request_id,
-                COALESCE(NULLIF(TRIM(wr.project_name), ''), 'N/A') AS project_name,
-                COALESCE(NULLIF(TRIM(rt.request_type), ''), 'N/A') AS request_type_name,
-                COALESCE(NULLIF(TRIM(pt.project_type), ''), 'N/A') AS project_type_name,
-                COALESCE(NULLIF(TRIM(wr.priority), ''), 'N/A') AS project_priority,
-                COALESCE(NULLIF(TRIM(ru.name), ''), 'N/A') AS project_requester_name,
+
+                wr.project_name,
+
+                rt.request_type AS request_type_name,
+
+                pt.project_type AS project_type_name,
+
+                wr.priority AS project_priority,
+
+                ru.name AS project_requester_name,
+
+                wr.status AS project_request_status,
+
+                wr.requested_at AS project_request_timestamp,
+
+                wr.created_at,
+
+                wr.updated_at,
+
+
+                /* ==================================================
+                   TASK COUNT / WORK PAGES
+                   IMPORTANT:
+                   Do NOT SUM(t.task_count) from the main JOIN.
+                   It can duplicate because of issue_assignments
+                   and task_history joins.
+                   ================================================== */
 
                 COALESCE(
-                    NULLIF(
-                        (
-                            SELECT GROUP_CONCAT(
-                                DISTINCT d.title
-                                ORDER BY d.title
-                                SEPARATOR ', '
-                            )
-                            FROM user_divisions ud
-                            JOIN division d ON d.id = ud.division_id
-                            WHERE ud.user_id = ru.id
-                        ),
-                    ''),
-                'N/A') AS client_division,
-
-                COALESCE(
-                    NULLIF(
-                        (
-                            SELECT GROUP_CONCAT(
-                                DISTINCT mu2.name
-                                ORDER BY mu2.name
-                                SEPARATOR ', '
-                            )
-                            FROM work_request_managers wrm2
-                            JOIN users mu2 ON mu2.id = wrm2.manager_id
-                            WHERE wrm2.work_request_id = wr.id
-                        ),
-                    ''),
-                'N/A') AS request_accepted_by,
-
-                1 AS project_count,
-
-                COUNT(DISTINCT t.id) AS task_count,
-
-                COUNT(DISTINCT ia.id) AS change_count,
-
-                /* =====================================================
-                   POWER BI DATE/TIME FIELDS
-                   Return real DATETIME or NULL
-                   ===================================================== */
-
-                MIN(t.start_date) AS project_start_date,
-
-                CASE
-                    WHEN EXISTS (
-                        SELECT 1
+                    (
+                        SELECT SUM(
+                            COALESCE(t2.task_count, 0)
+                        )
                         FROM tasks t2
                         WHERE t2.work_request_id = wr.id
                           AND t2.is_deleted = 0
-                          AND t2.end_date IS NULL
-                    )
-                    OR EXISTS (
-                        SELECT 1
-                        FROM issue_assignments ia2
-                        JOIN tasks t3
-                            ON t3.id = ia2.task_id
-                           AND t3.is_deleted = 0
-                        WHERE t3.work_request_id = wr.id
-                          AND ia2.is_deleted = 0
-                          AND ia2.end_date IS NULL
-                    )
-                    THEN NULL
-                    ELSE COALESCE(
-                        (
-                            SELECT MAX(
-                                CASE
-                                    WHEN t2.end_date IS NOT NULL AND ia2.end_date IS NOT NULL THEN GREATEST(t2.end_date, ia2.end_date)
-                                    WHEN t2.end_date IS NOT NULL THEN t2.end_date
-                                    WHEN ia2.end_date IS NOT NULL THEN ia2.end_date
-                                END
-                            )
-                            FROM tasks t2
-                            LEFT JOIN issue_assignments ia2
-                                ON ia2.task_id = t2.id
-                               AND ia2.is_deleted = 0
-                            WHERE t2.work_request_id = wr.id
-                              AND t2.is_deleted = 0
-                        ),
-                        NULL
-                    )
-                END AS project_end_date,
+                    ),
+                    0
+                ) AS task_no_of_work_pages,
+
+
+                /* ==================================================
+                   TOTAL TASKS
+                   ================================================== */
 
                 (
                     SELECT COUNT(*)
-                    FROM issue_history ih
-                    WHERE ih.work_request_id = wr.id
-                      AND ih.action = 'created'
-                ) AS client_change_requested_counter,
+                    FROM tasks t3
+                    WHERE t3.work_request_id = wr.id
+                      AND t3.is_deleted = 0
+                ) AS task_count,
 
-                COUNT(
-                    DISTINCT CASE
-                        WHEN th.actor_id IN (
-                            SELECT manager_id
-                            FROM work_request_managers
-                            WHERE work_request_id = wr.id
-                        )
-                        THEN th.id
-                    END
-                ) AS cm_change_requested_counter,
 
-                COALESCE(SUM(t.task_count), 0) AS task_no_of_work_pages,
-
-                COALESCE(SUM(ia.task_count), 0) AS issue_no_of_work_pages,
-
-                COALESCE(SUM(t.no_of_options_provided), 0)
-                    AS task_no_of_options_provided,
-
-                COALESCE(SUM(t.concept_work), 0)
-                    AS task_concept_work,
-
-                COALESCE(SUM(t.no_of_resize), 0)
-                    AS task_no_of_resize,
-
-                COALESCE(SUM(t.no_of_images_videos_audio), 0)
-                    AS task_no_of_ai_page,
+                /* ==================================================
+                   ISSUE WORK PAGES
+                   ================================================== */
 
                 COALESCE(
-                    SUM(t.duration_minutes * 60 + t.duration_seconds),
+                    (
+                        SELECT SUM(
+                            COALESCE(ia2.task_count, 0)
+                        )
+                        FROM issue_assignments ia2
+                        INNER JOIN tasks t4
+                            ON t4.id = ia2.task_id
+                           AND t4.is_deleted = 0
+                        WHERE t4.work_request_id = wr.id
+                          AND ia2.is_deleted = 0
+                    ),
                     0
-                ) AS video_duration,
+                ) AS issue_no_of_work_pages,
 
-                COALESCE(SUM(t.no_of_products_shot), 0)
-                    AS task_no_of_products_shot,
 
-                COALESCE(SUM(t.no_of_words_written), 0)
-                    AS task_no_of_words_written,
+                /* ==================================================
+                   PROJECT COUNT
+                   ================================================== */
 
-                COALESCE(SUM(t.no_of_responsive_screen), 0)
-                    AS task_no_of_responsive_screen,
+                1 AS project_count,
 
-                COALESCE(SUM(t.resize_work), 0)
-                    AS task_resize_work,
 
-                COALESCE(SUM(t.no_of_images_videos_audio), 0)
-                    AS task_ai,
-
-                COALESCE(SUM(t.shoot_setup), 0)
-                    AS task_shoot_setup,
-
-                /* Real DATETIME */
-                wr.requested_at AS project_request_timestamp,
+                /* ==================================================
+                   CHANGE COUNT
+                   ================================================== */
 
                 (
-                    SELECT MIN(wrh.created_at)
-                    FROM work_request_history wrh
-                    WHERE wrh.work_request_id = wr.id
-                      AND wrh.action = 'manager_accepted'
-                ) AS project_acceptance_timestamp,
+                    SELECT COUNT(*)
+                    FROM task_history th2
+                    WHERE th2.work_request_id = wr.id
+                      AND th2.action = 'manager_change_requested'
+                ) AS change_count,
+
+
+                /* ==================================================
+                   PROJECT START DATE
+                   ================================================== */
 
                 (
-                    SELECT MIN(wrh.created_at)
-                    FROM work_request_history wrh
-                    WHERE wrh.work_request_id = wr.id
-                      AND wrh.action = 'completed'
-                ) AS project_marked_completed_timestamp,
+                    SELECT MIN(t5.start_date)
+                    FROM tasks t5
+                    WHERE t5.work_request_id = wr.id
+                      AND t5.is_deleted = 0
+                      AND t5.start_date IS NOT NULL
+                ) AS project_start_date,
 
-                COALESCE(
-                    (
-                        SELECT wrh.actor_name
-                        FROM work_request_history wrh
-                        WHERE wrh.work_request_id = wr.id
-                          AND wrh.action = 'completed'
-                        ORDER BY wrh.created_at ASC
-                        LIMIT 1
-                    ),
-                    'N/A'
-                ) AS project_marked_completed_by,
 
-                /* =====================================================
-                   INTERNAL PROJECT TAT
-                   ===================================================== */
+                /* ==================================================
+                   PROJECT END DATE
+                   ================================================== */
 
-                COALESCE(
-                    CASE
-                        WHEN (
-                            SELECT MIN(wrh.created_at)
-                            FROM work_request_history wrh
-                            WHERE wrh.work_request_id = wr.id
-                              AND wrh.action = 'created'
-                        ) IS NOT NULL
-
-                        AND (
-                            SELECT MIN(wrh.created_at)
-                            FROM work_request_history wrh
-                            WHERE wrh.work_request_id = wr.id
-                              AND wrh.action = 'completed'
-                        ) IS NOT NULL
-
-                        THEN CONCAT(
-                            FLOOR(
-                                TIMESTAMPDIFF(
-                                    MINUTE,
-                                    (
-                                        SELECT MIN(wrh.created_at)
-                                        FROM work_request_history wrh
-                                        WHERE wrh.work_request_id = wr.id
-                                          AND wrh.action = 'created'
-                                    ),
-                                    (
-                                        SELECT MIN(wrh.created_at)
-                                        FROM work_request_history wrh
-                                        WHERE wrh.work_request_id = wr.id
-                                          AND wrh.action = 'completed'
-                                    )
-                                ) / 60
-                            ),
-                            'h ',
-                            MOD(
-                                TIMESTAMPDIFF(
-                                    MINUTE,
-                                    (
-                                        SELECT MIN(wrh.created_at)
-                                        FROM work_request_history wrh
-                                        WHERE wrh.work_request_id = wr.id
-                                          AND wrh.action = 'created'
-                                    ),
-                                    (
-                                        SELECT MIN(wrh.created_at)
-                                        FROM work_request_history wrh
-                                        WHERE wrh.work_request_id = wr.id
-                                          AND wrh.action = 'completed'
-                                    )
-                                ),
-                                60
-                            ),
-                            'm'
-                        )
-
-                        ELSE NULL
-                    END,
-                    '00h 00m'
-                ) AS internal_project_tat,
-
-                /* =====================================================
-                   PROJECT TAT
-                   ===================================================== */
-
-                COALESCE(
-                    CASE
-                        WHEN (
-                            SELECT MIN(th1.created_at)
-                            FROM task_history th1
-                            JOIN tasks t1
-                                ON t1.id = th1.task_id
-                               AND t1.is_deleted = 0
-                            WHERE t1.work_request_id = wr.id
-                              AND th1.action = 'created'
-                        ) IS NOT NULL
-
-                        AND GREATEST(
-                            COALESCE(
-                                (
-                                    SELECT MAX(th2.created_at)
-                                    FROM task_history th2
-                                    JOIN tasks t2
-                                        ON t2.id = th2.task_id
-                                       AND t2.is_deleted = 0
-                                    WHERE t2.work_request_id = wr.id
-                                      AND th2.action = 'completed'
-                                ),
-                                '1970-01-01'
-                            ),
-                            COALESCE(
-                                (
-                                    SELECT MIN(wrh.created_at)
-                                    FROM work_request_history wrh
-                                    WHERE wrh.work_request_id = wr.id
-                                      AND wrh.action = 'completed'
-                                ),
-                                '1970-01-01'
+                (
+                    SELECT MAX(
+                        CASE
+                            WHEN t6.end_date IS NOT NULL
+                                 AND ia3.end_date IS NOT NULL
+                            THEN GREATEST(
+                                t6.end_date,
+                                ia3.end_date
                             )
-                        ) > '1970-01-01'
 
-                        THEN CONCAT(
-                            FLOOR(
-                                TIMESTAMPDIFF(
-                                    MINUTE,
-                                    (
-                                        SELECT MIN(th1.created_at)
-                                        FROM task_history th1
-                                        JOIN tasks t1
-                                            ON t1.id = th1.task_id
-                                           AND t1.is_deleted = 0
-                                        WHERE t1.work_request_id = wr.id
-                                          AND th1.action = 'created'
-                                    ),
-                                    GREATEST(
-                                        COALESCE(
-                                            (
-                                                SELECT MAX(th2.created_at)
-                                                FROM task_history th2
-                                                JOIN tasks t2
-                                                    ON t2.id = th2.task_id
-                                                   AND t2.is_deleted = 0
-                                                WHERE t2.work_request_id = wr.id
-                                                  AND th2.action = 'completed'
-                                            ),
-                                            '1970-01-01'
-                                        ),
-                                        COALESCE(
-                                            (
-                                                SELECT MIN(wrh.created_at)
-                                                FROM work_request_history wrh
-                                                WHERE wrh.work_request_id = wr.id
-                                                  AND wrh.action = 'completed'
-                                            ),
-                                            '1970-01-01'
-                                        )
-                                    )
-                                ) / 60
-                            ),
-                            'h ',
-                            MOD(
-                                TIMESTAMPDIFF(
-                                    MINUTE,
-                                    (
-                                        SELECT MIN(th1.created_at)
-                                        FROM task_history th1
-                                        JOIN tasks t1
-                                            ON t1.id = th1.task_id
-                                           AND t1.is_deleted = 0
-                                        WHERE t1.work_request_id = wr.id
-                                          AND th1.action = 'created'
-                                    ),
-                                    GREATEST(
-                                        COALESCE(
-                                            (
-                                                SELECT MAX(th2.created_at)
-                                                FROM task_history th2
-                                                JOIN tasks t2
-                                                    ON t2.id = th2.task_id
-                                                   AND t2.is_deleted = 0
-                                                WHERE t2.work_request_id = wr.id
-                                                  AND th2.action = 'completed'
-                                            ),
-                                            '1970-01-01'
-                                        ),
-                                        COALESCE(
-                                            (
-                                                SELECT MIN(wrh.created_at)
-                                                FROM work_request_history wrh
-                                                WHERE wrh.work_request_id = wr.id
-                                                  AND wrh.action = 'completed'
-                                            ),
-                                            '1970-01-01'
-                                        )
-                                    )
-                                ),
-                                60
-                            ),
-                            'm'
-                        )
+                            WHEN t6.end_date IS NOT NULL
+                            THEN t6.end_date
 
-                        ELSE NULL
-                    END,
-                    '00h 00m'
-                ) AS project_tat,
+                            WHEN ia3.end_date IS NOT NULL
+                            THEN ia3.end_date
+                        END
+                    )
+                    FROM tasks t6
+                    LEFT JOIN issue_assignments ia3
+                        ON ia3.task_id = t6.id
+                       AND ia3.is_deleted = 0
+                    WHERE t6.work_request_id = wr.id
+                      AND t6.is_deleted = 0
+                ) AS project_end_date,
 
-                /* =====================================================
-                   PROJECT REQUEST TO RESPONSE TAT
-                   ===================================================== */
 
-                COALESCE(
-                    CASE
-                        WHEN (
-                            SELECT MIN(wrh.created_at)
-                            FROM work_request_history wrh
-                            WHERE wrh.work_request_id = wr.id
-                              AND wrh.action = 'created'
-                        ) IS NOT NULL
-
-                        AND (
-                            SELECT MIN(wrh.created_at)
-                            FROM work_request_history wrh
-                            WHERE wrh.work_request_id = wr.id
-                              AND wrh.action = 'manager_accepted'
-                        ) IS NOT NULL
-
-                        THEN CONCAT(
-                            FLOOR(
-                                TIMESTAMPDIFF(
-                                    MINUTE,
-                                    (
-                                        SELECT MIN(wrh.created_at)
-                                        FROM work_request_history wrh
-                                        WHERE wrh.work_request_id = wr.id
-                                          AND wrh.action = 'created'
-                                    ),
-                                    (
-                                        SELECT MIN(wrh.created_at)
-                                        FROM work_request_history wrh
-                                        WHERE wrh.work_request_id = wr.id
-                                          AND wrh.action = 'manager_accepted'
-                                    )
-                                ) / 60
-                            ),
-                            'h ',
-                            MOD(
-                                TIMESTAMPDIFF(
-                                    MINUTE,
-                                    (
-                                        SELECT MIN(wrh.created_at)
-                                        FROM work_request_history wrh
-                                        WHERE wrh.work_request_id = wr.id
-                                          AND wrh.action = 'created'
-                                    ),
-                                    (
-                                        SELECT MIN(wrh.created_at)
-                                        FROM work_request_history wrh
-                                        WHERE wrh.work_request_id = wr.id
-                                          AND wrh.action = 'manager_accepted'
-                                    )
-                                ),
-                                60
-                            ),
-                            'm'
-                        )
-
-                        ELSE NULL
-                    END,
-                    '00h 00m'
-                ) AS project_request_to_response_tat,
-
-                /* =====================================================
-                   TASK REQUEST TO RESPONSE TAT AVG
-                   ===================================================== */
+                /* ==================================================
+                   OTHER TASK METRICS
+                   ================================================== */
 
                 COALESCE(
                     (
-                        SELECT
-                            CASE
-                                WHEN AVG(
-                                    TIMESTAMPDIFF(
-                                        MINUTE,
-                                        th_start.created_at,
-                                        th_end.created_at
-                                    )
-                                ) IS NOT NULL
-
-                                THEN CONCAT(
-                                    FLOOR(
-                                        AVG(
-                                            TIMESTAMPDIFF(
-                                                MINUTE,
-                                                th_start.created_at,
-                                                th_end.created_at
-                                            )
-                                        ) / 60
-                                    ),
-                                    'h ',
-                                    MOD(
-                                        ROUND(
-                                            AVG(
-                                                TIMESTAMPDIFF(
-                                                    MINUTE,
-                                                    th_start.created_at,
-                                                    th_end.created_at
-                                                )
-                                            )
-                                        ),
-                                        60
-                                    ),
-                                    'm'
-                                )
-
-                                ELSE NULL
-                            END
-
-                        FROM tasks t_tat
-
-                        JOIN (
-                            SELECT
-                                task_id,
-                                MIN(created_at) AS created_at
-                            FROM task_history
-                            WHERE action = 'created'
-                              AND actor_type = 'manager'
-                            GROUP BY task_id
-                        ) th_start
-                            ON th_start.task_id = t_tat.id
-
-                        JOIN (
-                            SELECT
-                                task_id,
-                                MIN(created_at) AS created_at
-                            FROM task_history
-                            WHERE action = 'accepted'
-                              AND actor_type = 'user'
-                            GROUP BY task_id
-                        ) th_end
-                            ON th_end.task_id = t_tat.id
-
-                        WHERE t_tat.work_request_id = wr.id
-                          AND t_tat.is_deleted = 0
-                    ),
-                    '00h 00m'
-                ) AS task_request_to_response_tat_avg,
-
-                /* =====================================================
-                   TASK ACCEPTANCE TO COMPLETION TAT AVG
-                   ===================================================== */
-
-                COALESCE(
-                    (
-                        SELECT
-                            CASE
-                                WHEN AVG(
-                                    TIMESTAMPDIFF(
-                                        MINUTE,
-                                        th_start.created_at,
-                                        th_end.created_at
-                                    )
-                                ) IS NOT NULL
-
-                                THEN CONCAT(
-                                    FLOOR(
-                                        AVG(
-                                            TIMESTAMPDIFF(
-                                                MINUTE,
-                                                th_start.created_at,
-                                                th_end.created_at
-                                            )
-                                        ) / 60
-                                    ),
-                                    'h ',
-                                    MOD(
-                                        ROUND(
-                                            AVG(
-                                                TIMESTAMPDIFF(
-                                                    MINUTE,
-                                                    th_start.created_at,
-                                                    th_end.created_at
-                                                )
-                                            )
-                                        ),
-                                        60
-                                    ),
-                                    'm'
-                                )
-
-                                ELSE NULL
-                            END
-
-                        FROM tasks t_tat
-
-                        JOIN (
-                            SELECT
-                                task_id,
-                                MIN(created_at) AS created_at
-                            FROM task_history
-                            WHERE action = 'accepted'
-                            GROUP BY task_id
-                        ) th_start
-                            ON th_start.task_id = t_tat.id
-
-                        JOIN (
-                            SELECT
-                                task_id,
-                                MIN(created_at) AS created_at
-                            FROM task_history
-                            WHERE action = 'submitted'
-                            GROUP BY task_id
-                        ) th_end
-                            ON th_end.task_id = t_tat.id
-
-                        WHERE t_tat.work_request_id = wr.id
-                          AND t_tat.is_deleted = 0
-                    ),
-                    '00h 00m'
-                ) AS task_acceptance_to_completion_tat_by_cu_avg,
-
-                /* =====================================================
-                   TASK OUTPUT SHARED TO RESPONSE TAT AVG
-                   ===================================================== */
-
-                COALESCE(
-                    (
-                        SELECT
-                            CASE
-                                WHEN AVG(
-                                    TIMESTAMPDIFF(
-                                        MINUTE,
-                                        th_start.created_at,
-                                        th_end.created_at
-                                    )
-                                ) IS NOT NULL
-
-                                THEN CONCAT(
-                                    FLOOR(
-                                        AVG(
-                                            TIMESTAMPDIFF(
-                                                MINUTE,
-                                                th_start.created_at,
-                                                th_end.created_at
-                                            )
-                                        ) / 60
-                                    ),
-                                    'h ',
-                                    MOD(
-                                        ROUND(
-                                            AVG(
-                                                TIMESTAMPDIFF(
-                                                    MINUTE,
-                                                    th_start.created_at,
-                                                    th_end.created_at
-                                                )
-                                            )
-                                        ),
-                                        60
-                                    ),
-                                    'm'
-                                )
-
-                                ELSE NULL
-                            END
-
-                        FROM tasks t_tat
-
-                        JOIN (
-                            SELECT
-                                task_id,
-                                MIN(created_at) AS created_at
-                            FROM task_history
-                            WHERE action = 'submitted'
-                            GROUP BY task_id
-                        ) th_start
-                            ON th_start.task_id = t_tat.id
-
-                        JOIN (
-                            SELECT
-                                task_id,
-                                MIN(created_at) AS created_at
-                            FROM task_history
-                            WHERE action IN (
-                                'manager_approved',
-                                'manager_change_requested'
-                            )
-                            GROUP BY task_id
-                        ) th_end
-                            ON th_end.task_id = t_tat.id
-
-                        WHERE t_tat.work_request_id = wr.id
-                          AND t_tat.is_deleted = 0
-                    ),
-                    '00h 00m'
-                ) AS task_output_shared_to_response_by_cm_tat_avg,
-
-                /* =====================================================
-                   TASK INTERNAL TAT AVG
-                   ===================================================== */
-
-                COALESCE(
-                    (
-                        SELECT
-                            CASE
-                                WHEN AVG(
-                                    TIMESTAMPDIFF(
-                                        MINUTE,
-                                        th_start.created_at,
-                                        th_end.created_at
-                                    )
-                                ) IS NOT NULL
-
-                                THEN CONCAT(
-                                    FLOOR(
-                                        AVG(
-                                            TIMESTAMPDIFF(
-                                                MINUTE,
-                                                th_start.created_at,
-                                                th_end.created_at
-                                            )
-                                        ) / 60
-                                    ),
-                                    'h ',
-                                    MOD(
-                                        ROUND(
-                                            AVG(
-                                                TIMESTAMPDIFF(
-                                                    MINUTE,
-                                                    th_start.created_at,
-                                                    th_end.created_at
-                                                )
-                                            )
-                                        ),
-                                        60
-                                    ),
-                                    'm'
-                                )
-
-                                ELSE NULL
-                            END
-
-                        FROM tasks t_tat
-
-                        JOIN (
-                            SELECT
-                                task_id,
-                                MIN(created_at) AS created_at
-                            FROM task_history
-                            WHERE action = 'accepted'
-                            GROUP BY task_id
-                        ) th_start
-                            ON th_start.task_id = t_tat.id
-
-                        JOIN (
-                            SELECT
-                                task_id,
-                                MIN(created_at) AS created_at
-                            FROM task_history
-                            WHERE action = 'manager_approved'
-                            GROUP BY task_id
-                        ) th_end
-                            ON th_end.task_id = t_tat.id
-
-                        WHERE t_tat.work_request_id = wr.id
-                          AND t_tat.is_deleted = 0
-                    ),
-                    '00h 00m'
-                ) AS task_internal_tat_avg,
-
-                /* =====================================================
-                   TASK WHOLE TAT AVG
-                   ===================================================== */
-
-                COALESCE(
-                    (
-                        SELECT
-                            CASE
-                                WHEN AVG(
-                                    TIMESTAMPDIFF(
-                                        MINUTE,
-                                        th_start.created_at,
-                                        th_end.created_at
-                                    )
-                                ) IS NOT NULL
-
-                                THEN CONCAT(
-                                    FLOOR(
-                                        AVG(
-                                            TIMESTAMPDIFF(
-                                                MINUTE,
-                                                th_start.created_at,
-                                                th_end.created_at
-                                            )
-                                        ) / 60
-                                    ),
-                                    'h ',
-                                    MOD(
-                                        ROUND(
-                                            AVG(
-                                                TIMESTAMPDIFF(
-                                                    MINUTE,
-                                                    th_start.created_at,
-                                                    th_end.created_at
-                                                )
-                                            )
-                                        ),
-                                        60
-                                    ),
-                                    'm'
-                                )
-
-                                ELSE NULL
-                            END
-
-                        FROM tasks t_tat
-
-                        JOIN (
-                            SELECT
-                                task_id,
-                                MIN(created_at) AS created_at
-                            FROM task_history
-                            WHERE action = 'accepted'
-                            GROUP BY task_id
-                        ) th_start
-                            ON th_start.task_id = t_tat.id
-
-                        JOIN (
-                            SELECT
-                                task_id,
-                                MIN(created_at) AS created_at
-                            FROM task_history
-                            WHERE action = 'completed'
-                            GROUP BY task_id
-                        ) th_end
-                            ON th_end.task_id = t_tat.id
-
-                        WHERE t_tat.work_request_id = wr.id
-                          AND t_tat.is_deleted = 0
-                    ),
-                    '00h 00m'
-                ) AS task_whole_tat_avg,
-
-                /* =====================================================
-                   CHANGE REQUEST TO RESPONSE TAT
-                   ===================================================== */
-
-                COALESCE(
-                    CASE
-                        WHEN (
-                            SELECT MIN(created_at)
-                            FROM issue_history
-                            WHERE issue_assignment_id = ia.id
-                              AND action = 'assigned'
-                              AND actor_type = 'manager'
-                        ) IS NOT NULL
-
-                        AND (
-                            SELECT MIN(created_at)
-                            FROM issue_history
-                            WHERE issue_assignment_id = ia.id
-                              AND action = 'accepted'
-                              AND actor_type = 'user'
-                        ) IS NOT NULL
-
-                        THEN CONCAT(
-                            FLOOR(
-                                TIMESTAMPDIFF(
-                                    MINUTE,
-                                    (
-                                        SELECT MIN(created_at)
-                                        FROM issue_history
-                                        WHERE issue_assignment_id = ia.id
-                                          AND action = 'assigned'
-                                          AND actor_type = 'manager'
-                                    ),
-                                    (
-                                        SELECT MIN(created_at)
-                                        FROM issue_history
-                                        WHERE issue_assignment_id = ia.id
-                                          AND action = 'accepted'
-                                          AND actor_type = 'user'
-                                    )
-                                ) / 60
-                            ),
-                            'h ',
-                            MOD(
-                                TIMESTAMPDIFF(
-                                    MINUTE,
-                                    (
-                                        SELECT MIN(created_at)
-                                        FROM issue_history
-                                        WHERE issue_assignment_id = ia.id
-                                          AND action = 'assigned'
-                                          AND actor_type = 'manager'
-                                    ),
-                                    (
-                                        SELECT MIN(created_at)
-                                        FROM issue_history
-                                        WHERE issue_assignment_id = ia.id
-                                          AND action = 'accepted'
-                                          AND actor_type = 'user'
-                                    )
-                                ),
-                                60
-                            ),
-                            'm'
+                        SELECT SUM(
+                            COALESCE(t7.no_of_options_provided, 0)
                         )
+                        FROM tasks t7
+                        WHERE t7.work_request_id = wr.id
+                          AND t7.is_deleted = 0
+                    ),
+                    0
+                ) AS task_no_of_options_provided,
 
-                        ELSE NULL
-                    END,
-                    '00h 00m'
-                ) AS change_request_to_response_tat,
-
-                /* =====================================================
-                   CHANGE ACCEPTANCE TO COMPLETION TAT
-                   ===================================================== */
 
                 COALESCE(
-                    CASE
-                        WHEN (
-                            SELECT MIN(created_at)
-                            FROM issue_history
-                            WHERE issue_assignment_id = ia.id
-                              AND action = 'accepted'
-                              AND actor_type = 'user'
-                        ) IS NOT NULL
-
-                        AND (
-                            SELECT MIN(created_at)
-                            FROM issue_history
-                            WHERE issue_assignment_id = ia.id
-                              AND action = 'submitted'
-                              AND actor_type = 'user'
-                        ) IS NOT NULL
-
-                        THEN CONCAT(
-                            FLOOR(
-                                TIMESTAMPDIFF(
-                                    MINUTE,
-                                    (
-                                        SELECT MIN(created_at)
-                                        FROM issue_history
-                                        WHERE issue_assignment_id = ia.id
-                                          AND action = 'accepted'
-                                          AND actor_type = 'user'
-                                    ),
-                                    (
-                                        SELECT MIN(created_at)
-                                        FROM issue_history
-                                        WHERE issue_assignment_id = ia.id
-                                          AND action = 'submitted'
-                                          AND actor_type = 'user'
-                                    )
-                                ) / 60
-                            ),
-                            'h ',
-                            MOD(
-                                TIMESTAMPDIFF(
-                                    MINUTE,
-                                    (
-                                        SELECT MIN(created_at)
-                                        FROM issue_history
-                                        WHERE issue_assignment_id = ia.id
-                                          AND action = 'accepted'
-                                          AND actor_type = 'user'
-                                    ),
-                                    (
-                                        SELECT MIN(created_at)
-                                        FROM issue_history
-                                        WHERE issue_assignment_id = ia.id
-                                          AND action = 'submitted'
-                                          AND actor_type = 'user'
-                                    )
-                                ),
-                                60
-                            ),
-                            'm'
+                    (
+                        SELECT SUM(
+                            COALESCE(t8.concept_work, 0)
                         )
+                        FROM tasks t8
+                        WHERE t8.work_request_id = wr.id
+                          AND t8.is_deleted = 0
+                    ),
+                    0
+                ) AS task_concept_work,
 
-                        ELSE NULL
-                    END,
-                    '00h 00m'
-                ) AS change_acceptance_to_completion_tat_by_cu,
-
-                /* =====================================================
-                   CHANGE OUTPUT SHARED TO RESPONSE TAT
-                   ===================================================== */
 
                 COALESCE(
-                    CASE
-                        WHEN (
-                            SELECT MIN(created_at)
-                            FROM issue_history
-                            WHERE issue_assignment_id = ia.id
-                              AND action = 'submitted'
-                              AND actor_type = 'user'
-                        ) IS NOT NULL
-
-                        AND (
-                            SELECT MIN(created_at)
-                            FROM issue_history
-                            WHERE issue_assignment_id = ia.id
-                              AND action = 'manager_approved'
-                              AND actor_type = 'manager'
-                        ) IS NOT NULL
-
-                        THEN CONCAT(
-                            FLOOR(
-                                TIMESTAMPDIFF(
-                                    MINUTE,
-                                    (
-                                        SELECT MIN(created_at)
-                                        FROM issue_history
-                                        WHERE issue_assignment_id = ia.id
-                                          AND action = 'submitted'
-                                          AND actor_type = 'user'
-                                    ),
-                                    (
-                                        SELECT MIN(created_at)
-                                        FROM issue_history
-                                        WHERE issue_assignment_id = ia.id
-                                          AND action = 'manager_approved'
-                                          AND actor_type = 'manager'
-                                    )
-                                ) / 60
-                            ),
-                            'h ',
-                            MOD(
-                                TIMESTAMPDIFF(
-                                    MINUTE,
-                                    (
-                                        SELECT MIN(created_at)
-                                        FROM issue_history
-                                        WHERE issue_assignment_id = ia.id
-                                          AND action = 'submitted'
-                                          AND actor_type = 'user'
-                                    ),
-                                    (
-                                        SELECT MIN(created_at)
-                                        FROM issue_history
-                                        WHERE issue_assignment_id = ia.id
-                                          AND action = 'manager_approved'
-                                          AND actor_type = 'manager'
-                                    )
-                                ),
-                                60
-                            ),
-                            'm'
+                    (
+                        SELECT SUM(
+                            COALESCE(t9.no_of_resize, 0)
                         )
+                        FROM tasks t9
+                        WHERE t9.work_request_id = wr.id
+                          AND t9.is_deleted = 0
+                    ),
+                    0
+                ) AS task_no_of_resize,
 
-                        ELSE NULL
-                    END,
-                    '00h 00m'
-                ) AS change_output_shared_to_response_by_cm_tat,
 
-                '00h 00m' AS change_internal_tat,
+                COALESCE(
+                    (
+                        SELECT SUM(
+                            COALESCE(t10.no_of_words_written, 0)
+                        )
+                        FROM tasks t10
+                        WHERE t10.work_request_id = wr.id
+                          AND t10.is_deleted = 0
+                    ),
+                    0
+                ) AS task_no_of_words_written,
 
-                '00h 00m' AS change_whole_tat,
 
-                0 AS project_request_response_reminder_counter_to_cm,
-                0 AS task_request_response_reminder_counter_to_cu,
-                0 AS task_output_response_reminder_counter_to_cm,
-                0 AS task_output_response_reminder_counter_to_client,
-                0 AS change_request_response_reminder_counter_to_cu,
-                0 AS chnage_output_response_reminder_counter_to_cm,
-                 0 AS change_output_response_reminder_counter_to_client,
-                 0 AS project_closure_reminder_counter_to_client,
+                COALESCE(
+                    (
+                        SELECT SUM(
+                            COALESCE(t11.no_of_responsive_screen, 0)
+                        )
+                        FROM tasks t11
+                        WHERE t11.work_request_id = wr.id
+                          AND t11.is_deleted = 0
+                    ),
+                    0
+                ) AS task_no_of_responsive_screen,
 
-                 /* =====================================================
-                    MONTH
-                    ===================================================== */
+
+                COALESCE(
+                    (
+                        SELECT SUM(
+                            COALESCE(t12.no_of_products_shot, 0)
+                        )
+                        FROM tasks t12
+                        WHERE t12.work_request_id = wr.id
+                          AND t12.is_deleted = 0
+                    ),
+                    0
+                ) AS task_no_of_products_shot,
+
+
+                COALESCE(
+                    (
+                        SELECT SUM(
+                            COALESCE(t13.shoot_setup, 0)
+                        )
+                        FROM tasks t13
+                        WHERE t13.work_request_id = wr.id
+                          AND t13.is_deleted = 0
+                    ),
+                    0
+                ) AS task_shoot_setup,
+
+
+                /* ==================================================
+                   MONTH
+                   ================================================== */
 
                 CASE
-                    WHEN EXISTS (
-                        SELECT 1
-                        FROM tasks t2
-                        WHERE t2.work_request_id = wr.id
-                          AND t2.is_deleted = 0
-                          AND t2.end_date IS NULL
-                    )
-                    OR EXISTS (
-                        SELECT 1
-                        FROM issue_assignments ia2
-                        JOIN tasks t3
-                            ON t3.id = ia2.task_id
-                           AND t3.is_deleted = 0
-                        WHERE t3.work_request_id = wr.id
-                          AND ia2.is_deleted = 0
-                          AND ia2.end_date IS NULL
-                    )
-                    THEN '00'
-                    ELSE COALESCE(
-                        DATE_FORMAT(
-                            (
-                                SELECT MAX(
-                                CASE
-                                    WHEN t2.end_date IS NOT NULL AND ia2.end_date IS NOT NULL THEN GREATEST(t2.end_date, ia2.end_date)
-                                    WHEN t2.end_date IS NOT NULL THEN t2.end_date
-                                    WHEN ia2.end_date IS NOT NULL THEN ia2.end_date
-                                END
-                            )
-                                FROM tasks t2
-                                LEFT JOIN issue_assignments ia2
-                                    ON ia2.task_id = t2.id
-                                   AND ia2.is_deleted = 0
-                                WHERE t2.work_request_id = wr.id
-                                  AND t2.is_deleted = 0
-                            ),
-                            '%M'
-                        ),
-                        '00'
-                    )
+                    WHEN MONTH(wr.created_at) = 1 THEN 'January'
+                    WHEN MONTH(wr.created_at) = 2 THEN 'February'
+                    WHEN MONTH(wr.created_at) = 3 THEN 'March'
+                    WHEN MONTH(wr.created_at) = 4 THEN 'April'
+                    WHEN MONTH(wr.created_at) = 5 THEN 'May'
+                    WHEN MONTH(wr.created_at) = 6 THEN 'June'
+                    WHEN MONTH(wr.created_at) = 7 THEN 'July'
+                    WHEN MONTH(wr.created_at) = 8 THEN 'August'
+                    WHEN MONTH(wr.created_at) = 9 THEN 'September'
+                    WHEN MONTH(wr.created_at) = 10 THEN 'October'
+                    WHEN MONTH(wr.created_at) = 11 THEN 'November'
+                    WHEN MONTH(wr.created_at) = 12 THEN 'December'
+                    ELSE '00'
                 END AS month,
 
-                 /* =====================================================
-                    FINANCIAL YEAR
-                    ===================================================== */
 
-                COALESCE(
-                    CASE
-                        WHEN EXISTS (
-                            SELECT 1
-                            FROM tasks t2
-                            WHERE t2.work_request_id = wr.id
-                              AND t2.is_deleted = 0
-                              AND t2.end_date IS NULL
-                        )
-                        OR EXISTS (
-                            SELECT 1
-                            FROM issue_assignments ia2
-                            JOIN tasks t3
-                                ON t3.id = ia2.task_id
-                               AND t3.is_deleted = 0
-                            WHERE t3.work_request_id = wr.id
-                              AND ia2.is_deleted = 0
-                              AND ia2.end_date IS NULL
-                        )
-                        THEN '00'
-                        ELSE (
-                            CASE
-                                WHEN MONTH(
-                                    (
-                                        SELECT MAX(
-                                CASE
-                                    WHEN t2.end_date IS NOT NULL AND ia2.end_date IS NOT NULL THEN GREATEST(t2.end_date, ia2.end_date)
-                                    WHEN t2.end_date IS NOT NULL THEN t2.end_date
-                                    WHEN ia2.end_date IS NOT NULL THEN ia2.end_date
-                                END
-                            )
-                                        FROM tasks t2
-                                        LEFT JOIN issue_assignments ia2
-                                            ON ia2.task_id = t2.id
-                                           AND ia2.is_deleted = 0
-                                        WHERE t2.work_request_id = wr.id
-                                          AND t2.is_deleted = 0
-                                    )
-                                ) >= 4
+                /* ==================================================
+                   FINANCIAL YEAR
+                   ================================================== */
 
-                                THEN CONCAT(
-                                    'FY ',
-                                    YEAR(
-                                        (
-                                            SELECT MAX(
-                                CASE
-                                    WHEN t2.end_date IS NOT NULL AND ia2.end_date IS NOT NULL THEN GREATEST(t2.end_date, ia2.end_date)
-                                    WHEN t2.end_date IS NOT NULL THEN t2.end_date
-                                    WHEN ia2.end_date IS NOT NULL THEN ia2.end_date
-                                END
+                CASE
+                    WHEN MONTH(wr.created_at) >= 4 THEN
+                        CONCAT(
+                            'FY ',
+                            YEAR(wr.created_at),
+                            '-',
+                            RIGHT(
+                                YEAR(wr.created_at) + 1,
+                                2
                             )
-                                            FROM tasks t2
-                                            LEFT JOIN issue_assignments ia2
-                                                ON ia2.task_id = t2.id
-                                               AND ia2.is_deleted = 0
-                                            WHERE t2.work_request_id = wr.id
-                                              AND t2.is_deleted = 0
-                                        )
-                                    ),
-                                    '-',
-                                    RIGHT(
-                                        YEAR(
-                                            (
-                                                SELECT MAX(
-                                CASE
-                                    WHEN t2.end_date IS NOT NULL AND ia2.end_date IS NOT NULL THEN GREATEST(t2.end_date, ia2.end_date)
-                                    WHEN t2.end_date IS NOT NULL THEN t2.end_date
-                                    WHEN ia2.end_date IS NOT NULL THEN ia2.end_date
-                                END
-                            )
-                                                FROM tasks t2
-                                                LEFT JOIN issue_assignments ia2
-                                                    ON ia2.task_id = t2.id
-                                                   AND ia2.is_deleted = 0
-                                                WHERE t2.work_request_id = wr.id
-                                                  AND t2.is_deleted = 0
-                                            )
-                                        ) + 1,
-                                        2
-                                    )
-                                )
-
-                                ELSE CONCAT(
-                                    'FY ',
-                                    YEAR(
-                                        (
-                                            SELECT MAX(
-                                CASE
-                                    WHEN t2.end_date IS NOT NULL AND ia2.end_date IS NOT NULL THEN GREATEST(t2.end_date, ia2.end_date)
-                                    WHEN t2.end_date IS NOT NULL THEN t2.end_date
-                                    WHEN ia2.end_date IS NOT NULL THEN ia2.end_date
-                                END
-                            )
-                                            FROM tasks t2
-                                            LEFT JOIN issue_assignments ia2
-                                                ON ia2.task_id = t2.id
-                                               AND ia2.is_deleted = 0
-                                            WHERE t2.work_request_id = wr.id
-                                              AND t2.is_deleted = 0
-                                        )
-                                    ) - 1,
-                                    '-',
-                                    RIGHT(
-                                        YEAR(
-                                            (
-                                                SELECT MAX(
-                                CASE
-                                    WHEN t2.end_date IS NOT NULL AND ia2.end_date IS NOT NULL THEN GREATEST(t2.end_date, ia2.end_date)
-                                    WHEN t2.end_date IS NOT NULL THEN t2.end_date
-                                    WHEN ia2.end_date IS NOT NULL THEN ia2.end_date
-                                END
-                            )
-                                                FROM tasks t2
-                                                LEFT JOIN issue_assignments ia2
-                                                    ON ia2.task_id = t2.id
-                                                   AND ia2.is_deleted = 0
-                                                WHERE t2.work_request_id = wr.id
-                                                  AND t2.is_deleted = 0
-                                            )
-                                        ),
-                                        2
-                                    )
-                                )
-                            END
                         )
-                    END,
-                    '00'
-                ) AS fy
+
+                    ELSE
+                        CONCAT(
+                            'FY ',
+                            YEAR(wr.created_at) - 1,
+                            '-',
+                            RIGHT(
+                                YEAR(wr.created_at),
+                                2
+                            )
+                        )
+                END AS fy
+
 
             FROM work_requests wr
+
 
             LEFT JOIN request_type rt
                 ON rt.id = wr.request_type_id
 
+
             LEFT JOIN project_type pt
                 ON pt.id = wr.project_id
 
+
             LEFT JOIN users ru
                 ON ru.id = wr.user_id
-
-            LEFT JOIN tasks t
-                ON t.work_request_id = wr.id
-               AND t.is_deleted = 0
-
-            LEFT JOIN issue_assignments ia
-                ON ia.task_id = t.id
-               AND ia.is_deleted = 0
-
-            LEFT JOIN task_history th
-                ON th.work_request_id = wr.id
-               AND th.action = 'manager_change_requested'
         `;
+
+
+        // ---------------------------------------
+        // WHERE
+        // ---------------------------------------
 
         if (whereClauses.length > 0) {
-            query += ` WHERE ${whereClauses.join(' AND ')}`;
+            query += `
+                WHERE ${whereClauses.join(' AND ')}
+            `;
         }
 
-        query += `
-            GROUP BY
-                wr.id,
-                wr.project_name,
-                rt.request_type,
-                rt.description,
-                ru.name,
-                ru.email,
-                ru.phone,
-                pt.project_type,
-                pt.description,
-                wr.priority,
-                wr.requested_at,
-                wr.status,
-                wr.created_at,
-                wr.updated_at,
-                wr.remarks,
-                wr.description,
-                wr.about_project
 
+        // ---------------------------------------
+        // ORDER
+        // ---------------------------------------
+
+        query += `
             ORDER BY wr.created_at DESC
         `;
+
+
+        // ---------------------------------------
+        // EXECUTE QUERY
+        // ---------------------------------------
 
         const results = await sequelize.query(query, {
             replacements,
             type: sequelize.QueryTypes.SELECT
         });
 
+
+        // ---------------------------------------
+        // RESPONSE
+        // ---------------------------------------
+
         res.json({
             data: results
         });
 
+
     } catch (error) {
-        console.error('Error fetching admin data:', error);
+
+        console.error(
+            'Error fetching admin data:',
+            error
+        );
 
         res.status(500).json({
             error: 'Internal server error'
@@ -2234,18 +1359,29 @@ const getClientsData = async (req, res) => {
 
 const getTaskDetailsData = async (req, res) => {
     try {
+
         const { taskStatus } = req.query;
 
         const replacements = {};
         const whereClauses = [];
+
+        // ==========================================
+        // TASK STATUS FILTER
+        // ==========================================
 
         if (taskStatus) {
             whereClauses.push('t.status = :taskStatus');
             replacements.taskStatus = taskStatus;
         }
 
+
+        // ==========================================
+        // MAIN QUERY
+        // ==========================================
+
         let query = `
             SELECT
+
                 COALESCE(
                     NULLIF(TRIM(t.status), ''),
                     '00h 00m'
@@ -2255,26 +1391,59 @@ const getTaskDetailsData = async (req, res) => {
 
                 t.id AS task_id,
 
-                GROUP_CONCAT(
-                    DISTINCT ia.id
-                    ORDER BY ia.id
-                    SEPARATOR ', '
+
+                /* ==========================================
+                   CHANGE ID
+                   ========================================== */
+
+                COALESCE(
+                    (
+                        SELECT GROUP_CONCAT(
+                            DISTINCT ia_change.id
+                            ORDER BY ia_change.id
+                            SEPARATOR ', '
+                        )
+                        FROM issue_assignments ia_change
+                        WHERE ia_change.task_id = t.id
+                          AND ia_change.is_deleted = 0
+                    ),
+                    ''
                 ) AS change_id,
+
+
+                /* ==========================================
+                   TASK NAME
+                   ========================================== */
 
                 COALESCE(
                     NULLIF(TRIM(t.task_name), ''),
                     'N/A'
                 ) AS task_name,
 
+
+                /* ==========================================
+                   TASK TYPE
+                   ========================================== */
+
                 COALESCE(
                     NULLIF(TRIM(tt.task_type), ''),
                     'N/A'
                 ) AS task_type_name,
 
+
+                /* ==========================================
+                   REQUESTER
+                   ========================================== */
+
                 COALESCE(
                     NULLIF(TRIM(ru.name), ''),
                     'N/A'
                 ) AS task_requester_name,
+
+
+                /* ==========================================
+                   CLIENT DIVISION
+                   ========================================== */
 
                 COALESCE(
                     NULLIF(
@@ -2289,9 +1458,15 @@ const getTaskDetailsData = async (req, res) => {
                                 ON d.id = ud.division_id
                             WHERE ud.user_id = ru.id
                         ),
-                    ''),
+                        ''
+                    ),
                     'N/A'
                 ) AS client_division,
+
+
+                /* ==========================================
+                   PROJECT MANAGER
+                   ========================================== */
 
                 COALESCE(
                     NULLIF(
@@ -2301,101 +1476,131 @@ const getTaskDetailsData = async (req, res) => {
                                 ORDER BY mu2.name
                                 SEPARATOR ', '
                             )
-                             FROM work_request_managers wrm2
-                             JOIN users mu2
-                                 ON mu2.id = wrm2.manager_id
-                             WHERE wrm2.work_request_id = wr.id
-                         ),
-                     ''),
-                     'N/A'
-                  ) AS project_manager,
+                            FROM work_request_managers wrm2
+                            JOIN users mu2
+                                ON mu2.id = wrm2.manager_id
+                            WHERE wrm2.work_request_id = wr.id
+                        ),
+                        ''
+                    ),
+                    'N/A'
+                ) AS project_manager,
 
-                 COALESCE(
-                     NULLIF(
-                         (
-                             SELECT GROUP_CONCAT(
-                                 DISTINCT d2.title
-                                 ORDER BY d2.title
-                                 SEPARATOR ', '
-                             )
-                             FROM work_request_managers wrm3
-                             JOIN users mu3
-                                 ON mu3.id = wrm3.manager_id
-                             JOIN user_divisions ud3
-                                 ON ud3.user_id = mu3.id
-                             JOIN division d2
-                                 ON d2.id = ud3.division_id
-                             WHERE wrm3.work_request_id = wr.id
-                         ),
-                     ''),
-                     'N/A'
-                  ) AS project_manager_vertical,
 
-                  COALESCE(
-                      NULLIF(
-                          (
-                              SELECT GROUP_CONCAT(
-                                  DISTINCT d3.title
-                                  ORDER BY d3.title
-                                  SEPARATOR ', '
-                              )
-                              FROM task_assignments ta4
-                              JOIN users au3
-                                  ON au3.id = ta4.user_id
-                              JOIN user_divisions ud5
-                                  ON ud5.user_id = au3.id
-                              JOIN division d3
-                                  ON d3.id = ud5.division_id
-                              WHERE ta4.task_id = t.id
-                          ),
-                      ''),
-                      'N/A'
-                  ) AS task_manager_vertical,
+                /* ==========================================
+                   PROJECT MANAGER VERTICAL
+                   ========================================== */
 
-                  COALESCE(
-                      NULLIF(
-                          (
-                              SELECT GROUP_CONCAT(
-                                  DISTINCT mu4.name
-                                  ORDER BY mu4.name
-                                  SEPARATOR ', '
-                              )
-                              FROM task_assignments ta4
-                              JOIN users au3
-                                  ON au3.id = ta4.user_id
-                              JOIN user_divisions ud5
-                                  ON ud5.user_id = au3.id
-                              JOIN division d3
-                                  ON d3.id = ud5.division_id
-                              JOIN user_divisions ud6
-                                  ON ud6.division_id = d3.id
-                              JOIN users mu4
-                                  ON mu4.id = ud6.user_id
-                              JOIN job_role jr
-                                  ON jr.id = mu4.job_role_id
-                              WHERE ta4.task_id = t.id
-                                AND jr.role_title = 'Creative Manager'
-                          ),
-                      ''),
-                      'N/A'
-                  ) AS task_manager,
+                COALESCE(
+                    NULLIF(
+                        (
+                            SELECT GROUP_CONCAT(
+                                DISTINCT d2.title
+                                ORDER BY d2.title
+                                SEPARATOR ', '
+                            )
+                            FROM work_request_managers wrm3
+                            JOIN users mu3
+                                ON mu3.id = wrm3.manager_id
+                            JOIN user_divisions ud3
+                                ON ud3.user_id = mu3.id
+                            JOIN division d2
+                                ON d2.id = ud3.division_id
+                            WHERE wrm3.work_request_id = wr.id
+                        ),
+                        ''
+                    ),
+                    'N/A'
+                ) AS project_manager_vertical,
 
-                  COALESCE(
-                      NULLIF(
-                          (
-                              SELECT GROUP_CONCAT(
-                                  DISTINCT au.name
-                                  ORDER BY au.name
-                                  SEPARATOR ', '
-                              )
-                              FROM task_assignments ta2
-                              JOIN users au
-                                  ON au.id = ta2.user_id
-                              WHERE ta2.task_id = t.id
-                          ),
-                      ''),
-                      'N/A'
-                  ) AS assigned_creative_user,
+
+                /* ==========================================
+                   TASK MANAGER VERTICAL
+                   ========================================== */
+
+                COALESCE(
+                    NULLIF(
+                        (
+                            SELECT GROUP_CONCAT(
+                                DISTINCT d3.title
+                                ORDER BY d3.title
+                                SEPARATOR ', '
+                            )
+                            FROM task_assignments ta4
+                            JOIN users au3
+                                ON au3.id = ta4.user_id
+                            JOIN user_divisions ud5
+                                ON ud5.user_id = au3.id
+                            JOIN division d3
+                                ON d3.id = ud5.division_id
+                            WHERE ta4.task_id = t.id
+                        ),
+                        ''
+                    ),
+                    'N/A'
+                ) AS task_manager_vertical,
+
+
+                /* ==========================================
+                   TASK MANAGER
+                   ========================================== */
+
+                COALESCE(
+                    NULLIF(
+                        (
+                            SELECT GROUP_CONCAT(
+                                DISTINCT mu4.name
+                                ORDER BY mu4.name
+                                SEPARATOR ', '
+                            )
+                            FROM task_assignments ta4
+                            JOIN users au3
+                                ON au3.id = ta4.user_id
+                            JOIN user_divisions ud5
+                                ON ud5.user_id = au3.id
+                            JOIN division d3
+                                ON d3.id = ud5.division_id
+                            JOIN user_divisions ud6
+                                ON ud6.division_id = d3.id
+                            JOIN users mu4
+                                ON mu4.id = ud6.user_id
+                            JOIN job_role jr
+                                ON jr.id = mu4.job_role_id
+                            WHERE ta4.task_id = t.id
+                              AND jr.role_title = 'Creative Manager'
+                        ),
+                        ''
+                    ),
+                    'N/A'
+                ) AS task_manager,
+
+
+                /* ==========================================
+                   ASSIGNED CREATIVE USER
+                   ========================================== */
+
+                COALESCE(
+                    NULLIF(
+                        (
+                            SELECT GROUP_CONCAT(
+                                DISTINCT au.name
+                                ORDER BY au.name
+                                SEPARATOR ', '
+                            )
+                            FROM task_assignments ta2
+                            JOIN users au
+                                ON au.id = ta2.user_id
+                            WHERE ta2.task_id = t.id
+                        ),
+                        ''
+                    ),
+                    'N/A'
+                ) AS assigned_creative_user,
+
+
+                /* ==========================================
+                   CREATIVE USER VERTICAL
+                   ========================================== */
 
                 COALESCE(
                     NULLIF(
@@ -2412,14 +1617,15 @@ const getTaskDetailsData = async (req, res) => {
                                 ON d2.id = ud2.division_id
                             WHERE ta3.task_id = t.id
                         ),
-                    ''),
+                        ''
+                    ),
                     'N/A'
                 ) AS cu_vertical,
 
-                /* =====================================================
-                   POWER BI DATE/TIME FIELDS
-                   Return actual DATETIME or NULL
-                   ===================================================== */
+
+                /* ==========================================
+                   DATE FIELDS
+                   ========================================== */
 
                 t.start_date AS task_start_date,
 
@@ -2427,13 +1633,47 @@ const getTaskDetailsData = async (req, res) => {
 
                 t.deadline AS task_deadline,
 
-                COALESCE(t.task_count, 0)
-                    AS task_no_of_work_pages,
+
+                /* ==========================================
+                   TASK WORK PAGES
+                   ========================================== */
 
                 COALESCE(
-                    SUM(DISTINCT ia.task_count),
+                    t.task_count,
+                    0
+                ) AS task_no_of_work_pages,
+
+
+                /* ==========================================
+                   ISSUE WORK PAGES
+                   
+                   IMPORTANT:
+                   Directly calculate from issue_assignments
+                   for this task only.
+                   
+                   Same logic as getAdminData:
+                   ia.is_deleted = 0
+                   ========================================== */
+
+                COALESCE(
+                    (
+                        SELECT SUM(
+                            COALESCE(ia_issue.task_count, 0)
+                        )
+                        FROM issue_assignments ia_issue
+                        INNER JOIN tasks t_issue
+                            ON t_issue.id = ia_issue.task_id
+                           AND t_issue.is_deleted = 0
+                        WHERE ia_issue.task_id = t.id
+                          AND ia_issue.is_deleted = 0
+                    ),
                     0
                 ) AS issue_no_of_work_pages,
+
+
+                /* ==========================================
+                   OTHER TASK METRICS
+                   ========================================== */
 
                 COALESCE(
                     t.no_of_options_provided,
@@ -2456,7 +1696,8 @@ const getTaskDetailsData = async (req, res) => {
                 ) AS task_no_of_ai_page,
 
                 COALESCE(
-                    t.duration_minutes * 60 + t.duration_seconds,
+                    t.duration_minutes * 60 +
+                    t.duration_seconds,
                     0
                 ) AS video_duration,
 
@@ -2490,7 +1731,11 @@ const getTaskDetailsData = async (req, res) => {
                     0
                 ) AS task_shoot_setup,
 
-                /* Task created/request timestamp */
+
+                /* ==========================================
+                   TASK REQUEST TIMESTAMP
+                   ========================================== */
+
                 (
                     SELECT MIN(created_at)
                     FROM task_history
@@ -2498,7 +1743,11 @@ const getTaskDetailsData = async (req, res) => {
                       AND action = 'created'
                 ) AS task_request_timestamp,
 
-                /* Task accepted timestamp */
+
+                /* ==========================================
+                   TASK ACCEPTED TIMESTAMP
+                   ========================================== */
+
                 (
                     SELECT MIN(created_at)
                     FROM task_history
@@ -2506,13 +1755,14 @@ const getTaskDetailsData = async (req, res) => {
                       AND action = 'accepted'
                 ) AS task_request_response_timestamp,
 
-                /* =====================================================
+
+                /* ==========================================
                    TASK REQUEST TO RESPONSE TAT
-                   Duration field - kept as text
-                   ===================================================== */
+                   ========================================== */
 
                 COALESCE(
                     CASE
+
                         WHEN (
                             SELECT MIN(created_at)
                             FROM task_history
@@ -2522,17 +1772,21 @@ const getTaskDetailsData = async (req, res) => {
                         ) IS NOT NULL
 
                         AND (
+
                             SELECT MIN(created_at)
                             FROM task_history
                             WHERE task_id = t.id
                               AND action = 'accepted'
                               AND actor_type = 'user'
+
                         ) IS NOT NULL
 
                         THEN CONCAT(
+
                             FLOOR(
                                 TIMESTAMPDIFF(
                                     MINUTE,
+
                                     (
                                         SELECT MIN(created_at)
                                         FROM task_history
@@ -2540,6 +1794,7 @@ const getTaskDetailsData = async (req, res) => {
                                           AND action = 'created'
                                           AND actor_type = 'manager'
                                     ),
+
                                     (
                                         SELECT MIN(created_at)
                                         FROM task_history
@@ -2547,12 +1802,16 @@ const getTaskDetailsData = async (req, res) => {
                                           AND action = 'accepted'
                                           AND actor_type = 'user'
                                     )
+
                                 ) / 60
                             ),
+
                             'h ',
+
                             MOD(
                                 TIMESTAMPDIFF(
                                     MINUTE,
+
                                     (
                                         SELECT MIN(created_at)
                                         FROM task_history
@@ -2560,6 +1819,7 @@ const getTaskDetailsData = async (req, res) => {
                                           AND action = 'created'
                                           AND actor_type = 'manager'
                                     ),
+
                                     (
                                         SELECT MIN(created_at)
                                         FROM task_history
@@ -2567,18 +1827,25 @@ const getTaskDetailsData = async (req, res) => {
                                           AND action = 'accepted'
                                           AND actor_type = 'user'
                                     )
+
                                 ),
                                 60
                             ),
+
                             'm'
                         )
 
                         ELSE NULL
+
                     END,
                     '00h 00m'
                 ) AS task_request_to_response_tat,
 
-                /* Task output shared with CM */
+
+                /* ==========================================
+                   TASK OUTPUT SHARED WITH CM
+                   ========================================== */
+
                 (
                     SELECT MIN(created_at)
                     FROM task_history
@@ -2586,12 +1853,14 @@ const getTaskDetailsData = async (req, res) => {
                       AND action = 'submitted'
                 ) AS task_output_shared_with_cm_timestamp,
 
-                /* =====================================================
+
+                /* ==========================================
                    TASK ACCEPTANCE TO COMPLETION TAT
-                   ===================================================== */
+                   ========================================== */
 
                 COALESCE(
                     CASE
+
                         WHEN (
                             SELECT MIN(created_at)
                             FROM task_history
@@ -2607,51 +1876,66 @@ const getTaskDetailsData = async (req, res) => {
                         ) IS NOT NULL
 
                         THEN CONCAT(
+
                             FLOOR(
                                 TIMESTAMPDIFF(
                                     MINUTE,
+
                                     (
                                         SELECT MIN(created_at)
                                         FROM task_history
                                         WHERE task_id = t.id
                                           AND action = 'accepted'
                                     ),
+
                                     (
                                         SELECT MIN(created_at)
                                         FROM task_history
                                         WHERE task_id = t.id
                                           AND action = 'submitted'
                                     )
+
                                 ) / 60
                             ),
+
                             'h ',
+
                             MOD(
                                 TIMESTAMPDIFF(
                                     MINUTE,
+
                                     (
                                         SELECT MIN(created_at)
                                         FROM task_history
                                         WHERE task_id = t.id
                                           AND action = 'accepted'
                                     ),
+
                                     (
                                         SELECT MIN(created_at)
                                         FROM task_history
                                         WHERE task_id = t.id
                                           AND action = 'submitted'
                                     )
+
                                 ),
                                 60
                             ),
+
                             'm'
                         )
 
                         ELSE NULL
+
                     END,
                     '00h 00m'
                 ) AS task_acceptance_to_completion_tat_by_cu,
 
-                /* Task output response by CM */
+
+                /* ==========================================
+                   TASK OUTPUT RESPONSE BY CM
+                   ========================================== */
+
                 (
                     SELECT MIN(created_at)
                     FROM task_history
@@ -2659,12 +1943,14 @@ const getTaskDetailsData = async (req, res) => {
                       AND action = 'shared_for_client_review'
                 ) AS task_output_response_by_cm_timestamp,
 
-                /* =====================================================
+
+                /* ==========================================
                    TASK OUTPUT SHARED TO RESPONSE BY CM TAT
-                   ===================================================== */
+                   ========================================== */
 
                 COALESCE(
                     CASE
+
                         WHEN (
                             SELECT MIN(created_at)
                             FROM task_history
@@ -2683,15 +1969,18 @@ const getTaskDetailsData = async (req, res) => {
                         ) IS NOT NULL
 
                         THEN CONCAT(
+
                             FLOOR(
                                 TIMESTAMPDIFF(
                                     MINUTE,
+
                                     (
                                         SELECT MIN(created_at)
                                         FROM task_history
                                         WHERE task_id = t.id
                                           AND action = 'submitted'
                                     ),
+
                                     (
                                         SELECT MIN(created_at)
                                         FROM task_history
@@ -2701,18 +1990,23 @@ const getTaskDetailsData = async (req, res) => {
                                               'manager_change_requested'
                                           )
                                     )
+
                                 ) / 60
                             ),
+
                             'h ',
+
                             MOD(
                                 TIMESTAMPDIFF(
                                     MINUTE,
+
                                     (
                                         SELECT MIN(created_at)
                                         FROM task_history
                                         WHERE task_id = t.id
                                           AND action = 'submitted'
                                     ),
+
                                     (
                                         SELECT MIN(created_at)
                                         FROM task_history
@@ -2722,27 +2016,36 @@ const getTaskDetailsData = async (req, res) => {
                                               'manager_change_requested'
                                           )
                                     )
+
                                 ),
                                 60
                             ),
+
                             'm'
                         )
 
                         ELSE NULL
+
                     END,
                     '00h 00m'
                 ) AS task_output_shared_to_response_by_cm_tat,
 
-                /* Task shared with client */
+
+                /* ==========================================
+                   TASK SHARED WITH CLIENT
+                   ========================================== */
+
                 t.shared_with_client_at
                     AS task_output_shared_with_client_timestamp,
 
-                /* =====================================================
+
+                /* ==========================================
                    TASK INTERNAL TAT
-                   ===================================================== */
+                   ========================================== */
 
                 COALESCE(
                     CASE
+
                         WHEN (
                             SELECT MIN(created_at)
                             FROM task_history
@@ -2761,15 +2064,18 @@ const getTaskDetailsData = async (req, res) => {
                         ) IS NOT NULL
 
                         THEN CONCAT(
+
                             FLOOR(
                                 TIMESTAMPDIFF(
                                     MINUTE,
+
                                     (
                                         SELECT MIN(created_at)
                                         FROM task_history
                                         WHERE task_id = t.id
                                           AND action = 'accepted'
                                     ),
+
                                     (
                                         SELECT MIN(created_at)
                                         FROM task_history
@@ -2779,18 +2085,23 @@ const getTaskDetailsData = async (req, res) => {
                                               'manager_change_requested'
                                           )
                                     )
+
                                 ) / 60
                             ),
+
                             'h ',
+
                             MOD(
                                 TIMESTAMPDIFF(
                                     MINUTE,
+
                                     (
                                         SELECT MIN(created_at)
                                         FROM task_history
                                         WHERE task_id = t.id
                                           AND action = 'accepted'
                                     ),
+
                                     (
                                         SELECT MIN(created_at)
                                         FROM task_history
@@ -2800,18 +2111,25 @@ const getTaskDetailsData = async (req, res) => {
                                               'manager_change_requested'
                                           )
                                     )
+
                                 ),
                                 60
                             ),
+
                             'm'
                         )
 
                         ELSE NULL
+
                     END,
                     '00h 00m'
                 ) AS task_internal_tat,
 
-                /* Task output response by client */
+
+                /* ==========================================
+                   TASK OUTPUT RESPONSE BY CLIENT
+                   ========================================== */
+
                 (
                     SELECT MIN(created_at)
                     FROM task_history
@@ -2822,12 +2140,14 @@ const getTaskDetailsData = async (req, res) => {
                       )
                 ) AS task_output_response_by_client_timestamp,
 
-                /* =====================================================
+
+                /* ==========================================
                    TASK WHOLE TAT
-                   ===================================================== */
+                   ========================================== */
 
                 COALESCE(
                     CASE
+
                         WHEN (
                             SELECT MIN(created_at)
                             FROM task_history
@@ -2843,55 +2163,76 @@ const getTaskDetailsData = async (req, res) => {
                         ) IS NOT NULL
 
                         THEN CONCAT(
+
                             FLOOR(
                                 TIMESTAMPDIFF(
                                     MINUTE,
+
                                     (
                                         SELECT MIN(created_at)
                                         FROM task_history
                                         WHERE task_id = t.id
                                           AND action = 'created'
                                     ),
+
                                     (
                                         SELECT MIN(created_at)
                                         FROM task_history
                                         WHERE task_id = t.id
                                           AND action = 'completed'
                                     )
+
                                 ) / 60
                             ),
+
                             'h ',
+
                             MOD(
                                 TIMESTAMPDIFF(
                                     MINUTE,
+
                                     (
                                         SELECT MIN(created_at)
                                         FROM task_history
                                         WHERE task_id = t.id
                                           AND action = 'created'
                                     ),
+
                                     (
                                         SELECT MIN(created_at)
                                         FROM task_history
                                         WHERE task_id = t.id
                                           AND action = 'completed'
                                     )
+
                                 ),
                                 60
                             ),
+
                             'm'
                         )
 
                         ELSE NULL
+
                     END,
                     '00h 00m'
                 ) AS task_whole_tat,
+
+
+                /* ==========================================
+                   REMINDER COUNTERS
+                   ========================================== */
 
                 0 AS task_request_response_reminder_counter_to_cu,
 
                 0 AS task_output_response_reminder_counter_to_cm,
 
                 0 AS task_output_response_reminder_counter_to_client,
+
+
+                /* ==========================================
+                   CHANGE REQUEST COUNTERS
+                   ========================================== */
 
                 (
                     SELECT COUNT(*)
@@ -2900,6 +2241,7 @@ const getTaskDetailsData = async (req, res) => {
                       AND ih.action = 'created'
                 ) AS client_change_requested_counter,
 
+
                 (
                     SELECT COUNT(*)
                     FROM task_history th
@@ -2907,15 +2249,29 @@ const getTaskDetailsData = async (req, res) => {
                       AND th.action = 'manager_change_requested'
                 ) AS cm_change_requested_counter,
 
-                GROUP_CONCAT(
-                    DISTINCT ia.version
-                    ORDER BY ia.version
-                    SEPARATOR ', '
+
+                /* ==========================================
+                   CHANGE VERSION
+                   ========================================== */
+
+                COALESCE(
+                    (
+                        SELECT GROUP_CONCAT(
+                            DISTINCT ia_version.version
+                            ORDER BY ia_version.version
+                            SEPARATOR ', '
+                        )
+                        FROM issue_assignments ia_version
+                        WHERE ia_version.task_id = t.id
+                          AND ia_version.is_deleted = 0
+                    ),
+                    ''
                 ) AS change_version,
 
-                /* =====================================================
+
+                /* ==========================================
                    MONTH
-                   ===================================================== */
+                   ========================================== */
 
                 COALESCE(
                     DATE_FORMAT(
@@ -2925,12 +2281,15 @@ const getTaskDetailsData = async (req, res) => {
                     '00'
                 ) AS month,
 
-                /* =====================================================
+
+                /* ==========================================
                    FINANCIAL YEAR
-                   ===================================================== */
+                   ========================================== */
 
                 COALESCE(
+
                     CASE
+
                         WHEN MONTH(t.end_date) >= 4
 
                         THEN CONCAT(
@@ -2952,77 +2311,83 @@ const getTaskDetailsData = async (req, res) => {
                                 2
                             )
                         )
+
                     END,
+
                     '00'
+
                 ) AS fy
 
+
             FROM tasks t
+
 
             LEFT JOIN work_requests wr
                 ON wr.id = t.work_request_id
 
+
             LEFT JOIN task_type tt
                 ON tt.id = t.task_type_id
 
+
             LEFT JOIN users ru
                 ON ru.id = wr.user_id
-
-            LEFT JOIN issue_assignments ia
-                ON ia.task_id = t.id
-               AND ia.is_deleted = 0
         `;
 
+
+        // ==========================================
+        // WHERE
+        // ==========================================
+
         if (whereClauses.length > 0) {
+
             query += `
                 WHERE ${whereClauses.join(' AND ')}
                 AND t.is_deleted = 0
             `;
+
         } else {
+
             query += `
                 WHERE t.is_deleted = 0
             `;
+
         }
 
-        query += `
-            GROUP BY
-                t.id,
-                wr.id,
-                wr.requested_at,
-                t.task_name,
-                t.status,
-                t.start_date,
-                t.end_date,
-                t.deadline,
-                t.task_count,
-                t.no_of_options_provided,
-                t.concept_work,
-                t.no_of_resize,
-                t.no_of_images_videos_audio,
-                t.duration_minutes,
-                t.duration_seconds,
-                t.no_of_products_shot,
-                t.no_of_words_written,
-                t.no_of_responsive_screen,
-                t.resize_work,
-                t.shoot_setup,
-                t.shared_with_client_at,
-                t.created_at,
-                tt.task_type,
-                ru.name
 
+        // ==========================================
+        // ORDER
+        // ==========================================
+
+        query += `
             ORDER BY t.id DESC
         `;
 
+
+        // ==========================================
+        // EXECUTE QUERY
+        // ==========================================
+
         const results = await sequelize.query(query, {
+
             replacements,
+
             type: sequelize.QueryTypes.SELECT
+
         });
+
+
+        // ==========================================
+        // RESPONSE
+        // ==========================================
 
         res.json({
             data: results
         });
 
+
     } catch (error) {
+
         console.error(
             'Error fetching task details data:',
             error
@@ -3031,6 +2396,7 @@ const getTaskDetailsData = async (req, res) => {
         res.status(500).json({
             error: 'Internal server error'
         });
+
     }
 };
 
