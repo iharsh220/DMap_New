@@ -2464,7 +2464,7 @@ const getMyTeam = async (req, res) => {
                     include: [
                         {
                             model: Tasks,
-                            where: { status: { [Op.in]: ['pending', 'accepted', 'in_progress'] }, intimate_team: 1 },
+                            where: { status: { [Op.in]: ['pending', 'accepted', 'in_progress'] }, intimate_team: 1, is_deleted: 0 },
                             attributes: []
                         }
                     ]
@@ -2477,7 +2477,7 @@ const getMyTeam = async (req, res) => {
                         {
                             model: IssueAssignments,
                             as: 'issueAssignment',
-                            where: { status: { [Op.in]: ['m_accepted', 'u_accepted', 'in_progress'] }, intimate_team: 1 },
+                            where: { status: { [Op.in]: ['m_accepted', 'u_accepted', 'in_progress'] }, intimate_team: 1, is_deleted: 0 },
                             attributes: []
                         }
                     ]
