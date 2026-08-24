@@ -2540,7 +2540,7 @@ const getAssignedRequestsWithStatus = async (req, res) => {
 
         // Apply filters
         if (req.filters) {
-            const { status, review, review_stages, review_stage, ...otherFilters } = req.filters;
+            const { status, review, review_stages, review_stage, assigned_to, ...otherFilters } = req.filters;
             where = { ...where, ...otherFilters };
         }
 
@@ -4866,7 +4866,9 @@ const getIssueAssignments = async (req, res) => {
 
         const manager_id = req.user.id;
         const isManager = req.user.jobRole && req.user.jobRole.id === 2;
-        const { status, review_stage, review, intimate_team, sort } = req.query;
+        const { status, review_stage, review, intimate_team, sort, assigned_to } = req.query;
+
+        console.log('DEBUG getIssueAssignments assigned_to:', assigned_to, 'manager_id:', manager_id);
 
         // Define valid enum values
         const validStatuses = ['m_pending', 'u_pending', 'm_accepted', 'u_accepted', 'in_progress', 'completed', 'rejected', 'on_hold', 'cancelled', 'overdue'];
@@ -5091,6 +5093,24 @@ const getIssueAssignments = async (req, res) => {
             });
         }
 
+        let selfIssueAssignmentIds = [];
+        if (assigned_to === 'self') {
+            const selfAssignments = await IssueUserAssignments.findAll({
+                where: { user_id: manager_id },
+                attributes: ['issue_assignment_id']
+            });
+
+            selfIssueAssignmentIds = selfAssignments.map(sa => sa.issue_assignment_id);
+
+            if (selfIssueAssignmentIds.length === 0) {
+                return res.json({
+                    success: true,
+                    data: [],
+                    message: 'No issues assigned to you'
+                });
+            }
+        }
+
         // Get all active creative users (job_role_id = 4) and creative leads (job_role_id = 3) in manager's divisions
         const usersInManagerDivisions = await UserDivisions.findAll({
             where: { division_id: { [Op.in]: managerDivisionIds } },
@@ -5150,11 +5170,19 @@ const getIssueAssignments = async (req, res) => {
         // Get issue assignments with filters from manager's work requests
         // Only show issues where current manager is assigned to the task's work request
         // 🔒 Security: Only manager of the task's work request can view these issues
+        console.log('DEBUG final where before IssueAssignments query:', JSON.stringify({
+            where,
+            taskIds: taskIds.length,
+            selfIssueAssignmentIds: selfIssueAssignmentIds.length,
+            assigned_to
+        }));
+
         const issueAssignments = await IssueAssignments.findAll({
             where: {
                 ...where,
                 task_id: { [Op.in]: taskIds },
-                is_deleted: 0
+                is_deleted: 0,
+                ...(assigned_to === 'self' && selfIssueAssignmentIds.length > 0 ? { id: { [Op.in]: selfIssueAssignmentIds } } : {})
             },
             include: [
                 {
@@ -5223,10 +5251,7 @@ const getIssueAssignments = async (req, res) => {
                 {
                     model: IssueUserAssignments,
                     as: 'userAssignments',
-                    where: {
-                        user_id: { [Op.in]: uniqueUserIds }
-                    },
-                    required: false,
+                    required: assigned_to === 'self',
                     include: [
                         {
                             model: User,
@@ -5384,20 +5409,22 @@ const getIssueAssignments = async (req, res) => {
                         description: link.issueRegister.description
                     } : null
                 })) : [],
-                assignedUsers: issue.userAssignments ? issue.userAssignments.map(ua => ({
-                    id: ua.id,
-                    user_id: ua.user_id,
-                    user: ua.user ? {
-                        id: ua.user.id,
-                        name: ua.user.name,
-                        email: ua.user.email,
-                        divisions: ua.user.Divisions ? ua.user.Divisions.map(d => ({
-                            id: d.id,
-                            title: d.title
-                        })) : []
-                    } : null,
-                    documents: ua.documents
-                })) : [],
+                assignedUsers: issue.userAssignments ? issue.userAssignments
+                    .filter(ua => assigned_to !== 'self' || ua.user_id === manager_id)
+                    .map(ua => ({
+                        id: ua.id,
+                        user_id: ua.user_id,
+                        user: ua.user ? {
+                            id: ua.user.id,
+                            name: ua.user.name,
+                            email: ua.user.email,
+                            divisions: ua.user.Divisions ? ua.user.Divisions.map(d => ({
+                                id: d.id,
+                                title: d.title
+                            })) : []
+                        } : null,
+                        documents: ua.documents
+                    })) : [],
                 managers: mergedManagers
             };
         });
