@@ -5231,7 +5231,15 @@ const getIssueAssignments = async (req, res) => {
                         {
                             model: User,
                             as: 'user',
-                            attributes: ['id', 'name', 'email']
+                            attributes: ['id', 'name', 'email'],
+                            include: [
+                                {
+                                    model: Division,
+                                    as: 'Divisions',
+                                    attributes: ['id', 'title'],
+                                    through: { attributes: [] }
+                                }
+                            ]
                         },
                         {
                             model: IssueDocuments,
@@ -5382,7 +5390,11 @@ const getIssueAssignments = async (req, res) => {
                     user: ua.user ? {
                         id: ua.user.id,
                         name: ua.user.name,
-                        email: ua.user.email
+                        email: ua.user.email,
+                        divisions: ua.user.Divisions ? ua.user.Divisions.map(d => ({
+                            id: d.id,
+                            title: d.title
+                        })) : []
                     } : null,
                     documents: ua.documents
                 })) : [],

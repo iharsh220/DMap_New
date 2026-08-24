@@ -1666,6 +1666,13 @@ const getTaskDetailsData = async (req, res) => {
                            AND t_issue.is_deleted = 0
                         WHERE ia_issue.task_id = t.id
                           AND ia_issue.is_deleted = 0
+                          AND (
+                              CASE
+                                  WHEN MONTH(t_issue.end_date) >= 4
+                                  THEN CONCAT('FY ', YEAR(t_issue.end_date), '-', RIGHT(YEAR(t_issue.end_date) + 1, 2))
+                                  ELSE CONCAT('FY ', YEAR(t_issue.end_date) - 1, '-', RIGHT(YEAR(t_issue.end_date), 2))
+                              END
+                          ) = 'FY 2026-27'
                     ),
                     0
                 ) AS issue_no_of_work_pages,
@@ -3117,24 +3124,24 @@ const getIssueDetailsData = async (req, res) => {
 
                 COALESCE(
                     CASE
-                        WHEN MONTH(ia.end_date) >= 4
+                        WHEN MONTH(t.end_date) >= 4
 
                         THEN CONCAT(
                             'FY ',
-                            YEAR(ia.end_date),
+                            YEAR(t.end_date),
                             '-',
                             RIGHT(
-                                YEAR(ia.end_date) + 1,
+                                YEAR(t.end_date) + 1,
                                 2
                             )
                         )
 
                         ELSE CONCAT(
                             'FY ',
-                            YEAR(ia.end_date) - 1,
+                            YEAR(t.end_date) - 1,
                             '-',
                             RIGHT(
-                                YEAR(ia.end_date),
+                                YEAR(t.end_date),
                                 2
                             )
                         )
@@ -3693,24 +3700,24 @@ const getWorkRequestTasksData = async (req, res) => {
                    ===================================================== */
 
                 CASE
-                    WHEN MONTH(t.created_at) >= 4
+                    WHEN MONTH(t.end_date) >= 4
 
                     THEN CONCAT(
                         'FY ',
-                        YEAR(t.created_at),
+                        YEAR(t.end_date),
                         '-',
                         RIGHT(
-                            YEAR(t.created_at) + 1,
+                            YEAR(t.end_date) + 1,
                             2
                         )
                     )
 
                     ELSE CONCAT(
                         'FY ',
-                        YEAR(t.created_at) - 1,
+                        YEAR(t.end_date) - 1,
                         '-',
                         RIGHT(
-                            YEAR(t.created_at),
+                            YEAR(t.end_date),
                             2
                         )
                     )

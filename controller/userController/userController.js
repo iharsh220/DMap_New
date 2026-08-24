@@ -33,6 +33,7 @@ require('dotenv').config();
 const getAssignedTasks = async (req, res) => {
     try {
         const user_id = req.user.id;
+        
         const { status, deadline, review, review_stages, assigned_to, sort } = req.query; // Get status, deadline, review, review_stages, and assigned_to filters from query params
 
         // Check if user is manager (job_role_id = 2)
@@ -106,9 +107,10 @@ const getAssignedTasks = async (req, res) => {
             ];
         }
 
-        // Apply filters (excluding user_name/username/status as they're handled separately)
+        // Apply filters (excluding user_name/username/status/assigned_to as they're handled separately)
         if (req.filters) {
-            const { user_name, username, status, ...otherFilters } = req.filters;
+            // console.log('req.filters:', JSON.stringify(req.filters));
+            const { user_name, username, status, assigned_to, assinged_to, ...otherFilters } = req.filters;
             whereCondition = { ...whereCondition, ...otherFilters };
         }
 
@@ -313,7 +315,16 @@ const getAssignedTasks = async (req, res) => {
                     as: 'assignedUsers',
                     attributes: ['id', 'name', 'email'],
                     through: { attributes: [] },
-                    required: false
+                    required: assigned_to === 'self',
+                    ...(assigned_to === 'self' ? { where: { id: user_id } } : {}),
+                    include: [
+                        {
+                            model: Division,
+                            as: 'Divisions',
+                            attributes: ['id', 'title'],
+                            through: { attributes: [] }
+                        }
+                    ]
                 },
                 {
                     model: TaskType,
