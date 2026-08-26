@@ -2108,7 +2108,26 @@ const getAssignedIssues = async (req, res) => {
                 },
                 { model: User, as: 'requester', attributes: ['id', 'name', 'email'] },
                 { model: IssueAssignmentTypes, as: 'issueTypeLinks', include: [{ model: IssueRegister, as: 'issueRegister' }] },
-                { model: IssueUserAssignments, as: 'userAssignments', where: { user_id: user_id }, attributes: ['id'] }
+                {
+                    model: IssueUserAssignments,
+                    as: 'userAssignments',
+                    where: { user_id: user_id },
+                    include: [
+                        {
+                            model: User,
+                            as: 'user',
+                            attributes: ['id', 'name', 'email'],
+                            include: [
+                                {
+                                    model: Division,
+                                    as: 'Divisions',
+                                    attributes: ['id', 'title'],
+                                    through: { attributes: [] }
+                                }
+                            ]
+                        }
+                    ]
+                }
             ]
         });
 
@@ -2158,6 +2177,22 @@ const getAssignedIssues = async (req, res) => {
                     intimate_team: ia.intimate_team,
                     intimate_client: ia.intimate_client,
                     notification_alert: ia.notification_alert,
+                    no_of_options_provided: ia.no_of_options_provided,
+                    no_of_words_written: ia.no_of_words_written,
+                    options_submitted: ia.options_submitted,
+                    concept_work: ia.concept_work,
+                    resize_work: ia.resize_work,
+                    no_of_concepts: ia.no_of_concepts,
+                    duration_minutes: ia.duration_minutes,
+                    duration_seconds: ia.duration_seconds,
+                    product_shoot: ia.product_shoot,
+                    no_of_products_shot: ia.no_of_products_shot,
+                    shoot_setup: ia.shoot_setup,
+                    no_of_resize: ia.no_of_resize,
+                    responsive_screen: ia.responsive_screen,
+                    no_of_responsive_screen: ia.no_of_responsive_screen,
+                    no_of_images_videos_audio: ia.no_of_images_videos_audio,
+                    comments: ia.comments,
                     created_at: ia.created_at,
                     updated_at: ia.updated_at
                 },
@@ -2193,6 +2228,19 @@ const getAssignedIssues = async (req, res) => {
                     change_issue_type: itl.issueRegister ? itl.issueRegister.change_issue_type : null,
                     description: itl.issueRegister ? itl.issueRegister.description : null,
                     quantification: itl.issueRegister ? itl.issueRegister.quantification : null
+                })) : [],
+                assignedUsers: ia.userAssignments ? ia.userAssignments.map(ua => ({
+                    id: ua.id,
+                    user_id: ua.user_id,
+                    user: ua.user ? {
+                        id: ua.user.id,
+                        name: ua.user.name,
+                        email: ua.user.email,
+                        divisions: ua.user.Divisions ? ua.user.Divisions.map(d => ({
+                            id: d.id,
+                            title: d.title
+                        })) : []
+                    } : null
                 })) : [],
                 requester: ia.requester ? { id: ia.requester.id, name: ia.requester.name, email: ia.requester.email } : null
             };
