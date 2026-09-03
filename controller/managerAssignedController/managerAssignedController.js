@@ -2806,7 +2806,7 @@ const cancelWorkRequest = async (req, res) => {
 
             await IssueAssignments.update({ status: 'cancelled' }, { where: { task_id: { [Op.in]: taskIds } } });
 
-            for (const task of tasks) { 
+            for (const task of tasks) {
                 await recordTaskHistory({
                     taskId: task.id,
                     action: 'cancelled',
@@ -3379,13 +3379,13 @@ const updateTask = async (req, res) => {
         }
 
         const manager_id = req.user.id;
-        const { task_name, deadline, user_id } = req.body;
+        const { task_name, deadline, description, user_id } = req.body;
 
         // Validate that at least one field is provided
-        if (!task_name && !deadline && user_id === undefined) {
+        if (!task_name && !deadline && description === undefined && user_id === undefined) {
             return res.status(400).json({
                 success: false,
-                error: 'At least one of task_name, deadline, or user_id is required'
+                error: 'At least one of task_name, deadline, description, or user_id is required'
             });
         }
 
@@ -3482,6 +3482,10 @@ const updateTask = async (req, res) => {
             }
 
             taskUpdateData.deadline = formattedDeadline;
+        }
+
+        if (description !== undefined) {
+            taskUpdateData.description = description;
         }
 
         // Update task if there are updates

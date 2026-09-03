@@ -32,6 +32,13 @@ const IssueAssignmentTypes = sequelize.define('IssueAssignmentTypes', {
   updatedAt: 'updated_at',
   charset: 'utf8mb4',
   collate: 'utf8mb4_unicode_ci',
+  indexes: [
+    {
+      unique: true,
+      name: 'iat_assignment_register_unique',
+      fields: ['issue_assignment_id', 'issue_register_id']
+    }
+  ]
 });
 
 module.exports = IssueAssignmentTypes;
