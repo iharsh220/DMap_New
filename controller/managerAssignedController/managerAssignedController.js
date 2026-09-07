@@ -714,7 +714,15 @@ const getAssignedWorkRequestById = async (req, res) => {
                                             {
                                                 model: User,
                                                 as: 'user',
-                                                attributes: ['id', 'name', 'email']
+                                                attributes: ['id', 'name', 'email'],
+                                                include: [
+                                                    {
+                                                        model: Division,
+                                                        as: 'Divisions',
+                                                        attributes: ['id', 'title'],
+                                                        through: { attributes: [] }
+                                                    }
+                                                ]
                                             },
                                             {
                                                 model: IssueDocuments,
@@ -856,7 +864,15 @@ const getAssignedWorkRequestById = async (req, res) => {
                                                 {
                                                     model: User,
                                                     as: 'user',
-                                                    attributes: ['id', 'name', 'email']
+                                                    attributes: ['id', 'name', 'email'],
+                                                    include: [
+                                                        {
+                                                            model: Division,
+                                                            as: 'Divisions',
+                                                            attributes: ['id', 'title'],
+                                                            through: { attributes: [] }
+                                                        }
+                                                    ]
                                                 },
                                                 {
                                                     model: IssueDocuments,
@@ -1236,10 +1252,41 @@ const getAssignedWorkRequestById = async (req, res) => {
         // Reset notification_alert to 0 for the work request
         await WorkRequests.update(
             { notification_alert: 0 },
-            { where: { id: id, notification_alert: 1 } }
+            { where: { id, notification_alert: 1 } }
         );
 
-        res.json({ success: true, data: workRequest });
+        const responseData = workRequest.get({ plain: true });
+
+        if (responseData.Tasks && Array.isArray(responseData.Tasks)) {
+            responseData.Tasks = responseData.Tasks.map(task => {
+                if (task.issueAssignments && Array.isArray(task.issueAssignments)) {
+                    task.issueAssignments = task.issueAssignments.map(issue => {
+                        const formattedIssue = { ...issue };
+                        if (issue.userAssignments && Array.isArray(issue.userAssignments)) {
+                            formattedIssue.assignedUsers = issue.userAssignments.map(ua => ({
+                                id: ua.id,
+                                user_id: ua.user_id,
+                                user: ua.user ? {
+                                    id: ua.user.id,
+                                    name: ua.user.name,
+                                    email: ua.user.email,
+                                    divisions: ua.user.Divisions ? ua.user.Divisions.map(d => ({
+                                        id: d.id,
+                                        title: d.title
+                                    })) : []
+                                } : null,
+                                documents: ua.documents
+                            }));
+                            delete formattedIssue.userAssignments;
+                        }
+                        return formattedIssue;
+                    });
+                }
+                return task;
+            });
+        }
+
+        res.json({ success: true, data: responseData });
     } catch (error) {
         console.error('Error fetching assigned work request:', error);
         res.status(500).json({ success: false, error: error.message });
@@ -2182,6 +2229,20 @@ const getTasksByWorkRequestId = async (req, res) => {
                         change_issue_type: issueType.issueRegister.change_issue_type,
                         description: issueType.issueRegister.description
                     } : null
+                })) : [],
+                assignedUsers: issue.userAssignments ? issue.userAssignments.map(ua => ({
+                    id: ua.id,
+                    user_id: ua.user_id,
+                    user: ua.user ? {
+                        id: ua.user.id,
+                        name: ua.user.name,
+                        email: ua.user.email,
+                        divisions: ua.user.Divisions ? ua.user.Divisions.map(d => ({
+                            id: d.id,
+                            title: d.title
+                        })) : []
+                    } : null,
+                    documents: ua.documents
                 })) : []
             })) : []
         }));
