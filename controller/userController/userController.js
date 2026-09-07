@@ -33,8 +33,10 @@ require('dotenv').config();
 const getAssignedTasks = async (req, res) => {
     try {
         const user_id = req.user.id;
-        
+
         const { status, deadline, review, review_stages, assigned_to, sort } = req.query; // Get status, deadline, review, review_stages, and assigned_to filters from query params
+
+        const sortDirection = String(sort || 'DESC').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
         // Check if user is manager (job_role_id = 2)
         const isManager = req.user.jobRole && req.user.jobRole.id === 2;
@@ -397,8 +399,8 @@ const getAssignedTasks = async (req, res) => {
             limit: req.pagination.limit,
             offset: req.pagination.offset,
             order: [
-                ['notification_alert', 'DESC'],
-                ['deadline', sort || 'DESC']
+                ['deadline', sortDirection],
+                ['notification_alert', 'DESC']
             ]
         });
 
