@@ -13,6 +13,8 @@ const userRoutes = require('./userRoutes/userRoutes');
 const adminRoutes = require('./adminRoutes');
 const issueRegisterRoutes = require('./issueRegisterRoutes/issueRegisterRoutes');
 
+const salesUserRoutes = require('./salesUserActivityRoutes/salesUserActivityRoutes');
+
 // Use routes
 router.use('/auth', authRoutes);
 
@@ -50,5 +52,8 @@ router.get(`/uploads/*`, (req, res) => {
 });
 
 // Add other routes here as needed
+
+router.use('/salesusers', salesUserRoutes);
+
 
 module.exports = router;
