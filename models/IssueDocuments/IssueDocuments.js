@@ -52,6 +52,11 @@ const IssueDocuments = sequelize.define('IssueDocuments', {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,
   },
+  uploaded_by: {
+    type: DataTypes.ENUM('user', 'pmt'),
+    defaultValue: 'user',
+    comment: 'Who uploaded the document: user=team member, pmt=project manager/client',
+  },
 }, {
   tableName: 'issue_documents',
   timestamps: false,
