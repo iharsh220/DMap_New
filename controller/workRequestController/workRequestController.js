@@ -1039,7 +1039,7 @@ const getWorkRequestById = async (req, res) => {
                                         {
                                             model: IssueDocuments,
                                             as: 'documents',
-                                            attributes: ['id', 'document_name', 'document_path', 'document_type', 'document_size', 'version', 'status', 'review', 'intimate_client', 'uploaded_at']
+                                            attributes: ['id', 'document_name', 'document_path', 'document_type', 'document_size', 'version', 'status', 'review', 'intimate_client', 'uploaded_at', 'uploaded_by']
                                         }
                                     ]
                                 }

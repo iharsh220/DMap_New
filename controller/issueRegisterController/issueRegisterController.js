@@ -1,4 +1,6 @@
 const { Op } = require('sequelize');
+const path = require('path');
+const fs = require('fs');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
 const { recordTaskHistory, recordIssueHistory, recordWorkRequestHistory, recordTaskReviewHistory } = require('../../services/historyService');
@@ -294,9 +296,95 @@ const createIssueAssignment = async (req, res) => {
                 { model: Tasks, as: 'task', attributes: ['id', 'task_name', 'task_type_id', 'work_request_id'] },
                 { model: IssueAssignments, as: 'parentIssue', attributes: ['id', 'version', 'description'] },
                 { model: User, as: 'requester', attributes: ['id', 'name', 'email'] },
-                { model: IssueRegister, as: 'issueTypes', through: { attributes: [] }, attributes: ['id', 'change_issue_type', 'description'] }
+                { model: IssueRegister, as: 'issueTypes', through: { attributes: [] }, attributes: ['id', 'change_issue_type', 'description'] },
+                {
+                    model: IssueDocuments,
+                    as: 'documents',
+                    attributes: ['id', 'document_name', 'document_path', 'document_type', 'document_size', 'version', 'status', 'review', 'uploaded_at', 'uploaded_by']
+                }
             ]
         });
+
+        // Handle PMT document uploads
+        if (req.files && req.files.documents) {
+            const files = Array.isArray(req.files.documents) ? req.files.documents : [req.files.documents];
+            const task = await Tasks.findByPk(rootTaskId, {
+                attributes: ['id', 'task_name', 'work_request_id'],
+                include: [{ model: WorkRequests, as: 'WorkRequest', attributes: ['id', 'project_name'] }]
+            });
+
+            const workRequest = task ? task.WorkRequest : null;
+            const sanitizedProjectName = workRequest ? workRequest.project_name.replace(/[^a-zA-Z0-9]/g, '_') : 'Issue';
+            const taskName = task ? task.task_name : `Issue_${issueAssignment.id}`;
+            const uploadDir = path.join(__dirname, '../../uploads');
+            const projectFolder = path.join(uploadDir, sanitizedProjectName);
+            const taskFolder = path.join(projectFolder, taskName);
+            const pmtFolder = path.join(taskFolder, 'PMT');
+            const versionFolder = path.join(pmtFolder, version || 'V1');
+
+            if (!fs.existsSync(versionFolder)) {
+                fs.mkdirSync(versionFolder, { recursive: true });
+            }
+
+            for (const file of files) {
+                const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+                const filename = file.name.replace(/[^a-zA-Z0-9.]/g, '_') + '-' + uniqueSuffix + path.extname(file.originalname || file.name);
+                const tempDir = path.join('temp', 'uploads', uniqueSuffix);
+
+                if (!fs.existsSync(tempDir)) {
+                    fs.mkdirSync(tempDir, { recursive: true });
+                }
+
+                const tempFilepath = path.join(tempDir, filename);
+                await file.mv(tempFilepath);
+
+                const documentData = {
+                    issue_user_assignment_id: null,
+                    issue_assignment_id: issueAssignment.id,
+                    document_name: file.name,
+                    document_path: `${process.env.BASE_ROUTE}/uploads/${sanitizedProjectName}/${taskName}/PMT/${version || 'V2'}/${filename}`,
+                    document_type: file.mimetype,
+                    document_size: file.size,
+                    version: version || 'V2',
+                    status: 'uploading',
+                    uploaded_at: new Date(),
+                    uploaded_by: 'pmt'
+                };
+
+                const docResult = await IssueDocuments.create(documentData);
+
+                try {
+                    if (!fs.existsSync(versionFolder)) {
+                        fs.mkdirSync(versionFolder, { recursive: true });
+                    }
+
+                    const finalFilepath = path.join(versionFolder, filename);
+                    fs.renameSync(tempFilepath, finalFilepath);
+
+                    await IssueDocuments.update(
+                        { status: 'uploaded' },
+                        { where: { id: docResult.id } }
+                    );
+                } catch (uploadError) {
+                    console.error(`Failed to upload issue file ${filename}:`, uploadError);
+
+                    await IssueDocuments.update(
+                        { status: 'failed' },
+                        { where: { id: docResult.id } }
+                    );
+
+                    try {
+                        if (fs.existsSync(tempDir)) {
+                            fs.rmSync(tempDir, { recursive: true, force: true });
+                        }
+                    } catch (cleanupError) {
+                        console.error('Failed to cleanup temp directory on error:', cleanupError);
+                    }
+
+                    throw uploadError;
+                }
+            }
+        }
 
         const changeType = task_id ? 'task' : 'issue';
 

@@ -727,7 +727,7 @@ const getAssignedWorkRequestById = async (req, res) => {
                                             {
                                                 model: IssueDocuments,
                                                 as: 'documents',
-                                                attributes: ['id', 'document_name', 'document_path', 'document_type', 'document_size', 'uploaded_at', 'status', 'version', 'review']
+                                                attributes: ['id', 'document_name', 'document_path', 'document_type', 'document_size', 'uploaded_at', 'status', 'version', 'review', 'uploaded_by']
                                             }
                                         ]
                                     }
@@ -877,7 +877,7 @@ const getAssignedWorkRequestById = async (req, res) => {
                                                 {
                                                     model: IssueDocuments,
                                                     as: 'documents',
-                                                    attributes: ['id', 'document_name', 'document_path', 'document_type', 'document_size', 'uploaded_at', 'status', 'version', 'review']
+                                                    attributes: ['id', 'document_name', 'document_path', 'document_type', 'document_size', 'uploaded_at', 'status', 'version', 'review', 'uploaded_by']
                                                 }
                                             ]
                                         }

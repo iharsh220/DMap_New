@@ -2621,7 +2621,8 @@ const submitIssue = async (req, res) => {
                     document_size: file.size,
                     version: issueAssignment.version || 'V1',
                     status: 'uploading',
-                    uploaded_at: new Date()
+                    uploaded_at: new Date(),
+                    uploaded_by: 'user'
                 };
 
                 const docResult = await IssueDocuments.create(documentData);
