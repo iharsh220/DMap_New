@@ -1277,7 +1277,6 @@ const getAssignedWorkRequestById = async (req, res) => {
                                 } : null,
                                 documents: ua.documents
                             }));
-                            delete formattedIssue.userAssignments;
                         }
                         return formattedIssue;
                     });
