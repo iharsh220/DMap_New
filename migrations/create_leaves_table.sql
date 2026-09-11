@@ -1,0 +1,27 @@
+-- Create leaves table
+CREATE TABLE IF NOT EXISTS `leaves` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `date` DATE NOT NULL,
+  `user_id` INT NOT NULL,
+  `leave_day_type` ENUM('Full day', 'Half day', 'Short Leave') NOT NULL DEFAULT 'Full day',
+  `leave_type` ENUM('Unplanned', 'Planned') NOT NULL DEFAULT 'Unplanned',
+  `status` ENUM('Inform', 'Not Inform') NOT NULL DEFAULT 'Inform',
+  `leave_reason` ENUM('Emergency', 'Medical', 'Family Emergency', 'Feeling not well', 'Go Early', 'Personal', 'Hospitalized') NOT NULL DEFAULT 'Feeling not well',
+  `remark` TEXT NULL DEFAULT NULL,
+  `day` VARCHAR(20) NULL DEFAULT NULL,
+  `month` VARCHAR(20) NULL DEFAULT NULL,
+  `year` INT NULL DEFAULT NULL,
+  `vertical` ENUM('Artwork', 'Content', 'Operation', 'Video', 'Web') NULL DEFAULT NULL,
+  `days_count` DECIMAL(4,1) NULL DEFAULT 1.0,
+  `reason` TEXT NULL DEFAULT NULL,
+  `is_deleted` TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Soft delete flag - 0=active, 1=deleted',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  INDEX `idx_leaves_date` (`date`),
+  INDEX `idx_leaves_user_id` (`user_id`),
+  INDEX `idx_leaves_vertical` (`vertical`),
+  INDEX `idx_leaves_is_deleted` (`is_deleted`),
+  INDEX `idx_leaves_year_month` (`year`, `month`),
+  CONSTRAINT `fk_leaves_user_id` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

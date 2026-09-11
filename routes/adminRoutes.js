@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const { cachedAdminData, invalidateAdminCache } = require('../services/adminCacheService');
-const { getAdminData, getClientsData, getTaskDetailsData, getTasksForWorkRequest, getIssueDetailsData, getWorkRequestTasksData, getDeletePreview, deleteProject, deleteClient, deleteTask, deleteIssue, getEditData, getRequestTypes, getProjectTypesByProject, getCreativeManagerByProject, updateProject, updateClient, updateTask, updateIssue } = require('../controller/adminController');
+const { getAdminData, getClientsData, getTaskDetailsData, getTasksForWorkRequest, getIssueDetailsData, getWorkRequestTasksData, getDeletePreview, deleteProject, deleteClient, deleteTask, deleteIssue, getAllLeaves, getLeaveById, createLeave, updateLeave, deleteLeave, getLeaveKpis, getLeaveUsers, exportLeavesCsv, exportLeavesExcel, getEditData, getRequestTypes, getProjectTypesByProject, getCreativeManagerByProject, updateProject, updateClient, updateTask, updateIssue } = require('../controller/adminController');
 
 // Serve shared CSS theme
 router.get('/admin/dmap-theme.css', (req, res) => {
@@ -38,6 +38,11 @@ router.get('/admin/workrequesttasks', (req, res) => {
 // Serve Power BI dashboard HTML
 router.get('/admin/powerbi', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'powerbi.html'));
+});
+
+// Serve leaves HTML
+router.get('/admin/leaves', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'leaves.html'));
 });
 
 // API endpoint for project details data
@@ -84,5 +89,16 @@ router.put('/admin/edit/project/:id', invalidateAdminCache, updateProject);
 router.put('/admin/edit/client/:id', invalidateAdminCache, updateClient);
 router.put('/admin/edit/task/:id', invalidateAdminCache, updateTask);
 router.put('/admin/edit/issue/:id', invalidateAdminCache, updateIssue);
+
+// API endpoint for leaves data
+router.get('/admin/leaves/data', getAllLeaves);
+router.get('/admin/leaves/users', getLeaveUsers);
+router.get('/admin/leaves/kpis', getLeaveKpis);
+router.get('/admin/leaves/export/excel', exportLeavesExcel);
+router.get('/admin/leaves/export/csv', exportLeavesCsv);
+router.get('/admin/leaves/:id', getLeaveById);
+router.post('/admin/leaves', createLeave);
+router.put('/admin/leaves/:id', updateLeave);
+router.delete('/admin/leaves/:id', deleteLeave);
 
 module.exports = router;
