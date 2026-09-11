@@ -414,6 +414,10 @@ table.dataTable thead .sorting_desc::after { display: none !important; }
 .priority-critical { background:#fff1f2; color:#be123c; border:1px solid #fecdd3; }
 .bool-yes { background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; }
 .bool-no  { background:#f8fafc; color:#64748b; border:1px solid #e2e8f0; }
+.status-planned     { background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; }
+.status-unplanned   { background:#fffbeb; color:#b45309; border:1px solid #fde68a; }
+.status-inform      { background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; }
+.status-not-inform  { background:#fff1f2; color:#be123c; border:1px solid #fecdd3; }
 
 /* ─── TRUNCATE ───────────────────────────────────────────── */
 .truncate-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; color: var(--text-2); display: block; }
