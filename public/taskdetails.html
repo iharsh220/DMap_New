@@ -313,6 +313,20 @@ function ta(label,name,val){
         +'<textarea name="'+name+'" rows="2" style="width:100%;background:#131929;border:1px solid #2d3548;border-radius:6px;padding:7px 10px;color:#e2e8f0;font-size:13px;box-sizing:border-box;resize:vertical;">'+(val||'')+'</textarea></div>';
 }
 
+function formatDateForInput(val){
+    if(!val) return '';
+    var s = String(val);
+    if(s.indexOf('T')!==-1){
+        return s.slice(0,16);
+    }
+    if(s.indexOf(' ')!==-1){
+        return s.slice(0,16);
+    }
+    if(/^\d{4}-\d{2}-\d{2}$/.test(s)){
+        return s+'T00:00';
+    }
+    return s;
+}
 function openEditModal(type, id){
     $('#editModalBody').html('<div style="color:#94a3b8;padding:20px;text-align:center;"><i class="bi bi-arrow-repeat"></i> Loading...</div>');
     $('#editModal').css('display','flex');
@@ -325,9 +339,12 @@ function openEditModal(type, id){
         html+=sel('Review','review',r.review,['pending','approved','change_request']);
         html+=sel('Review Stage','review_stage',r.review_stage,['not_started','manager_review','pm_review','change_requested','final_approved']);
         html+=sel('Assignment Type','assignment_type',r.assignment_type,['new','mod']);
-        html+=inp('Start Date','start_date',r.start_date?String(r.start_date).slice(0,16):'','datetime-local');
-        html+=inp('End Date','end_date',r.end_date?String(r.end_date).slice(0,16):'','datetime-local');
-        html+=inp('Deadline','deadline',r.deadline?String(r.deadline).slice(0,16):'','datetime-local');
+        html+='<div style="margin-bottom:12px;"><label style="display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;">Start Date</label>'
+            +'<input name="start_date" value="'+formatDateForInput(r.start_date)+'" placeholder="dd/mm/yyyy" type="datetime-local" style="width:100%;background:#131929;border:1px solid #2d3548;border-radius:6px;padding:7px 10px;color:#e2e8f0;font-size:13px;box-sizing:border-box;"></div>';
+        html+='<div style="margin-bottom:12px;"><label style="display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;">End Date</label>'
+            +'<input name="end_date" value="'+formatDateForInput(r.end_date)+'" placeholder="dd/mm/yyyy" type="datetime-local" style="width:100%;background:#131929;border:1px solid #2d3548;border-radius:6px;padding:7px 10px;color:#e2e8f0;font-size:13px;box-sizing:border-box;"></div>';
+        html+='<div style="margin-bottom:12px;"><label style="display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;">Deadline</label>'
+            +'<input name="deadline" value="'+formatDateForInput(r.deadline)+'" placeholder="dd/mm/yyyy" type="datetime-local" style="width:100%;background:#131929;border:1px solid #2d3548;border-radius:6px;padding:7px 10px;color:#e2e8f0;font-size:13px;box-sizing:border-box;"></div>';
         html+=inp('Work Pages (task_count)','task_count',r.task_count,'number');
         html+=inp('No. of Options Provided','no_of_options_provided',r.no_of_options_provided,'number');
         html+=inp('No. of Concepts','no_of_concepts',r.no_of_concepts,'number');
