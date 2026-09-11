@@ -207,9 +207,8 @@ const HEADERS = {
     year: 'Year'
 };
 const BADGES = {
-    leave_day_type: {},
-    leave_type: {},
-    status: {}
+    leave_type: {Planned:'status-planned', Unplanned:'status-unplanned'},
+    status: {Inform:'status-inform', 'Not Inform':'status-not-inform'}
 };
 
 let dt;
@@ -280,16 +279,17 @@ $(function(){
                         return row && row.user ? row.user.name : 'N/A';
                     }
                 });
-            } else {
-                cols.push({
-                    data:k, title:HEADERS[k]||k, defaultContent:'N/A',
-                    render:function(v,type){
-                        if(type!=='display') return v;
-                        var val=v!=null?v:'N/A';
-                        return val;
-                    }
-                });
-            }
+                } else {
+                    cols.push({
+                        data:k, title:HEADERS[k]||k, defaultContent:'N/A',
+                        render:function(v,type){
+                            if(type!=='display') return v;
+                            var val=v!=null?v:'N/A';
+                            if(BADGES[k]&&val&&val!=='N/A'){var c=BADGES[k][val]||'';return '<span class="status-badge '+c+'">'+val+'</span>';}
+                            return val;
+                        }
+                    });
+                }
         });
 
         dt=$('#mainTable').DataTable({
@@ -308,6 +308,21 @@ $(function(){
                     th.empty();
                     var wrap=$('<div class="th-wrap"></div>');
                     wrap.append('<div class="th-label"><span title="'+labelText+'">'+labelText+'</span><span class="th-sort"></span></div>');
+                    if(idx>0){
+                        var key=colKeys[idx];
+                        if(BADGES[key]){
+                            var sel=$('<select class="col-filter"><option value="">All</option></select>');
+                            Object.keys(BADGES[key]).forEach(function(o){sel.append('<option value="'+o+'">'+o+'</option>');});
+                            sel.on('change click mousedown',function(e){e.stopPropagation();});
+                            sel.on('change',function(){col.search(this.value).draw();});
+                            wrap.append(sel);
+                        } else {
+                            var inp=$('<input class="col-filter" type="text" placeholder="Filter...">');
+                            inp.on('click mousedown focus',function(e){e.stopPropagation();});
+                            inp.on('keyup change clear',function(){if(col.search()!==this.value)col.search(this.value).draw();});
+                            wrap.append(inp);
+                        }
+                    }
                     th.append(wrap);
                     th.off('click').on('click',function(e){
                         if($(e.target).closest('.col-filter').length===0){
