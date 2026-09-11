@@ -38,6 +38,7 @@ const TaskHistory = require('./TaskHistory/TaskHistory');
 const IssueHistory = require('./IssueHistory/IssueHistory');
 const PmReviewReminderHistory = require('./PmReviewReminderHistory/PmReviewReminderHistory');
 const Feedbacks = require('./Feedbacks/Feedbacks');
+const Leave = require('./Leave/Leave');
 
 // Associations
 Department.hasMany(Division, { foreignKey: 'department_id', as: 'divisions' });
@@ -197,6 +198,9 @@ Feedbacks.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 Tasks.hasMany(Feedbacks, { foreignKey: 'task_id', as: 'feedbacks' });
 User.hasMany(Feedbacks, { foreignKey: 'user_id', as: 'userFeedbacks' });
 
+// Leave Associations
+Leave.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+
 module.exports = {
   sequelize,
   Department,
@@ -235,5 +239,6 @@ module.exports = {
   TaskHistory,
   IssueHistory,
   PmReviewReminderHistory,
-  Feedbacks
+  Feedbacks,
+  Leave
 };

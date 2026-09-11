@@ -1,5 +1,6 @@
-const { sequelize } = require('../config/databaseConfig');
-const { Tasks, IssueAssignments } = require('../models');
+const { sequelize, Op } = require('../config/databaseConfig');
+const { Tasks, IssueAssignments, Leave, User } = require('../models');
+const ExcelJS = require('exceljs');
 
 const getClientUsersByDivision = async (userId) => {
     return sequelize.query(
@@ -513,6 +514,377 @@ const deleteIssue = async (req, res) => {
         res.json({ success: true, message: 'Issue soft deleted successfully' });
     } catch (error) {
         console.error('Error deleting issue:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+const getAllLeaves = async (req, res) => {
+    try {
+        const { startDate, endDate, userId, leaveDayType, leaveType, status, leaveReason, vertical, year, month } = req.query;
+
+        const where = { is_deleted: 0 };
+        if (startDate) where.date = { ...where.date, [Op.gte]: startDate };
+        if (endDate) where.date = { ...where.date, [Op.lte]: endDate };
+        if (userId) where.user_id = userId;
+        if (leaveDayType) where.leave_day_type = leaveDayType;
+        if (leaveType) where.leave_type = leaveType;
+        if (status) where.status = status;
+        if (leaveReason) where.leave_reason = leaveReason;
+        if (vertical) where.vertical = vertical;
+        if (year) where.year = year;
+        if (month) where.month = month;
+
+        const leaves = await Leave.findAll({
+            where,
+            include: [
+                {
+                    model: User,
+                    as: 'user',
+                    attributes: ['id', 'name', 'email'],
+                    where: {
+                        department_id: 9,
+                        account_status: 'active'
+                    },
+                    required: true
+                }
+            ],
+            order: [['date', 'DESC']]
+        });
+
+        res.json({ success: true, data: leaves });
+    } catch (error) {
+        console.error('Error fetching leaves:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+const exportLeavesCsv = async (req, res) => {
+    try {
+        const { startDate, endDate, userId, leaveDayType, leaveType, status, leaveReason, vertical, year, month } = req.query;
+
+        const where = { is_deleted: 0 };
+        if (startDate) where.date = { ...where.date, [Op.gte]: startDate };
+        if (endDate) where.date = { ...where.date, [Op.lte]: endDate };
+        if (userId) where.user_id = userId;
+        if (leaveDayType) where.leave_day_type = leaveDayType;
+        if (leaveType) where.leave_type = leaveType;
+        if (status) where.status = status;
+        if (leaveReason) where.leave_reason = leaveReason;
+        if (vertical) where.vertical = vertical;
+        if (year) where.year = year;
+        if (month) where.month = month;
+
+        const leaves = await Leave.findAll({
+            where,
+            include: [
+                {
+                    model: User,
+                    as: 'user',
+                    attributes: ['id', 'name', 'email'],
+                    where: {
+                        department_id: 9,
+                        account_status: 'active'
+                    },
+                    required: true
+                }
+            ],
+            order: [['date', 'DESC']]
+        });
+
+        let csv = 'Date,Name,Email,Day,Leave Day Type,Leave Type,Status,Leave Reason,Vertical,Days Count,Reason,Remark,Month,Year\n';
+
+        leaves.forEach(function(leave){
+            csv += [
+                leave.date,
+                leave.user ? leave.user.name : '',
+                leave.user ? leave.user.email : '',
+                leave.day || '',
+                leave.leave_day_type,
+                leave.leave_type,
+                leave.status,
+                leave.leave_reason,
+                leave.vertical || '',
+                leave.days_count || 1,
+                leave.reason || '',
+                (leave.remark || '').replace(/"/g, '""'),
+                leave.month || '',
+                leave.year || ''
+            ].map(function(v){
+                if(typeof v === 'string' && v.includes(',')) return '"'+v+'"';
+                return v;
+            }).join(',') + '\n';
+        });
+
+        res.header('Content-Type', 'text/csv');
+        res.attachment('leaves_export.csv');
+        res.send(csv);
+    } catch (error) {
+        console.error('Error exporting leaves CSV:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+const exportLeavesExcel = async (req, res) => {
+    try {
+        const { startDate, endDate, userId, leaveDayType, leaveType, status, leaveReason, vertical, year, month } = req.query;
+
+        const where = { is_deleted: 0 };
+        if (startDate) where.date = { ...where.date, [Op.gte]: startDate };
+        if (endDate) where.date = { ...where.date, [Op.lte]: endDate };
+        if (userId) where.user_id = userId;
+        if (leaveDayType) where.leave_day_type = leaveDayType;
+        if (leaveType) where.leave_type = leaveType;
+        if (status) where.status = status;
+        if (leaveReason) where.leave_reason = leaveReason;
+        if (vertical) where.vertical = vertical;
+        if (year) where.year = year;
+        if (month) where.month = month;
+
+        const leaves = await Leave.findAll({
+            where,
+            include: [
+                {
+                    model: User,
+                    as: 'user',
+                    attributes: ['id', 'name', 'email'],
+                    where: {
+                        department_id: 9,
+                        account_status: 'active'
+                    },
+                    required: true
+                }
+            ],
+            order: [['date', 'DESC']]
+        });
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Leaves');
+
+        worksheet.columns = [
+            { header: 'Date', key: 'date', width: 15 },
+            { header: 'Name', key: 'name', width: 25 },
+            { header: 'Email', key: 'email', width: 30 },
+            { header: 'Day', key: 'day', width: 15 },
+            { header: 'Leave Day Type', key: 'leave_day_type', width: 18 },
+            { header: 'Leave Type', key: 'leave_type', width: 15 },
+            { header: 'Status', key: 'status', width: 15 },
+            { header: 'Leave Reason', key: 'leave_reason', width: 20 },
+            { header: 'Vertical', key: 'vertical', width: 15 },
+            { header: 'Days Count', key: 'days_count', width: 12 },
+            { header: 'Reason', key: 'reason', width: 30 },
+            { header: 'Remark', key: 'remark', width: 40 },
+            { header: 'Month', key: 'month', width: 15 },
+            { header: 'Year', key: 'year', width: 10 }
+        ];
+
+        worksheet.getRow(1).font = { bold: true };
+        worksheet.getRow(1).fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FF6366F1' }
+        };
+        worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+
+        leaves.forEach(function(leave){
+            worksheet.addRow({
+                date: leave.date,
+                name: leave.user ? leave.user.name : '',
+                email: leave.user ? leave.user.email : '',
+                day: leave.day || '',
+                leave_day_type: leave.leave_day_type,
+                leave_type: leave.leave_type,
+                status: leave.status,
+                leave_reason: leave.leave_reason,
+                vertical: leave.vertical || '',
+                days_count: leave.days_count || 1,
+                reason: leave.reason || '',
+                remark: leave.remark || '',
+                month: leave.month || '',
+                year: leave.year || ''
+            });
+        });
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.attachment('leaves_export.xlsx');
+        await workbook.xlsx.write(res);
+        res.end();
+    } catch (error) {
+        console.error('Error exporting leaves Excel:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+const getLeaveById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const leave = await Leave.findOne({
+            where: { id, is_deleted: 0 },
+            include: [
+                {
+                    model: User,
+                    as: 'user',
+                    attributes: ['id', 'name', 'email']
+                }
+            ]
+        });
+
+        if (!leave) {
+            return res.status(404).json({ success: false, error: 'Leave not found' });
+        }
+
+        res.json({ success: true, data: leave });
+    } catch (error) {
+        console.error('Error fetching leave:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+const createLeave = async (req, res) => {
+    try {
+        const { date, user_id, leave_day_type, leave_type, status, leave_reason, remark, vertical, days_count, reason } = req.body;
+
+        const month = new Date(date).toLocaleString('default', { month: 'long' });
+        const year = new Date(date).getFullYear();
+        const day = new Date(date).toLocaleString('default', { weekday: 'long' });
+
+        const leave = await Leave.create({
+            date,
+            user_id,
+            leave_day_type,
+            leave_type,
+            status,
+            leave_reason,
+            remark,
+            day,
+            month,
+            year,
+            vertical,
+            days_count,
+            reason
+        });
+
+        res.json({ success: true, data: leave, message: 'Leave created successfully' });
+    } catch (error) {
+        console.error('Error creating leave:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+const updateLeave = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { date, user_id, leave_day_type, leave_type, status, leave_reason, remark, vertical, days_count, reason } = req.body;
+
+        const month = date ? new Date(date).toLocaleString('default', { month: 'long' }) : undefined;
+        const year = date ? new Date(date).getFullYear() : undefined;
+        const day = date ? new Date(date).toLocaleString('default', { weekday: 'long' }) : undefined;
+
+        const [affectedRows] = await Leave.update(
+            {
+                date,
+                user_id,
+                leave_day_type,
+                leave_type,
+                status,
+                leave_reason,
+                remark,
+                day,
+                month,
+                year,
+                vertical,
+                days_count,
+                reason
+            },
+            { where: { id, is_deleted: 0 } }
+        );
+
+        if (affectedRows === 0) {
+            return res.status(404).json({ success: false, error: 'Leave not found' });
+        }
+
+        const updatedLeave = await Leave.findByPk(id);
+        res.json({ success: true, data: updatedLeave, message: 'Leave updated successfully' });
+    } catch (error) {
+        console.error('Error updating leave:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+const deleteLeave = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await Leave.update({ is_deleted: 1 }, { where: { id } });
+        res.json({ success: true, message: 'Leave soft deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting leave:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+const getLeaveKpis = async (req, res) => {
+    try {
+        const { startDate, endDate, vertical, year, month } = req.query;
+
+        const where = { is_deleted: 0 };
+        if (startDate) where.date = { ...where.date, [Op.gte]: startDate };
+        if (endDate) where.date = { ...where.date, [Op.lte]: endDate };
+        if (vertical) where.vertical = vertical;
+        if (year) where.year = year;
+        if (month) where.month = month;
+
+        const totalLeaves = await Leave.count({ where });
+        const fullDayLeaves = await Leave.count({ where: { ...where, leave_day_type: 'Full day' } });
+        const halfDayLeaves = await Leave.count({ where: { ...where, leave_day_type: 'Half day' } });
+        const shortLeaves = await Leave.count({ where: { ...where, leave_day_type: 'Short Leave' } });
+        const plannedLeaves = await Leave.count({ where: { ...where, leave_type: 'Planned' } });
+        const unplannedLeaves = await Leave.count({ where: { ...where, leave_type: 'Unplanned' } });
+        const informedLeaves = await Leave.count({ where: { ...where, status: 'Inform' } });
+        const notInformedLeaves = await Leave.count({ where: { ...where, status: 'Not Inform' } });
+
+        const verticalStats = await Leave.findAll({
+            where,
+            attributes: [
+                'vertical',
+                [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+            ],
+            group: ['vertical'],
+            raw: true
+        });
+
+        res.json({
+            success: true,
+            data: {
+                totalLeaves,
+                fullDayLeaves,
+                halfDayLeaves,
+                shortLeaves,
+                plannedLeaves,
+                unplannedLeaves,
+                informedLeaves,
+                notInformedLeaves,
+                verticalStats
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching leave KPIs:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+const getLeaveUsers = async (req, res) => {
+    try {
+        const users = await User.findAll({
+            where: {
+                department_id: 9,
+                account_status: 'active'
+            },
+            attributes: ['id', 'name', 'email'],
+            order: [['name', 'ASC']]
+        });
+
+        res.json({ success: true, data: users });
+    } catch (error) {
+        console.error('Error fetching leave users:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 };
@@ -4285,6 +4657,15 @@ module.exports = {
     deleteClient,
     deleteTask,
     deleteIssue,
+    getAllLeaves,
+    getLeaveById,
+    createLeave,
+    updateLeave,
+    deleteLeave,
+    getLeaveKpis,
+    getLeaveUsers,
+    exportLeavesCsv,
+    exportLeavesExcel,
     getEditData,
     getRequestTypes,
     getProjectTypesByProject,
