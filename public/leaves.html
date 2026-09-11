@@ -136,16 +136,9 @@
                             <option value="Hospitalized">Hospitalized</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label style="color:#cbd5e1;font-size:13px;margin-bottom:6px;display:block;">Vertical</label>
-                        <select id="leaveVertical" style="width:100%;padding:8px 12px;border-radius:7px;border:1px solid #2d3548;background:#131c2e;color:#f1f5f9;font-size:13px;">
-                            <option value="">Select Vertical</option>
-                            <option value="Artwork">Artwork</option>
-                            <option value="Content">Content</option>
-                            <option value="Operation">Operation</option>
-                            <option value="Video">Video</option>
-                            <option value="Web">Web</option>
-                        </select>
+                    <div class="form-group" style="grid-column:span 2;">
+                        <label style="color:#cbd5e1;font-size:13px;margin-bottom:6px;display:block;">Division</label>
+                        <input type="text" id="leaveVertical" readonly style="width:100%;padding:8px 12px;border-radius:7px;border:1px solid #2d3548;background:#1e293b;color:#94a3b8;font-size:13px;">
                     </div>
                     <div class="form-group">
                         <label style="color:#cbd5e1;font-size:13px;margin-bottom:6px;display:block;">Days Count</label>
@@ -206,7 +199,7 @@ const HEADERS = {
     leave_type: 'Leave Type',
     status: 'Status',
     leave_reason: 'Leave Reason',
-    vertical: 'Vertical',
+    vertical: 'Division',
     days_count: 'Days Count',
     reason: 'Reason',
     remark: 'Remark',
@@ -240,6 +233,18 @@ $(function(){
         var userName = selectedOption.text() || '';
         $('#leaveUserIdReadonly').val(userId);
         $('#leaveUserNameReadonly').val(userName);
+        
+        if(userId){
+            $.getJSON(getApiBase()+'datatable/admin/leaves/users/'+userId+'/division', function(res){
+                if(res.success && res.data && res.data.division_name){
+                    $('#leaveVertical').val(res.data.division_name);
+                } else {
+                    $('#leaveVertical').val('');
+                }
+            });
+        } else {
+            $('#leaveVertical').val('');
+        }
     });
 
     $('#btnAddLeave').on('click', function(){
@@ -257,37 +262,35 @@ $(function(){
         updateLeaveStats(data);
 
         var cols=[];
-        if(data.length){
-            cols.push({
-                data:null, title:'Action', orderable:false, searchable:false, width:'80px',
-                render:function(v,type,row){
-                    if(type!=='display') return '';
-                    return '<button class="edit-btn" onclick="editLeave('+row.id+')" title="Edit" style="background:#6366f122;border:1px solid #6366f144;color:#818cf8;border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;margin-right:4px;"><i class="bi bi-pencil"></i></button>'
-                           +'<button class="del-btn" onclick="deleteLeave('+row.id+')" title="Delete" style="background:#be123c22;border:1px solid #be123c44;color:#f43f5e;border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;"><i class="bi bi-trash3"></i></button>';
-                }
-            });
-            var keyOrder=['id','user_id','name','date','day','leave_day_type','leave_type','status','leave_reason','vertical','days_count','reason','remark','month','year'];
-            keyOrder.forEach(function(k){
-                if(k==='name'){
-                    cols.push({
-                        data:null, title:HEADERS[k]||k, defaultContent:'N/A',
-                        render:function(v,type,row){
-                            if(type!=='display') return row.user ? row.user.name : 'N/A';
-                            return row.user ? row.user.name : 'N/A';
-                        }
-                    });
-                } else {
-                    cols.push({
-                        data:k, title:HEADERS[k]||k, defaultContent:'N/A',
-                        render:function(v,type){
-                            if(type!=='display') return v;
-                            var val=v!=null?v:'N/A';
-                            return val;
-                        }
-                    });
-                }
-            });
-        }
+        cols.push({
+            data:null, title:'Action', orderable:false, searchable:false, width:'80px',
+            render:function(v,type,row){
+                if(type!=='display') return '';
+                return '<button class="edit-btn" onclick="editLeave('+(row?row.id:'')+')" title="Edit" style="background:#6366f122;border:1px solid #6366f144;color:#818cf8;border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;margin-right:4px;"><i class="bi bi-pencil"></i></button>'
+                       +'<button class="del-btn" onclick="deleteLeave('+(row?row.id:'')+')" title="Delete" style="background:#be123c22;border:1px solid #be123c44;color:#f43f5e;border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;"><i class="bi bi-trash3"></i></button>';
+            }
+        });
+        var keyOrder=['id','user_id','name','date','day','leave_day_type','leave_type','status','leave_reason','vertical','days_count','reason','remark','month','year'];
+        keyOrder.forEach(function(k){
+            if(k==='name'){
+                cols.push({
+                    data:null, title:HEADERS[k]||k, defaultContent:'N/A',
+                    render:function(v,type,row){
+                        if(type!=='display') return row && row.user ? row.user.name : 'N/A';
+                        return row && row.user ? row.user.name : 'N/A';
+                    }
+                });
+            } else {
+                cols.push({
+                    data:k, title:HEADERS[k]||k, defaultContent:'N/A',
+                    render:function(v,type){
+                        if(type!=='display') return v;
+                        var val=v!=null?v:'N/A';
+                        return val;
+                    }
+                });
+            }
+        });
 
         dt=$('#mainTable').DataTable({
             data:data,columns:cols,
@@ -371,12 +374,12 @@ function openLeaveModal(leave){
         $('#leaveUserIdReadonly').val(leave.user_id);
         $('#leaveUserNameReadonly').val(leave.user ? leave.user.name : '');
         $('#leaveUserId').prop('disabled', true);
+        $('#leaveVertical').val(leave.vertical || '');
         $('#leaveDate').val(leave.date);
         $('#leaveDayType').val(leave.leave_day_type);
         $('#leaveType').val(leave.leave_type);
         $('#leaveStatus').val(leave.status);
         $('#leaveReason').val(leave.leave_reason);
-        $('#leaveVertical').val(leave.vertical || '');
         $('#leaveDaysCount').val(leave.days_count || 1);
         $('#leaveReasonText').val(leave.reason || '');
         $('#leaveRemark').val(leave.remark || '');

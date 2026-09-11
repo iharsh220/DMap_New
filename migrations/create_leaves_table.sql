@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS `leaves` (
   `day` VARCHAR(20) NULL DEFAULT NULL,
   `month` VARCHAR(20) NULL DEFAULT NULL,
   `year` INT NULL DEFAULT NULL,
-  `vertical` ENUM('Artwork', 'Content', 'Operation', 'Video', 'Web') NULL DEFAULT NULL,
+  `vertical` VARCHAR(100) NULL DEFAULT NULL,
   `days_count` DECIMAL(4,1) NULL DEFAULT 1.0,
   `reason` TEXT NULL DEFAULT NULL,
   `is_deleted` TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Soft delete flag - 0=active, 1=deleted',

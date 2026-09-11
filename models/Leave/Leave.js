@@ -53,7 +53,7 @@ const Leave = sequelize.define('Leave', {
     allowNull: true,
   },
   vertical: {
-    type: DataTypes.ENUM('Artwork', 'Content', 'Operation', 'Video', 'Web'),
+    type: DataTypes.STRING(100),
     allowNull: true,
   },
   days_count: {
