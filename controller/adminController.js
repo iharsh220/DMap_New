@@ -591,7 +591,7 @@ const exportLeavesCsv = async (req, res) => {
             order: [['date', 'DESC']]
         });
 
-        let csv = 'Date,Name,Email,Day,Leave Day Type,Leave Type,Status,Leave Reason,Vertical,Days Count,Reason,Remark,Month,Year\n';
+        let csv = 'Date,Name,Email,Day,Leave Day Type,Leave Type,Status,Leave Reason,Division,Days Count,Reason,Remark,Month,Year\n';
 
         leaves.forEach(function(leave){
             csv += [
@@ -669,7 +669,7 @@ const exportLeavesExcel = async (req, res) => {
             { header: 'Leave Type', key: 'leave_type', width: 15 },
             { header: 'Status', key: 'status', width: 15 },
             { header: 'Leave Reason', key: 'leave_reason', width: 20 },
-            { header: 'Vertical', key: 'vertical', width: 15 },
+            { header: 'Division', key: 'vertical', width: 20 },
             { header: 'Days Count', key: 'days_count', width: 12 },
             { header: 'Reason', key: 'reason', width: 30 },
             { header: 'Remark', key: 'remark', width: 40 },
@@ -885,6 +885,30 @@ const getLeaveUsers = async (req, res) => {
         res.json({ success: true, data: users });
     } catch (error) {
         console.error('Error fetching leave users:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+const getUserDivision = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        
+        const [divisions] = await sequelize.query(
+            `SELECT d.id, d.title as division_name
+             FROM user_divisions ud
+             JOIN division d ON d.id = ud.division_id
+             WHERE ud.user_id = :userId
+             LIMIT 1`,
+            { replacements: { userId }, type: sequelize.QueryTypes.SELECT }
+        );
+
+        if (divisions) {
+            res.json({ success: true, data: { division_name: divisions.division_name } });
+        } else {
+            res.json({ success: true, data: { division_name: '' } });
+        }
+    } catch (error) {
+        console.error('Error fetching user division:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 };
@@ -4664,6 +4688,7 @@ module.exports = {
     deleteLeave,
     getLeaveKpis,
     getLeaveUsers,
+    getUserDivision,
     exportLeavesCsv,
     exportLeavesExcel,
     getEditData,
