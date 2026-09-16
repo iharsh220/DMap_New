@@ -76,8 +76,8 @@
     <div style="padding:20px 24px 16px;border-bottom:1px solid #2d3548;display:flex;align-items:center;gap:10px;">
       <span style="background:#6366f122;border-radius:8px;padding:6px 10px;"><i class="bi bi-pencil-square" style="color:#818cf8;font-size:18px;"></i></span>
       <div>
-        <div style="color:#f1f5f9;font-weight:600;font-size:15px;">Edit Issue</div>
-        <div style="color:#94a3b8;font-size:12px;">Update issue details</div>
+        <div style="color:#f1f5f9;font-weight:600;font-size:15px;">Edit Change</div>
+        <div style="color:#94a3b8;font-size:12px;">Update Change details</div>
       </div>
       <button onclick="closeEditModal()" style="margin-left:auto;background:none;border:none;color:#64748b;font-size:20px;cursor:pointer;line-height:1;">&times;</button>
     </div>
@@ -213,8 +213,8 @@ $(function(){
                 data:null, title:'Action', orderable:false, searchable:false, width:'80px',
                 render:function(v,type,row){
                     if(type!=='display') return '';
-                    return '<button class="edit-btn" data-type="issue" data-id="'+row.issue_id+'" title="Edit Issue" style="background:#6366f122;border:1px solid #6366f144;color:#818cf8;border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;margin-right:4px;"><i class="bi bi-pencil"></i></button>'
-                          +'<button class="del-btn" data-type="issue" data-id="'+row.issue_id+'" title="Delete Issue" style="background:#be123c22;border:1px solid #be123c44;color:#f43f5e;border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;"><i class="bi bi-trash3"></i></button>';
+                    return '<button class="edit-btn" data-type="issue" data-id="'+row.issue_id+'" title="Edit Change" style="background:#6366f122;border:1px solid #6366f144;color:#818cf8;border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;margin-right:4px;"><i class="bi bi-pencil"></i></button>'
+                          +'<button class="del-btn" data-type="issue" data-id="'+row.issue_id+'" title="Delete Change" style="background:#be123c22;border:1px solid #be123c44;color:#f43f5e;border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;"><i class="bi bi-trash3"></i></button>';
                 }
             });
             Object.keys(data[0]).forEach(function(k){
@@ -341,7 +341,7 @@ function openEditModal(type, id){
         html+=inp('Start Date','start_date',formatDateForInput(r.start_date),'datetime-local');
         html+=inp('End Date','end_date',formatDateForInput(r.end_date),'datetime-local');
         html+=inp('Deadline','deadline',formatDateForInput(r.deadline),'datetime-local');
-        html+=inp('Work Pages (task_count)','task_count',r.task_count,'number');
+        html+=inp('Work Pages (change_count)','task_count',r.task_count,'number');
         html+=inp('No. of Options Provided','no_of_options_provided',r.no_of_options_provided,'number');
         html+=inp('No. of Concepts','no_of_concepts',r.no_of_concepts,'number');
         html+=inp('No. of Resize','no_of_resize',r.no_of_resize,'number');
