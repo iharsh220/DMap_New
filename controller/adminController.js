@@ -593,7 +593,7 @@ const exportLeavesCsv = async (req, res) => {
 
         let csv = 'Date,Name,Email,Day,Leave Day Type,Leave Type,Status,Leave Reason,Division,Days Count,Reason,Remark,Month,Year\n';
 
-        leaves.forEach(function(leave){
+        leaves.forEach(function (leave) {
             csv += [
                 leave.date,
                 leave.user ? leave.user.name : '',
@@ -609,8 +609,8 @@ const exportLeavesCsv = async (req, res) => {
                 (leave.remark || '').replace(/"/g, '""'),
                 leave.month || '',
                 leave.year || ''
-            ].map(function(v){
-                if(typeof v === 'string' && v.includes(',')) return '"'+v+'"';
+            ].map(function (v) {
+                if (typeof v === 'string' && v.includes(',')) return '"' + v + '"';
                 return v;
             }).join(',') + '\n';
         });
@@ -685,7 +685,7 @@ const exportLeavesExcel = async (req, res) => {
         };
         worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
 
-        leaves.forEach(function(leave){
+        leaves.forEach(function (leave) {
             worksheet.addRow({
                 date: leave.date,
                 name: leave.user ? leave.user.name : '',
@@ -892,7 +892,7 @@ const getLeaveUsers = async (req, res) => {
 const getUserDivision = async (req, res) => {
     try {
         const { userId } = req.params;
-        
+
         const [divisions] = await sequelize.query(
             `SELECT d.id, d.title as division_name
              FROM user_divisions ud
