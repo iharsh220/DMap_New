@@ -983,25 +983,50 @@ const getAdminData = async (req, res) => {
         let query = `
             SELECT
 
-                wr.id AS work_request_id,
-
-                wr.project_name,
-
-                rt.request_type AS request_type_name,
-
-                pt.project_type AS project_type_name,
-
-                wr.priority AS project_priority,
-
-                ru.name AS project_requester_name,
-
+                /* ==================================================
+                   PROJECT STATUS
+                   ================================================== */
                 wr.status AS project_request_status,
 
-                wr.requested_at AS project_request_timestamp,
+                /* ==================================================
+                   PROJECT REQUEST ID
+                   ================================================== */
+                wr.id AS work_request_id,
 
-                wr.created_at,
+                /* ==================================================
+                   PROJECT NAME
+                   ================================================== */
+                wr.project_name AS project_name,
 
-                wr.updated_at,
+                /* ==================================================
+                   REQUESTED VERTICAL
+                   ================================================== */
+                rt.request_type AS request_type_name,
+
+                /* ==================================================
+                   PROJECT TYPE
+                   ================================================== */
+                pt.project_type AS project_type_name,
+
+                /* ==================================================
+                   PROJECT PRIORITY
+                   ================================================== */
+                wr.priority AS project_priority,
+
+                /* ==================================================
+                   CLIENT NAME
+                   ================================================== */
+                ru.name AS project_requester_name,
+
+                /* ==================================================
+                   CLIENT DIVISION
+                   ================================================== */
+                'N/A' AS client_division,
+
+                /* ==================================================
+                   REQUEST ACCEPTED BY / PROJECT MANAGER
+                   ================================================== */
+                'N/A' AS request_accepted_by,
 
 
                 /* ==================================================
@@ -1012,6 +1037,9 @@ const getAdminData = async (req, res) => {
                    and task_history joins.
                    ================================================== */
 
+                /* ==================================================
+                   NO. OF WORK PAGES
+                   ================================================== */
                 COALESCE(
                     (
                         SELECT SUM(
@@ -1118,7 +1146,9 @@ const getAdminData = async (req, res) => {
                       AND t6.is_deleted = 0
                 ) AS project_end_date,
 
-                /* Client Change Requested Counter */
+                /* ==================================================
+                   CLIENT CHANGE REQUESTED COUNTER
+                   ================================================== */
                 COALESCE(
                     (
                         SELECT COUNT(*)
@@ -1130,7 +1160,9 @@ const getAdminData = async (req, res) => {
                     0
                 ) AS client_change_requested_counter,
 
-                /* CM Change Requested Counter */
+                /* ==================================================
+                   CM CHANGE REQUESTED COUNTER
+                   ================================================== */
                 COALESCE(
                     (
                         SELECT COUNT(*)
@@ -1146,6 +1178,9 @@ const getAdminData = async (req, res) => {
                    OTHER TASK METRICS
                    ================================================== */
 
+                /* ==================================================
+                   NO. OF OPTIONS
+                   ================================================== */
                 COALESCE(
                     (
                         SELECT SUM(
@@ -1159,6 +1194,9 @@ const getAdminData = async (req, res) => {
                 ) AS task_no_of_options_provided,
 
 
+                /* ==================================================
+                   NO. OF CONCEPT CREATED
+                   ================================================== */
                 COALESCE(
                     (
                         SELECT SUM(
@@ -1172,6 +1210,9 @@ const getAdminData = async (req, res) => {
                 ) AS task_concept_work,
 
 
+                /* ==================================================
+                   NO. OF RESIZE PAGES
+                   ================================================== */
                 COALESCE(
                     (
                         SELECT SUM(
@@ -1185,6 +1226,9 @@ const getAdminData = async (req, res) => {
                 ) AS task_no_of_resize,
 
 
+                /* ==================================================
+                   NO. OF WORDS WRITTEN
+                   ================================================== */
                 COALESCE(
                     (
                         SELECT SUM(
@@ -1198,6 +1242,9 @@ const getAdminData = async (req, res) => {
                 ) AS task_no_of_words_written,
 
 
+                /* ==================================================
+                   NO. OF RESPONSIVE UI CREATED
+                   ================================================== */
                 COALESCE(
                     (
                         SELECT SUM(
@@ -1211,6 +1258,9 @@ const getAdminData = async (req, res) => {
                 ) AS task_no_of_responsive_screen,
 
 
+                /* ==================================================
+                   NO. OF PRODUCTS USED
+                   ================================================== */
                 COALESCE(
                     (
                         SELECT SUM(
@@ -1224,6 +1274,9 @@ const getAdminData = async (req, res) => {
                 ) AS task_no_of_products_shot,
 
 
+                /* ==================================================
+                   INCLUDES SHOOT SETUP
+                   ================================================== */
                 COALESCE(
                     (
                         SELECT SUM(
@@ -1235,6 +1288,180 @@ const getAdminData = async (req, res) => {
                     ),
                     0
                 ) AS task_shoot_setup,
+
+
+                /* ==================================================
+                   NO. OF AI PAGES
+                   ================================================== */
+                'N/A' AS task_no_of_ai_page,
+
+
+                /* ==================================================
+                   VIDEO DURATION
+                   ================================================== */
+                'N/A' AS video_duration,
+
+
+                /* ==================================================
+                   INCLUDES RESIZE WORK
+                   ================================================== */
+                'N/A' AS task_resize_work,
+
+
+                /* ==================================================
+                   INCLUDES AI WORK
+                   ================================================== */
+                'N/A' AS task_ai,
+
+
+                /* ==================================================
+                   PROJECT REQUEST TIMESTAMP
+                   ================================================== */
+                wr.requested_at AS project_request_timestamp,
+
+
+                /* ==================================================
+                   PROJECT ACCEPTANCE TIMESTAMP
+                   ================================================== */
+                'N/A' AS project_acceptance_timestamp,
+
+
+                /* ==================================================
+                   PROJECT MARKED COMPLETED TIMESTAMP
+                   ================================================== */
+                'N/A' AS project_marked_completed_timestamp,
+
+
+                /* ==================================================
+                   PROJECT MARKED COMPLETED BY
+                   ================================================== */
+                'N/A' AS project_marked_completed_by,
+
+
+                /* ==================================================
+                   PROJECT INTERNAL TAT
+                   ================================================== */
+                'N/A' AS internal_project_tat,
+
+
+                /* ==================================================
+                   PROJECT TAT
+                   ================================================== */
+                'N/A' AS project_tat,
+
+
+                /* ==================================================
+                   PROJECT REQUEST TO RESPONSE TAT
+                   ================================================== */
+                'N/A' AS project_request_to_response_tat,
+
+
+                /* ==================================================
+                   TASK REQUEST TO RESPONSE TAT AVG
+                   ================================================== */
+                'N/A' AS task_request_to_response_tat_avg,
+
+
+                /* ==================================================
+                   TASK ACCEPTANCE TO COMPLETION TAT BY CU AVG
+                   ================================================== */
+                'N/A' AS task_acceptance_to_completion_tat_by_cu_avg,
+
+
+                /* ==================================================
+                   TASK OUTPUT SHARED TO RESPONSE BY CM TAT AVG
+                   ================================================== */
+                'N/A' AS task_output_shared_to_response_by_cm_tat_avg,
+
+
+                /* ==================================================
+                   TASK INTERNAL TAT AVG
+                   ================================================== */
+                'N/A' AS task_internal_tat_avg,
+
+
+                /* ==================================================
+                   TASK WHOLE TAT AVG
+                   ================================================== */
+                'N/A' AS task_whole_tat_avg,
+
+
+                /* ==================================================
+                   CHANGE REQUEST TO RESPONSE TAT AVG
+                   ================================================== */
+                'N/A' AS change_request_to_response_tat_avg,
+
+
+                /* ==================================================
+                   CHANGE ACCEPTANCE TO COMPLETION TAT BY CU AVG
+                   ================================================== */
+                'N/A' AS change_acceptance_to_completion_tat_by_cu_avg,
+
+
+                /* ==================================================
+                   CHANGE OUTPUT SHARED TO RESPONSE BY CM TAT AVG
+                   ================================================== */
+                'N/A' AS change_output_shared_to_response_by_cm_tat_avg,
+
+
+                /* ==================================================
+                   CHANGE INTERNAL TAT AVG
+                   ================================================== */
+                'N/A' AS change_internal_tat_avg,
+
+
+                /* ==================================================
+                   CHANGE WHOLE TAT AVG
+                   ================================================== */
+                'N/A' AS change_whole_tat_avg,
+
+
+                /* ==================================================
+                   PROJECT REQUEST RESPONSE REMINDER COUNTER TO CM
+                   ================================================== */
+                'N/A' AS project_request_response_reminder_counter_to_cm,
+
+
+                /* ==================================================
+                   TASK REQUEST RESPONSE REMINDER COUNTER TO CU
+                   ================================================== */
+                'N/A' AS task_request_response_reminder_counter_to_cu,
+
+
+                /* ==================================================
+                   TASK OUTPUT RESPONSE REMINDER COUNTER TO CM
+                   ================================================== */
+                'N/A' AS task_output_response_reminder_counter_to_cm,
+
+
+                /* ==================================================
+                   TASK OUTPUT RESPONSE REMINDER COUNTER TO CLIENT
+                   ================================================== */
+                'N/A' AS task_output_response_reminder_counter_to_client,
+
+
+                /* ==================================================
+                   CHANGE REQUEST RESPONSE REMINDER COUNTER TO CU
+                   ================================================== */
+                'N/A' AS change_request_response_reminder_counter_to_cu,
+
+
+                /* ==================================================
+                   CHNAGE OUTPUT RESPONSE REMINDER COUNTER TO CM
+                   ================================================== */
+                'N/A' AS chnage_output_response_reminder_counter_to_cm,
+
+
+                /* ==================================================
+                   CHANGE OUTPUT RESPONSE REMINDER COUNTER TO CLIENT
+                   ================================================== */
+                'N/A' AS change_output_response_reminder_counter_to_client,
+
+
+                /* ==================================================
+                   PROJECT CLOSURE REMINDER COUNTER TO CLIENT
+                   ================================================== */
+                'N/A' AS project_closure_reminder_counter_to_client,
 
 
                 /* ==================================================
@@ -1332,13 +1559,90 @@ const getAdminData = async (req, res) => {
             type: sequelize.QueryTypes.SELECT
         });
 
+        const columnOrder = [
+            'project_request_status',
+            'work_request_id',
+            'project_name',
+            'request_type_name',
+            'project_type_name',
+            'project_priority',
+            'project_requester_name',
+            'client_division',
+            'request_accepted_by',
+            'project_count',
+            'task_count',
+            'change_count',
+            'project_start_date',
+            'project_end_date',
+            'client_change_requested_counter',
+            'cm_change_requested_counter',
+            'task_no_of_work_pages',
+            'issue_no_of_work_pages',
+            'task_no_of_options_provided',
+            'task_concept_work',
+            'task_no_of_resize',
+            'task_no_of_ai_page',
+            'video_duration',
+            'task_no_of_products_shot',
+            'task_no_of_words_written',
+            'task_no_of_responsive_screen',
+            'task_resize_work',
+            'task_ai',
+            'task_shoot_setup',
+            'project_request_timestamp',
+            'project_acceptance_timestamp',
+            'project_marked_completed_timestamp',
+            'project_marked_completed_by',
+            'internal_project_tat',
+            'project_tat',
+            'project_request_to_response_tat',
+            'task_request_to_response_tat_avg',
+            'task_acceptance_to_completion_tat_by_cu_avg',
+            'task_output_shared_to_response_by_cm_tat_avg',
+            'task_internal_tat_avg',
+            'task_whole_tat_avg',
+            'change_request_to_response_tat_avg',
+            'change_acceptance_to_completion_tat_by_cu_avg',
+            'change_output_shared_to_response_by_cm_tat_avg',
+            'change_internal_tat_avg',
+            'change_whole_tat_avg',
+            'project_request_response_reminder_counter_to_cm',
+            'task_request_response_reminder_counter_to_cu',
+            'task_output_response_reminder_counter_to_cm',
+            'task_output_response_reminder_counter_to_client',
+            'change_request_response_reminder_counter_to_cu',
+            'chnage_output_response_reminder_counter_to_cm',
+            'change_output_response_reminder_counter_to_client',
+            'project_closure_reminder_counter_to_client',
+            'month',
+            'fy'
+        ];
+
+        const orderedResults = results.map(function (row) {
+            const orderedRow = {};
+
+            columnOrder.forEach(function (key) {
+                if (Object.prototype.hasOwnProperty.call(row, key)) {
+                    orderedRow[key] = row[key];
+                }
+            });
+
+            Object.keys(row).forEach(function (key) {
+                if (!Object.prototype.hasOwnProperty.call(orderedRow, key)) {
+                    orderedRow[key] = row[key];
+                }
+            });
+
+            return orderedRow;
+        });
+
 
         // ---------------------------------------
         // RESPONSE
         // ---------------------------------------
 
         res.json({
-            data: results
+            data: orderedResults
         });
 
 
