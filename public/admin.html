@@ -127,11 +127,32 @@ function getApiBase(){
     return '/digilabs/dmap/api/';
 }
 const TRUNCATE = ['work_request_description','about_project','request_type_description','project_type_description','project_digi_comments'];
+const COL_ORDER = [
+    'project_request_status','work_request_id','project_name','request_type_name',
+    'project_type_name','project_priority','project_requester_name','client_division',
+    'request_accepted_by','project_count','task_count','change_count','project_start_date',
+    'project_end_date','client_change_requested_counter','cm_change_requested_counter',
+    'task_no_of_work_pages','issue_no_of_work_pages','task_no_of_options_provided',
+    'task_concept_work','task_no_of_resize','task_no_of_ai_page','video_duration',
+    'task_no_of_products_shot','task_no_of_words_written','task_no_of_responsive_screen',
+    'task_resize_work','task_ai','task_shoot_setup','project_request_timestamp',
+    'project_acceptance_timestamp','project_marked_completed_timestamp','project_marked_completed_by',
+    'internal_project_tat','project_tat','project_request_to_response_tat',
+    'task_request_to_response_tat_avg','task_acceptance_to_completion_tat_by_cu_avg',
+    'task_output_shared_to_response_by_cm_tat_avg','task_internal_tat_avg','task_whole_tat_avg',
+    'change_request_to_response_tat_avg','change_acceptance_to_completion_tat_by_cu_avg',
+    'change_output_shared_to_response_by_cm_tat_avg','change_internal_tat_avg','change_whole_tat_avg',
+    'project_request_response_reminder_counter_to_cm','task_request_response_reminder_counter_to_cu',
+    'task_output_response_reminder_counter_to_cm','task_output_response_reminder_counter_to_client',
+    'change_request_response_reminder_counter_to_cu','chnage_output_response_reminder_counter_to_cm',
+    'change_output_response_reminder_counter_to_client','project_closure_reminder_counter_to_client',
+    'month','fy'
+];
 const HEADERS  = {
     project_request_status:'Project Status',
     work_request_id:'Project Request ID',
     project_name:'Project Name',
-    request_type_name:'Project Requested To',
+    request_type_name:'Requested Vertical',
     project_type_name:'Project Type',
     project_priority:'Project Priority',
     project_requester_name:'Client Name',
@@ -169,11 +190,11 @@ const HEADERS  = {
     task_output_shared_to_response_by_cm_tat_avg:'Task Output Shared to Response by CM TAT AVG',
     task_internal_tat_avg:'Task Internal TAT AVG',
     task_whole_tat_avg:'Task Whole TAT AVG',
-    change_request_to_response_tat:'Change Request to Response TAT',
-    change_acceptance_to_completion_tat_by_cu:'Change Acceptance to Completion TAT by CU',
-    change_output_shared_to_response_by_cm_tat:'Change Output Shared to Response by CM TAT',
-    change_internal_tat:'Change Internal TAT',
-    change_whole_tat:'Change Whole TAT',
+    change_request_to_response_tat_avg:'Change Request to Response TAT AVG',
+    change_acceptance_to_completion_tat_by_cu_avg:'Change Acceptance to Completion TAT by CU AVG',
+    change_output_shared_to_response_by_cm_tat_avg:'Change Output Shared to Response by CM TAT AVG',
+    change_internal_tat_avg:'Change Internal TAT AVG',
+    change_whole_tat_avg:'Change Whole TAT AVG',
     project_request_response_reminder_counter_to_cm:'Project Request Response Reminder Counter To CM',
     task_request_response_reminder_counter_to_cu:'Task Request Response Reminder Counter To CU',
     task_output_response_reminder_counter_to_cm:'Task Output Response Reminder Counter To CM',
@@ -238,7 +259,10 @@ $(function(){
                           +'<button class="del-btn" data-type="project" data-id="'+row.work_request_id+'" title="Delete Project" style="background:#be123c22;border:1px solid #be123c44;color:#f43f5e;border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;"><i class="bi bi-trash3"></i></button>';
                 }
             });
-            Object.keys(data[0]).forEach(function(k){
+            var orderedKeys = COL_ORDER.filter(function(k){
+                return Object.prototype.hasOwnProperty.call(data[0], k);
+            });
+            orderedKeys.forEach(function(k){
                 cols.push({
                     data:k, title: HEADERS[k]||k, defaultContent:'N/A',
                     render:function(v,type){
@@ -266,13 +290,13 @@ $(function(){
                 api.columns().every(function(){
                     var col = this, idx = col.index();
                     var th  = $(col.header());
-                    var labelText = idx===0 ? 'Action' : (HEADERS[Object.keys(data[0])[idx-1]]||Object.keys(data[0])[idx-1]);
+                    var labelText = idx===0 ? 'Action' : (HEADERS[orderedKeys[idx-1]]||orderedKeys[idx-1]);
                     th.empty();
                     var wrap = $('<div class="th-wrap"></div>');
                     var label = $('<div class="th-label"><span title="'+labelText+'">'+labelText+'</span><span class="th-sort"></span></div>');
                     wrap.append(label);
                     if(idx===0){ th.append(wrap); return; }
-                    var key = Object.keys(data[0])[idx-1];
+                    var key = orderedKeys[idx-1];
                     if(BADGES[key]){
                         var sel = $('<select class="col-filter"><option value="">All</option></select>');
                         Object.keys(BADGES[key]).forEach(function(opt){sel.append('<option value="'+opt+'">'+opt+'</option>');});
