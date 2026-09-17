@@ -1438,6 +1438,17 @@ const getClientsData = async (req, res) => {
                 1 AS project_count,
 
                 COALESCE(
+                    (
+                        SELECT COUNT(*)
+                        FROM work_request_history wrh_deferral
+                        WHERE wrh_deferral.work_request_id = wr.id
+                          AND wrh_deferral.action = 'manager_deferred_reassigned'
+                          AND wrh_deferral.actor_type = 'manager'
+                    ),
+                    0
+                ) AS deferral_count,
+
+                COALESCE(
                     NULLIF(TRIM(wr.status), ''),
                     '00h 00m'
                 ) AS project_status,
