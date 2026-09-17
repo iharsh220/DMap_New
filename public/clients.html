@@ -125,26 +125,27 @@ function getApiBase(){
 }
 const TRUNCATE=['description'];
 const COL_ORDER=[
-    'work_request_id','project_name','request_type_name','project_type_name',
-    'project_priority','project_requester_name','client_division','digi_vertical_manager_name',
-    'project_count','project_status','project_requested_at_client',
-    'response_timestamp','request_to_response_tat','month','financial_year','description'
+    'project_status','work_request_id','project_name','request_type_name',
+    'project_type_name','project_priority','project_requester_name','client_division',
+    'digi_vertical_manager_name','project_count','description','project_requested_at_client',
+    'response_timestamp','request_to_response_tat','deferral_count','month','financial_year'
 ];
 const HEADERS={
+    project_status:'Project Status',
     work_request_id:'Project Request ID',
     project_name:'Project Name',
-    request_type_name:'Project Requested To',
+    request_type_name:'Requested Vertical',
     project_type_name:'Project Type',
     project_priority:'Project Priority',
     project_requester_name:'Client Name',
     client_division:'Client Division',
-    digi_vertical_manager_name:'Request Accepted By',
+    digi_vertical_manager_name:'Request Accepted By / Project Manager',
     project_count:'No. of Project',
-    project_status:'Project Status',
-    description:'Description',
+    description:'Status Description',
     project_requested_at_client:'Request Timestamp',
     response_timestamp:'Response Timestamp',
     request_to_response_tat:'Request to Response TAT',
+    deferral_count:'Deferral Count',
     month:'Month',
     financial_year:'Financial Year'
 };
