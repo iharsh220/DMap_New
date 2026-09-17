@@ -1118,6 +1118,29 @@ const getAdminData = async (req, res) => {
                       AND t6.is_deleted = 0
                 ) AS project_end_date,
 
+                /* Client Change Requested Counter */
+                COALESCE(
+                    (
+                        SELECT COUNT(*)
+                        FROM issue_history ih
+                        WHERE ih.work_request_id = wr.id
+                          AND ih.action = 'child_change_request_created'
+                          AND ih.actor_type = 'user'
+                    ),
+                    0
+                ) AS client_change_requested_counter,
+
+                /* CM Change Requested Counter */
+                COALESCE(
+                    (
+                        SELECT COUNT(*)
+                        FROM issue_history ih
+                        WHERE ih.work_request_id = wr.id
+                          AND ih.action = 'child_change_request_created'
+                          AND ih.actor_type = 'manager'
+                    ),
+                    0
+                ) AS cm_change_requested_counter,
 
                 /* ==================================================
                    OTHER TASK METRICS
