@@ -1374,33 +1374,54 @@ const getClientsData = async (req, res) => {
 
         let query = `
             SELECT
+                /* =====================================================
+                   PROJECT REQUEST ID
+                   ===================================================== */
                 wr.id AS work_request_id,
 
+                /* =====================================================
+                   PROJECT NAME
+                   ===================================================== */
                 COALESCE(
                     NULLIF(TRIM(wr.project_name), ''),
                     'N/A'
                 ) AS project_name,
 
+                /* =====================================================
+                   REQUESTED VERTICAL
+                   ===================================================== */
                 COALESCE(
                     NULLIF(TRIM(rt.request_type), ''),
                     'N/A'
                 ) AS request_type_name,
 
+                /* =====================================================
+                   PROJECT TYPE
+                   ===================================================== */
                 COALESCE(
                     NULLIF(TRIM(pt.project_type), ''),
                     'N/A'
                 ) AS project_type_name,
 
+                /* =====================================================
+                   PROJECT PRIORITY
+                   ===================================================== */
                 COALESCE(
                     NULLIF(TRIM(wr.priority), ''),
                     'N/A'
                 ) AS project_priority,
 
+                /* =====================================================
+                   CLIENT NAME
+                   ===================================================== */
                 COALESCE(
                     NULLIF(TRIM(ru.name), ''),
                     'N/A'
                 ) AS project_requester_name,
 
+                /* =====================================================
+                   CLIENT DIVISION
+                   ===================================================== */
                 COALESCE(
                     NULLIF(
                         (
@@ -1418,6 +1439,9 @@ const getClientsData = async (req, res) => {
                     'N/A'
                 ) AS client_division,
 
+                /* =====================================================
+                   REQUEST ACCEPTED BY / PROJECT MANAGER
+                   ===================================================== */
                 COALESCE(
                     NULLIF(
                         (
@@ -1435,8 +1459,14 @@ const getClientsData = async (req, res) => {
                     'N/A'
                 ) AS digi_vertical_manager_name,
 
+                /* =====================================================
+                   PROJECT COUNT
+                   ===================================================== */
                 1 AS project_count,
 
+                /* =====================================================
+                   DEFERRAL COUNT
+                   ===================================================== */
                 COALESCE(
                     (
                         SELECT COUNT(*)
@@ -1448,11 +1478,17 @@ const getClientsData = async (req, res) => {
                     0
                 ) AS deferral_count,
 
+                /* =====================================================
+                   PROJECT STATUS
+                   ===================================================== */
                 COALESCE(
                     NULLIF(TRIM(wr.status), ''),
                     '00h 00m'
                 ) AS project_status,
 
+                /* =====================================================
+                   STATUS DESCRIPTION
+                   ===================================================== */
                 COALESCE(
                     NULLIF(TRIM(wr.description), ''),
                     'N/A'
@@ -1508,6 +1544,10 @@ const getClientsData = async (req, res) => {
 
                 wr.requested_at AS project_requested_at_client,
 
+                /* =====================================================
+                   RESPONSE TIMESTAMP
+                   ===================================================== */
+
                 (
                     SELECT wrh.created_at
                     FROM work_request_history wrh
@@ -1517,9 +1557,9 @@ const getClientsData = async (req, res) => {
                     LIMIT 1
                  ) AS response_timestamp,
 
-                 /* =====================================================
-                    MONTH
-                    ===================================================== */
+                /* =====================================================
+                   MONTH
+                   ===================================================== */
 
                 CASE
                     WHEN EXISTS (
