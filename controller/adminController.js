@@ -1021,12 +1021,47 @@ const getAdminData = async (req, res) => {
                 /* ==================================================
                    CLIENT DIVISION
                    ================================================== */
-                'N/A' AS client_division,
+                COALESCE(
+                    NULLIF(
+                        (
+                            SELECT GROUP_CONCAT(
+                                DISTINCT d.title
+                                ORDER BY d.title
+                                SEPARATOR ', '
+                            )
+                            FROM user_divisions ud
+                            INNER JOIN division d
+                                ON d.id = ud.division_id
+                            WHERE ud.user_id = wr.user_id
+                        ),
+                        ''
+                    ),
+                    'N/A'
+                ) AS client_division,
 
                 /* ==================================================
                    REQUEST ACCEPTED BY / PROJECT MANAGER
                    ================================================== */
-                'N/A' AS request_accepted_by,
+                COALESCE(
+                    NULLIF(
+                        (
+                            SELECT COALESCE(
+                                NULLIF(TRIM(wrh_accept.actor_name), ''),
+                                u_accept.name
+                            )
+                            FROM work_request_history wrh_accept
+                            LEFT JOIN users u_accept
+                                ON u_accept.id = wrh_accept.actor_id
+                            WHERE wrh_accept.work_request_id = wr.id
+                              AND wrh_accept.action = 'manager_accepted'
+                              AND wrh_accept.actor_type = 'manager'
+                            ORDER BY wrh_accept.created_at ASC
+                            LIMIT 1
+                        ),
+                        ''
+                    ),
+                    'N/A'
+                ) AS request_accepted_by,
 
 
                 /* ==================================================
