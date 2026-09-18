@@ -1334,7 +1334,34 @@ const getAdminData = async (req, res) => {
                 /* ==================================================
                    VIDEO DURATION
                    ================================================== */
-                'N/A' AS video_duration,
+                COALESCE(
+                    (
+                        SELECT SUM(
+                            COALESCE(t_dur.duration_minutes, 0) * 60
+                            + COALESCE(t_dur.duration_seconds, 0)
+                        )
+                        FROM tasks t_dur
+                        WHERE t_dur.work_request_id = wr.id
+                          AND t_dur.is_deleted = 0
+                    ),
+                    0
+                )
+                +
+                COALESCE(
+                    (
+                        SELECT SUM(
+                            COALESCE(ia_dur.duration_minutes, 0) * 60
+                            + COALESCE(ia_dur.duration_seconds, 0)
+                        )
+                        FROM issue_assignments ia_dur
+                        INNER JOIN tasks t_ia
+                            ON t_ia.id = ia_dur.task_id
+                           AND t_ia.is_deleted = 0
+                        WHERE t_ia.work_request_id = wr.id
+                          AND ia_dur.is_deleted = 0
+                    ),
+                    0
+                ) AS video_duration,
 
 
                 /* ==================================================
