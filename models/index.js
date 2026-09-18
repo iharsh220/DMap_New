@@ -12,6 +12,7 @@ const User = require('./User/User');
 const Sales = require('./Sales/Sales');
 const Tasks = require('./Tasks/Tasks');
 const UserDivisions = require('./UserDivisions/UserDivisions');
+const Activity = require('./Activity/Activity');
 const RequestType = require('./RequestType/RequestType');
 const RequestDivisionReference = require('./RequestDivisionReference/RequestDivisionReference');
 const WorkRequests = require('./WorkRequests/WorkRequests');
@@ -198,6 +199,13 @@ Feedbacks.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 Tasks.hasMany(Feedbacks, { foreignKey: 'task_id', as: 'feedbacks' });
 User.hasMany(Feedbacks, { foreignKey: 'user_id', as: 'userFeedbacks' });
 
+
+ 
+
+// Activity belongs to Division
+Activity.belongsTo(Division, { foreignKey: 'division_id', as: 'division' });
+Division.hasMany(Activity, { foreignKey: 'division_id', as: 'activities' });
+
 // Leave Associations
 Leave.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 
@@ -214,6 +222,7 @@ module.exports = {
   Sales,
   Tasks,
   UserDivisions,
+  Activity,
   RequestType,
   RequestDivisionReference,
   WorkRequests,
