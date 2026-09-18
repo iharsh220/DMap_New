@@ -13,8 +13,8 @@ const getAllSalesUsers = async (req, res) => {
     try {
         console.log(req.user.divisions[0].title);
         
-        // const divisionTitles = req.user.divisions.map(item => item.title);
-        const divisionId = ['16'];
+        const divisionIds = req.user.divisions.map(item => item.id);
+        // const divisionId = ['16'];
         // Get all Users
         const salesUsersResult = await sequelize.query(
             `SELECT 
@@ -23,10 +23,10 @@ const getAllSalesUsers = async (req, res) => {
             FROM sales
             INNER JOIN division 
                 ON sales.division_id = division.id
-                WHERE division.id IN (:divisionId)`,
+                WHERE division.id IN (:divisionIds)`,
             {
                 replacements: {
-                    divisionId
+                    divisionIds
                 },
                 type: sequelize.QueryTypes.SELECT
             }
@@ -54,7 +54,8 @@ const getAllDoctorsData = async (req, res) => {
 
         let myDoctorsResult = [];
         // const divisionTitles = req.user.divisions.map(item => item.title);
-        const divisionTitles = ['Aqua'];
+        const divisionIds = req.user.divisions.map(item => item.id);
+        // const divisionTitles = ['Aqua'];
         if (req.query.sap_code !== undefined) {
             const sap_code = req.query.sap_code;
              myDoctorsResult = await sequelize.query(
@@ -64,10 +65,10 @@ const getAllDoctorsData = async (req, res) => {
                 FROM doctors
                 INNER JOIN division 
                     ON doctors.division_id = division.id
-                    WHERE division.title IN (:divisionTitles) AND doctors.sap_code = :sap_code`,
+                    WHERE division.id IN (:divisionIds) AND doctors.sap_code = :sap_code`,
                 {
                     replacements: {
-                        divisionTitles, sap_code
+                        divisionIds, sap_code   
                     },
                     type: sequelize.QueryTypes.SELECT
                 }
@@ -80,7 +81,7 @@ const getAllDoctorsData = async (req, res) => {
                 FROM doctors
                 INNER JOIN division 
                     ON doctors.division_id = division.id
-                    WHERE division.title IN (:divisionTitles)`,
+                    WHERE division.id IN (:divisionIds)`,
                 {
                     replacements: {
                         divisionTitles
