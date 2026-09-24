@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Issue Request Cancelled - D-Map</title>
+    <!--[if mso]>
+    <style type="text/css">
+        body, table, td {font-family: Arial, Helvetica, sans-serif !important;}
+    </style>
+    <![endif]-->
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f4f4f4; padding: 20px 0;">
+        <tr>
+            <td align="center">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="background-color: #ffffff; max-width: 600px;">
+                    
+                    <!-- Header -->
+                    <tr>
+                        <td style="background-color: #dc3545; padding: 25px 20px; text-align: center;">
+                            <h1 style="color: #ffffff; font-size: 22px; font-weight: 600; margin: 0; font-family: Arial, Helvetica, sans-serif;">Issue Request Cancelled</h1>
+                        </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 30px 25px;">
+                            <h2 style="color: #2c3e50; font-size: 20px; font-weight: 600; margin: 0 0 15px 0;">Issue Cancelled by Manager</h2>
+                            
+                            <p style="margin: 0 0 15px 0; color: #333333;">Dear <strong>{{user_name}}</strong>,</p>
+                            
+                            <p style="margin: 0 0 15px 0; color: #333333;">Your issue request has been cancelled by the manager. Please find the details below:</p>
+                            
+                            <div style="background-color: #f8d7da; border-left: 4px solid #dc3545; padding: 15px 20px; margin: 20px 0;">
+                                <strong>Status:</strong> Issue Cancelled<br>
+                                <strong>Issue Version:</strong> {{issue_version}}
+                            </div>
+                            
+                            <div style="background-color: #f8f9fa; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                                <h3 style="margin-top: 0; color: #2c3e50; font-size: 16px; font-weight: 600;">Issue Details</h3>
+                                <table style="width: 100%; border-collapse: collapse;">
+                                    <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057; width: 40%;">Issue Description:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{issue_description}}</td></tr>
+                                    <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Task Name:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{task_name}}</td></tr>
+                                    <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Project:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{project_name}}</td></tr>
+                                    <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Brand:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{brand}}</td></tr>
+                                    <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Request Type:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{request_type}}</td></tr>
+                                    <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Cancelled At:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{cancelled_at}}</td></tr>
+                                </table>
+                            </div>
+
+                            {{#if cancellation_reason}}
+                            <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px 20px; margin: 20px 0;">
+                                <h4 style="margin: 0 0 10px 0; color: #856404; font-size: 14px; font-weight: 600;">Cancellation Reason:</h4>
+                                <p style="margin: 0; color: #856404;">{{cancellation_reason}}</p>
+                            </div>
+                            {{/if}}
+                            
+                            <div style="background-color: #f8f9fa; border-left: 4px solid #dc3545; padding: 15px 20px; margin: 20px 0;">
+                                <p style="margin: 0;"><strong>Note:</strong> This issue request has been cancelled and will not proceed further. If you have any questions, please contact your manager.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    
+                    <!-- Banner Image at Bottom -->
+                    <tr>
+                        <td style="padding: 0;">
+                            <a href="{{frontend_url}}">
+                                <img src="{{banner_base64}}" alt="D-Map Banner" width="600" style="display: block; width: 100%; max-width: 600px; height: auto; border: 0;">
+                            </a>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f8f9fa; padding: 25px 20px; text-align: center; border-top: 1px solid #e9ecef;">
+                            <p style="margin: 5px 0; font-size: 12px; color: #6c757d;">This is an automated message from D-Map. Please do not reply to this email.</p>
+                            <p style="margin: 5px 0; font-size: 12px; color: #6c757d;">&copy; 2026 Alembic Digital Labs. All rights reserved.</p>
+                            <p style="margin: 10px 0 0 0; font-size: 12px;">
+                                <a href="{{frontend_url}}" style="color: #007bff; text-decoration: none;">Visit D-Map</a> | 
+                                <a href="mailto:support@alembicdigilabs.com" style="color: #007bff; text-decoration: none;">Support</a>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

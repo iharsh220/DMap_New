@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getAssignedWorkRequests, getAssignedWorkRequestById, acceptWorkRequest, acceptIssueRequest, deferWorkRequest, updateWorkRequestProject, deleteWorkRequest, cancelWorkRequest, deleteTask, getMyTasks, getAssignableUsers, getTaskTypesByWorkRequest, createTask, getTasksByWorkRequestId, getTaskAnalytics, getMyTeam, getAssignedRequestsWithStatus, getUserTask, updateTask, reviewTaskDocument, reviewIssueDocument, reviewTask, shareForClientReview, assignIssueToUser, getIssueAssignments, completeAllTasksAndIssues, getTaskHistory, getIssueHistory } = require('../../controller/managerAssignedController/managerAssignedController');
+const { getAssignedWorkRequests, getAssignedWorkRequestById, acceptWorkRequest, acceptIssueRequest, cancelIssueRequest, deferWorkRequest, updateWorkRequestProject, deleteWorkRequest, cancelWorkRequest, deleteTask, getMyTasks, getAssignableUsers, getTaskTypesByWorkRequest, createTask, getTasksByWorkRequestId, getTaskAnalytics, getMyTeam, getAssignedRequestsWithStatus, getUserTask, updateTask, reviewTaskDocument, reviewIssueDocument, reviewTask, shareForClientReview, assignIssueToUser, getIssueAssignments, completeAllTasksAndIssues, getTaskHistory, getIssueHistory } = require('../../controller/managerAssignedController/managerAssignedController');
 const { authenticateToken } = require('../../middleware/jwtMiddleware');
 const { checkRole } = require('../../middleware/roleMiddleware');
 const filterMiddleware = require('../../middleware/filterMiddleware');
@@ -31,6 +31,7 @@ router.get('/my-tasks', authenticateToken, checkRole([1, 2, 3]), getMyTasks); //
 router.get('/issue-assignments', authenticateToken, checkRole([1, 2, 3]), filterMiddleware, paginationMiddleware, searchMiddleware, getIssueAssignments); // Get all issue assignments with filters (status, review_stage, review)
 router.post('/assign-issue-to-user', authenticateToken, checkRole([1, 2, 3]), assignIssueToUser); // Assign issue to a user
 router.put('/issue/:id/accept', authenticateToken, checkRole([1, 2, 3]), acceptIssueRequest); // Accept an issue request
+router.put('/issue/:id/cancel', authenticateToken, checkRole([1, 2, 3]), cancelIssueRequest); // Cancel an issue request
 router.get('/history/task/:taskId', authenticateToken, checkRole([1, 2, 3, 4]), getTaskHistory);
 router.get('/history/issue/:issueAssignmentId', authenticateToken, checkRole([1, 2, 3, 4]), getIssueHistory);
 

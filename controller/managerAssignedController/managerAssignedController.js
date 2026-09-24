@@ -4921,6 +4921,169 @@ const acceptIssueRequest = async (req, res) => {
     }
 };
 
+const cancelIssueRequest = async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) {
+            return res.status(400).json({ success: false, error: 'Invalid issue assignment ID' });
+        }
+        const manager_id = req.user.id;
+
+        const issueAssignment = await IssueAssignments.findByPk(id, {
+            include: [
+                {
+                    model: Tasks,
+                    as: 'task',
+                    attributes: ['id', 'task_name', 'work_request_id', 'request_type_id']
+                },
+                { model: User, as: 'requester', attributes: ['id', 'name', 'email'] }
+            ]
+        });
+
+        if (!issueAssignment) {
+            return res.status(404).json({ success: false, error: 'Issue assignment not found' });
+        }
+
+        if (!issueAssignment.task) {
+            return res.status(400).json({ success: false, error: 'Issue assignment is not linked to a valid task' });
+        }
+
+        const task = issueAssignment.task;
+
+        const requestType = await RequestType.findByPk(task.request_type_id, {
+            include: [{ model: Division, through: { attributes: [] }, attributes: ['id'] }]
+        });
+
+        if (!requestType) {
+            return res.status(400).json({ success: false, error: 'Invalid request type for this task' });
+        }
+
+        const divisionIds = requestType.Divisions?.map(d => d.id) || [];
+
+        const managerDivision = await UserDivisions.findOne({
+            where: {
+                user_id: manager_id,
+                division_id: { [Op.in]: divisionIds }
+            }
+        });
+
+        if (!managerDivision) {
+            return res.status(403).json({
+                success: false,
+                error: 'You are not authorized to cancel this issue request. Only division managers for this task can cancel.'
+            });
+        }
+
+        if (issueAssignment.is_deleted === 1) {
+            return res.status(400).json({ success: false, error: 'Issue request is already cancelled' });
+        }
+
+        const { comments } = req.body;
+        const cancellationComments = comments || 'Issue request cancelled by manager';
+
+        const previousData = { ...issueAssignment.toJSON() };
+        await IssueAssignments.update({ is_deleted: 1, status: 'cancelled' }, { where: { id } });
+
+        if (issueAssignment.issue_id) {
+            await IssueAssignments.update(
+                { review: 'pending', review_stage: 'pm_review' },
+                { where: { id: issueAssignment.issue_id } }
+            );
+            const parentIssue = await IssueAssignments.findByPk(issueAssignment.issue_id);
+            await recordIssueHistory({
+                req,
+                issueAssignmentId: issueAssignment.issue_id,
+                taskId: parentIssue?.task_id || task.id,
+                workRequestId: task.work_request_id,
+                action: 'child_cancelled_parent_reverted',
+                previousData: { review: 'change_request', review_stage: 'change_requested' },
+                nextData: { review: 'pending', review_stage: 'pm_review' },
+                previousStatus: parentIssue?.status,
+                newStatus: parentIssue?.status,
+                comments: `Child issue ${issueAssignment.version} cancelled, parent reverted to pm_review`,
+                relatedUserId: issueAssignment.requested_by_user_id
+            });
+        } else if (issueAssignment.task_id) {
+            await Tasks.update(
+                { review: 'pending', review_stage: 'pm_review' },
+                { where: { id: issueAssignment.task_id } }
+            );
+            await recordTaskHistory({
+                req,
+                taskId: issueAssignment.task_id,
+                workRequestId: task.work_request_id,
+                action: 'issue_cancelled_task_reverted',
+                previousReview: 'change_request',
+                newReview: 'pending',
+                previousReviewStage: 'change_requested',
+                newReviewStage: 'pm_review',
+                relatedIssueId: id,
+                comments: `Issue ${issueAssignment.version} cancelled, task reverted to pm_review`,
+                relatedUserId: issueAssignment.requested_by_user_id
+            });
+        }
+
+        await recordIssueHistory({
+            req,
+            issueAssignmentId: id,
+            taskId: task.id,
+            workRequestId: task.work_request_id,
+            action: 'manager_cancelled',
+            previousData,
+            nextData: { is_deleted: 1, status: 'cancelled' },
+            previousStatus: issueAssignment.status,
+            newStatus: 'cancelled',
+            comments: cancellationComments,
+            relatedUserId: issueAssignment.requested_by_user_id
+        });
+
+        const requester = issueAssignment.requester;
+        if (requester) {
+            try {
+                const html = renderTemplate('issueCancellationNotification', {
+                    user_name: requester.name,
+                    issue_version: issueAssignment.version,
+                    issue_description: issueAssignment.description,
+                    task_name: task.task_name,
+                    project_name: task.work_request_id ? 'N/A' : 'N/A',
+                    brand: 'N/A',
+                    request_type: requestType.request_type,
+                    cancelled_at: new Date().toLocaleDateString('en-IN', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }),
+                    cancellation_reason: cancellationComments,
+                    frontend_url: process.env.FRONTEND_URL
+                });
+
+                await sendMail({
+                    to: requester.email,
+                    subject: 'Issue Request Cancelled',
+                    html
+                });
+            } catch (emailError) {
+                console.error('Error sending cancellation email:', emailError);
+            }
+        }
+
+        res.json({
+            success: true,
+            message: 'Issue request cancelled successfully',
+            data: {
+                cancelled_issue_id: id,
+                parent_updated: !!issueAssignment.issue_id,
+                task_updated: !issueAssignment.issue_id && !!issueAssignment.task_id
+            }
+        });
+    } catch (error) {
+        console.error('Error cancelling issue request:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
 const getIssueAssignments = async (req, res) => {
     try {
         // Define associations for TaskAssignments
@@ -5973,6 +6136,7 @@ module.exports = {
     getAssignedWorkRequestById,
     acceptWorkRequest,
     acceptIssueRequest,
+    cancelIssueRequest,
     deferWorkRequest,
     updateWorkRequestProject,
     deleteWorkRequest,
@@ -5994,6 +6158,7 @@ module.exports = {
     shareForClientReview,
     assignIssueToUser,
     getIssueAssignments,
+    cancelIssueRequest,
     completeAllTasksAndIssues,
     getTaskHistory,
     getIssueHistory
