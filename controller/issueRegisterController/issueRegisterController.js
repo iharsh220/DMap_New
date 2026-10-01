@@ -108,7 +108,7 @@ const getIssueRegisterByTaskId = async (req, res) => {
 const createIssueAssignment = async (req, res) => {
     try {
         const { task_id, issue_id, requested_by_user_id, assignment_type, version, description, deadline, start_date, end_date, link, task_count = 0, intimate_team = 0, intimate_client = 0, issue_register_ids = [] } = req.body;
-
+        
         if (!task_id && !issue_id) {
             return res.status(400).json({ success: false, error: 'Either task_id or issue_id is required' });
         }
@@ -298,16 +298,21 @@ const createIssueAssignment = async (req, res) => {
                 { model: User, as: 'requester', attributes: ['id', 'name', 'email'] },
                 { model: IssueRegister, as: 'issueTypes', through: { attributes: [] }, attributes: ['id', 'change_issue_type', 'description'] },
                 {
-                    model: IssueDocuments,
-                    as: 'documents',
-                    attributes: ['id', 'document_name', 'document_path', 'document_type', 'document_size', 'version', 'status', 'review', 'uploaded_at', 'uploaded_by']
+                    model: IssueUserAssignments,
+                    as: 'userAssignments',
+                    attributes: ['id', 'issue_assignment_id', 'user_id'],
+                    include: [{
+                        model: IssueDocuments,
+                        as: 'documents',
+                        attributes: ['id', 'document_name', 'document_path', 'document_type', 'document_size', 'version', 'status', 'review', 'uploaded_at', 'uploaded_by']
+                    }]
                 }
             ]
         });
 
         // Handle PMT document uploads
-        if (req.files && req.files.documents) {
-            const files = Array.isArray(req.files.documents) ? req.files.documents : [req.files.documents];
+        if (req.files && req.files.files) {
+            const files = Array.isArray(req.files.files) ? req.files.files : [req.files.files];
             const task = await Tasks.findByPk(rootTaskId, {
                 attributes: ['id', 'task_name', 'work_request_id'],
                 include: [{ model: WorkRequests, as: 'WorkRequest', attributes: ['id', 'project_name'] }]
@@ -326,6 +331,11 @@ const createIssueAssignment = async (req, res) => {
                 fs.mkdirSync(versionFolder, { recursive: true });
             }
 
+            const userAssignment = await IssueUserAssignments.create({
+                issue_assignment_id: issueAssignment.id,
+                user_id: requested_by_user_id
+            });
+
             for (const file of files) {
                 const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
                 const filename = file.name.replace(/[^a-zA-Z0-9.]/g, '_') + '-' + uniqueSuffix + path.extname(file.originalname || file.name);
@@ -339,7 +349,7 @@ const createIssueAssignment = async (req, res) => {
                 await file.mv(tempFilepath);
 
                 const documentData = {
-                    issue_user_assignment_id: null,
+                    issue_user_assignment_id: userAssignment.id,
                     issue_assignment_id: issueAssignment.id,
                     document_name: file.name,
                     document_path: `${process.env.BASE_ROUTE}/uploads/${sanitizedProjectName}/${taskName}/PMT/${version || 'V2'}/${filename}`,
@@ -422,7 +432,7 @@ const getIssueAssignmentsWithTaskDetails = async (req, res) => {
                 { model: IssueAssignments, as: 'parentIssue', attributes: ['id', 'version', 'description', 'status', 'assignment_type'] },
                 { model: User, as: 'requester', attributes: ['id', 'name', 'email', 'job_role_id'], include: [{ model: JobRole, attributes: ['id', 'role_title'] }] },
                 { model: IssueAssignmentTypes, as: 'issueTypeLinks', attributes: ['id', 'issue_register_id'], include: [{ model: IssueRegister, as: 'issueRegister', attributes: ['id', 'change_issue_type', 'description', 'quantification'] }] },
-                { model: IssueUserAssignments, as: 'userAssignments', attributes: ['id', 'issue_assignment_id', 'user_id'], include: [{ model: User, as: 'user', attributes: ['id', 'name', 'email', 'job_role_id'], include: [{ model: JobRole, attributes: ['id', 'role_title'] }, { model: Designation, attributes: ['id', 'designation_name'] }, { model: Department, attributes: ['id', 'department_name'] }, { model: Location, attributes: ['id', 'location_name'] }] }] }
+                { model: IssueUserAssignments, as: 'userAssignments', attributes: ['id', 'issue_assignment_id', 'user_id'], include: [{ model: User, as: 'user', attributes: ['id', 'name', 'email', 'job_role_id'], include: [{ model: JobRole, attributes: ['id', 'role_title'] }, { model: Designation, attributes: ['id', 'designation_name'] }, { model: Department, attributes: ['id', 'department_name'] }, { model: Location, attributes: ['id', 'location_name'] }] }, { model: IssueDocuments, as: 'documents', attributes: ['id', 'document_name', 'document_path', 'document_type', 'document_size', 'version', 'status', 'review', 'intimate_client', 'uploaded_at', 'uploaded_by'] }] }
             ]
         });
 
@@ -536,8 +546,24 @@ const getIssueAssignmentsWithTaskDetails = async (req, res) => {
                         designation_name: ua.user.Designation ? ua.user.Designation.designation_name : null,
                         department_name: ua.user.Department ? ua.user.Department.department_name : null,
                         location_name: ua.user.Location ? ua.user.Location.location_name : null
-                    } : null
+                    } : null,
+                    documents: ua.documents ? ua.documents.map(doc => ({
+                        id: doc.id,
+                        document_name: doc.document_name,
+                        document_path: doc.document_path,
+                        document_type: doc.document_type,
+                        document_size: doc.document_size,
+                        version: doc.version,
+                        status: doc.status,
+                        review: doc.review,
+                        intimate_client: doc.intimate_client,
+                        uploaded_at: doc.uploaded_at,
+                        uploaded_by: doc.uploaded_by
+                    })) : []
                 })) : [];
+
+                // Collect all documents from all user assignments for this issue
+                const issueDocuments = issueAssignment.userAssignments ? issueAssignment.userAssignments.flatMap(ua => ua.documents || []) : [];
 
                 return {
                     id: issueAssignment.id,
@@ -564,7 +590,20 @@ const getIssueAssignmentsWithTaskDetails = async (req, res) => {
                         role_title: issueAssignment.requester.JobRole ? issueAssignment.requester.JobRole.role_title : null
                     } : null,
                     issue_types: issueTypes,
-                    user_assignments: userAssignments
+                    user_assignments: userAssignments,
+                    issue_documents: issueDocuments.map(doc => ({
+                        id: doc.id,
+                        document_name: doc.document_name,
+                        document_path: doc.document_path,
+                        document_type: doc.document_type,
+                        document_size: doc.document_size,
+                        version: doc.version,
+                        status: doc.status,
+                        review: doc.review,
+                        intimate_client: doc.intimate_client,
+                        uploaded_at: doc.uploaded_at,
+                        uploaded_by: doc.uploaded_by
+                    }))
                 };
             });
 
