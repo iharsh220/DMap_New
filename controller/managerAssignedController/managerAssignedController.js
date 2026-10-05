@@ -5333,7 +5333,7 @@ const getIssueAssignments = async (req, res) => {
                         {
                             model: IssueDocuments,
                             as: 'documents',
-                            attributes: ['id', 'document_name', 'document_path', 'document_type', 'document_size', 'uploaded_at', 'status', 'version', 'review']
+                            attributes: ['id', 'document_name', 'document_path', 'document_type', 'document_size', 'uploaded_at', 'status', 'version', 'review', 'uploaded_by']
                         }
                     ]
                 }
@@ -5472,6 +5472,18 @@ const getIssueAssignments = async (req, res) => {
                         change_issue_type: link.issueRegister.change_issue_type,
                         description: link.issueRegister.description
                     } : null
+                })) : [],
+                pmt_documents: issue.userAssignments ? issue.userAssignments.flatMap(ua => ua.documents || []).filter(doc => doc.uploaded_by === 'pmt').map(doc => ({
+                    id: doc.id,
+                    document_name: doc.document_name,
+                    document_path: doc.document_path,
+                    document_type: doc.document_type,
+                    document_size: doc.document_size,
+                    version: doc.version,
+                    status: doc.status,
+                    review: doc.review,
+                    uploaded_at: doc.uploaded_at,
+                    uploaded_by: doc.uploaded_by
                 })) : [],
                 assignedUsers: issue.userAssignments ? issue.userAssignments
                     .filter(ua => assigned_to !== 'self' || ua.user_id === manager_id)

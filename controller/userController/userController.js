@@ -2113,7 +2113,6 @@ const getAssignedIssues = async (req, res) => {
                 {
                     model: IssueUserAssignments,
                     as: 'userAssignments',
-                    where: { user_id: user_id },
                     include: [
                         {
                             model: User,
@@ -2127,6 +2126,11 @@ const getAssignedIssues = async (req, res) => {
                                     through: { attributes: [] }
                                 }
                             ]
+                        },
+                        {
+                            model: IssueDocuments,
+                            as: 'documents',
+                            attributes: ['id', 'document_name', 'document_path', 'document_type', 'document_size', 'uploaded_at', 'status', 'version', 'review', 'uploaded_by']
                         }
                     ]
                 }
@@ -2231,19 +2235,37 @@ const getAssignedIssues = async (req, res) => {
                     description: itl.issueRegister ? itl.issueRegister.description : null,
                     quantification: itl.issueRegister ? itl.issueRegister.quantification : null
                 })) : [],
-                assignedUsers: ia.userAssignments ? ia.userAssignments.map(ua => ({
-                    id: ua.id,
-                    user_id: ua.user_id,
-                    user: ua.user ? {
-                        id: ua.user.id,
-                        name: ua.user.name,
-                        email: ua.user.email,
-                        divisions: ua.user.Divisions ? ua.user.Divisions.map(d => ({
-                            id: d.id,
-                            title: d.title
-                        })) : []
-                    } : null
-                })) : [],
+                assignedUsers: ia.userAssignments ? ia.userAssignments.filter(ua => ua.user_id === user_id).map(ua => {
+                    // Collect all PMT documents from all userAssignments for this issue
+                    const pmtDocs = ia.userAssignments.flatMap(ua2 => ua2.documents || []).filter(doc => doc.uploaded_by === 'pmt');
+                    // Merge user's own documents with PMT documents
+                    const allDocs = [...(ua.documents || []), ...pmtDocs];
+                    return {
+                        id: ua.id,
+                        user_id: ua.user_id,
+                        user: ua.user ? {
+                            id: ua.user.id,
+                            name: ua.user.name,
+                            email: ua.user.email,
+                            divisions: ua.user.Divisions ? ua.user.Divisions.map(d => ({
+                                id: d.id,
+                                title: d.title
+                            })) : []
+                        } : null,
+                        documents: allDocs.map(doc => ({
+                            id: doc.id,
+                            document_name: doc.document_name,
+                            document_path: doc.document_path,
+                            document_type: doc.document_type,
+                            document_size: doc.document_size,
+                            version: doc.version,
+                            status: doc.status,
+                            review: doc.review,
+                            uploaded_at: doc.uploaded_at,
+                            uploaded_by: doc.uploaded_by
+                        }))
+                    };
+                }) : [],
                 requester: ia.requester ? { id: ia.requester.id, name: ia.requester.name, email: ia.requester.email } : null
             };
         });
