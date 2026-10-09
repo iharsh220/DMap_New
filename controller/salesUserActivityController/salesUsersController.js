@@ -5,6 +5,7 @@ const path = require('path');
 const csv = require('csv-parser');
 
 const fs = require('fs');
+const { log } = require('console');
 
 // const salesService = new CrudService(Sales);
 
@@ -84,7 +85,7 @@ const getAllDoctorsData = async (req, res) => {
                     WHERE division.id IN (:divisionIds)`,
                 {
                     replacements: {
-                        divisionTitles
+                        divisionIds
                     },
                     type: sequelize.QueryTypes.SELECT
                 }
@@ -162,11 +163,11 @@ const uploadSalesUsers = async (req, res) => {
         console.log(req.files.csv_file);
         const divisionTitles = req.user.divisions.map(item => item.title); 
 
-        const div_id = req.body.division_id;
+        const div_id = parseInt(req.body.division_id);
         const div_name = req.body.division_name;
 
         const file = req.files?.csv_file;
- 
+        
         const uploadDir = path.join(
             __dirname,
             '../../uploads/csv_uploads'
@@ -180,7 +181,29 @@ const uploadSalesUsers = async (req, res) => {
 
         console.log('Total CSV Rows:', uploadedFile.rows.length);
 
-         // CSV file rows import to db ---------
+        // Get division IDs assigned to logged-in user
+        const divisionIds = req.user.divisions.map(item => parseInt(item.id));
+        console.log(div_id);
+        
+        // Check whether requested division_id belongs to user
+        if (!divisionIds.includes(div_id)) {
+            return res.status(403).json({
+                success: false,
+                message: "You are not authorized to delete sales for this division",
+                 
+            });
+        }
+        // Delete sales records for the division
+        const [result] = await sequelize.query(
+            `DELETE FROM sales WHERE division_id = :division_id`,
+            {
+                replacements: {
+                    division_id: div_id
+                }
+            }
+        );
+
+        // CSV file rows import to db ---------
 
         const transaction = await sequelize.transaction();
 
@@ -222,7 +245,7 @@ const uploadSalesUsers = async (req, res) => {
                         :zm_sapcode,
                         :mobile_number,
                         :email_id,
-                        'sales', '1', :div_name, 'pending', NULL, '0', NULL, NULL, NULL, current_timestamp(), current_timestamp()
+                        'sales', '1', :div_name, 'active', NULL, '0', NULL, NULL, NULL, current_timestamp(), current_timestamp()
                     )
                     `,
                     {
@@ -275,10 +298,10 @@ const uploadSalesUsers = async (req, res) => {
 
 const uploadDoctors = async (req, res) => {
     try {
-        console.log(req.files.csv_file);
+        // console.log(req.files.csv_file);
         const divisionTitles = req.user.divisions.map(item => item.title); 
 
-        const div_id = req.body.division_id;
+        const div_id = parseInt(req.body.division_id);
         const div_name = req.body.division_name;
 
         const file = req.files?.csv_file;
@@ -296,6 +319,27 @@ const uploadDoctors = async (req, res) => {
 
         console.log('Total CSV Rows:', uploadedFile.rows.length);
 
+        // Get division IDs assigned to logged-in user
+        const divisionIds = req.user.divisions.map(item => parseInt(item.id));
+        console.log(divisionIds);
+        
+        // Check whether requested division_id belongs to user
+        if (!divisionIds.includes(div_id)) {
+            return res.status(403).json({
+                success: false,
+                message: "You are not authorized to delete sales for this division",
+                 
+            });
+        }
+        // Delete sales records for the division
+        const [result] = await sequelize.query(
+            `DELETE FROM doctors WHERE division_id = :division_id`,
+            {
+                replacements: {
+                    division_id: div_id
+                }
+            }
+        );
          // CSV file rows import to db ---------
 
         const transaction = await sequelize.transaction();
