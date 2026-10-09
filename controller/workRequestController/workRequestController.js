@@ -1752,7 +1752,11 @@ const checkAndCompleteWorkRequest = async (workRequestId) => {
         await WorkRequests.update({ status: 'completed' }, { where: { id: workRequestId } });
         return;
     }
-    const allTasksCompleted = tasks.every(t => t.status === 'completed');
+    const allTasksCompleted = tasks.every(t => 
+        t.status === 'completed' && 
+        t.review === 'approved' && 
+        t.review_stage === 'final_approved'
+    );
     if (!allTasksCompleted) return;
     const taskIds = tasks.map(t => t.id);
     const issues = await IssueAssignments.findAll({ where: { task_id: { [Op.in]: taskIds }, is_deleted: 0 } });
@@ -1760,7 +1764,11 @@ const checkAndCompleteWorkRequest = async (workRequestId) => {
         await WorkRequests.update({ status: 'completed' }, { where: { id: workRequestId } });
         return;
     }
-    const allIssuesCompleted = issues.every(i => i.status === 'completed');
+    const allIssuesCompleted = issues.every(i => 
+        i.status === 'completed' && 
+        i.review === 'approved' && 
+        i.review_stage === 'final_approved'
+    );
     if (allIssuesCompleted) {
         await WorkRequests.update({ status: 'completed' }, { where: { id: workRequestId } });
     }
