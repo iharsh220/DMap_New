@@ -2,10 +2,16 @@ const express = require('express');
 const router = express.Router();
 const { getAllSalesUsers, getAllDoctorsData, uploadSalesUsers, uploadDoctors } = require('../../controller/salesUserActivityController/salesUsersController');
 const { getAllActivities, createActivity, updateActivity, deleteActivity } = require('../../controller/salesUserActivityController/salesUsersActivityController');
- 
+const { salesLogin, myActivities  } = require('../../controller/salesUserActivityController/authSalesUserController');
+
 const { authenticateToken } = require('../../middleware/jwtMiddleware');
 
-// Get issue register data by task ID or issue ID
+// Sales user login routes ****
+router.get('/sales_activities', myActivities);
+router.post('/sales_login', salesLogin);
+
+
+// sales users activity HO routes ****
 router.get('/my_sales_users', authenticateToken, getAllSalesUsers);
 router.get('/my_doctors', authenticateToken, getAllDoctorsData);
 

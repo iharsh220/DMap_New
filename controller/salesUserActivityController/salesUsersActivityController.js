@@ -16,7 +16,7 @@ const getAllActivities = async (req, res) => {
         const divisionIds = req.user.divisions.map(item => item.id);
         // const divisionId = ['16'];
         // Get all Users
-         
+        
         const activityResult = await sequelize.query(
             `SELECT 
                 activity.*,
@@ -163,7 +163,7 @@ const createActivity = async (req, res) => {
     }
 };
 
- 
+
 const updateActivity = async (req, res) => {
     try {
 
@@ -294,7 +294,7 @@ const updateActivity = async (req, res) => {
     }
 };
 
- 
+
 const deleteActivity = async (req, res) => {
     try {
 
