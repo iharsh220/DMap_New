@@ -55,6 +55,21 @@ router.get('/admin/tokens', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'tokens.html'));
 });
 
+// Serve token projects HTML
+router.get('/admin/token-projects', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'token-projects.html'));
+});
+
+// Serve token tasks HTML
+router.get('/admin/token-tasks', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'token-tasks.html'));
+});
+
+// Serve token changes HTML
+router.get('/admin/token-changes', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'token-changes.html'));
+});
+
 // API endpoint for project details data
 router.get('/admin/projectsdetails/data', cachedAdminData(getAdminData));
 
