@@ -10,12 +10,17 @@ router.get('/admin/dmap-theme.css', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'dmap-theme.css'));
 });
 
+// Serve login HTML
+router.get('/admin/login', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'login.html'));
+});
+
 // Serve clients HTML
 router.get('/admin/clients', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'clients.html'));
 });
 
-// Serve admin panel HTML
+// Serve admin panel HTML (tab-based dashboard)
 router.get('/admin/projectsdetails', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'admin.html'));
 });
@@ -43,6 +48,11 @@ router.get('/admin/powerbi', (req, res) => {
 // Serve leaves HTML
 router.get('/admin/leaves', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'leaves.html'));
+});
+
+// Serve tokens HTML
+router.get('/admin/tokens', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'tokens.html'));
 });
 
 // API endpoint for project details data
