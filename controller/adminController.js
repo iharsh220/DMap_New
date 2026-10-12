@@ -2978,8 +2978,9 @@ const getTaskDetailsData = async (req, res) => {
                     FROM task_history
                     WHERE task_id = t.id
                       AND action IN (
-                          'completed',
-                          'change_request_created'
+                        --   'completed',
+                        --   'change_request_created',
+                          'pm_approved'
                       )
                 ) AS task_output_response_by_client_timestamp,
 
