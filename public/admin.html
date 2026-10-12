@@ -9,24 +9,90 @@
     <link href="https://cdn.datatables.net/buttons/2.3.6/css/buttons.dataTables.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/fixedcolumns/4.3.0/css/fixedColumns.dataTables.min.css" rel="stylesheet">
     <link href="../admin/dmap-theme.css" rel="stylesheet">
+    <style>
+        /* User info in topbar */
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 12px;
+            border-radius: 8px;
+            background: #f8fafc;
+            border: 1px solid var(--card-border);
+        }
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), #3b82f6);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .user-details {
+            display: flex;
+            flex-direction: column;
+        }
+        .user-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-1);
+        }
+        .user-role {
+            font-size: 10px;
+            color: var(--text-3);
+        }
+        .btn-logout {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            font-size: 12px;
+            font-weight: 500;
+            font-family: var(--font);
+            color: var(--text-2);
+            background: #fff;
+            border: 1px solid var(--card-border);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all .12s;
+        }
+        .btn-logout:hover {
+            background: #fff1f2;
+            border-color: #fecdd3;
+            color: #be123c;
+        }
+    </style>
 </head>
 <body>
 <div class="app-layout">
-
     <aside class="sidebar">
         <div class="sidebar-brand">
-            <div class="brand-icon">D</div>
+            <div class="brand-icon"><i class="bi bi-diagram-3" style="font-size:15px;"></i></div>
             <div><div class="brand-name">D-Map</div><div class="brand-sub">Analytics Dashboard</div></div>
         </div>
         <div class="sidebar-section">Reports</div>
         <nav class="sidebar-nav">
             <a href="./powerbi" class="nav-item"><i class="bi bi-pie-chart nav-icon"></i><span class="nav-label">Dashboard</span></a>
-            <a href="./clients" class="nav-item"><i class="bi bi-people nav-icon"></i><span class="nav-label">Clients</span></a>
+        </nav>
+        <div class="sidebar-section">Projects</div>
+        <nav class="sidebar-nav">
             <a href="./projectsdetails" class="nav-item active"><i class="bi bi-folder2-open nav-icon"></i><span class="nav-label">Projects</span></a>
+            <a href="./clients" class="nav-item"><i class="bi bi-people nav-icon"></i><span class="nav-label">Clients</span></a>
             <a href="./taskdetails" class="nav-item"><i class="bi bi-check2-square nav-icon"></i><span class="nav-label">Tasks</span></a>
             <a href="./issuedetails" class="nav-item"><i class="bi bi-exclamation-circle nav-icon"></i><span class="nav-label">Changes</span></a>
             <a href="./workrequesttasks" class="nav-item"><i class="bi bi-table nav-icon"></i><span class="nav-label">Raw Data</span></a>
+        </nav>
+        <div class="sidebar-section">Leaves</div>
+        <nav class="sidebar-nav">
             <a href="./leaves" class="nav-item"><i class="bi bi-calendar-x nav-icon"></i><span class="nav-label">Leaves</span></a>
+        </nav>
+        <div class="sidebar-section">Tokens</div>
+        <nav class="sidebar-nav">
+            <a href="./tokens" class="nav-item"><i class="bi bi-coin nav-icon"></i><span class="nav-label">Tokens</span></a>
         </nav>
         <div class="sidebar-footer"><i class="bi bi-circle-fill" style="color:#22c55e;font-size:8px;"></i><span class="footer-text"> System Online</span></div>
     </aside>
@@ -41,6 +107,14 @@
                 </div>
             </div>
             <div class="topbar-right">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <div class="user-details">
+                        <span class="user-name" id="userName">Admin</span>
+                        <span class="user-role" id="userRole">Administrator</span>
+                    </div>
+                </div>
+                <button class="btn-logout" id="btnLogout"><i class="bi bi-box-arrow-right"></i> Logout</button>
                 <span class="topbar-badge" id="recordCount">Loading...</span>
             </div>
         </div>
@@ -72,48 +146,6 @@
     </div>
 </div>
 
-<!-- Edit Modal -->
-<div id="editModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;">
-  <div style="background:#1e2433;border:1px solid #2d3548;border-radius:12px;width:560px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,0.5);">
-    <div style="padding:20px 24px 16px;border-bottom:1px solid #2d3548;display:flex;align-items:center;gap:10px;">
-      <span style="background:#6366f122;border-radius:8px;padding:6px 10px;"><i class="bi bi-pencil-square" style="color:#818cf8;font-size:18px;"></i></span>
-      <div>
-        <div style="color:#f1f5f9;font-weight:600;font-size:15px;">Edit Project</div>
-        <div style="color:#94a3b8;font-size:12px;">Update project details</div>
-      </div>
-      <button onclick="closeEditModal()" style="margin-left:auto;background:none;border:none;color:#64748b;font-size:20px;cursor:pointer;line-height:1;">&times;</button>
-    </div>
-    <div style="padding:16px 24px;overflow-y:auto;flex:1;">
-      <div id="editModalBody" style="color:#cbd5e1;font-size:13px;"></div>
-    </div>
-    <div style="padding:16px 24px;border-top:1px solid #2d3548;display:flex;gap:10px;justify-content:flex-end;">
-      <button onclick="closeEditModal()" style="padding:8px 20px;border-radius:7px;border:1px solid #2d3548;background:#2d3548;color:#94a3b8;font-size:13px;cursor:pointer;">Cancel</button>
-      <button id="confirmEditBtn" style="padding:8px 20px;border-radius:7px;border:none;background:#6366f1;color:#fff;font-size:13px;font-weight:600;cursor:pointer;"><i class="bi bi-check-lg"></i> Save Changes</button>
-    </div>
-  </div>
-</div>
-
-<!-- Delete Confirm Modal -->
-<div id="deleteModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;">
-  <div style="background:#1e2433;border:1px solid #2d3548;border-radius:12px;width:520px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,0.5);">
-    <div style="padding:20px 24px 16px;border-bottom:1px solid #2d3548;display:flex;align-items:center;gap:10px;">
-      <span style="background:#be123c22;border-radius:8px;padding:6px 10px;"><i class="bi bi-exclamation-triangle-fill" style="color:#f43f5e;font-size:18px;"></i></span>
-      <div>
-        <div style="color:#f1f5f9;font-weight:600;font-size:15px;">Confirm Delete</div>
-        <div style="color:#94a3b8;font-size:12px;">This action cannot be undone</div>
-      </div>
-      <button onclick="closeDeleteModal()" style="margin-left:auto;background:none;border:none;color:#64748b;font-size:20px;cursor:pointer;line-height:1;">&times;</button>
-    </div>
-    <div style="padding:16px 24px;overflow-y:auto;flex:1;">
-      <div id="deleteModalBody" style="color:#cbd5e1;font-size:13px;"></div>
-    </div>
-    <div style="padding:16px 24px;border-top:1px solid #2d3548;display:flex;gap:10px;justify-content:flex-end;">
-      <button onclick="closeDeleteModal()" style="padding:8px 20px;border-radius:7px;border:1px solid #2d3548;background:#2d3548;color:#94a3b8;font-size:13px;cursor:pointer;">Cancel</button>
-      <button id="confirmDeleteBtn" style="padding:8px 20px;border-radius:7px;border:none;background:#be123c;color:#fff;font-size:13px;font-weight:600;cursor:pointer;"><i class="bi bi-trash3"></i> Yes, Delete</button>
-    </div>
-  </div>
-</div>
-
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
@@ -126,103 +158,45 @@ function getApiBase(){
     if(p.indexOf('/digilabs/uat/')!==-1) return '/digilabs/uat/dmap/api/';
     return '/digilabs/dmap/api/';
 }
-const TRUNCATE = ['work_request_description','about_project','request_type_description','project_type_description','project_digi_comments'];
-const COL_ORDER = [
-    'project_request_status','work_request_id','project_name','request_type_name',
-    'project_type_name','project_priority','project_requester_name','client_division',
-    'request_accepted_by','project_count','task_count','change_count','project_start_date',
-    'project_end_date','client_change_requested_counter','cm_change_requested_counter',
-    'task_no_of_work_pages','issue_no_of_work_pages','task_no_of_options_provided',
-    'task_concept_work','task_no_of_resize','task_no_of_ai_page','video_duration',
-    'task_no_of_products_shot','task_no_of_words_written','task_no_of_responsive_screen',
-    'task_resize_work','task_ai','task_shoot_setup','project_request_timestamp',
-    'project_acceptance_timestamp','project_marked_completed_timestamp','project_marked_completed_by',
-    'internal_project_tat','project_tat','project_request_to_response_tat',
-    'task_request_to_response_tat_avg','task_acceptance_to_completion_tat_by_cu_avg',
-    'task_output_shared_to_response_by_cm_tat_avg','task_internal_tat_avg','task_whole_tat_avg',
-    'change_request_to_response_tat_avg','change_acceptance_to_completion_tat_by_cu_avg',
-    'change_output_shared_to_response_by_cm_tat_avg','change_internal_tat_avg','change_whole_tat_avg',
-    'project_request_response_reminder_counter_to_cm','task_request_response_reminder_counter_to_cu',
-    'task_output_response_reminder_counter_to_cm','task_output_response_reminder_counter_to_client',
-    'change_request_response_reminder_counter_to_cu','chnage_output_response_reminder_counter_to_cm',
-    'change_output_response_reminder_counter_to_client','project_closure_reminder_counter_to_client',
-    'month','fy'
-];
-const HEADERS  = {
-    project_request_status:'Project Status',
-    work_request_id:'Project Request ID',
-    project_name:'Project Name',
-    request_type_name:'Requested Vertical',
-    project_type_name:'Project Type',
-    project_priority:'Project Priority',
-    project_requester_name:'Client Name',
-    client_division:'Client Division',
-    request_accepted_by:'Request Accepted By / Project Manager',
-    project_count:'No. of Project',
-    task_count:'Task Count',
-    change_count:'Change Count',
-    project_start_date:'Project Start Date',
-    project_end_date:'Project End Date',
-    client_change_requested_counter:'Client Change Requested Counter',
-    cm_change_requested_counter:'CM Change Requested Counter',
-    task_no_of_work_pages:'No. of Work Pages',
-    issue_no_of_work_pages:'No. of Change Pages',
-    task_no_of_options_provided:'No. of Options',
-    task_concept_work:'No. of Concept Created',
-    task_no_of_resize:'No. of Resize Pages',
-    task_no_of_ai_page:'No. of AI Pages',
-    video_duration:'Video Duration',
-    task_no_of_products_shot:'No. of Products Used',
-    task_no_of_words_written:'No. of Words Written',
-    task_no_of_responsive_screen:'No. of Responsive UI Created',
-    task_resize_work:'Includes Resize Work',
-    task_ai:'Includes AI Work',
-    task_shoot_setup:'Includes Shoot Setup',
-    project_request_timestamp:'Project Request Timestamp',
-    project_acceptance_timestamp:'Project Acceptance Timestamp',
-    project_marked_completed_timestamp:'Project Marked Completed Timestamp',
-    project_marked_completed_by:'Project Marked Completed by',
-    internal_project_tat:'Internal Project TAT',
-    project_tat:'Project TAT',
-    project_request_to_response_tat:'Project Request to Response TAT',
-    task_request_to_response_tat_avg:'Task Request to Response TAT AVG',
-    task_acceptance_to_completion_tat_by_cu_avg:'Task Acceptance to Completion TAT by CU AVG',
-    task_output_shared_to_response_by_cm_tat_avg:'Task Output Shared to Response by CM TAT AVG',
-    task_internal_tat_avg:'Task Internal TAT AVG',
-    task_whole_tat_avg:'Task Whole TAT AVG',
-    change_request_to_response_tat_avg:'Change Request to Response TAT AVG',
-    change_acceptance_to_completion_tat_by_cu_avg:'Change Acceptance to Completion TAT by CU AVG',
-    change_output_shared_to_response_by_cm_tat_avg:'Change Output Shared to Response by CM TAT AVG',
-    change_internal_tat_avg:'Change Internal TAT AVG',
-    change_whole_tat_avg:'Change Whole TAT AVG',
-    project_request_response_reminder_counter_to_cm:'Project Request Response Reminder Counter To CM',
-    task_request_response_reminder_counter_to_cu:'Task Request Response Reminder Counter To CU',
-    task_output_response_reminder_counter_to_cm:'Task Output Response Reminder Counter To CM',
-    task_output_response_reminder_counter_to_client:'Task Output Response Reminder Counter To Client',
-    change_request_response_reminder_counter_to_cu:'Change Request Response Reminder Counter To CU',
-    chnage_output_response_reminder_counter_to_cm:'Chnage Output Response Reminder Counter To CM',
-    change_output_response_reminder_counter_to_client:'Change Output Response Reminder Counter To Client',
-    project_closure_reminder_counter_to_client:'Project Closure Reminder Counter To Client',
-    month:'Month',
-    fy:'Financial Year'
-};
-const STATUS_LABELS={
-    pending:'Pending Response',
-    accepted:'Awaiting Assignment',
-    assigned:'Upcoming',
-    in_progress:'Ongoing',
-    completed:'Completed',
-    deferred:'Deferred',
-    cancelled:'Cancelled'
-};
-const BADGES = {
-    project_request_status:{draft:'status-draft',pending:'status-pending',accepted:'status-accepted',assigned:'status-assigned',in_progress:'status-in_progress',completed:'status-completed',rejected:'status-rejected',deferred:'status-deferred',cancelled:'status-cancelled'},
-    project_review:{approved:'review-approved',pending:'review-pending',change_request:'review-change_request'},
-    project_priority:{low:'priority-low',medium:'priority-medium',high:'priority-high',critical:'priority-critical'},
-    project_stage:{not_started:'stage-not_started',manager_review:'stage-manager_review',pm_review:'stage-pm_review',change_requested:'stage-change_requested',final_approved:'stage-final_approved'}
-};
+
+// Load user info
+function loadUserInfo(){
+    var userData = localStorage.getItem('userData');
+    if(userData){
+        try {
+            var user = JSON.parse(userData);
+            var name = user.name || user.email || 'Admin';
+            var initials = name.split(' ').map(function(n){return n[0];}).join('').substring(0,2).toUpperCase();
+            $('#userName').text(name);
+            $('#userAvatar').text(initials);
+            if(user.jobRole && user.jobRole.role_title){
+                $('#userRole').text(user.jobRole.role_title);
+            }
+        } catch(e){
+            console.error('Error parsing user data:', e);
+        }
+    }
+}
+
+// Logout
+function logout(){
+    if(confirm('Are you sure you want to logout?')){
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('userData');
+        window.location.href = getApiBase() + 'datatable/admin/login';
+    }
+}
 
 $(function(){
+    // Check session
+    if(!localStorage.getItem('accessToken')){
+        window.location.href = getApiBase() + 'datatable/admin/login';
+        return;
+    }
+
+    loadUserInfo();
+
     $('#sidebarToggle').on('click', function(){
         $('body').toggleClass('sidebar-collapsed');
         var isCollapsed = $('body').hasClass('sidebar-collapsed');
@@ -233,82 +207,59 @@ $(function(){
         $('body').addClass('sidebar-collapsed');
         $('#sidebarToggle').find('i').removeClass('bi-chevron-left').addClass('bi-chevron-right');
     }
+
+    $('#btnLogout').on('click', logout);
+
     $.getJSON('./projectsdetails/data', function(res){
         $('#loader').hide();
         var data = res.data||[];
         $('#recordCount').text(data.length+' Records');
         $('#s1').text(data.length);
-        $('#s2').text(data.filter(r=>r.project_request_status==='completed').length);
-        $('#s3').text(data.filter(r=>r.project_request_status==='in_progress').length);
-        $('#s4').text(data.filter(r=>r.project_request_status==='pending').length);
+        $('#s2').text(data.filter(function(r){return r.project_request_status==='completed';}).length);
+        $('#s3').text(data.filter(function(r){return r.project_request_status==='in_progress';}).length);
+        $('#s4').text(data.filter(function(r){return r.project_request_status==='pending';}).length);
 
         function updateStats(arr){
             $('#s1').text(arr.length);
-            $('#s2').text(arr.filter(r=>r.project_request_status==='completed').length);
-            $('#s3').text(arr.filter(r=>r.project_request_status==='in_progress').length);
-            $('#s4').text(arr.filter(r=>r.project_request_status==='pending').length);
+            $('#s2').text(arr.filter(function(r){return r.project_request_status==='completed';}).length);
+            $('#s3').text(arr.filter(function(r){return r.project_request_status==='in_progress';}).length);
+            $('#s4').text(arr.filter(function(r){return r.project_request_status==='pending';}).length);
         }
 
-        var cols = [];
-        if(data.length){
-            cols.push({
-                data:null, title:'Action', orderable:false, searchable:false, width:'80px',
-                render:function(v,type,row){
-                    if(type!=='display') return '';
-                    return '<button class="edit-btn" data-type="project" data-id="'+row.work_request_id+'" title="Edit Project" style="background:#6366f122;border:1px solid #6366f144;color:#818cf8;border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;margin-right:4px;"><i class="bi bi-pencil"></i></button>'
-                          +'<button class="del-btn" data-type="project" data-id="'+row.work_request_id+'" title="Delete Project" style="background:#be123c22;border:1px solid #be123c44;color:#f43f5e;border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;"><i class="bi bi-trash3"></i></button>';
-                }
-            });
-            var orderedKeys = COL_ORDER.filter(function(k){
-                return Object.prototype.hasOwnProperty.call(data[0], k);
-            });
-            orderedKeys.forEach(function(k){
-                cols.push({
-                    data:k, title: HEADERS[k]||k, defaultContent:'N/A',
-                    render:function(v,type){
-                        if(type!=='display') return v;
-                        var val = v!=null ? v : 'N/A';
-                        if(k==='project_request_status' && STATUS_LABELS[val]){
-                            return '<span class="status-badge '+(BADGES[k][val]||'')+'">'+STATUS_LABELS[val]+'</span>';
-                        }
-                        if(BADGES[k] && val && val!=='N/A'){var c=BADGES[k][val]||'';return '<span class="status-badge '+c+'">'+val+'</span>';}
-                        if(TRUNCATE.indexOf(k)!==-1)return '<span class="truncate-cell" title="'+String(val).replace(/"/g,'&quot;')+'">'+val+'</span>';
-                        return val;
-                    }
-                });
-            });
-        }
+        var cols = [
+            {data:'project_request_status', title:'Status', defaultContent:'N/A'},
+            {data:'work_request_id', title:'Project ID', defaultContent:'N/A'},
+            {data:'project_name', title:'Project Name', defaultContent:'N/A'},
+            {data:'request_type_name', title:'Vertical', defaultContent:'N/A'},
+            {data:'project_type_name', title:'Type', defaultContent:'N/A'},
+            {data:'project_priority', title:'Priority', defaultContent:'N/A'},
+            {data:'project_requester_name', title:'Client', defaultContent:'N/A'},
+            {data:'task_count', title:'Tasks', defaultContent:'0'},
+            {data:'change_count', title:'Changes', defaultContent:'0'},
+            {data:'project_start_date', title:'Start', defaultContent:'N/A'},
+            {data:'project_end_date', title:'End', defaultContent:'N/A'}
+        ];
 
         var dt = $('#mainTable').DataTable({
             data:data, columns:cols,
             pageLength:25, lengthMenu:[[25,50,100,200,-1],[25,50,100,200,'All']],
             dom:'<"dt-top-row"lf>rt<"dt-bottom-row"ip>',
-            scrollX:true, scrollY:'calc(100vh - 360px)', scrollCollapse:false, autoWidth:false, fixedColumns:{left:3},
+            scrollX:true, scrollY:'calc(100vh - 360px)', scrollCollapse:false, autoWidth:false, fixedColumns:{left:2},
             language:{ search:'', searchPlaceholder:'Search all columns...', lengthMenu:'Show _MENU_ rows' },
             initComplete:function(){
                 var api = this.api();
                 api.columns().every(function(){
                     var col = this, idx = col.index();
-                    var th  = $(col.header());
-                    var labelText = idx===0 ? 'Action' : (HEADERS[orderedKeys[idx-1]]||orderedKeys[idx-1]);
+                    var th = $(col.header());
+                    var labelText = cols[idx].title;
                     th.empty();
                     var wrap = $('<div class="th-wrap"></div>');
                     var label = $('<div class="th-label"><span title="'+labelText+'">'+labelText+'</span><span class="th-sort"></span></div>');
                     wrap.append(label);
-                    if(idx===0){ th.append(wrap); return; }
-                    var key = orderedKeys[idx-1];
-                    if(BADGES[key]){
-                        var sel = $('<select class="col-filter"><option value="">All</option></select>');
-                        Object.keys(BADGES[key]).forEach(function(opt){sel.append('<option value="'+opt+'">'+opt+'</option>');});
-                        sel.on('change click mousedown',function(e){e.stopPropagation();});
-                        sel.on('change',function(){col.search(this.value).draw();});
-                        wrap.append(sel);
-                    } else {
-                        var inp = $('<input class="col-filter" type="text" placeholder="Filter...">');
-                        inp.on('click mousedown focus',function(e){e.stopPropagation();});
-                        inp.on('keyup change clear',function(){if(col.search()!==this.value)col.search(this.value).draw();});
-                        wrap.append(inp);
-                    }
+                    var inp = $('<input class="col-filter" type="text" placeholder="Filter...">');
+                    inp.on('click mousedown focus',function(e){e.stopPropagation();});
+                    inp.on('keyup change clear',function(){if(col.search()!==this.value)col.search(this.value).draw();});
+                    wrap.append(inp);
                     th.append(wrap);
                     th.off('click').on('click',function(e){
                         if($(e.target).closest('.col-filter').length===0){
@@ -323,16 +274,10 @@ $(function(){
                 });
             }
         });
-        $('#mainTable').on('click','.del-btn',function(e){ e.stopPropagation(); openDeleteModal($(this).data('type'),$(this).data('id')); });
-        $('#mainTable').on('click','.edit-btn',function(e){ e.stopPropagation(); openEditModal($(this).data('type'),$(this).data('id')); });
 
-        var colTitles = cols.map(function(c){ return c.title; });
-        new $.fn.dataTable.Buttons(dt,[
-            {extend:'excel',className:'buttons-excel',filename:'projects_'+new Date().toISOString().slice(0,10),exportOptions:{columns:':gt(0):visible',modifier:{page:'all'},orthogonal:'export',format:{header:function(data,col){return colTitles[col]||data;},body:function(data){return data == null ? '' : data;}}}},
-            {extend:'csv',className:'buttons-csv',filename:'projects_'+new Date().toISOString().slice(0,10),exportOptions:{columns:':gt(0):visible',modifier:{page:'all'},orthogonal:'export',format:{header:function(data,col){return colTitles[col]||data;},body:function(data){return data == null ? '' : data;}}}}
-        ]);
         $('#btnExcel').on('click',function(){ dt.button('.buttons-excel').trigger(); });
         $('#btnCsv').on('click',function(){ dt.button('.buttons-csv').trigger(); });
+
         dt.on('draw',function(){
             var rows = dt.rows({ filter:'applied' }).data();
             var arr = rows.toArray ? rows.toArray() : rows;
@@ -340,193 +285,9 @@ $(function(){
             $('#recordCount').text(arr.length+' Records');
         });
     }).fail(function(){
-        $('#loader').html('<div style="color:#be123c;font-size:13px;font-family:Inter,sans-serif"><i class="bi bi-exclamation-triangle"></i> Failed to load data</div>');
+        $('#loader').html('<div style="color:#be123c;font-size:13px;"><i class="bi bi-exclamation-triangle"></i> Failed to load data</div>');
     });
 });
-
-function fi(label,name,val,t){
-    t=t||'text';
-    return '<div style="margin-bottom:12px;"><label style="display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;">'+label+'</label>'
-        +'<input name="'+name+'" value="'+(val!=null?String(val).replace(/"/g,'&quot;'):'')+'" type="'+t+'" style="width:100%;background:#131929;border:1px solid #2d3548;border-radius:6px;padding:7px 10px;color:#e2e8f0;font-size:13px;box-sizing:border-box;"></div>';
-}
-function fs(label,name,val,opts){
-    var s='<div style="margin-bottom:12px;"><label style="display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;">'+label+'</label>'
-        +'<select name="'+name+'" style="width:100%;background:#131929;border:1px solid #2d3548;border-radius:6px;padding:7px 10px;color:#e2e8f0;font-size:13px;">';
-    opts.forEach(function(o){s+='<option value="'+o+'"'+(String(val)===String(o)?' selected':'')+'>'+o+'</option>';});
-    return s+'</select></div>';
-}
-function ft(label,name,val){
-    return '<div style="margin-bottom:12px;"><label style="display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;">'+label+'</label>'
-        +'<textarea name="'+name+'" rows="2" style="width:100%;background:#131929;border:1px solid #2d3548;border-radius:6px;padding:7px 10px;color:#e2e8f0;font-size:13px;box-sizing:border-box;resize:vertical;">'+(val||'')+'</textarea></div>';
-}
-
-function openEditModal(type, id){
-    $('#editModalBody').html('<div style="color:#94a3b8;padding:20px;text-align:center;"><i class="bi bi-arrow-repeat"></i> Loading...</div>');
-    $('#editModal').css('display','flex');
-    $.getJSON(getApiBase()+'datatable/admin/edit/'+type+'/'+id, function(res){
-        var r=res.record, html='';
-        html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 16px;">';
-        html+=fi('Project Name','project_name',r.project_name);
-        html+=fi('Brand','brand',r.brand);
-        if(type==='project'){
-            html+='<div style="margin-bottom:12px;"><label style="display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;">Request Type</label>'
-                +'<select name="request_type_id" style="width:100%;background:#131929;border:1px solid #2d3548;border-radius:6px;padding:7px 10px;color:#e2e8f0;font-size:13px;">'
-                +'<option value="">Loading...</option>'
-                +'</select></div>';
-            html+=fs('Priority','priority',r.priority,['low','medium','high','critical']);
-            html+='<div style="margin-bottom:12px;"><label style="display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;">Project Type</label>'
-                +'<select name="project_id" style="width:100%;background:#131929;border:1px solid #2d3548;border-radius:6px;padding:7px 10px;color:#e2e8f0;font-size:13px;">'
-                +'<option value="">Loading...</option>'
-                +'</select></div>';
-        } else {
-            html+=fs('Priority','priority',r.priority,['low','medium','high','critical']);
-        }
-        html+=fs('Status','status',r.status,['draft','pending','accepted','assigned','in_progress','completed','rejected']);
-        if(type==='project'){
-            html+='<div style="margin-bottom:12px;"><label style="display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;">Creative Manager</label>'
-                +'<input type="text" name="creative_manager" readonly style="width:100%;background:#131929;border:1px solid #2d3548;border-radius:6px;padding:7px 10px;color:#94a3b8;font-size:13px;" value="Loading..."></div>';
-            html+=fi('Requested At','requested_at',r.requested_at?String(r.requested_at).slice(0,16):'','datetime-local');
-        } else {
-            html+=fi('Requested At','requested_at',r.requested_at?String(r.requested_at).slice(0,16):'','datetime-local');
-        }
-        html+='</div>';
-        html+=ft('Remarks','remarks',r.remarks);
-        html+=ft('Description','description',r.description);
-        html+=ft('About Project','about_project',r.about_project);
-        $('#editModalBody').html(html);
-
-        if(type==='project'){
-            var $rtSel = $('#editModalBody select[name="request_type_id"]');
-            var $ptSel = $('#editModalBody select[name="project_id"]');
-            var $cmInput = $('#editModalBody input[readonly]');
-
-            function loadRequestTypes(){
-                $.getJSON(getApiBase()+'datatable/admin/edit/project/'+id+'/request-types', function(rtRes){
-                    var rts = rtRes.data||[];
-                    $rtSel.empty();
-                    var currentRt = rts.find(function(rt){ return String(rt.id)===String(r.request_type_id); });
-                    if(r.request_type_id && currentRt){
-                        $rtSel.append('<option value="'+currentRt.id+'" selected>'+currentRt.request_type+'</option>');
-                        rts.forEach(function(rt){
-                            if(String(rt.id)!==String(r.request_type_id))
-                                $rtSel.append('<option value="'+rt.id+'">'+rt.request_type+'</option>');
-                        });
-                    } else if(rts.length){
-                        $rtSel.append('<option value="'+rts[0].id+'" selected>'+rts[0].request_type+'</option>');
-                        rts.forEach(function(rt){
-                            if(String(rt.id)!==String(rts[0].id))
-                                $rtSel.append('<option value="'+rt.id+'">'+rt.request_type+'</option>');
-                        });
-                    } else {
-                        $rtSel.append('<option value="">No request types available</option>');
-                    }
-                    loadProjectTypes();
-                }).fail(function(){ $rtSel.empty().append('<option value="">Failed to load</option>'); });
-            }
-
-            function loadProjectTypes(){
-                var rtId = $rtSel.val();
-                var url = getApiBase()+'datatable/admin/edit/project/'+id+'/project-types';
-                if(rtId) url += '?request_type_id='+rtId;
-                $.getJSON(url, function(ptRes){
-                    var pts = ptRes.data||[];
-                    $ptSel.empty();
-                    var currentPt = pts.find(function(pt){ return String(pt.id)===String(r.project_id); });
-                    if(r.project_id && currentPt){
-                        $ptSel.append('<option value="'+currentPt.id+'" selected>'+currentPt.project_type+'</option>');
-                        pts.forEach(function(pt){
-                            if(String(pt.id)!==String(r.project_id))
-                                $ptSel.append('<option value="'+pt.id+'">'+pt.project_type+'</option>');
-                        });
-                    } else if(pts.length){
-                        $ptSel.append('<option value="'+pts[0].id+'" selected>'+pts[0].project_type+'</option>');
-                        pts.forEach(function(pt){
-                            if(String(pt.id)!==String(pts[0].id))
-                                $ptSel.append('<option value="'+pt.id+'">'+pt.project_type+'</option>');
-                        });
-                    } else {
-                        $ptSel.append('<option value="">No project types available</option>');
-                    }
-                }).fail(function(){ $ptSel.empty().append('<option value="">Failed to load</option>'); });
-                loadCreativeManager();
-            }
-
-            function loadCreativeManager(){
-                var rtId = $rtSel.val();
-                var url = getApiBase()+'datatable/admin/edit/project/'+id+'/creative-manager';
-                if(rtId) url += '?request_type_id='+rtId;
-                $.getJSON(url, function(cmRes){
-                    var cm = cmRes.data||[];
-                    if(cm.length && cm[0].name){
-                        $cmInput.val(cm[0].name);
-                    } else {
-                        $cmInput.val('N/A');
-                    }
-                }).fail(function(){ $cmInput.val('N/A'); });
-            }
-
-            loadRequestTypes();
-
-            $rtSel.on('change', function(){
-                loadProjectTypes();
-            });
-        }
-
-        $('#confirmEditBtn').off('click').on('click',function(){ submitEdit(type,id); });
-    }).fail(function(){ $('#editModalBody').html('<div style="color:#f43f5e;">Failed to load data.</div>'); });
-}
-function closeEditModal(){ $('#editModal').hide(); }
-function submitEdit(type,id){
-    var payload={};
-    $('#editModalBody input,#editModalBody select,#editModalBody textarea').each(function(){ payload[this.name]=this.value; });
-    $('#confirmEditBtn').prop('disabled',true).html('<i class="bi bi-arrow-repeat"></i> Saving...');
-    $.ajax({
-        url:getApiBase()+'datatable/admin/edit/'+type+'/'+id,
-        method:'PUT', contentType:'application/json',
-        data:JSON.stringify(payload),
-        success:function(){ closeEditModal(); location.reload(); },
-        error:function(){ $('#confirmEditBtn').prop('disabled',false).html('<i class="bi bi-check-lg"></i> Save Changes'); alert('Update failed. Please try again.'); }
-    });
-}
-
-function openDeleteModal(type, id){
-    $('#deleteModalBody').html('<div style="color:#94a3b8;padding:20px;text-align:center;"><i class="bi bi-arrow-repeat"></i> Loading preview...</div>');
-    $('#deleteModal').css('display','flex');
-    $.getJSON(getApiBase()+'datatable/admin/delete/preview/'+type+'/'+id, function(res){
-        var p=res.preview, r=p.record, html='';
-        html='<div style="background:#be123c11;border:1px solid #be123c33;border-radius:8px;padding:12px 16px;margin-bottom:14px;">';
-        html+='<div style="color:#f43f5e;font-weight:600;margin-bottom:6px;"><i class="bi bi-folder2-open"></i> Project to be deleted</div>';
-        html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;">';
-        html+='<div><span style="color:#64748b;">ID:</span> <span style="color:#e2e8f0;">'+r.id+'</span></div>';
-        html+='<div><span style="color:#64748b;">Name:</span> <span style="color:#e2e8f0;">'+(r.project_name||'N/A')+'</span></div>';
-        html+='<div><span style="color:#64748b;">Brand:</span> <span style="color:#e2e8f0;">'+(r.brand||'N/A')+'</span></div>';
-        html+='<div><span style="color:#64748b;">Status:</span> <span style="color:#e2e8f0;">'+(r.status||'N/A')+'</span></div>';
-        html+='</div></div>';
-        if(p.tasks && p.tasks.length){
-            html+='<div style="color:#f59e0b;font-size:12px;font-weight:600;margin-bottom:8px;"><i class="bi bi-exclamation-triangle"></i> '+p.tasks.length+' task(s) will also be deleted:</div>';
-            html+='<div style="max-height:200px;overflow-y:auto;">';
-            p.tasks.forEach(function(t){
-                html+='<div style="background:#1a2035;border:1px solid #2d3548;border-radius:6px;padding:8px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">';
-                html+='<span style="color:#cbd5e1;"><i class="bi bi-check2-square" style="color:#6366f1;"></i> '+(t.task_name||'Unnamed Task')+'</span>';
-                html+='<span style="color:#64748b;font-size:11px;">'+t.issue_count+' change(s)</span>';
-                html+='</div>';
-            });
-            html+='</div>';
-        } else {
-            html+='<div style="color:#22c55e;font-size:12px;"><i class="bi bi-check-circle"></i> No tasks linked to this project.</div>';
-        }
-        $('#deleteModalBody').html(html);
-        $('#confirmDeleteBtn').off('click').on('click',function(){ confirmDelete(type,id); });
-    }).fail(function(){ $('#deleteModalBody').html('<div style="color:#f43f5e;">Failed to load preview.</div>'); });
-}
-function closeDeleteModal(){ $('#deleteModal').hide(); }
-function confirmDelete(type,id){
-    $('#confirmDeleteBtn').prop('disabled',true).html('<i class="bi bi-arrow-repeat"></i> Deleting...');
-    $.ajax({ url:getApiBase()+'datatable/admin/delete/'+type+'/'+id, method:'DELETE',
-        success:function(){ closeDeleteModal(); location.reload(); },
-        error:function(){ $('#confirmDeleteBtn').prop('disabled',false).html('<i class="bi bi-trash3"></i> Yes, Delete'); alert('Delete failed. Please try again.'); }
-    });
-}
 </script>
 </body>
 </html>

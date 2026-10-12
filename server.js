@@ -87,6 +87,11 @@ app.get(`${baseRoute}/health`, (req, res) => {
     res.json({ status: 'OK', message: 'D-Map API is running' });
 });
 
+// Redirect root to login page
+const basePath = baseRoute.endsWith('/') ? baseRoute.slice(0, -1) : baseRoute;
+app.get('/', (req, res) => res.redirect(`${basePath}/datatable/admin/login`));
+app.get(baseRoute, (req, res) => res.redirect(`${basePath}/datatable/admin/login`));
+
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error(err.stack);
