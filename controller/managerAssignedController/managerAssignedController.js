@@ -4921,6 +4921,227 @@ const acceptIssueRequest = async (req, res) => {
     }
 };
 
+const cancelIssueRequest = async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) {
+            return res.status(400).json({ success: false, error: 'Invalid issue assignment ID' });
+        }
+        const manager_id = req.user.id;
+        const cancelReason = req.body.reason || req.body.comments || 'Cancelled by manager';
+
+        // 1. Get issue assignment with its task and requester (PMT)
+        const issueAssignment = await IssueAssignments.findByPk(id, {
+            include: [
+                {
+                    model: Tasks,
+                    as: 'task',
+                    attributes: ['id', 'task_name', 'work_request_id', 'request_type_id']
+                },
+                { model: User, as: 'requester', attributes: ['id', 'name', 'email'] }
+            ]
+        });
+
+        if (!issueAssignment) {
+            return res.status(404).json({ success: false, error: 'Issue assignment not found' });
+        }
+
+        // Child issues (issue_id set) have task_id = null; resolve the context task
+        // through the parent issue for authorization, history and email details
+        let task = issueAssignment.task;
+        if (!task && issueAssignment.issue_id) {
+            const parentIssue = await IssueAssignments.findByPk(issueAssignment.issue_id, {
+                include: [{
+                    model: Tasks,
+                    as: 'task',
+                    attributes: ['id', 'task_name', 'work_request_id', 'request_type_id']
+                }]
+            });
+            if (parentIssue && parentIssue.task) {
+                task = parentIssue.task;
+            }
+        }
+
+        if (!task) {
+            return res.status(400).json({ success: false, error: 'Issue assignment is not linked to a valid task or parent issue' });
+        }
+
+        // 2. Authorization: current manager must belong to a division of the task's request type
+        const requestType = await RequestType.findByPk(task.request_type_id, {
+            include: [{ model: Division, through: { attributes: [] }, attributes: ['id'] }]
+        });
+
+        if (!requestType) {
+            return res.status(400).json({ success: false, error: 'Invalid request type for this task' });
+        }
+
+        const divisionIds = requestType.Divisions?.map(d => d.id) || [];
+
+        const managerDivision = await UserDivisions.findOne({
+            where: {
+                user_id: manager_id,
+                division_id: { [Op.in]: divisionIds }
+            }
+        });
+
+        if (!managerDivision) {
+            return res.status(403).json({
+                success: false,
+                error: 'You are not authorized to cancel this issue request. Only division managers for this task can cancel.'
+            });
+        }
+
+        if (issueAssignment.status === 'cancelled') {
+            return res.status(400).json({ success: false, error: 'Issue request is already cancelled' });
+        }
+
+        // 3. Soft delete + cancel the issue assignment
+        const previousStatus = issueAssignment.status;
+        await IssueAssignments.update(
+            { is_deleted: 1, status: 'cancelled', notification_alert: 0 },
+            { where: { id } }
+        );
+
+        await recordIssueHistory({
+            req,
+            issueAssignmentId: id,
+            taskId: task.id,
+            workRequestId: task.work_request_id,
+            parentIssueId: issueAssignment.issue_id,
+            action: 'manager_cancelled',
+            previousData: issueAssignment,
+            nextData: { is_deleted: 1, status: 'cancelled', notification_alert: 0 },
+            previousStatus: previousStatus,
+            newStatus: 'cancelled',
+            comments: `Issue request cancelled by manager. Reason: ${cancelReason}`,
+            relatedUserId: issueAssignment.requested_by_user_id
+        });
+
+        // 4. Reset the related record (parent issue or task) back to PM review
+        let parentIssueReset = false;
+        let taskReviewReset = false;
+
+        if (issueAssignment.issue_id) {
+            // Linked to a parent issue -> reset that issue's review back to PM review
+            const parentIssue = await IssueAssignments.findByPk(issueAssignment.issue_id, {
+                include: [{ model: User, as: 'requester', attributes: ['id', 'name', 'email'] }]
+            });
+
+            if (parentIssue) {
+                await IssueAssignments.update(
+                    { review: 'pending', review_stage: 'pm_review' },
+                    { where: { id: issueAssignment.issue_id } }
+                );
+
+                await recordIssueHistory({
+                    req,
+                    issueAssignmentId: parentIssue.id,
+                    taskId: task.id,
+                    workRequestId: task.work_request_id,
+                    parentIssueId: parentIssue.issue_id,
+                    action: 'review_reset_to_pm',
+                    previousData: parentIssue,
+                    nextData: { review: 'pending', review_stage: 'pm_review' },
+                    previousReview: parentIssue.review,
+                    newReview: 'pending',
+                    previousReviewStage: parentIssue.review_stage,
+                    newReviewStage: 'pm_review',
+                    comments: `Issue review reset to PM review after linked change was cancelled. Reason: ${cancelReason}`,
+                    relatedUserId: parentIssue.requested_by_user_id
+                });
+
+                parentIssueReset = true;
+            }
+        } else if (issueAssignment.task_id) {
+            // No parent issue but linked to a task -> reset that task's review back to PM review
+            const relatedTask = await Tasks.findByPk(issueAssignment.task_id, {
+                attributes: ['id', 'task_name', 'review', 'review_stage', 'work_request_id']
+            });
+
+            if (relatedTask) {
+                await Tasks.update(
+                    { review: 'pending', review_stage: 'pm_review' },
+                    { where: { id: issueAssignment.task_id } }
+                );
+
+                await recordTaskHistory({
+                    req,
+                    taskId: issueAssignment.task_id,
+                    workRequestId: relatedTask.work_request_id,
+                    action: 'review_reset_to_pm',
+                    previousData: relatedTask,
+                    nextData: { review: 'pending', review_stage: 'pm_review' },
+                    previousReview: relatedTask.review,
+                    newReview: 'pending',
+                    previousReviewStage: relatedTask.review_stage,
+                    newReviewStage: 'pm_review',
+                    comments: `Task review reset to PM review after linked issue change was cancelled. Reason: ${cancelReason}`,
+                    relatedUserId: issueAssignment.requested_by_user_id
+                });
+
+                taskReviewReset = true;
+            }
+        }
+
+        // 5. Get work request details for email
+        let workRequest = null;
+        if (task.work_request_id) {
+            workRequest = await WorkRequests.findByPk(task.work_request_id, {
+                attributes: ['id', 'project_name', 'brand']
+            });
+        }
+
+        // 6. Send email to the PMT (requester) with the cancellation reason
+        const pmt = issueAssignment.requester;
+        let emailSentTo = null;
+        if (pmt && pmt.email) {
+            const html = renderTemplate('issueCancellationNotification', {
+                user_name: pmt.name,
+                issue_version: issueAssignment.version,
+                issue_description: issueAssignment.description,
+                task_name: task.task_name,
+                project_name: workRequest ? workRequest.project_name : 'N/A',
+                brand: workRequest ? workRequest.brand : 'N/A',
+                request_type: requestType.request_type,
+                cancel_reason: cancelReason,
+                cancelled_at: new Date().toLocaleDateString('en-IN', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }),
+                frontend_url: process.env.FRONTEND_URL
+            });
+
+            await sendMail({
+                to: pmt.email,
+                subject: 'Issue Request Cancelled',
+                html
+            });
+            emailSentTo = pmt.email;
+        }
+
+        res.json({
+            success: true,
+            message: 'Issue request cancelled successfully',
+            data: {
+                id,
+                issue_id: issueAssignment.issue_id,
+                task_id: task.id,
+                status: 'cancelled',
+                is_deleted: 1,
+                parent_review_reset: parentIssueReset,
+                task_review_reset: taskReviewReset,
+                email_sent_to: emailSentTo
+            }
+        });
+    } catch (error) {
+        console.error('Error cancelling issue request:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
 const getIssueAssignments = async (req, res) => {
     try {
         // Define associations for TaskAssignments
@@ -5985,6 +6206,7 @@ module.exports = {
     getAssignedWorkRequestById,
     acceptWorkRequest,
     acceptIssueRequest,
+    cancelIssueRequest,
     deferWorkRequest,
     updateWorkRequestProject,
     deleteWorkRequest,
