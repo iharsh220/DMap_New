@@ -81,6 +81,15 @@
         </div>
 
         <div class="content-area">
+            <div class="stats-row">
+                <div class="stat-card"><div class="stat-icon blue"><i class="bi bi-chat-left-text"></i></div><div><div class="stat-value" id="s1">—</div><div class="stat-label">Total Feedbacks</div></div></div>
+                <div class="stat-card"><div class="stat-icon green"><i class="bi bi-star"></i></div><div><div class="stat-value" id="s2">—</div><div class="stat-label">Avg Functionality</div></div></div>
+                <div class="stat-card"><div class="stat-icon orange"><i class="bi bi-rocket"></i></div><div><div class="stat-value" id="s3">—</div><div class="stat-label">Avg Timeliness</div></div></div>
+                <div class="stat-card"><div class="stat-icon purple"><i class="bi bi-telephone"></i></div><div><div class="stat-value" id="s4">—</div><div class="stat-label">Avg Communication</div></div></div>
+                <div class="stat-card"><div class="stat-icon pink"><i class="bi bi-emoji-heart-eyes"></i></div><div><div class="stat-value" id="s5">—</div><div class="stat-label">Avg Recommendation</div></div></div>
+                <div class="stat-card"><div class="stat-icon red"><i class="bi bi-speedometer2"></i></div><div><div class="stat-value" id="s6">—</div><div class="stat-label">NPS</div></div></div>
+            </div>
+
             <div class="table-card">
                 <div class="loading-overlay" id="loader"><div class="spinner"></div><div class="loading-text">Loading feedback...</div></div>
                 <div class="table-card-header">
@@ -112,9 +121,9 @@ const HEADERS = {
     id: 'ID',
     task_id: 'Task ID',
     task_name: 'Task Name',
-    user_id: 'User ID',
+    task_type: 'Task Type',
     user_name: 'User Name',
-    user_email: 'User Email',
+    user_division: 'User Division',
     rating_functionality: 'Functionality (1-5)',
     rating_timeliness: 'Timeliness (1-5)',
     rating_communication: 'Communication (1-5)',
@@ -122,6 +131,38 @@ const HEADERS = {
     comments: 'Comments',
     created_at: 'Submitted At'
 };
+
+function updateFeedbackStats(rows){
+    rows = rows || [];
+    $('#s1').text(rows.length);
+    function avgRating(key){
+        var sum=0, cnt=0;
+        rows.forEach(function(r){
+            var v = r[key];
+            if(v != null && v !== ''){ sum+=Number(v); cnt++; }
+        });
+        return cnt>0 ? (sum/cnt).toFixed(1) : '—';
+    }
+    $('#s2').text(avgRating('rating_functionality'));
+    $('#s3').text(avgRating('rating_timeliness'));
+    $('#s4').text(avgRating('rating_communication'));
+    $('#s5').text(avgRating('recommendation_score'));
+    var prom=0, det=0, total=0;
+    rows.forEach(function(r){
+        var s = Number(r.recommendation_score);
+        if(!isNaN(s)){
+            total++;
+            if(s>=9) prom++;
+            else if(s<=6) det++;
+        }
+    });
+    if(total>0){
+        var npsVal = Math.round((prom - det)/total*100);
+        $('#s6').text((npsVal>=0?'+':'')+npsVal);
+    } else {
+        $('#s6').text('—');
+    }
+}
 
 let dt;
 $(function(){
@@ -168,35 +209,37 @@ $(function(){
         $('#loader').hide();
         var data = res.data||[];
         $('#recordCount').text(data.length+' Records');
+        updateFeedbackStats(data);
 
         var cols=[];
-        var keyOrder=['id','task_id','task_name','user_id','user_name','user_email','rating_functionality','rating_timeliness','rating_communication','recommendation_score','comments','created_at'];
+        var keyOrder=['id','task_id','task_name','task_type','user_name','user_division','rating_functionality','rating_timeliness','rating_communication','recommendation_score','comments','created_at'];
         keyOrder.forEach(function(k){
             cols.push({
                 data:k, title:HEADERS[k]||k, defaultContent:'N/A',
                  render:function(v,type,row){
-                     // Plain text for export (Excel/CSV): resolve nested task/user fields
+                     // Plain text for export (Excel/CSV)
                      if(type!=='display'){
-                         if(k==='user_name'){ var u=row&&row.user?row.user:null; return u?(u.name||''):''; }
-                         if(k==='user_email'){ var u=row&&row.user?row.user:null; return u?(u.email||''):''; }
+                         if(k==='task_type'){ return row&&row.task&&row.task.TaskType?(row.task.TaskType.task_type||''):''; }
                          if(k==='task_name'){ return row&&row.task?(row.task.task_name||''):''; }
-                         if(k==='work_request_id'){ return row&&row.task&&(row.task.work_request_id!=null)?row.task.work_request_id:''; }
+                         if(k==='user_division'){ return row&&row.user&&row.user.Divisions&&row.user.Divisions.length?(row.user.Divisions[0].title||''):''; }
                          return v!=null?v:'';
                      }
                      var val=v != null ? v : 'N/A';
-                     if(k==='user_name'){
-                         var u = row && row.user ? row.user : null;
-                         return u ? (u.name || 'N/A') : 'N/A';
-                     }
-                     if(k==='user_email'){
-                         var u2 = row && row.user ? row.user : null;
-                         return u2 ? (u2.email || 'N/A') : 'N/A';
+                     if(k==='task_type'){
+                         return row && row.task && row.task.TaskType ? (row.task.TaskType.task_type || 'N/A') : 'N/A';
                      }
                      if(k==='task_name'){
                          return row && row.task ? (row.task.task_name || 'N/A') : 'N/A';
                      }
-                     if(k==='work_request_id'){
-                         return row && row.task ? (row.task.work_request_id != null ? row.task.work_request_id : 'N/A') : 'N/A';
+                     if(k==='user_name'){
+                         var u = row && row.user ? row.user : null;
+                         return u ? (u.name || 'N/A') : 'N/A';
+                     }
+                     if(k==='user_division'){
+                         if(row && row.user && row.user.Divisions && row.user.Divisions.length){
+                             return row.user.Divisions[0].title || 'N/A';
+                         }
+                         return 'N/A';
                      }
                      if(['rating_functionality','rating_timeliness','rating_communication'].indexOf(k) !== -1){
                          var stars = '';
@@ -244,6 +287,11 @@ $(function(){
                     });
                 });
             }
+        });
+        dt.on('draw',function(){
+            var rows = dt.rows({filter:'applied'}).data().toArray();
+            updateFeedbackStats(rows);
+            $('#recordCount').text(rows.length+' Records');
         });
         var colTitles=cols.map(function(c){return c.title;});
         new $.fn.dataTable.Buttons(dt,[
