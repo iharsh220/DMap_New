@@ -1,5 +1,5 @@
 const { sequelize, Op } = require('../config/databaseConfig');
-const { Tasks, IssueAssignments, Leave, User } = require('../models');
+const { Tasks, IssueAssignments, Leave, User, Feedbacks } = require('../models');
 const ExcelJS = require('exceljs');
 
 const getClientUsersByDivision = async (userId) => {
@@ -5110,7 +5110,34 @@ const getWorkRequestTasksData = async (req, res) => {
     }
 };
 
+const getAllFeedback = async (req, res) => {
+    try {
+        const { userId, taskId, startDate, endDate } = req.query;
+
+        const where = { is_deleted: 0 };
+        if (userId) where.user_id = userId;
+        if (taskId) where.task_id = taskId;
+        if (startDate) where.createdAt = { ...where.createdAt, [Op.gte]: new Date(startDate) };
+        if (endDate) where.createdAt = { ...where.createdAt, [Op.lte]: new Date(endDate) };
+
+        const feedbacks = await Feedbacks.findAll({
+            where,
+            include: [
+                { model: Tasks, as: 'task', attributes: ['id', 'task_name', 'work_request_id'] },
+                { model: User, as: 'user', attributes: ['id', 'name', 'email'] }
+            ],
+            order: [['created_at', 'DESC']]
+        });
+
+        res.json({ success: true, data: feedbacks });
+    } catch (error) {
+        console.error('Error fetching feedback:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
 module.exports = {
+    getAllFeedback,
     getAdminData,
     getClientsData,
     getTaskDetailsData,

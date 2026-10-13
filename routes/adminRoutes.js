@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const { cachedAdminData, invalidateAdminCache } = require('../services/adminCacheService');
-const { getAdminData, getClientsData, getTaskDetailsData, getTasksForWorkRequest, getIssueDetailsData, getWorkRequestTasksData, getDeletePreview, deleteProject, deleteClient, deleteTask, deleteIssue, getAllLeaves, getLeaveById, createLeave, updateLeave, deleteLeave, getLeaveKpis, getLeaveUsers, getUserDivision, exportLeavesCsv, exportLeavesExcel, getEditData, getRequestTypes, getProjectTypesByProject, getCreativeManagerByProject, updateProject, updateClient, updateTask, updateIssue } = require('../controller/adminController');
+const { getAdminData, getAllFeedback, getClientsData,getTaskDetailsData, getTasksForWorkRequest, getIssueDetailsData, getWorkRequestTasksData, getDeletePreview, deleteProject, deleteClient, deleteTask, deleteIssue, getAllLeaves, getLeaveById, createLeave, updateLeave, deleteLeave, getLeaveKpis, getLeaveUsers, getUserDivision, exportLeavesCsv, exportLeavesExcel, getEditData, getRequestTypes, getProjectTypesByProject, getCreativeManagerByProject, updateProject, updateClient, updateTask, updateIssue } = require('../controller/adminController');
 
 // Serve shared CSS theme
 router.get('/admin/dmap-theme.css', (req, res) => {
@@ -114,6 +114,14 @@ router.put('/admin/edit/project/:id', invalidateAdminCache, updateProject);
 router.put('/admin/edit/client/:id', invalidateAdminCache, updateClient);
 router.put('/admin/edit/task/:id', invalidateAdminCache, updateTask);
 router.put('/admin/edit/issue/:id', invalidateAdminCache, updateIssue);
+
+// Serve feedback HTML
+router.get('/admin/feedback', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'feedback.html'));
+});
+
+// API endpoint for feedback data
+router.get('/admin/feedback/data', getAllFeedback);
 
 // API endpoint for leaves data
 router.get('/admin/leaves/data', getAllLeaves);
