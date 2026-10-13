@@ -53,12 +53,32 @@ const Feedbacks = sequelize.define('Feedbacks', {
     },
     comment: 'Likelihood to recommend (0-10)',
   },
-  comments: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-    comment: 'Optional feedback comments',
-  },
-  is_deleted: {
+    comments: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: 'Mandatory recommendation comment (0-10 score rationale)'
+    },
+    question: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: 'Question or concern raised by the user regarding the task'
+    },
+    rating_functionality_comment: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: 'Comment for functionality rating (required when rating < 4)'
+    },
+    rating_timeliness_comment: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: 'Comment for timeliness rating (required when rating < 4)'
+    },
+    rating_communication_comment: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: 'Comment for communication rating (required when rating < 4)'
+    },
+    is_deleted: {
     type: DataTypes.TINYINT(1),
     defaultValue: 0,
     allowNull: false,

@@ -2453,7 +2453,10 @@ const submitFeedback = async (req, res) => {
     try {
         const taskId = parseInt(req.params.taskId, 10);
         const user_id = req.user.id;
-        const { rating_functionality, rating_timeliness, rating_communication, recommendation_score, comments } = req.body;
+        const {
+            rating_functionality, rating_timeliness, rating_communication, recommendation_score, comments,
+            question, rating_functionality_comment, rating_timeliness_comment, rating_communication_comment
+        } = req.body;
 
         if (isNaN(taskId)) {
             return res.status(400).json({ success: false, error: 'Invalid task ID' });
@@ -2462,6 +2465,11 @@ const submitFeedback = async (req, res) => {
         // Validate required fields
         if (!rating_functionality || !rating_timeliness || !rating_communication || recommendation_score === undefined) {
             return res.status(400).json({ success: false, error: 'All ratings are required' });
+        }
+
+        // recommendation_score mandatory comment (reuse the comments field)
+        if (!comments || !comments.trim()) {
+            return res.status(400).json({ success: false, error: 'A comment is mandatory for the recommendation score' });
         }
 
         // Validate rating ranges
@@ -2476,6 +2484,17 @@ const submitFeedback = async (req, res) => {
         }
         if (recommendation_score < 0 || recommendation_score > 10) {
             return res.status(400).json({ success: false, error: 'recommendation_score must be between 0 and 10' });
+        }
+
+        // Per-rating comments are required when the rating is below 4
+        if (Number(rating_functionality) < 4 && !(rating_functionality_comment && rating_functionality_comment.trim())) {
+            return res.status(400).json({ success: false, error: 'A comment for functionality rating is required when rating is below 4' });
+        }
+        if (Number(rating_timeliness) < 4 && !(rating_timeliness_comment && rating_timeliness_comment.trim())) {
+            return res.status(400).json({ success: false, error: 'A comment for timeliness rating is required when rating is below 4' });
+        }
+        if (Number(rating_communication) < 4 && !(rating_communication_comment && rating_communication_comment.trim())) {
+            return res.status(400).json({ success: false, error: 'A comment for communication rating is required when rating is below 4' });
         }
 
         // Check if task exists
@@ -2501,7 +2520,11 @@ const submitFeedback = async (req, res) => {
             rating_timeliness,
             rating_communication,
             recommendation_score,
-            comments: comments || null
+            comments: comments || null,
+            question: question || null,
+            rating_functionality_comment: rating_functionality_comment || null,
+            rating_timeliness_comment: rating_timeliness_comment || null,
+            rating_communication_comment: rating_communication_comment || null
         });
 
         res.json({

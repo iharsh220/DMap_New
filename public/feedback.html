@@ -125,10 +125,14 @@ const HEADERS = {
     user_name: 'User Name',
     user_division: 'User Division',
     rating_functionality: 'Functionality (1-5)',
+    functionality_comment: 'Functionality Comment',
     rating_timeliness: 'Timeliness (1-5)',
+    timeliness_comment: 'Timeliness Comment',
     rating_communication: 'Communication (1-5)',
+    communication_comment: 'Communication Comment',
     recommendation_score: 'Recommendation (0-10)',
-    comments: 'Comments',
+    comments: 'Recommendation Comment',
+    question: 'Question',
     created_at: 'Submitted At'
 };
 
@@ -212,7 +216,7 @@ $(function(){
         updateFeedbackStats(data);
 
         var cols=[];
-        var keyOrder=['id','task_id','task_name','task_type','user_name','user_division','rating_functionality','rating_timeliness','rating_communication','recommendation_score','comments','created_at'];
+        var keyOrder=['id','question','task_id','task_name','task_type','user_name','user_division','rating_functionality','functionality_comment','rating_timeliness','timeliness_comment','rating_communication','communication_comment','recommendation_score','comments','created_at'];
         keyOrder.forEach(function(k){
             cols.push({
                 data:k, title:HEADERS[k]||k, defaultContent:'N/A',
