@@ -1,5 +1,5 @@
 const { sequelize, Op } = require('../config/databaseConfig');
-const { Tasks, IssueAssignments, Leave, User, Feedbacks } = require('../models');
+const { Tasks, IssueAssignments, Leave, User, Feedbacks, TaskType, Division } = require('../models');
 const ExcelJS = require('exceljs');
 
 const getClientUsersByDivision = async (userId) => {
@@ -5123,8 +5123,18 @@ const getAllFeedback = async (req, res) => {
         const feedbacks = await Feedbacks.findAll({
             where,
             include: [
-                { model: Tasks, as: 'task', attributes: ['id', 'task_name', 'work_request_id'] },
-                { model: User, as: 'user', attributes: ['id', 'name', 'email'] }
+                {
+                    model: Tasks,
+                    as: 'task',
+                    attributes: ['id', 'task_name', 'task_type_id'],
+                    include: [{ model: TaskType, as: 'TaskType', attributes: ['id', 'task_type'] }]
+                },
+                {
+                    model: User,
+                    as: 'user',
+                    attributes: ['id', 'name', 'email'],
+                    include: [{ model: Division, as: 'Divisions', attributes: ['id', 'title'] }]
+                }
             ],
             order: [['created_at', 'DESC']]
         });
