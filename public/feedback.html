@@ -110,8 +110,8 @@ function getApiBase(){
 }
 const HEADERS = {
     id: 'ID',
+    task_id: 'Task ID',
     task_name: 'Task Name',
-    work_request_id: 'Work Request ID',
     user_id: 'User ID',
     user_name: 'User Name',
     user_email: 'User Email',
@@ -170,7 +170,7 @@ $(function(){
         $('#recordCount').text(data.length+' Records');
 
         var cols=[];
-        var keyOrder=['id','task_name','work_request_id','user_id','user_name','user_email','rating_functionality','rating_timeliness','rating_communication','recommendation_score','comments','created_at'];
+        var keyOrder=['id','task_id','task_name','user_id','user_name','user_email','rating_functionality','rating_timeliness','rating_communication','recommendation_score','comments','created_at'];
         keyOrder.forEach(function(k){
             cols.push({
                 data:k, title:HEADERS[k]||k, defaultContent:'N/A',
