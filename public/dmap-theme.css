@@ -37,7 +37,7 @@ html, body { height: 100%; font-family: var(--font); background: var(--body-bg);
     display: flex;
     flex-direction: column;
     border-right: 1px solid var(--sidebar-border);
-    overflow: hidden;
+    overflow-y: auto;
 }
 .sidebar-brand {
     height: var(--topbar-h);
