@@ -41,16 +41,30 @@ const userService = new CrudService(User);
 const getAssignableUsers = async (req, res) => {
     try {
         const manager_id = req.user.id;
-        let divisionIds = [];
 
-        // Check if task_id is provided in query params
+        // Divisions the calling manager belongs to (always resolved: defines "the manager's team")
+        const managerDivisions = await UserDivisions.findAll({
+            where: { user_id: manager_id },
+            attributes: ['division_id']
+        });
+        const managerDivisionIds = managerDivisions.map(md => md.division_id);
+
+        if (managerDivisionIds.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'You do not belong to any division'
+            });
+        }
+
+        let divisionIds = managerDivisionIds; // default: the manager's own team
+
+        // Optional: restrict to divisions that overlap a given task's request type
         if (req.query.task_id) {
             const taskId = parseInt(req.query.task_id, 10);
             if (isNaN(taskId)) {
                 return res.status(400).json({ success: false, error: 'Invalid task ID' });
             }
 
-            // Find the task and get its request_type_id
             const task = await Tasks.findByPk(taskId, {
                 attributes: ['id', 'request_type_id'],
                 include: [
@@ -65,50 +79,23 @@ const getAssignableUsers = async (req, res) => {
                 return res.status(404).json({ success: false, error: 'Task not found' });
             }
 
-            // Get division IDs from the task's request type
             const taskDivisionIds = task.RequestType?.Divisions?.map(d => d.id) || [];
-
-            if (taskDivisionIds.length === 0) {
-                return res.status(404).json({
-                    success: false,
-                    error: 'No divisions found for this task\'s request type'
-                });
-            }
-
-            // Get divisions that the manager belongs to
-            const managerDivisions = await UserDivisions.findAll({
-                where: { user_id: manager_id },
-                attributes: ['division_id']
-            });
-
-            const managerDivisionIds = managerDivisions.map(md => md.division_id);
-
-            // Only use divisions that are both in the task's request type AND belong to the manager
-            divisionIds = taskDivisionIds.filter(id => managerDivisionIds.includes(id));
-
-            if (divisionIds.length === 0) {
-                return res.status(404).json({
-                    success: false,
-                    error: 'No divisions found that both match the task and belong to you'
-                });
+            if (taskDivisionIds.length > 0) {
+                const overlap = taskDivisionIds.filter(id => managerDivisionIds.includes(id));
+                // Use overlapping divisions if any; otherwise keep the manager's own team
+                divisionIds = overlap.length ? overlap : managerDivisionIds;
             }
         } else {
-            // Use work_request_id from params (original functionality)
+            // work_request_id from params — narrow by the work request's request type,
+            // but never reject the manager; fall back to the manager's own team
             const workRequestId = parseInt(req.params.id, 10);
             if (isNaN(workRequestId)) {
                 return res.status(400).json({ success: false, error: 'Invalid work request ID' });
             }
 
-            // Get work request with request type to find the division
             const workRequestResult = await workRequestService.getAll({
                 where: { id: workRequestId },
                 include: [
-                    {
-                        model: WorkRequestManagers,
-                        where: { manager_id: manager_id },
-                        required: true,
-                        attributes: []
-                    },
                     {
                         model: RequestType,
                         include: [{ model: Division, through: { attributes: [] }, attributes: ['id'] }]
@@ -117,30 +104,18 @@ const getAssignableUsers = async (req, res) => {
                 limit: 1
             });
 
-            if (!workRequestResult.success || workRequestResult.data.length === 0) {
+            const workRequest = workRequestResult.success ? workRequestResult.data[0] : null;
+            if (!workRequest) {
                 return res.status(404).json({
                     success: false,
-                    error: 'Work request not found or not assigned to you'
+                    error: 'Work request not found'
                 });
             }
 
-            const workRequest = workRequestResult.data[0];
-
-            // Check if work request is accepted
-            if (workRequest.status !== 'accepted' && workRequest.status !== 'assigned' && workRequest.status !== 'in_progress' && workRequest.status !== 'completed') {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Work request must be accepted before assigning users'
-                });
-            }
-
-            divisionIds = workRequest.RequestType?.Divisions?.map(d => d.id) || [];
-
-            if (divisionIds.length === 0) {
-                return res.status(404).json({
-                    success: false,
-                    error: 'Division not found for this work request'
-                });
+            const wrDivisionIds = workRequest.RequestType?.Divisions?.map(d => d.id) || [];
+            if (wrDivisionIds.length > 0) {
+                const overlap = wrDivisionIds.filter(id => managerDivisionIds.includes(id));
+                divisionIds = overlap.length ? overlap : managerDivisionIds;
             }
         }
 
