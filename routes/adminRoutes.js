@@ -55,6 +55,11 @@ router.get('/admin/tokens', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'tokens.html'));
 });
 
+// Serve master card HTML
+router.get('/admin/master-card', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'master-card.html'));
+});
+
 // Serve token projects HTML
 router.get('/admin/token-projects', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'token-projects.html'));
