@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D-Map | Master Card</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="../admin/dmap-theme.css" rel="stylesheet">
+    <style>
+        .placeholder-page {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-3);
+            text-align: center;
+            padding: 40px;
+        }
+        .placeholder-page i {
+            font-size: 64px;
+            margin-bottom: 20px;
+            color: #cbd5e1;
+        }
+        .placeholder-page h2 {
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--text-2);
+            margin-bottom: 10px;
+        }
+        .placeholder-page p {
+            font-size: 14px;
+            max-width: 420px;
+            line-height: 1.6;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 12px;
+            border-radius: 8px;
+            background: #f8fafc;
+            border: 1px solid var(--card-border);
+        }
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), #3b82f6);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .user-details {
+            display: flex;
+            flex-direction: column;
+        }
+        .user-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-1);
+        }
+        .user-role {
+            font-size: 10px;
+            color: var(--text-3);
+        }
+        .btn-logout {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            font-size: 12px;
+            font-weight: 500;
+            font-family: var(--font);
+            color: var(--text-2);
+            background: #fff;
+            border: 1px solid var(--card-border);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all .12s;
+        }
+        .btn-logout:hover {
+            background: #fff1f2;
+            border-color: #fecdd3;
+            color: #be123c;
+        }
+    </style>
+</head>
+<body>
+<div class="app-layout">
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-icon"><i class="bi bi-diagram-3" style="font-size:15px;"></i></div>
+            <div><div class="brand-name">D-Map</div><div class="brand-sub">Analytics Dashboard</div></div>
+        </div>
+        <div class="sidebar-section">Reports</div>
+        <nav class="sidebar-nav">
+            <a href="./powerbi" class="nav-item"><i class="bi bi-pie-chart nav-icon"></i><span class="nav-label">Dashboard</span></a>
+        </nav>
+        <div class="sidebar-section">Projects</div>
+        <nav class="sidebar-nav">
+            <a href="./projectsdetails" class="nav-item"><i class="bi bi-folder2-open nav-icon"></i><span class="nav-label">Projects</span></a>
+            <a href="./clients" class="nav-item"><i class="bi bi-people nav-icon"></i><span class="nav-label">Clients</span></a>
+            <a href="./taskdetails" class="nav-item"><i class="bi bi-check2-square nav-icon"></i><span class="nav-label">Tasks</span></a>
+            <a href="./issuedetails" class="nav-item"><i class="bi bi-exclamation-circle nav-icon"></i><span class="nav-label">Changes</span></a>
+            <a href="./workrequesttasks" class="nav-item"><i class="bi bi-table nav-icon"></i><span class="nav-label">Raw Data</span></a>
+        </nav>
+        <div class="sidebar-section">Master Card</div>
+        <nav class="sidebar-nav">
+            <a href="./master-card" class="nav-item active"><i class="bi bi-credit-card-2-front nav-icon"></i><span class="nav-label">Master Card</span></a>
+        </nav>
+        <div class="sidebar-section">Tokens</div>
+        <nav class="sidebar-nav">
+            <a href="./token-projects" class="nav-item"><i class="bi bi-folder2-open nav-icon"></i><span class="nav-label">Project</span></a>
+            <a href="./token-tasks" class="nav-item"><i class="bi bi-check2-square nav-icon"></i><span class="nav-label">Task</span></a>
+            <a href="./token-changes" class="nav-item"><i class="bi bi-exclamation-circle nav-icon"></i><span class="nav-label">Changes</span></a>
+        </nav>
+        <div class="sidebar-section">Feedback</div>
+        <nav class="sidebar-nav">
+            <a href="./feedback" class="nav-item"><i class="bi bi-chat-left-text nav-icon"></i><span class="nav-label">Feedback</span></a>
+        </nav>
+        <div class="sidebar-section">Leaves</div>
+        <nav class="sidebar-nav">
+            <a href="./leaves" class="nav-item"><i class="bi bi-calendar-x nav-icon"></i><span class="nav-label">Leaves</span></a>
+        </nav>
+        <div class="sidebar-footer"><i class="bi bi-circle-fill" style="color:#22c55e;font-size:8px;"></i><span class="footer-text"> System Online</span></div>
+    </aside>
+
+    <div class="main-area">
+        <div class="topbar">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-chevron-left"></i></button>
+                <div>
+                    <div class="topbar-title"><i class="bi bi-credit-card-2-front" style="color:var(--accent)"></i> Master Card</div>
+                    <div class="topbar-subtitle">Master card management</div>
+                </div>
+            </div>
+            <div class="topbar-right">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <div class="user-details">
+                        <span class="user-name" id="userName">Admin</span>
+                        <span class="user-role" id="userRole">Administrator</span>
+                    </div>
+                </div>
+                <button class="btn-logout" id="btnLogout"><i class="bi bi-box-arrow-right"></i> Logout</button>
+            </div>
+        </div>
+
+        <div class="content-area">
+            <div class="placeholder-page">
+                <i class="bi bi-credit-card-2-front"></i>
+                <h2>Master Card</h2>
+                <p>Master card management will be available here. Requirements to be provided.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function getApiBase(){
+    var p=window.location.pathname;
+    if(p.indexOf('/digilabs/uat/')!==-1) return '/digilabs/uat/dmap/api/';
+    return '/digilabs/dmap/api/';
+}
+function loadUserInfo(){
+    var userData = localStorage.getItem('userData');
+    if(userData){
+        try {
+            var user = JSON.parse(userData);
+            var name = user.name || user.email || 'Admin';
+            var initials = name.split(' ').map(function(n){return n[0];}).join('').substring(0,2).toUpperCase();
+            document.getElementById('userName').textContent = name;
+            document.getElementById('userAvatar').textContent = initials;
+            if(user.jobRole && user.jobRole.role_title){
+                document.getElementById('userRole').textContent = user.jobRole.role_title;
+            }
+        } catch(e){
+            console.error('Error parsing user data:', e);
+        }
+    }
+}
+function logout(){
+    if(confirm('Are you sure you want to logout?')){
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('userData');
+        window.location.href = getApiBase() + 'datatable/admin/login';
+    }
+}
+document.addEventListener('DOMContentLoaded', function(){
+    if(!localStorage.getItem('accessToken')){
+        window.location.href = getApiBase() + 'datatable/admin/login';
+        return;
+    }
+    loadUserInfo();
+    document.getElementById('sidebarToggle').addEventListener('click', function(){
+        document.body.classList.toggle('sidebar-collapsed');
+        var isCollapsed = document.body.classList.contains('sidebar-collapsed');
+        this.querySelector('i').classList.toggle('bi-chevron-left');
+        this.querySelector('i').classList.toggle('bi-chevron-right');
+        localStorage.setItem('sidebarCollapsed', isCollapsed);
+    });
+    if(localStorage.getItem('sidebarCollapsed') === 'true'){
+        document.body.classList.add('sidebar-collapsed');
+        var icon = document.querySelector('#sidebarToggle i');
+        icon.classList.remove('bi-chevron-left');
+        icon.classList.add('bi-chevron-right');
+    }
+    document.getElementById('btnLogout').addEventListener('click', logout);
+});
+</script>
+</body>
+</html>
