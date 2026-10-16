@@ -2,7 +2,9 @@
 CREATE TABLE IF NOT EXISTS `master_card` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `division_id` INT NOT NULL,
+  `division_name` VARCHAR(255) NOT NULL,
   `task_type_id` INT NOT NULL,
+  `task_type_name` VARCHAR(255) NOT NULL,
   `new_work_rate` DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'New work rate',
   `changes_rate` DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'Changes rate',
   `concept_charge` DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'Concept charge',
