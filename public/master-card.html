@@ -6,6 +6,9 @@
     <title>D-Map | Master Card</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <link href="../admin/dmap-theme.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/buttons/2.3.6/css/buttons.dataTables.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/fixedcolumns/4.3.0/css/fixedColumns.dataTables.min.css" rel="stylesheet">
     <script src="../admin/admin-theme.js"></script>
 </head>
 <body>
@@ -71,21 +74,53 @@
         </div>
 
         <div class="content-area">
-            <div class="placeholder-page">
-                <i class="bi bi-credit-card-2-front"></i>
-                <h2>Master Card</h2>
-                <p>Master card management will be available here. Requirements to be provided.</p>
+            <div class="stats-row">
+                <div class="stat-card"><div class="stat-icon blue"><i class="bi bi-credit-card-2-front"></i></div><div><div class="stat-value" id="s1">—</div><div class="stat-label">Total Rates</div></div></div>
+                <div class="stat-card"><div class="stat-icon green"><i class="bi bi-tag"></i></div><div><div class="stat-value" id="s2">—</div><div class="stat-label">Unique Divisions</div></div></div>
+            </div>
+
+            <div class="table-card">
+                <div class="loading-overlay" id="loader"><div class="spinner"></div><div class="loading-text">Loading rate cards...</div></div>
+                <div class="table-card-header">
+                    <div class="table-card-title"><span class="dot"></span>Rate Card Master</div>
+                    <div class="header-actions">
+                        <button class="btn-action primary" id="btnUpload" type="button"><i class="bi bi-upload"></i> Upload</button>
+                        <input type="file" id="fileUpload" accept=".xlsx,.csv" hidden>
+                        <button class="btn-action excel" id="btnExcel" type="button"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+                        <button class="btn-action csv" id="btnCsv" type="button"><i class="bi bi-filetype-csv"></i> CSV</button>
+                    </div>
+                </div>
+                <div class="upload-progress-wrapper" id="progressWrapper" style="display:none">
+                    <div class="upload-progress-header">
+                        <span class="upload-progress-label" id="progressLabel">Uploading...</span>
+                        <span class="upload-progress-pct" id="progressPct">0%</span>
+                    </div>
+                    <div class="progress-bar-track"><div class="progress-bar-fill" id="progressBar" style="width:0%"></div></div>
+                    <div class="upload-progress-msg" id="progressMsg"></div>
+                </div>
+                <div class="table-card-body">
+                    <div class="dt-container">
+                        <table id="mainTable" class="display" style="width:100%"><thead></thead><tbody></tbody></table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.html5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.datatables.net/fixedcolumns/4.3.0/js/dataTables.fixedColumns.min.js"></script>
 <script>
 function getApiBase(){
     var p=window.location.pathname;
     if(p.indexOf('/digilabs/uat/')!==-1) return '/digilabs/uat/dmap/api/';
     return '/digilabs/dmap/api/';
 }
+
 function loadUserInfo(){
     var userData = localStorage.getItem('userData');
     if(userData){
@@ -93,16 +128,17 @@ function loadUserInfo(){
             var user = JSON.parse(userData);
             var name = user.name || user.email || 'Admin';
             var initials = name.split(' ').map(function(n){return n[0];}).join('').substring(0,2).toUpperCase();
-            document.getElementById('userName').textContent = name;
-            document.getElementById('userAvatar').textContent = initials;
+            $('#userName').text(name);
+            $('#userAvatar').text(initials);
             if(user.jobRole && user.jobRole.role_title){
-                document.getElementById('userRole').textContent = user.jobRole.role_title;
+                $('#userRole').text(user.jobRole.role_title);
             }
         } catch(e){
             console.error('Error parsing user data:', e);
         }
     }
 }
+
 function logout(){
     if(confirm('Are you sure you want to logout?')){
         localStorage.removeItem('accessToken');
@@ -111,26 +147,185 @@ function logout(){
         window.location.href = getApiBase() + 'datatable/admin/login';
     }
 }
-document.addEventListener('DOMContentLoaded', function(){
+
+$(function(){
     if(!localStorage.getItem('accessToken')){
         window.location.href = getApiBase() + 'datatable/admin/login';
         return;
     }
+
     loadUserInfo();
-    document.getElementById('sidebarToggle').addEventListener('click', function(){
-        document.body.classList.toggle('sidebar-collapsed');
-        var isCollapsed = document.body.classList.contains('sidebar-collapsed');
-        this.querySelector('i').classList.toggle('bi-chevron-left');
-        this.querySelector('i').classList.toggle('bi-chevron-right');
+
+    $('#sidebarToggle').on('click', function(){
+        $('body').toggleClass('sidebar-collapsed');
+        var isCollapsed = $('body').hasClass('sidebar-collapsed');
+        $(this).find('i').toggleClass('bi-chevron-left bi-chevron-right');
         localStorage.setItem('sidebarCollapsed', isCollapsed);
     });
     if(localStorage.getItem('sidebarCollapsed') === 'true'){
-        document.body.classList.add('sidebar-collapsed');
-        var icon = document.querySelector('#sidebarToggle i');
-        icon.classList.remove('bi-chevron-left');
-        icon.classList.add('bi-chevron-right');
+        $('body').addClass('sidebar-collapsed');
+        $('#sidebarToggle').find('i').removeClass('bi-chevron-left').addClass('bi-chevron-right');
     }
-    document.getElementById('btnLogout').addEventListener('click', logout);
+
+    $('#btnLogout').on('click', logout);
+
+    $('#btnUpload').on('click', function(){
+        $('#fileUpload').click();
+    });
+
+    $('#fileUpload').on('change', function(e){
+        var file = e.target.files[0];
+        if(!file){ return; }
+        var jobId = 'job_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+        var apiBase = getApiBase() + 'datatable/';
+        var formData = new FormData();
+        formData.append('file', file);
+        formData.append('jobId', jobId);
+
+        $('#progressWrapper').show();
+        $('#progressBar').css('width','0%');
+        $('#progressPct').text('0%');
+        $('#progressLabel').text(file.name);
+        $('#progressMsg').text('Starting upload...');
+
+        var sseReady = false;
+        var evtSource = new EventSource(apiBase + 'admin/master-card/upload/progress/' + jobId);
+        evtSource.onopen = function(){
+            sseReady = true;
+            $('#progressMsg').text('Processing...');
+        };
+        evtSource.onmessage = function(event){
+            var data = JSON.parse(event.data);
+            var pct = Math.min(100, data.progress || 0);
+            $('#progressBar').css('width', pct + '%');
+            $('#progressPct').text(pct + '%');
+            $('#progressMsg').text(data.message || '');
+            if(pct >= 100){
+                evtSource.close();
+                $('#fileUpload').val('');
+                $('#progressWrapper').hide();
+                dt.ajax.reload();
+            }
+        };
+        evtSource.onerror = function(){
+            if($('#progressMsg').text() !== 'Processing...'){
+                $('#progressMsg').text('Processing file (SSE reconnecting)...');
+            }
+        };
+
+        setTimeout(function(){
+            if(!sseReady){
+                $('#progressMsg').text('Processing file...');
+            }
+        }, 3000);
+
+        $.ajax({
+            url: apiBase + 'admin/master-card/upload',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('accessToken') || '') },
+            success: function(res){
+                if(res.success){
+                    $('#progressBar').css('width','100%');
+                    $('#progressPct').text('100%');
+                    $('#progressMsg').text(res.message || 'Upload complete');
+                    if(evtSource && evtSource.readyState !== evtSource.CLOSED){
+                        evtSource.close();
+                    }
+                    $('#fileUpload').val('');
+                    setTimeout(function(){
+                        $('#progressWrapper').hide();
+                        dt.ajax.reload();
+                    }, 500);
+                } else {
+                    if(evtSource && evtSource.readyState !== evtSource.CLOSED){
+                        evtSource.close();
+                    }
+                    $('#progressMsg').text('Error: ' + (res.error || 'Unknown'));
+                    alert('Upload failed: ' + (res.error || 'Unknown error'));
+                }
+            },
+            error: function(xhr){
+                if(evtSource && evtSource.readyState !== evtSource.CLOSED){
+                    evtSource.close();
+                }
+                var msg = 'Upload failed';
+                try { msg = xhr.responseJSON && xhr.responseJSON.error || msg; } catch(e){}
+                $('#progressMsg').text(msg);
+                alert('Upload failed: ' + msg);
+            }
+        });
+    });
+
+    var cols = [
+        {data:'id', title:'ID', defaultContent:'N/A', className:'dt-right'},
+        {data:'division_name', title:'Vertical', defaultContent:'N/A'},
+        {data:'task_type_name', title:'Task Type', defaultContent:'N/A'},
+        {data:'new_work_rate', title:'New Work Rate', defaultContent:'0'},
+        {data:'changes_rate', title:'Changes Work Rate', defaultContent:'0'},
+        {data:'concept_charge', title:'Concept Charge', defaultContent:'0'},
+        {data:'ai_charges', title:'AI Charges', defaultContent:'0'}
+    ];
+
+    var dt = $('#mainTable').DataTable({
+        ajax: {
+            url: './master-card/data',
+            dataSrc: function(json){ return json.data || json || []; }
+        },
+        columns: cols,
+        pageLength: 25,
+        lengthMenu: [[25,50,100,200,-1],[25,50,100,200,'All']],
+        dom: '<"dt-top-row"lf>rt<"dt-bottom-row"ip>',
+        scrollX: true,
+        scrollY: 'calc(100vh - 360px)',
+        language: { search:'', searchPlaceholder:'Search all columns...', lengthMenu:'Show _MENU_ rows' },
+        buttons: [
+            { extend: 'excel', className: 'buttons-excel' },
+            { extend: 'csv', className: 'buttons-csv' }
+        ],
+        initComplete: function(){
+            var api = this.api();
+            api.columns().every(function(){
+                var col = this, idx = col.index();
+                var th = $(col.header());
+                var labelText = cols[idx].title;
+                th.empty();
+                var wrap = $('<div class="th-wrap"></div>');
+                var label = $('<div class="th-label"><span title="'+labelText+'">'+labelText+'</span><span class="th-sort"></span></div>');
+                wrap.append(label);
+                var inp = $('<input class="col-filter" type="text" placeholder="Filter...">');
+                inp.on('click mousedown focus',function(e){e.stopPropagation();});
+                inp.on('keyup change clear',function(){if(col.search()!==this.value)col.search(this.value).draw();});
+                wrap.append(inp);
+                th.append(wrap);
+                th.off('click').on('click',function(e){
+                    if($(e.target).closest('.col-filter').length===0){
+                        var currentOrder = api.order();
+                        if(currentOrder.length && currentOrder[0][0]===idx){
+                            api.order([idx, currentOrder[0][1]==='asc'?'desc':'asc']).draw();
+                        } else {
+                            api.order([idx,'asc']).draw();
+                        }
+                    }
+                });
+            });
+        }
+    });
+
+    dt.on('draw', function(){
+        $('#loader').hide();
+        var rows = dt.rows({ filter:'applied' }).data();
+        var arr = rows.toArray ? rows.toArray() : rows;
+        var divs = {};
+        arr.forEach(function(r){ var d = r.division_name || 'N/A'; divs[d] = (divs[d]||0)+1; });
+        $('#s1').text(arr.length);
+        $('#s2').text(Object.keys(divs).length);
+    });
+
+    $('#btnExcel').on('click',function(){ dt.button('.buttons-excel').trigger(); });
+    $('#btnCsv').on('click',function(){ dt.button('.buttons-csv').trigger(); });
 });
 </script>
 </body>
