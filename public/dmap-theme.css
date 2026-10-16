@@ -26,6 +26,10 @@
     --accent-bg:    rgba(58, 91, 217, 0.12);
     --accent-border: rgba(58, 91, 217, 0.3);
 
+    --nav-active-text: #b3c7f0;
+
+    --brand-name: #f1f5f9;
+
     --danger:  #ea5849;
     --success: #4ade80;
     --warning: #fb923c;
@@ -78,7 +82,7 @@ html, body {
     display: flex; align-items: center; justify-content: center;
     color: #fff; font-size: 14px; font-weight: 700; flex-shrink: 0;
 }
-.brand-name { font-size: 14px; font-weight: 700; color: #f1f5f9; letter-spacing: 0.2px; }
+.brand-name { font-size: 14px; font-weight: 700; color: var(--brand-name); letter-spacing: 0.2px; }
 .brand-sub  { font-size: 10px; color: var(--sidebar-text); margin-top: 1px; }
 .sidebar-section {
     flex: 0 0 auto;
@@ -101,7 +105,7 @@ html, body {
 .nav-item:hover { background: var(--sidebar-hover); color: #cbd5e1; text-decoration: none; }
 .nav-item.active {
     background: var(--sidebar-active);
-    color: #b3c7f0;
+    color: var(--nav-active-text);
     font-weight: 600;
     box-shadow: inset 3px 0 0 var(--accent);
 }
@@ -771,6 +775,10 @@ body.light-theme {
     --accent-bg:     rgba(37, 99, 235, 0.12);
     --accent-border: rgba(37, 99, 235, 0.3);
 
+    --nav-active-text: #1e3a8a;
+
+    --brand-name: #0f172a;
+
     --danger:  #dc2626;
     --success: #16a34a;
     --warning: #d97706;
@@ -808,15 +816,22 @@ body.light-theme div.dataTables_wrapper div.dataTables_scrollBody::-webkit-scrol
 body.light-theme ::-webkit-scrollbar-thumb { background: #cbd5e1; }
 body.light-theme ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-/* Light theme user-info + btn-logout */
+/* Light theme user-info + btn-logout + nav hover */
 body.light-theme .user-info {
     background: #f1f5f9;
     border-color: #e2e8f0;
+}
+body.light-theme .btn-logout {
+    background: #f1f5f9;
+    color: var(--text-2);
 }
 body.light-theme .btn-logout:hover {
     background: rgba(220,38,38,.1);
     border-color: var(--danger);
     color: var(--danger);
+}
+body.light-theme .nav-item:hover {
+    color: var(--text-1);
 }
 body.light-theme .loading-overlay {
     background: rgba(248,250,252,.92);
