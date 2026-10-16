@@ -61,7 +61,14 @@ app.use(cors({
     exposedHeaders: ["x-socket-id", "Authorization"]
 }));
 
-app.use(compression());
+app.use(compression({
+    skip: function(req, res) {
+        if (req.path && req.path.indexOf('/upload/progress/') !== -1) {
+            return true;
+        }
+        return false;
+    }
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(fileUpload());

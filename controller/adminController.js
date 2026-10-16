@@ -1,6 +1,68 @@
 const { sequelize, Op } = require('../config/databaseConfig');
 const { Tasks, IssueAssignments, Leave, User, Feedbacks, TaskType, Division } = require('../models');
 const ExcelJS = require('exceljs');
+const csvParser = require('csv-parser');
+const fs = require('fs');
+const path = require('path');
+
+let sseClients = {};
+
+function sendProgress(jobId, progress, message, total) {
+    const client = sseClients[jobId];
+    if (client) {
+        try {
+            client.res.write(`data: ${JSON.stringify({ progress, message, total })}\n\n`);
+            if (typeof client.res.flush === 'function') {
+                client.res.flush();
+            }
+        } catch (e) {
+            delete sseClients[jobId];
+        }
+    }
+}
+
+function parseCSVRows(fileBuf) {
+    return new Promise((resolve, reject) => {
+        const rows = [];
+        const stream = require('stream');
+        const readable = new stream.Readable();
+        readable._write = () => {};
+        readable.push(fileBuf);
+        readable.push(null);
+        readable
+            .pipe(csvParser())
+            .on('data', (data) => rows.push(data))
+            .on('end', () => resolve(rows))
+            .on('error', (err) => reject(err));
+    });
+}
+
+function parseExcelRows(fileBuf) {
+    return new Promise((resolve, reject) => {
+        const wb = new ExcelJS.Workbook();
+        const rows = [];
+        wb.xlsx
+            .load(fileBuf)
+            .then(() => {
+                const ws = wb.worksheets[0];
+                if (!ws) { return resolve([]); }
+                let header = null;
+                ws.eachRow((row, rowNumber) => {
+                    const vals = row.values.slice(1).map(v => (v && v.value !== undefined ? v.value : v));
+                    const val = vals.map(v => (v && v.raw ? v.raw : v));
+                    if (rowNumber === 1) {
+                        header = val.map(String);
+                    } else {
+                        const obj = {};
+                        header.forEach((h, i) => { obj[h] = val[i]; });
+                        rows.push(obj);
+                    }
+                });
+                resolve(rows);
+            })
+            .catch((err) => reject(err));
+    });
+}
 
 const getClientUsersByDivision = async (userId) => {
     return sequelize.query(
@@ -5146,6 +5208,170 @@ const getAllFeedback = async (req, res) => {
     }
 };
 
+const getMasterCardData = async (req, res) => {
+    try {
+        const [rows] = await sequelize.query(`
+            SELECT id, division_id, division_name, task_type_id, task_type_name,
+                   new_work_rate, changes_rate, concept_charge, ai_charges
+            FROM master_card
+            ORDER BY division_name, task_type_name
+        `);
+        res.json({ success: true, data: rows });
+    } catch (error) {
+        console.error('Error fetching master card data:', error);
+        res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+};
+
+const uploadMasterCard = async (req, res) => {
+    const jobId = req.body.jobId || req.query.jobId;
+    try {
+        if (!req.files || !req.files.file) {
+            return res.status(400).json({ success: false, error: 'No file uploaded' });
+        }
+        const file = req.files.file;
+        const allowedTypes = ['.xlsx', '.csv'];
+        const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+        if (!allowedTypes.includes(ext)) {
+            return res.status(400).json({ success: false, error: 'Only .xlsx and .csv files are allowed' });
+        }
+
+        let rows = [];
+        if (ext === '.csv') {
+            rows = await parseCSVRows(file.data);
+        } else {
+            rows = await parseExcelRows(file.data);
+        }
+
+        if (!rows.length) {
+            sendProgress(jobId, 100, 'No data rows found in file', 0);
+            return res.json({ success: true, message: 'No data rows found', rowsProcessed: 0 });
+        }
+
+        const normalRows = rows.map(r => {
+            const obj = {};
+            for (const k in r) { obj[k.toLowerCase()] = r[k]; }
+            return obj;
+        });
+
+        const seen = {};
+        normalRows.forEach(row => {
+            const taskType = (row['task type'] || row['task_type_name'] || row['task_type'] || '').toString().trim();
+            if (taskType) {
+                seen[taskType.toLowerCase()] = row;
+            }
+        });
+        const uniqueRows = Object.values(seen).filter(r => {
+            const div = (r['vertical'] || r['division_name'] || r['division'] || '').toString().trim();
+            const task = (r['task type'] || r['task_type_name'] || r['task_type'] || '').toString().trim();
+            return div && task;
+        });
+
+        const total = uniqueRows.length;
+        sendProgress(jobId, 0, `Parsed ${rows.length} rows, ${total} unique after dedup`, rows.length);
+
+        if (total === 0) {
+            sendProgress(jobId, 100, 'No valid data rows found (check column names)', 0);
+            return res.json({ success: true, message: 'No valid data rows found', rowsProcessed: 0 });
+        }
+
+        await sequelize.query('TRUNCATE TABLE master_card');
+        sendProgress(jobId, 0, `Truncated table, importing ${total} unique rows...`, total);
+
+        const chunkSize = 100;
+        let inserted = 0;
+
+        for (let i = 0; i < uniqueRows.length; i += chunkSize) {
+            const chunk = uniqueRows.slice(i, i + chunkSize);
+            const values = [];
+
+            for (const row of chunk) {
+                const divisionName = (row['vertical'] || row['division_name'] || row['division'] || '').toString().trim();
+                const taskType = (row['task type'] || row['task_type_name'] || row['task_type'] || '').toString().trim();
+                const newWorkRate = parseFloat(row['new work rate'] || row['new_work_rate'] || 0) || 0;
+                const changesRate = parseFloat(row['changes work rate'] || row['changes_rate'] || 0) || 0;
+                const conceptCharge = parseFloat(row['concept charge'] || row['concept_charge'] || 0) || 0;
+                const aiCharges = parseFloat(row['ai charges'] || row['ai_charges'] || 0) || 0;
+
+                const divRow = await sequelize.query(
+                    `SELECT id, title FROM division WHERE title = ? LIMIT 1`,
+                    { replacements: [divisionName], type: sequelize.QueryTypes.SELECT }
+                );
+                let divisionId, divisionTitle;
+                if (divRow.length) {
+                    divisionId = divRow[0].id;
+                    divisionTitle = divRow[0].title;
+                } else {
+                    const result = await sequelize.query(
+                        `INSERT INTO division (title, department_id, created_at, updated_at) VALUES (?, 1, NOW(), NOW())`,
+                        { replacements: [divisionName], type: sequelize.QueryTypes.INSERT }
+                    );
+                    divisionId = result[0];
+                    divisionTitle = divisionName;
+                }
+
+                const taskRow = await sequelize.query(
+                    `SELECT id, task_type FROM task_type WHERE task_type = ? LIMIT 1`,
+                    { replacements: [taskType], type: sequelize.QueryTypes.SELECT }
+                );
+                let taskTypeId, taskTypeValue;
+                if (taskRow.length) {
+                    taskTypeId = taskRow[0].id;
+                    taskTypeValue = taskRow[0].task_type;
+                } else {
+                    const result = await sequelize.query(
+                        `INSERT INTO task_type (task_type, created_at, updated_at) VALUES (?, NOW(), NOW())`,
+                        { replacements: [taskType], type: sequelize.QueryTypes.INSERT }
+                    );
+                    taskTypeId = result[0];
+                    taskTypeValue = taskType;
+                }
+
+                values.push(`(${divisionId}, '${divisionTitle.split("'").join("''")}', ${taskTypeId}, '${taskTypeValue.split("'").join("''")}', ${newWorkRate}, ${changesRate}, ${conceptCharge}, ${aiCharges}, NOW(), NOW())`);
+            }
+
+            if (values.length) {
+                const sql = `INSERT INTO master_card (division_id, division_name, task_type_id, task_type_name, new_work_rate, changes_rate, concept_charge, ai_charges, created_at, updated_at) VALUES ${values.join(', ')}`;
+                await sequelize.query(sql);
+                inserted += values.length;
+            }
+
+            const processed = i + chunk.length;
+            const progress = Math.round((processed / total) * 100);
+            sendProgress(jobId, progress, `Processed ${processed}/${total} rows (${inserted} inserted)`, total);
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+
+        sendProgress(jobId, 100, `Complete! ${inserted} rows imported`, total);
+        res.json({ success: true, message: 'Upload complete', rowsProcessed: inserted });
+    } catch (error) {
+        console.error('Error uploading master card:', error);
+        sendProgress(jobId, 0, `Error: ${error.message}`, 0);
+        res.status(500).json({ success: false, error: error.message });
+    } finally {
+        if (jobId && sseClients[jobId]) {
+            delete sseClients[jobId];
+        }
+    }
+};
+
+const sseProgress = (req, res) => {
+    const jobId = req.params.jobId;
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*',
+        'X-Accel-Buffering': 'no'
+    });
+    sseClients[jobId] = { res };
+    req.on('close', () => {
+        if (sseClients[jobId] && sseClients[jobId].res === res) {
+            delete sseClients[jobId];
+        }
+    });
+};
+
 module.exports = {
     getAllFeedback,
     getAdminData,
@@ -5176,5 +5402,8 @@ module.exports = {
     updateProject,
     updateClient,
     updateTask,
-    updateIssue
+    updateIssue,
+    getMasterCardData,
+    uploadMasterCard,
+    sseProgress
 };
