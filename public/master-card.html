@@ -48,7 +48,7 @@
         <nav class="sidebar-nav">
             <a href="./leaves" class="nav-item"><i class="bi bi-calendar-x nav-icon"></i><span class="nav-label">Leaves</span></a>
         </nav>
-        <div class="sidebar-footer"><i class="bi bi-circle-fill" style="color:#22c55e;font-size:8px;"></i><span class="footer-text"> System Online</span></div>
+        <div class="sidebar-footer"><i class="bi bi-circle-fill" style="color:var(--success);font-size:8px;"></i><span class="footer-text"> System Online</span></div>
     </aside>
 
     <div class="main-area">
@@ -281,8 +281,8 @@ $(function(){
         createdRow: function(row, data, dataIndex){
             var actionCell = $(row).find('td:eq(0)');
             var html = '<div class="action-buttons">';
-            html += '<button class="edit-btn" data-id="' + data.id + '" title="Edit" style="background:#6366f122;border:1px solid #6366f144;color:#818cf8;border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;margin-right:4px;"><i class="bi bi-pencil"></i></button>';
-            html += '<button class="del-btn" data-id="' + data.id + '" title="Delete" style="background:#be123c22;border:1px solid #be123c44;color:#f43f5e;border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;"><i class="bi bi-trash3"></i></button>';
+            html += '<button class="edit-btn" data-id="' + data.id + '" title="Edit" style="background:var(--accent-bg);border:1px solid var(--accent-border);color:var(--accent);border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;margin-right:4px;"><i class="bi bi-pencil"></i></button>';
+            html += '<button class="del-btn" data-id="' + data.id + '" title="Delete" style="background:var(--danger-bg);border:1px solid var(--danger-border);color:var(--danger);border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;"><i class="bi bi-trash3"></i></button>';
             html += '</div>';
             actionCell.html(html);
         },
@@ -402,7 +402,7 @@ $(function(){
 <div class="modal-overlay" id="editModal">
     <div class="modal-content">
         <div class="modal-header">
-            <div class="modal-icon" style="background: rgba(58,91,217,0.15);"><i class="bi bi-pencil-square" style="color: var(--accent)"></i></div>
+            <div class="modal-icon" style="background: var(--accent-bg);"><i class="bi bi-pencil-square" style="color: var(--accent)"></i></div>
             <div class="modal-title-wrap">
                 <div class="modal-title">Edit Rate Card</div>
                 <div class="modal-subtitle">Update rates below (Vertical and Task Type are read-only)</div>
