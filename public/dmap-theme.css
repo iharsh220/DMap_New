@@ -750,3 +750,96 @@ table.dataTable thead .sorting_desc::after { display: none !important; }
 .delete-warning-grid div { font-size: 12px; }
 .delete-warning-grid span { color: var(--text-3); }
 .delete-warning-grid span:last-child { color: var(--text-1); }
+
+/* ─── LIGHT THEME ────────────────────────────────────────────── */
+body.light-theme {
+    --sidebar-bg:      #ffffff;
+    --sidebar-border:  #e2e8f0;
+    --sidebar-text:    #475569;
+    --sidebar-hover:   #f1f5f9;
+    --sidebar-active:  #dbeafe;
+
+    --body-bg:     #f8fafc;
+    --card-bg:     #ffffff;
+    --card-border: #e2e8f0;
+
+    --text-1:  #0f172a;
+    --text-2:  #475569;
+    --text-3:  #94a3b8;
+
+    --accent:        #2563eb;
+    --accent-bg:     rgba(37, 99, 235, 0.12);
+    --accent-border: rgba(37, 99, 235, 0.3);
+
+    --danger:  #dc2626;
+    --success: #16a34a;
+    --warning: #d97706;
+
+    /* Modal / form vars */
+    --modal-bg:     #ffffff;
+    --modal-border: #e2e8f0;
+    --input-bg:     #ffffff;
+    --input-border: #e2e8f0;
+    --tag-bg:       #f1f5f9;
+}
+
+/* Light theme table overrides (hardcoded colors in dark theme) */
+body.light-theme table.dataTable thead th {
+    background: #f1f5f9 !important;
+    border-bottom-color: #e2e8f0 !important;
+    border-right-color: #e2e8f0 !important;
+}
+body.light-theme table.dataTable tbody tr.odd td,
+body.light-theme table.dataTable tbody tr.even td {
+    background: #ffffff;
+    border-bottom-color: #e2e8f0 !important;
+    border-right-color: #e2e8f0 !important;
+}
+body.light-theme table.dataTable tbody tr.odd:hover td,
+body.light-theme table.dataTable tbody tr.even:hover td {
+    background: #f1f5f9 !important;
+}
+body.light-theme div.dataTables_wrapper div.dataTables_scrollBody::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+}
+body.light-theme div.dataTables_wrapper div.dataTables_scrollBody::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+body.light-theme ::-webkit-scrollbar-thumb { background: #cbd5e1; }
+body.light-theme ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Light theme user-info + btn-logout */
+body.light-theme .user-info {
+    background: #f1f5f9;
+    border-color: #e2e8f0;
+}
+body.light-theme .btn-logout:hover {
+    background: rgba(220,38,38,.1);
+    border-color: var(--danger);
+    color: var(--danger);
+}
+body.light-theme .loading-overlay {
+    background: rgba(248,250,252,.92);
+}
+
+/* Theme toggle button */
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: 1px solid var(--card-border);
+    background: var(--card-bg);
+    color: var(--text-2);
+    cursor: pointer;
+    font-size: 16px;
+    transition: all .12s;
+    margin-right: 8px;
+}
+.theme-toggle:hover {
+    background: var(--sidebar-hover);
+    color: var(--text-1);
+    border-color: var(--accent);
+}

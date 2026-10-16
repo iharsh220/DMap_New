@@ -10,6 +10,12 @@ router.get('/admin/dmap-theme.css', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'dmap-theme.css'));
 });
 
+// Serve shared theme toggle JS
+router.get('/admin/admin-theme.js', (req, res) => {
+    res.setHeader('Content-Type', 'application/javascript');
+    res.sendFile(path.join(__dirname, '..', 'public', 'admin-theme.js'));
+});
+
 // Serve login HTML
 router.get('/admin/login', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'login.html'));

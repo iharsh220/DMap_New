@@ -6,6 +6,7 @@
     <title>D-Map | Login</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="../admin/admin-theme.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
@@ -61,10 +62,41 @@
         .alert i { font-size: 17px; flex-shrink: 0; }
         .input-wrapper.error input { border-color: var(--error); }
         .input-wrapper.error input:focus { box-shadow: 0 0 0 4px rgba(234,88,73,.3); }
+
+        /* Light theme overrides */
+        body.light-theme {
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --border: #e2e8f0;
+            --text-1: #0f172a;
+            --text-2: #475569;
+            --text-3: #94a3b8;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --accent-light: #eff6ff;
+            --error: #be123c;
+            --success: #16a34a;
+        }
+        body.light-theme { background: linear-gradient(135deg, #f6f8fc 0%, #e9eef6 100%); }
+        body.light-theme .login-card { box-shadow: 0 12px 48px rgba(15,23,42,0.10), 0 2px 8px rgba(15,23,42,0.05); }
+        body.light-theme .alert-error { background: #fef2f2; border-color: #fecaca; }
+        body.light-theme .alert-success { background: #f0fdf4; border-color: #bbf7d0; }
+
+        /* Theme toggle button */
+        .theme-toggle {
+            position: fixed; top: 20px; right: 20px; z-index: 100;
+            width: 34px; height: 34px; border-radius: 8px;
+            border: 1px solid var(--border); background: var(--card-bg);
+            color: var(--text-2); cursor: pointer; font-size: 16px;
+            display: flex; align-items: center; justify-content: center;
+            transition: all .12s;
+        }
+        .theme-toggle:hover { background: var(--bg); color: var(--text-1); border-color: var(--text-3); }
     </style>
 </head>
 <body>
     <div class="login-wrapper">
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme"><i class="bi bi-sun"></i></button>
         <div class="login-card">
             <div class="logo">
                 <div class="logo-icon"><i class="bi bi-diagram-3"></i></div>
