@@ -31,6 +31,8 @@
     --brand-name: #f1f5f9;
 
     --danger:  #ea5849;
+    --danger-bg:     rgba(234, 88, 73, 0.12);
+    --danger-border: rgba(234, 88, 73, 0.30);
     --success: #4ade80;
     --warning: #fb923c;
 
@@ -48,6 +50,7 @@
     --modal-border: #2d303c;
     --input-bg:     #131929;
     --input-border: #2d303c;
+    --input-readonly-bg: #1a2035;
     --overlay-bg:   rgba(10,12,20,.65);
     --tag-bg:       #2a2f3f;
 }
@@ -635,7 +638,7 @@ table.dataTable thead .sorting_desc::after { display: none !important; }
     position: fixed;
     inset: 0;
     z-index: 9999;
-    background: rgba(10,12,20,.65);
+    background: var(--overlay-bg);
     align-items: center;
     justify-content: center;
     padding: 16px;
@@ -651,6 +654,7 @@ table.dataTable thead .sorting_desc::after { display: none !important; }
     overflow: auto;
     padding: 20px;
     box-shadow: 0 12px 48px rgba(0,0,0,0.4);
+    transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
     display: flex;
     flex-direction: column;
 }
@@ -669,15 +673,18 @@ table.dataTable thead .sorting_desc::after { display: none !important; }
 .modal-header .modal-title-wrap { flex: 1; }
 .modal-header .modal-title {
     font-size: 15px; font-weight: 600; color: var(--text-1);
+    transition: color 0.3s ease;
 }
 .modal-header .modal-subtitle {
     font-size: 11px; color: var(--text-3);
+    transition: color 0.3s ease;
 }
 .modal-header .modal-close {
     background: none; border: none;
     color: var(--text-3); font-size: 20px;
     cursor: pointer; line-height: 1;
     padding: 4px;
+    transition: color 0.3s ease;
 }
 .modal-body { padding: 16px 0; overflow-y: auto; flex: 1; }
 .modal-footer {
@@ -699,6 +706,7 @@ table.dataTable thead .sorting_desc::after { display: none !important; }
     color: var(--text-3);
     font-size: 11px;
     margin-bottom: 4px;
+    transition: color 0.3s ease;
 }
 .modal-form-group input,
 .modal-form-group select,
@@ -712,6 +720,7 @@ table.dataTable thead .sorting_desc::after { display: none !important; }
     font-size: 13px;
     font-family: var(--font);
     box-sizing: border-box;
+    transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease, outline 0.2s ease;
 }
 .modal-form-group input:focus,
 .modal-form-group select:focus,
@@ -721,7 +730,7 @@ table.dataTable thead .sorting_desc::after { display: none !important; }
 }
 .modal-form-group textarea { resize: vertical; }
 .modal-form-group input[readonly] {
-    background: #1a2035;
+    background: var(--input-readonly-bg);
     color: var(--text-3);
 }
 .modal-form-group.full-width { grid-column: span 2; }
@@ -834,6 +843,8 @@ body.light-theme {
     --brand-name: #0f172a;
 
     --danger:  #dc2626;
+    --danger-bg:     rgba(220, 38, 38, 0.12);
+    --danger-border: rgba(220, 38, 38, 0.30);
     --success: #16a34a;
     --warning: #d97706;
 
@@ -842,6 +853,7 @@ body.light-theme {
     --modal-border: #e2e8f0;
     --input-bg:     #ffffff;
     --input-border: #e2e8f0;
+    --input-readonly-bg: #f1f5f9;
     --overlay-bg:   rgba(15,23,42,.45);
     --tag-bg:       #f1f5f9;
 }
@@ -890,10 +902,7 @@ body.light-theme .nav-item:hover {
 }
 body.light-theme .loading-overlay {
     background: rgba(248,250,252,.92);
-}
-body.light-theme .modal-overlay {
-    background: rgba(15,23,42,.45);
-}
+    }
 body.light-theme .modal-content {
     box-shadow: 0 12px 48px rgba(0,0,0,0.12);
 }

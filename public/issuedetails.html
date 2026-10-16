@@ -48,7 +48,7 @@
         <nav class="sidebar-nav">
             <a href="./leaves" class="nav-item"><i class="bi bi-calendar-x nav-icon"></i><span class="nav-label">Leaves</span></a>
         </nav>
-        <div class="sidebar-footer"><i class="bi bi-circle-fill" style="color:#22c55e;font-size:8px;"></i><span class="footer-text"> System Online</span></div>
+        <div class="sidebar-footer"><i class="bi bi-circle-fill" style="color:var(--success);font-size:8px;"></i><span class="footer-text"> System Online</span></div>
     </aside>
 
     <div class="main-area">
@@ -102,43 +102,43 @@
 </div>
 
 <!-- Edit Modal -->
-<div id="editModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;">
-  <div style="background:#1e2433;border:1px solid #2d3548;border-radius:12px;width:560px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,0.5);">
-    <div style="padding:20px 24px 16px;border-bottom:1px solid #2d3548;display:flex;align-items:center;gap:10px;">
-      <span style="background:#6366f122;border-radius:8px;padding:6px 10px;"><i class="bi bi-pencil-square" style="color:#818cf8;font-size:18px;"></i></span>
+<div id="editModal" style="display:none;position:fixed;inset:0;z-index:9999;background:var(--overlay-bg);align-items:center;justify-content:center;">
+  <div style="background:var(--modal-bg);border:1px solid var(--modal-border);border-radius:12px;width:560px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;box-shadow:var(--shadow-card);">
+    <div style="padding:20px 24px 16px;border-bottom:1px solid var(--modal-border);display:flex;align-items:center;gap:10px;">
+      <span style="background:var(--accent-bg);border-radius:8px;padding:6px 10px;"><i class="bi bi-pencil-square" style="color:var(--accent);font-size:18px;"></i></span>
       <div>
-        <div style="color:#f1f5f9;font-weight:600;font-size:15px;">Edit Change</div>
-        <div style="color:#94a3b8;font-size:12px;">Update Change details</div>
+        <div style="color:var(--text-1);font-weight:600;font-size:15px;">Edit Change</div>
+        <div style="color:var(--text-3);font-size:12px;">Update Change details</div>
       </div>
-      <button onclick="closeEditModal()" style="margin-left:auto;background:none;border:none;color:#64748b;font-size:20px;cursor:pointer;line-height:1;">&times;</button>
+      <button onclick="closeEditModal()" style="margin-left:auto;background:none;border:none;color:var(--text-3);font-size:20px;cursor:pointer;line-height:1;">&times;</button>
     </div>
     <div style="padding:16px 24px;overflow-y:auto;flex:1;">
-      <div id="editModalBody" style="color:#cbd5e1;font-size:13px;"></div>
+      <div id="editModalBody" style="color:var(--text-2);font-size:13px;"></div>
     </div>
-    <div style="padding:16px 24px;border-top:1px solid #2d3548;display:flex;gap:10px;justify-content:flex-end;">
-      <button onclick="closeEditModal()" style="padding:8px 20px;border-radius:7px;border:1px solid #2d3548;background:#2d3548;color:#94a3b8;font-size:13px;cursor:pointer;">Cancel</button>
-      <button id="confirmEditBtn" style="padding:8px 20px;border-radius:7px;border:none;background:#6366f1;color:#fff;font-size:13px;font-weight:600;cursor:pointer;"><i class="bi bi-check-lg"></i> Save Changes</button>
+    <div style="padding:16px 24px;border-top:1px solid var(--modal-border);display:flex;gap:10px;justify-content:flex-end;">
+      <button onclick="closeEditModal()" style="padding:8px 20px;border-radius:7px;border:1px solid var(--modal-border);background:var(--modal-border);color:var(--text-3);font-size:13px;cursor:pointer;">Cancel</button>
+      <button id="confirmEditBtn" style="padding:8px 20px;border-radius:7px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer;"><i class="bi bi-check-lg"></i> Save Changes</button>
     </div>
   </div>
 </div>
 
 <!-- Delete Confirm Modal -->
-<div id="deleteModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;">
-  <div style="background:#1e2433;border:1px solid #2d3548;border-radius:12px;width:520px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,0.5);">
-    <div style="padding:20px 24px 16px;border-bottom:1px solid #2d3548;display:flex;align-items:center;gap:10px;">
-      <span style="background:#be123c22;border-radius:8px;padding:6px 10px;"><i class="bi bi-exclamation-triangle-fill" style="color:#f43f5e;font-size:18px;"></i></span>
+<div id="deleteModal" style="display:none;position:fixed;inset:0;z-index:9999;background:var(--overlay-bg);align-items:center;justify-content:center;">
+  <div style="background:var(--modal-bg);border:1px solid var(--modal-border);border-radius:12px;width:520px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column;box-shadow:var(--shadow-card);">
+    <div style="padding:20px 24px 16px;border-bottom:1px solid var(--modal-border);display:flex;align-items:center;gap:10px;">
+      <span style="background:var(--danger-bg);border-radius:8px;padding:6px 10px;"><i class="bi bi-exclamation-triangle-fill" style="color:var(--danger);font-size:18px;"></i></span>
       <div>
-        <div style="color:#f1f5f9;font-weight:600;font-size:15px;">Confirm Delete</div>
-        <div style="color:#94a3b8;font-size:12px;">This action cannot be undone</div>
+        <div style="color:var(--text-1);font-weight:600;font-size:15px;">Confirm Delete</div>
+        <div style="color:var(--text-3);font-size:12px;">This action cannot be undone</div>
       </div>
-      <button onclick="closeDeleteModal()" style="margin-left:auto;background:none;border:none;color:#64748b;font-size:20px;cursor:pointer;line-height:1;">&times;</button>
+      <button onclick="closeDeleteModal()" style="margin-left:auto;background:none;border:none;color:var(--text-3);font-size:20px;cursor:pointer;line-height:1;">&times;</button>
     </div>
     <div style="padding:16px 24px;overflow-y:auto;flex:1;">
-      <div id="deleteModalBody" style="color:#cbd5e1;font-size:13px;"></div>
+      <div id="deleteModalBody" style="color:var(--text-2);font-size:13px;"></div>
     </div>
-    <div style="padding:16px 24px;border-top:1px solid #2d3548;display:flex;gap:10px;justify-content:flex-end;">
-      <button onclick="closeDeleteModal()" style="padding:8px 20px;border-radius:7px;border:1px solid #2d3548;background:#2d3548;color:#94a3b8;font-size:13px;cursor:pointer;">Cancel</button>
-      <button id="confirmDeleteBtn" style="padding:8px 20px;border-radius:7px;border:none;background:#be123c;color:#fff;font-size:13px;font-weight:600;cursor:pointer;"><i class="bi bi-trash3"></i> Yes, Delete</button>
+    <div style="padding:16px 24px;border-top:1px solid var(--modal-border);display:flex;gap:10px;justify-content:flex-end;">
+      <button onclick="closeDeleteModal()" style="padding:8px 20px;border-radius:7px;border:1px solid var(--modal-border);background:var(--modal-border);color:var(--text-3);font-size:13px;cursor:pointer;">Cancel</button>
+      <button id="confirmDeleteBtn" style="padding:8px 20px;border-radius:7px;border:none;background:var(--danger);color:#fff;font-size:13px;font-weight:600;cursor:pointer;"><i class="bi bi-trash3"></i> Yes, Delete</button>
     </div>
   </div>
 </div>
@@ -274,8 +274,8 @@ $(function(){
                 data:null, title:'Action', orderable:false, searchable:false, width:'80px',
                 render:function(v,type,row){
                     if(type!=='display') return '';
-                    return '<button class="edit-btn" data-type="issue" data-id="'+row.issue_id+'" title="Edit Change" style="background:#6366f122;border:1px solid #6366f144;color:#818cf8;border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;margin-right:4px;"><i class="bi bi-pencil"></i></button>'
-                          +'<button class="del-btn" data-type="issue" data-id="'+row.issue_id+'" title="Delete Change" style="background:#be123c22;border:1px solid #be123c44;color:#f43f5e;border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;"><i class="bi bi-trash3"></i></button>';
+                    return '<button class="edit-btn" data-type="issue" data-id="'+row.issue_id+'" title="Edit Change" style="background:var(--accent-bg);border:1px solid var(--accent-border);color:var(--accent);border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;margin-right:4px;"><i class="bi bi-pencil"></i></button>'
+                          +'<button class="del-btn" data-type="issue" data-id="'+row.issue_id+'" title="Delete Change" style="background:var(--danger-bg);border:1px solid var(--danger-border);color:var(--danger);border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;"><i class="bi bi-trash3"></i></button>';
                 }
             });
             Object.keys(data[0]).forEach(function(k){
@@ -355,23 +355,23 @@ $(function(){
             updateStats(arr);
             $('#recordCount').text(arr.length+' Records');
         });
-    }).fail(function(){$('#loader').html('<div style="color:#be123c;font-size:13px"><i class="bi bi-exclamation-triangle"></i> Failed to load data</div>');});
+    }).fail(function(){$('#loader').html('<div style="color:var(--danger);font-size:13px"><i class="bi bi-exclamation-triangle"></i> Failed to load data</div>');});
 });
 
 function inp(label,name,val,type){
     type=type||'text';
-    return '<div style="margin-bottom:12px;"><label style="display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;">'+label+'</label>'
-        +'<input name="'+name+'" value="'+(val!=null?String(val).replace(/"/g,'&quot;'):'')+'" type="'+type+'" style="width:100%;background:#131929;border:1px solid #2d3548;border-radius:6px;padding:7px 10px;color:#e2e8f0;font-size:13px;box-sizing:border-box;"></div>';
+    return '<div style="margin-bottom:12px;"><label style="display:block;color:var(--text-3);font-size:11px;margin-bottom:4px;">'+label+'</label>'
+        +'<input name="'+name+'" value="'+(val!=null?String(val).replace(/"/g,'&quot;'):'')+'" type="'+type+'" style="width:100%;background:var(--input-bg);border:1px solid var(--modal-border);border-radius:6px;padding:7px 10px;color:var(--text-1);font-size:13px;box-sizing:border-box;"></div>';
 }
 function sel(label,name,val,opts){
-    var s='<div style="margin-bottom:12px;"><label style="display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;">'+label+'</label>'
-        +'<select name="'+name+'" style="width:100%;background:#131929;border:1px solid #2d3548;border-radius:6px;padding:7px 10px;color:#e2e8f0;font-size:13px;">';
+    var s='<div style="margin-bottom:12px;"><label style="display:block;color:var(--text-3);font-size:11px;margin-bottom:4px;">'+label+'</label>'
+        +'<select name="'+name+'" style="width:100%;background:var(--input-bg);border:1px solid var(--modal-border);border-radius:6px;padding:7px 10px;color:var(--text-1);font-size:13px;">';
     opts.forEach(function(o){s+='<option value="'+o+'"'+(String(val)===String(o)?' selected':'')+'>'+o+'</option>';});
     return s+'</select></div>';
 }
 function ta(label,name,val){
-    return '<div style="margin-bottom:12px;"><label style="display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;">'+label+'</label>'
-        +'<textarea name="'+name+'" rows="2" style="width:100%;background:#131929;border:1px solid #2d3548;border-radius:6px;padding:7px 10px;color:#e2e8f0;font-size:13px;box-sizing:border-box;resize:vertical;">'+(val||'')+'</textarea></div>';
+    return '<div style="margin-bottom:12px;"><label style="display:block;color:var(--text-3);font-size:11px;margin-bottom:4px;">'+label+'</label>'
+        +'<textarea name="'+name+'" rows="2" style="width:100%;background:var(--input-bg);border:1px solid var(--modal-border);border-radius:6px;padding:7px 10px;color:var(--text-1);font-size:13px;box-sizing:border-box;resize:vertical;">'+(val||'')+'</textarea></div>';
 }
 function formatDateForInput(val){
     if(!val) return '';
@@ -389,7 +389,7 @@ function formatDateForInput(val){
 }
 
 function openEditModal(type, id){
-    $('#editModalBody').html('<div style="color:#94a3b8;padding:20px;text-align:center;"><i class="bi bi-arrow-repeat"></i> Loading...</div>');
+    $('#editModalBody').html('<div style="color:var(--text-3);padding:20px;text-align:center;"><i class="bi bi-arrow-repeat"></i> Loading...</div>');
     $('#editModal').css('display','flex');
     $.getJSON(getApiBase()+'datatable/admin/edit/'+type+'/'+id, function(res){
         var r=res.record, html='';
@@ -424,7 +424,7 @@ function openEditModal(type, id){
         html+=ta('Description','description',r.description);
         $('#editModalBody').html(html);
         $('#confirmEditBtn').off('click').on('click',function(){ submitEdit(type,id); });
-    }).fail(function(){ $('#editModalBody').html('<div style="color:#f43f5e;">Failed to load data.</div>'); });
+    }).fail(function(){ $('#editModalBody').html('<div style="color:var(--danger);">Failed to load data.</div>'); });
 }
 function closeEditModal(){ $('#editModal').hide(); }
 function submitEdit(type,id){
@@ -441,24 +441,24 @@ function submitEdit(type,id){
 }
 
 function openDeleteModal(type, id){
-    $('#deleteModalBody').html('<div style="color:#94a3b8;padding:20px;text-align:center;"><i class="bi bi-arrow-repeat"></i> Loading preview...</div>');
+    $('#deleteModalBody').html('<div style="color:var(--text-3);padding:20px;text-align:center;"><i class="bi bi-arrow-repeat"></i> Loading preview...</div>');
     $('#deleteModal').css('display','flex');
     $.getJSON(getApiBase()+'datatable/admin/delete/preview/'+type+'/'+id, function(res){
         var p=res.preview, r=p.record, html='';
-        html='<div style="background:#be123c11;border:1px solid #be123c33;border-radius:8px;padding:12px 16px;margin-bottom:14px;">';
-        html+='<div style="color:#f43f5e;font-weight:600;margin-bottom:6px;"><i class="bi bi-exclamation-circle"></i> Issue to be deleted</div>';
+        html='<div style="background:var(--danger-bg);border:1px solid var(--danger-border);border-radius:8px;padding:12px 16px;margin-bottom:14px;">';
+        html+='<div style="color:var(--danger);font-weight:600;margin-bottom:6px;"><i class="bi bi-exclamation-circle"></i> Issue to be deleted</div>';
         html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;">';
-        html+='<div><span style="color:#64748b;">Issue ID:</span> <span style="color:#e2e8f0;">'+r.id+'</span></div>';
-        html+='<div><span style="color:#64748b;">Task:</span> <span style="color:#e2e8f0;">'+(r.task_name||'N/A')+'</span></div>';
-        html+='<div><span style="color:#64748b;">Project:</span> <span style="color:#e2e8f0;">'+(r.project_name||'N/A')+'</span></div>';
-        html+='<div><span style="color:#64748b;">Type:</span> <span style="color:#e2e8f0;">'+(r.assignment_type||'N/A')+'</span></div>';
-        html+='<div><span style="color:#64748b;">Version:</span> <span style="color:#e2e8f0;">v'+(r.version||'1')+'</span></div>';
-        html+='<div><span style="color:#64748b;">Status:</span> <span style="color:#e2e8f0;">'+(r.status||'N/A')+'</span></div>';
+        html+='<div><span style="color:var(--text-3);">Issue ID:</span> <span style="color:var(--text-1);">'+r.id+'</span></div>';
+        html+='<div><span style="color:var(--text-3);">Task:</span> <span style="color:var(--text-1);">'+(r.task_name||'N/A')+'</span></div>';
+        html+='<div><span style="color:var(--text-3);">Project:</span> <span style="color:var(--text-1);">'+(r.project_name||'N/A')+'</span></div>';
+        html+='<div><span style="color:var(--text-3);">Type:</span> <span style="color:var(--text-1);">'+(r.assignment_type||'N/A')+'</span></div>';
+        html+='<div><span style="color:var(--text-3);">Version:</span> <span style="color:var(--text-1);">v'+(r.version||'1')+'</span></div>';
+        html+='<div><span style="color:var(--text-3);">Status:</span> <span style="color:var(--text-1);">'+(r.status||'N/A')+'</span></div>';
         html+='</div></div>';
-        html+='<div style="color:#22c55e;font-size:12px;"><i class="bi bi-check-circle"></i> Only this issue record will be deleted.</div>';
+        html+='<div style="color:var(--success);font-size:12px;"><i class="bi bi-check-circle"></i> Only this issue record will be deleted.</div>';
         $('#deleteModalBody').html(html);
         $('#confirmDeleteBtn').off('click').on('click',function(){ confirmDelete(type,id); });
-    }).fail(function(){ $('#deleteModalBody').html('<div style="color:#f43f5e;">Failed to load preview.</div>'); });
+    }).fail(function(){ $('#deleteModalBody').html('<div style="color:var(--danger);">Failed to load preview.</div>'); });
 }
 function closeDeleteModal(){ $('#deleteModal').hide(); }
 function confirmDelete(type,id){
