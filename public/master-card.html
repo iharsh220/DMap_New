@@ -154,6 +154,8 @@ $(function(){
         return;
     }
 
+    var apiBase = getApiBase() + 'datatable/';
+
     loadUserInfo();
 
     $('#sidebarToggle').on('click', function(){
@@ -177,7 +179,6 @@ $(function(){
         var file = e.target.files[0];
         if(!file){ return; }
         var jobId = 'job_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
-        var apiBase = getApiBase() + 'datatable/';
         var formData = new FormData();
         formData.append('file', file);
         formData.append('jobId', jobId);
@@ -260,7 +261,8 @@ $(function(){
     });
 
     var cols = [
-        {data:'id', title:'ID', defaultContent:'N/A', className:'dt-right'},
+        {data:'action', title:'Action', defaultContent:'', orderable:false, searchable:false, className:'dt-center', width:'80px'},
+        {data:'id', title:'ID', defaultContent:'N/A', className:'dt-right', width:'50px'},
         {data:'division_name', title:'Vertical', defaultContent:'N/A'},
         {data:'task_type_name', title:'Task Type', defaultContent:'N/A'},
         {data:'new_work_rate', title:'New Work Rate', defaultContent:'0'},
@@ -271,10 +273,19 @@ $(function(){
 
     var dt = $('#mainTable').DataTable({
         ajax: {
-            url: './master-card/data',
+            url: apiBase + 'admin/master-card/data',
             dataSrc: function(json){ return json.data || json || []; }
         },
         columns: cols,
+        order: [[1, 'asc']],
+        createdRow: function(row, data, dataIndex){
+            var actionCell = $(row).find('td:eq(0)');
+            var html = '<div class="action-buttons">';
+            html += '<button class="edit-btn" data-id="' + data.id + '" title="Edit" style="background:#6366f122;border:1px solid #6366f144;color:#818cf8;border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;margin-right:4px;"><i class="bi bi-pencil"></i></button>';
+            html += '<button class="del-btn" data-id="' + data.id + '" title="Delete" style="background:#be123c22;border:1px solid #be123c44;color:#f43f5e;border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;"><i class="bi bi-trash3"></i></button>';
+            html += '</div>';
+            actionCell.html(html);
+        },
         pageLength: 25,
         lengthMenu: [[25,50,100,200,-1],[25,50,100,200,'All']],
         dom: '<"dt-top-row"lf>rt<"dt-bottom-row"ip>',
@@ -289,6 +300,7 @@ $(function(){
             var api = this.api();
             api.columns().every(function(){
                 var col = this, idx = col.index();
+                if (idx === 0) return;
                 var th = $(col.header());
                 var labelText = cols[idx].title;
                 th.empty();
@@ -326,7 +338,114 @@ $(function(){
 
     $('#btnExcel').on('click',function(){ dt.button('.buttons-excel').trigger(); });
     $('#btnCsv').on('click',function(){ dt.button('.buttons-csv').trigger(); });
-});
-</script>
+
+    dt.on('click', '.edit-btn', function(){
+        var id = $(this).data('id');
+        $('#editModal').data('edit-id', id);
+        var rowData = dt.row($(this).closest('tr')).data();
+        $('#editVertical').val(rowData.division_name || 'N/A');
+        $('#editTaskType').val(rowData.task_type_name || 'N/A');
+        $('#editNewWorkRate').val(parseFloat(rowData.new_work_rate) || 0);
+        $('#editChangesRate').val(parseFloat(rowData.changes_rate) || 0);
+        $('#editConceptCharge').val(parseFloat(rowData.concept_charge) || 0);
+        $('#editAiCharges').val(parseFloat(rowData.ai_charges) || 0);
+        $('#editModal').addClass('active');
+    });
+
+    dt.on('click', '.del-btn', function(){
+        var id = $(this).data('id');
+        if(confirm('Are you sure you want to delete this rate card entry?')){
+            $.ajax({
+                url: apiBase + 'admin/master-card/' + id,
+                type: 'DELETE',
+                headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('accessToken') || '') },
+                success: function(res){
+                    if(res.success){ dt.ajax.reload(); }
+                    else { alert('Delete failed: ' + (res.error || 'Unknown')); }
+                },
+                error: function(){ alert('Delete failed'); }
+            });
+        }
+    });
+
+    $('#editModal .modal-close, #editModal .btn-cancel').on('click', function(){
+        $('#editModal').removeClass('active');
+    });
+
+    $('#editForm').on('submit', function(e){
+        e.preventDefault();
+        var id = $('#editModal').data('edit-id');
+        $.ajax({
+            url: apiBase + 'admin/master-card/' + id,
+            type: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                new_work_rate: parseFloat($('#editNewWorkRate').val()) || 0,
+                changes_rate: parseFloat($('#editChangesRate').val()) || 0,
+                concept_charge: parseFloat($('#editConceptCharge').val()) || 0,
+                ai_charges: parseFloat($('#editAiCharges').val()) || 0
+            }),
+            headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('accessToken') || '') },
+            success: function(res){
+                if(res.success){
+                    $('#editModal').removeClass('active');
+                    dt.ajax.reload();
+                } else {
+                    alert('Update failed: ' + (res.error || 'Unknown'));
+                }
+            },
+            error: function(){ alert('Update failed'); }
+        });
+    });
+});</script>
+
+<div class="modal-overlay" id="editModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-icon" style="background: rgba(58,91,217,0.15);"><i class="bi bi-pencil-square" style="color: var(--accent)"></i></div>
+            <div class="modal-title-wrap">
+                <div class="modal-title">Edit Rate Card</div>
+                <div class="modal-subtitle">Update rates below (Vertical and Task Type are read-only)</div>
+            </div>
+            <button class="modal-close" type="button"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <form id="editForm" class="modal-body">
+            <div class="modal-form-row">
+                <div class="modal-form-group">
+                    <label>Vertical</label>
+                    <input type="text" id="editVertical" readonly>
+                </div>
+                <div class="modal-form-group">
+                    <label>Task Type</label>
+                    <input type="text" id="editTaskType" readonly>
+                </div>
+            </div>
+            <div class="modal-form-row">
+                <div class="modal-form-group">
+                    <label>New Work Rate</label>
+                    <input type="number" id="editNewWorkRate" step="0.01" required>
+                </div>
+                <div class="modal-form-group">
+                    <label>Changes Work Rate</label>
+                    <input type="number" id="editChangesRate" step="0.01" required>
+                </div>
+            </div>
+            <div class="modal-form-row">
+                <div class="modal-form-group">
+                    <label>Concept Charge</label>
+                    <input type="number" id="editConceptCharge" step="0.01" required>
+                </div>
+                <div class="modal-form-group">
+                    <label>AI Charges</label>
+                    <input type="number" id="editAiCharges" step="0.01" required>
+                </div>
+            </div>
+        </form>
+        <div class="modal-footer">
+            <button type="button" class="modal-btn modal-btn-secondary btn-cancel">Cancel</button>
+            <button type="submit" form="editForm" class="modal-btn modal-btn-primary">Save Changes</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>

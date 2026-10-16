@@ -4,6 +4,7 @@ const ExcelJS = require('exceljs');
 const csvParser = require('csv-parser');
 const fs = require('fs');
 const path = require('path');
+const { clearAdminCache } = require('../services/adminCacheService');
 
 let sseClients = {};
 
@@ -5214,7 +5215,7 @@ const getMasterCardData = async (req, res) => {
             SELECT id, division_id, division_name, task_type_id, task_type_name,
                    new_work_rate, changes_rate, concept_charge, ai_charges
             FROM master_card
-            ORDER BY division_name, task_type_name
+            ORDER BY id ASC
         `);
         res.json({ success: true, data: rows });
     } catch (error) {
@@ -5355,6 +5356,62 @@ const uploadMasterCard = async (req, res) => {
     }
 };
 
+const updateMasterCard = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { new_work_rate, changes_rate, concept_charge, ai_charges } = req.body;
+        const setParts = [];
+        const replacements = [];
+        if (new_work_rate !== undefined) {
+            setParts.push(`new_work_rate = ?`);
+            replacements.push(new_work_rate);
+        }
+        if (changes_rate !== undefined) {
+            setParts.push(`changes_rate = ?`);
+            replacements.push(changes_rate);
+        }
+        if (concept_charge !== undefined) {
+            setParts.push(`concept_charge = ?`);
+            replacements.push(concept_charge);
+        }
+        if (ai_charges !== undefined) {
+            setParts.push(`ai_charges = ?`);
+            replacements.push(ai_charges);
+        }
+        if (setParts.length === 0) {
+            return res.status(400).json({ success: false, error: 'No valid fields to update' });
+        }
+        setParts.push(`updated_at = NOW()`);
+        replacements.push(id);
+        const sql = `UPDATE master_card SET ${setParts.join(', ')} WHERE id = ?`;
+        await sequelize.query(sql, { replacements });
+        await clearAdminCache();
+        const rows = await sequelize.query(`SELECT * FROM master_card WHERE id = ?`, { replacements: [id], type: sequelize.QueryTypes.SELECT });
+        if (!rows || rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Record not found' });
+        }
+        res.json({ success: true, data: rows[0], message: 'Updated successfully' });
+    } catch (error) {
+        console.error('Error updating master card:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+const deleteMasterCard = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const [result] = await sequelize.query(`DELETE FROM master_card WHERE id = ?`, { replacements: [id] });
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, error: 'Record not found' });
+        }
+        await clearAdminCache();
+        res.json({ success: true, message: 'Record deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting master card:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
 const sseProgress = (req, res) => {
     const jobId = req.params.jobId;
     res.writeHead(200, {
@@ -5405,5 +5462,7 @@ module.exports = {
     updateIssue,
     getMasterCardData,
     uploadMasterCard,
+    updateMasterCard,
+    deleteMasterCard,
     sseProgress
 };
