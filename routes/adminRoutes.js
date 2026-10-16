@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const { cachedAdminData, invalidateAdminCache } = require('../services/adminCacheService');
-const { getAdminData, getAllFeedback, getClientsData,getTaskDetailsData, getTasksForWorkRequest, getIssueDetailsData, getWorkRequestTasksData, getDeletePreview, deleteProject, deleteClient, deleteTask, deleteIssue, getAllLeaves, getLeaveById, createLeave, updateLeave, deleteLeave, getLeaveKpis, getLeaveUsers, getUserDivision, exportLeavesCsv, exportLeavesExcel, getEditData, getRequestTypes, getProjectTypesByProject, getCreativeManagerByProject, updateProject, updateClient, updateTask, updateIssue, getMasterCardData, uploadMasterCard, sseProgress } = require('../controller/adminController');
+const { getAdminData, getAllFeedback, getClientsData,getTaskDetailsData, getTasksForWorkRequest, getIssueDetailsData, getWorkRequestTasksData, getDeletePreview, deleteProject, deleteClient, deleteTask, deleteIssue, getAllLeaves, getLeaveById, createLeave, updateLeave, deleteLeave, getLeaveKpis, getLeaveUsers, getUserDivision, exportLeavesCsv, exportLeavesExcel, getEditData, getRequestTypes, getProjectTypesByProject, getCreativeManagerByProject, updateProject, updateClient, updateTask, updateIssue, getMasterCardData, uploadMasterCard, updateMasterCard, deleteMasterCard, sseProgress } = require('../controller/adminController');
 
 // Serve shared CSS theme
 router.get('/admin/dmap-theme.css', (req, res) => {
@@ -74,6 +74,12 @@ router.post('/admin/master-card/upload', uploadMasterCard);
 
 // SSE progress endpoint for master card upload
 router.get('/admin/master-card/upload/progress/:jobId', sseProgress);
+
+// Update master card rate
+router.put('/admin/master-card/:id', updateMasterCard);
+
+// Delete master card rate
+router.delete('/admin/master-card/:id', deleteMasterCard);
 
 // Serve token projects HTML
 router.get('/admin/token-projects', (req, res) => {
