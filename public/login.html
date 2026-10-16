@@ -9,23 +9,23 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
-            --accent: #2563eb;
-            --accent-hover: #1d4ed8;
-            --accent-light: #eff6ff;
-            --bg: #f8fafc;
-            --card-bg: #ffffff;
-            --border: #e2e8f0;
-            --text-1: #0f172a;
-            --text-2: #475569;
-            --text-3: #94a3b8;
-            --error: #be123c;
-            --success: #16a34a;
+            --accent: #3a5bd9;
+            --accent-hover: #2a4ed9;
+            --accent-light: rgba(58, 91, 217, 0.12);
+            --bg: #12141a;
+            --card-bg: #1b1e27;
+            --border: #2c303c;
+            --text-1: #e8eaf0;
+            --text-2: #b8bccf;
+            --text-3: #7a8196;
+            --error: #ea5849;
+            --success: #4ade80;
             --radius: 10px;
             --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
-        html, body { height: 100%; font-family: var(--font); background: linear-gradient(135deg, #f6f8fc 0%, #e9eef6 100%); color: var(--text-1); display: flex; align-items: center; justify-content: center; }
+        html, body { height: 100%; font-family: var(--font); background: var(--bg); color: var(--text-1); display: flex; align-items: center; justify-content: center; }
         .login-wrapper { width: 100%; max-width: 440px; padding: 28px; }
-        .login-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 18px; box-shadow: 0 12px 48px rgba(15,23,42,0.10), 0 2px 8px rgba(15,23,42,0.05); padding: 46px 42px; }
+        .login-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 18px; box-shadow: 0 12px 48px rgba(0,0,0,.45); padding: 46px 42px; }
         .logo { display: flex; align-items: center; justify-content: center; gap: 11px; margin-bottom: 10px; }
         .logo-icon { width: 54px; height: 54px; background: linear-gradient(135deg, var(--accent), #3b82f6); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 26px; font-weight: 700; box-shadow: 0 6px 18px rgba(37,99,235,0.35); }
         .logo-text { font-size: 22px; font-weight: 700; color: var(--text-1); letter-spacing: -0.3px; }
@@ -35,7 +35,7 @@
         .form-group label { display: block; font-size: 14px; font-weight: 600; color: var(--text-2); margin-bottom: 9px; }
         .input-wrapper { position: relative; }
         .input-wrapper i { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-3); font-size: 17px; pointer-events: none; }
-        .input-wrapper input { width: 100%; padding: 15px 16px 15px 48px; border: 1px solid var(--border); border-radius: 12px; font-size: 15px; font-family: var(--font); color: var(--text-1); background: #fff; transition: border-color .15s, box-shadow .15s; }
+        .input-wrapper input { width: 100%; padding: 15px 16px 15px 48px; border: 1px solid var(--border); border-radius: 12px; font-size: 15px; font-family: var(--font); color: var(--text-1); background: var(--bg); transition: border-color .15s, box-shadow .15s; }
         .input-wrapper input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-light); }
         .input-wrapper input::placeholder { color: var(--text-3); }
         .form-options { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; font-size: 14px; }
@@ -56,11 +56,11 @@
         .login-footer a { color: var(--accent); text-decoration: none; font-weight: 500; }
         .login-footer a:hover { text-decoration: underline; }
         .alert { padding: 14px 16px; border-radius: 12px; font-size: 14px; display: none; align-items: center; gap: 8px; margin-bottom: 20px; }
-        .alert-error { background: #fef2f2; color: var(--error); border: 1px solid #fecaca; }
-        .alert-success { background: #f0fdf4; color: var(--success); border: 1px solid #bbf7d0; }
+        .alert-error { background: #2a1a1a; color: var(--error); border: 1px solid #5a2a2a; }
+        .alert-success { background: #1a2e1f; color: var(--success); border: 1px solid #2d6340; }
         .alert i { font-size: 17px; flex-shrink: 0; }
         .input-wrapper.error input { border-color: var(--error); }
-        .input-wrapper.error input:focus { box-shadow: 0 0 0 4px #fecaca66; }
+        .input-wrapper.error input:focus { box-shadow: 0 0 0 4px rgba(234,88,73,.3); }
     </style>
 </head>
 <body>
