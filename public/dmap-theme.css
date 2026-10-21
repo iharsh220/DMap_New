@@ -53,6 +53,9 @@
     --input-readonly-bg: #1a2035;
     --overlay-bg:   rgba(10,12,20,.65);
     --tag-bg:       #2a2f3f;
+
+    --header-bg:    #232734;
+    --header-border: #2c303c;
 }
 
 html, body {
@@ -430,15 +433,16 @@ table.dataTable {
 
 /* HEADER */
 table.dataTable thead th {
-    background: #232734 !important;
+    background: var(--header-bg) !important;
     color: var(--text-3) !important;
     font-size: 11px !important;
     font-weight: 600 !important;
     padding: 0 !important;
-    border-bottom: 2px solid #2c303c !important;
-    border-right: 1px solid #2c303c !important;
+    border-bottom: 2px solid var(--header-border) !important;
+    border-right: 1px solid var(--header-border) !important;
     letter-spacing: 0.2px;
     vertical-align: top !important;
+    min-height: 36px;
 }
 
 /* th inner wrapper — label + filter input stacked */
@@ -460,6 +464,12 @@ table.dataTable thead th .th-sort { font-size: 9px; color: var(--text-3); }
 table.dataTable thead th.sorting_asc  .th-sort::after { content: ' ↑'; color: var(--accent); }
 table.dataTable thead th.sorting_desc .th-sort::after { content: ' ↓'; color: var(--accent); }
 table.dataTable thead th:not(.sorting_asc):not(.sorting_desc) .th-sort::after { content: ' ↕'; }
+table.dataTable thead th.dt-center {
+    padding: 8px 10px 6px !important;
+    text-align: center;
+    vertical-align: middle !important;
+    min-height: 34px;
+}
 
 /* per-column filter input */
 table.dataTable thead th .col-filter {
@@ -481,7 +491,7 @@ table.dataTable thead th .col-filter {
 }
 table.dataTable thead th .col-filter:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 2px rgba(58,91,217,0.2);
+    box-shadow: 0 0 0 2px var(--accent-focus);
 }
 table.dataTable thead th select.col-filter { cursor: pointer; }
 
@@ -856,14 +866,12 @@ body.light-theme {
     --input-readonly-bg: #f1f5f9;
     --overlay-bg:   rgba(15,23,42,.45);
     --tag-bg:       #f1f5f9;
+
+    --header-bg:    #f1f5f9;
+    --header-border: #e2e8f0;
 }
 
 /* Light theme table overrides (hardcoded colors in dark theme) */
-body.light-theme table.dataTable thead th {
-    background: #f1f5f9 !important;
-    border-bottom-color: #e2e8f0 !important;
-    border-right-color: #e2e8f0 !important;
-}
 body.light-theme table.dataTable tbody tr.odd td,
 body.light-theme table.dataTable tbody tr.even td {
     background: #ffffff;
