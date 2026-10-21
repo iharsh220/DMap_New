@@ -5224,6 +5224,21 @@ const getMasterCardData = async (req, res) => {
     }
 };
 
+const getFinancialYears = async (req, res) => {
+    try {
+        const [rows] = await sequelize.query(`
+            SELECT DISTINCT financial_year FROM master_card
+            WHERE financial_year IS NOT NULL AND financial_year != ''
+            ORDER BY financial_year ASC
+        `);
+        const years = rows.map(r => r.financial_year);
+        res.json({ success: true, data: years });
+    } catch (error) {
+        console.error('Error fetching financial years:', error);
+        res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+};
+
 const uploadMasterCard = async (req, res) => {
     const jobId = req.body.jobId || req.query.jobId;
     try {
@@ -5504,5 +5519,6 @@ module.exports = {
     updateMasterCard,
     deleteMasterCard,
     updateMasterCardField,
+    getFinancialYears,
     sseProgress
 };

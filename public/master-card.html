@@ -119,9 +119,11 @@
                             <span class="kpi-label">Financial Year</span>
                             <span class="kpi-spacer"></span>
                             <select class="kpi-select" id="kpiFinancialYearInput" data-field="financial_year">
+                                <option value="">All Financial Years</option>
                                 <option value="FY 24-25">FY 24-25</option>
-                                <option value="FY 25-26" selected>FY 25-26</option>
+                                <option value="FY 25-26">FY 25-26</option>
                                 <option value="FY 26-27">FY 26-27</option>
+                                <option value="FY 27-28">FY 27-28</option>
                             </select>
                         </div>
                     </div>
@@ -366,18 +368,37 @@ $(function(){
 
     dt.on('draw', function(){
         $('#loader').hide();
-        var rows = dt.rows({ filter:'applied' }).data();
-        var arr = rows.toArray ? rows.toArray() : rows;
+        var rows = dt.rows().data();
+        var allArr = rows.toArray ? rows.toArray() : rows;
+        var filterRows = dt.rows({ filter:'applied' }).data();
+        var arr = filterRows.toArray ? filterRows.toArray() : filterRows;
         var divs = {};
         arr.forEach(function(r){ var d = r.division_name || 'N/A'; divs[d] = (divs[d]||0)+1; });
         $('#s1').text(arr.length);
         $('#s2').text(Object.keys(divs).length);
+        var currentFilter = $('#kpiFinancialYearInput').val();
+        var seenFYs = {};
+        var fyList = [];
+        allArr.forEach(function(r){
+            var fy = r.financial_year || 'FY 25-26';
+            if(!seenFYs[fy]){ seenFYs[fy] = true; fyList.push(fy); }
+        });
+        var kpiSelect = $('#kpiFinancialYearInput');
+        var editSelect = $('#editFinancialYear');
+        var kpiVal = kpiSelect.val();
+        kpiSelect.empty();
+        kpiSelect.append('<option value="">All Financial Years</option>');
+        editSelect.empty();
+        fyList.forEach(function(yr){
+            kpiSelect.append('<option value="'+yr+'">'+yr+'</option>');
+            editSelect.append('<option value="'+yr+'">'+yr+'</option>');
+        });
+        if(kpiVal){ kpiSelect.val(kpiVal); }
         if(arr.length){
             var r = arr[0];
             $('#kpiConceptInput').val(parseFloat(r.concept_charge) || 0);
             $('#kpiAiInput').val(parseFloat(r.ai_charges) || 0);
             $('#kpiRushInput').val(parseFloat(r.last_moment) || 0);
-            $('#kpiFinancialYearInput').val(r.financial_year || 'FY 25-26');
         }
     });
 
@@ -402,7 +423,6 @@ $(function(){
         $('#kpiConceptInput').val(parseFloat(rowData.concept_charge) || 0);
         $('#kpiAiInput').val(parseFloat(rowData.ai_charges) || 0);
         $('#kpiRushInput').val(parseFloat(rowData.last_moment) || 0);
-        $('#kpiFinancialYearInput').val(rowData.financial_year || 'FY 25-26');
         $('#editModal').addClass('active');
     });
 
@@ -416,9 +436,6 @@ $(function(){
         } else if(field==='last_moment'){
             $('#kpiRushInput').val(val);
             $('#editLastMoment').val(val);
-        } else if(field==='financial_year'){
-            $('#kpiFinancialYearInput').val(val);
-            $('#editFinancialYear').val(val);
         }
     }
 
@@ -432,6 +449,18 @@ $(function(){
             success: function(res){
                 if(res.success){ dt.ajax.reload(); }
             }
+        });
+    }
+
+    function populateFinancialYearDropdowns(years){
+        var kpiSelect = $('#kpiFinancialYearInput');
+        var editSelect = $('#editFinancialYear');
+        kpiSelect.empty();
+        editSelect.empty();
+        kpiSelect.append('<option value="">All Financial Years</option>');
+        years.forEach(function(yr){
+            kpiSelect.append('<option value="'+yr+'">'+yr+'</option>');
+            editSelect.append('<option value="'+yr+'">'+yr+'</option>');
         });
     }
 
@@ -450,8 +479,11 @@ $(function(){
     }).on('change', function(){
         updateFieldInDB('last_moment', $(this).val());
     });
-    $('#kpiFinancialYearInput, #editFinancialYear').on('change', function(){
-        syncKPIFields('financial_year', $(this).val());
+    $('#kpiFinancialYearInput').on('change', function(){
+        var val = $(this).val();
+        dt.column(4).search(val).draw();
+    });
+    $('#editFinancialYear').on('change', function(){
         updateFieldInDB('financial_year', $(this).val());
     });
 
@@ -555,6 +587,7 @@ $(function(){
                         <option value="FY 24-25">FY 24-25</option>
                         <option value="FY 25-26">FY 25-26</option>
                         <option value="FY 26-27">FY 26-27</option>
+                        <option value="FY 27-28">FY 27-28</option>
                     </select>
                 </div>
             </div>
