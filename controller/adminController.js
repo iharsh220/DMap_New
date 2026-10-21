@@ -5213,7 +5213,7 @@ const getMasterCardData = async (req, res) => {
     try {
         const [rows] = await sequelize.query(`
             SELECT id, division_id, division_name, task_type_id, task_type_name,
-                   new_work_rate, changes_rate, concept_charge, ai_charges
+                   new_work_rate, changes_rate, concept_charge, ai_charges, last_moment, financial_year
             FROM master_card
             ORDER BY id ASC
         `);
@@ -5293,6 +5293,8 @@ const uploadMasterCard = async (req, res) => {
                 const changesRate = parseFloat(row['changes work rate'] || row['changes_rate'] || 0) || 0;
                 const conceptCharge = parseFloat(row['concept charge'] || row['concept_charge'] || 0) || 0;
                 const aiCharges = parseFloat(row['ai charges'] || row['ai_charges'] || 0) || 0;
+        const lastMoment = parseFloat(row['last moment'] || row['last_moment'] || 0) || 0;
+        const financialYear = (row['financial year'] || row['financial_year'] || 'FY 25-26').toString().trim();
 
                 const divRow = await sequelize.query(
                     `SELECT id, title FROM division WHERE title = ? LIMIT 1`,
@@ -5328,11 +5330,11 @@ const uploadMasterCard = async (req, res) => {
                     taskTypeValue = taskType;
                 }
 
-                values.push(`(${divisionId}, '${divisionTitle.split("'").join("''")}', ${taskTypeId}, '${taskTypeValue.split("'").join("''")}', ${newWorkRate}, ${changesRate}, ${conceptCharge}, ${aiCharges}, NOW(), NOW())`);
+                values.push(`(${divisionId}, '${divisionTitle.split("'").join("''")}', ${taskTypeId}, '${taskTypeValue.split("'").join("''")}', ${newWorkRate}, ${changesRate}, ${conceptCharge}, ${aiCharges}, ${lastMoment}, '${financialYear.split("'").join("''")}', NOW(), NOW())`);
             }
 
             if (values.length) {
-                const sql = `INSERT INTO master_card (division_id, division_name, task_type_id, task_type_name, new_work_rate, changes_rate, concept_charge, ai_charges, created_at, updated_at) VALUES ${values.join(', ')}`;
+                const sql = `INSERT INTO master_card (division_id, division_name, task_type_id, task_type_name, new_work_rate, changes_rate, concept_charge, ai_charges, last_moment, financial_year, created_at, updated_at) VALUES ${values.join(', ')}`;
                 await sequelize.query(sql);
                 inserted += values.length;
             }
@@ -5359,7 +5361,7 @@ const uploadMasterCard = async (req, res) => {
 const updateMasterCard = async (req, res) => {
     try {
         const { id } = req.params;
-        const { new_work_rate, changes_rate, concept_charge, ai_charges } = req.body;
+        const { new_work_rate, changes_rate, concept_charge, ai_charges, last_moment, financial_year } = req.body;
         const setParts = [];
         const replacements = [];
         if (new_work_rate !== undefined) {
@@ -5378,6 +5380,14 @@ const updateMasterCard = async (req, res) => {
             setParts.push(`ai_charges = ?`);
             replacements.push(ai_charges);
         }
+        if (last_moment !== undefined) {
+            setParts.push(`last_moment = ?`);
+            replacements.push(last_moment);
+        }
+        if (financial_year !== undefined) {
+            setParts.push(`financial_year = ?`);
+            replacements.push(financial_year);
+        }
         if (setParts.length === 0) {
             return res.status(400).json({ success: false, error: 'No valid fields to update' });
         }
@@ -5393,6 +5403,35 @@ const updateMasterCard = async (req, res) => {
         res.json({ success: true, data: rows[0], message: 'Updated successfully' });
     } catch (error) {
         console.error('Error updating master card:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+const updateMasterCardField = async (req, res) => {
+    try {
+        const { field } = req.params;
+        const { value } = req.body;
+        const numericFields = ['concept_charge', 'ai_charges', 'last_moment'];
+        const stringFields = ['financial_year'];
+        const validFields = [...numericFields, ...stringFields];
+        if(!validFields.includes(field)){
+            return res.status(400).json({ success: false, error: 'Invalid field' });
+        }
+        let updateVal;
+        if(stringFields.includes(field)){
+            updateVal = value;
+        } else {
+            updateVal = parseFloat(value);
+            if(isNaN(updateVal)){
+                return res.status(400).json({ success: false, error: 'Invalid numeric value' });
+            }
+        }
+        const sql = `UPDATE master_card SET ${field} = ?, updated_at = NOW()`;
+        await sequelize.query(sql, { replacements: [updateVal] });
+        await clearAdminCache();
+        res.json({ success: true, message: `${field} updated for all records` });
+    } catch (error) {
+        console.error('Error updating master card field:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 };
@@ -5464,5 +5503,6 @@ module.exports = {
     uploadMasterCard,
     updateMasterCard,
     deleteMasterCard,
+    updateMasterCardField,
     sseProgress
 };
