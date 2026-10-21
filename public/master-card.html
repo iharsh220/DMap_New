@@ -99,6 +99,32 @@
                     <div class="upload-progress-msg" id="progressMsg"></div>
                 </div>
                 <div class="table-card-body">
+                    <div class="kpi-section">
+                        <div class="kpi-card">
+                            <span class="kpi-label">Concept Charge (₹ per output)</span>
+                            <span class="kpi-spacer"></span>
+                            <input type="number" step="0.01" class="kpi-input" id="kpiConceptInput" data-field="concept_charge" placeholder="0">
+                        </div>
+                        <div class="kpi-card">
+                            <span class="kpi-label">AI Charge (₹ per AI image)</span>
+                            <span class="kpi-spacer"></span>
+                            <input type="number" step="0.01" class="kpi-input" id="kpiAiInput" data-field="ai_charges" placeholder="0">
+                        </div>
+                        <div class="kpi-card">
+                            <span class="kpi-label">Rush / last-moment</span>
+                            <span class="kpi-sublabel">(% of Base cost)</span>
+                            <input type="number" step="0.01" class="kpi-input" id="kpiRushInput" data-field="last_moment" placeholder="0">
+                        </div>
+                        <div class="kpi-card">
+                            <span class="kpi-label">Financial Year</span>
+                            <span class="kpi-spacer"></span>
+                            <select class="kpi-select" id="kpiFinancialYearInput" data-field="financial_year">
+                                <option value="FY 24-25">FY 24-25</option>
+                                <option value="FY 25-26" selected>FY 25-26</option>
+                                <option value="FY 26-27">FY 26-27</option>
+                            </select>
+                        </div>
+                    </div>
                     <div class="dt-container">
                         <table id="mainTable" class="display" style="width:100%"><thead></thead><tbody></tbody></table>
                     </div>
@@ -146,6 +172,12 @@ function logout(){
         localStorage.removeItem('userData');
         window.location.href = getApiBase() + 'datatable/admin/login';
     }
+}
+
+function formatCurrency(val){
+    var num = parseFloat(val);
+    if(isNaN(num)){ return '₹0'; }
+    return '₹' + num.toLocaleString('en-IN');
 }
 
 $(function(){
@@ -265,10 +297,13 @@ $(function(){
         {data:'id', title:'ID', defaultContent:'N/A', className:'dt-right', width:'50px'},
         {data:'division_name', title:'Vertical', defaultContent:'N/A'},
         {data:'task_type_name', title:'Task Type', defaultContent:'N/A'},
-        {data:'new_work_rate', title:'New Work Rate', defaultContent:'0'},
-        {data:'changes_rate', title:'Changes Work Rate', defaultContent:'0'},
-        {data:'concept_charge', title:'Concept Charge', defaultContent:'0'},
-        {data:'ai_charges', title:'AI Charges', defaultContent:'0'}
+        {data:'financial_year', title:'Financial Year', defaultContent:'FY 25-26'},
+        {data:'new_work_rate', title:'New Work Rate', defaultContent:'0', className:'dt-right',
+            render:function(d,t,row){ return formatCurrency(d); }
+        },
+        {data:'changes_rate', title:'Changes Work Rate', defaultContent:'0', className:'dt-right',
+            render:function(d,t,row){ return formatCurrency(d); }
+        }
     ];
 
     var dt = $('#mainTable').DataTable({
@@ -337,22 +372,87 @@ $(function(){
         arr.forEach(function(r){ var d = r.division_name || 'N/A'; divs[d] = (divs[d]||0)+1; });
         $('#s1').text(arr.length);
         $('#s2').text(Object.keys(divs).length);
+        if(arr.length){
+            var r = arr[0];
+            $('#kpiConceptInput').val(parseFloat(r.concept_charge) || 0);
+            $('#kpiAiInput').val(parseFloat(r.ai_charges) || 0);
+            $('#kpiRushInput').val(parseFloat(r.last_moment) || 0);
+            $('#kpiFinancialYearInput').val(r.financial_year || 'FY 25-26');
+        }
     });
 
     $('#btnExcel').on('click',function(){ dt.button('.buttons-excel').trigger(); });
     $('#btnCsv').on('click',function(){ dt.button('.buttons-csv').trigger(); });
 
+    var editRowNode = null;
+
     dt.on('click', '.edit-btn', function(){
         var id = $(this).data('id');
         $('#editModal').data('edit-id', id);
-        var rowData = dt.row($(this).closest('tr')).data();
+        editRowNode = $(this).closest('tr');
+        var rowData = dt.row(editRowNode).data();
         $('#editVertical').val(rowData.division_name || 'N/A');
         $('#editTaskType').val(rowData.task_type_name || 'N/A');
         $('#editNewWorkRate').val(parseFloat(rowData.new_work_rate) || 0);
         $('#editChangesRate').val(parseFloat(rowData.changes_rate) || 0);
         $('#editConceptCharge').val(parseFloat(rowData.concept_charge) || 0);
         $('#editAiCharges').val(parseFloat(rowData.ai_charges) || 0);
+        $('#editLastMoment').val(parseFloat(rowData.last_moment) || 0);
+        $('#editFinancialYear').val(rowData.financial_year || 'FY 25-26');
+        $('#kpiConceptInput').val(parseFloat(rowData.concept_charge) || 0);
+        $('#kpiAiInput').val(parseFloat(rowData.ai_charges) || 0);
+        $('#kpiRushInput').val(parseFloat(rowData.last_moment) || 0);
+        $('#kpiFinancialYearInput').val(rowData.financial_year || 'FY 25-26');
         $('#editModal').addClass('active');
+    });
+
+    function syncKPIFields(field, val){
+        if(field==='concept_charge'){
+            $('#kpiConceptInput').val(val);
+            $('#editConceptCharge').val(val);
+        } else if(field==='ai_charges'){
+            $('#kpiAiInput').val(val);
+            $('#editAiCharges').val(val);
+        } else if(field==='last_moment'){
+            $('#kpiRushInput').val(val);
+            $('#editLastMoment').val(val);
+        } else if(field==='financial_year'){
+            $('#kpiFinancialYearInput').val(val);
+            $('#editFinancialYear').val(val);
+        }
+    }
+
+    function updateFieldInDB(field, val){
+        $.ajax({
+            url: apiBase + 'admin/master-card/field/' + field,
+            type: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify({ value: val }),
+            headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('accessToken') || '') },
+            success: function(res){
+                if(res.success){ dt.ajax.reload(); }
+            }
+        });
+    }
+
+    $('#kpiConceptInput, #editConceptCharge').on('input', function(){
+        syncKPIFields('concept_charge', $(this).val());
+    }).on('change', function(){
+        updateFieldInDB('concept_charge', $(this).val());
+    });
+    $('#kpiAiInput, #editAiCharges').on('input', function(){
+        syncKPIFields('ai_charges', $(this).val());
+    }).on('change', function(){
+        updateFieldInDB('ai_charges', $(this).val());
+    });
+    $('#kpiRushInput, #editLastMoment').on('input', function(){
+        syncKPIFields('last_moment', $(this).val());
+    }).on('change', function(){
+        updateFieldInDB('last_moment', $(this).val());
+    });
+    $('#kpiFinancialYearInput, #editFinancialYear').on('change', function(){
+        syncKPIFields('financial_year', $(this).val());
+        updateFieldInDB('financial_year', $(this).val());
     });
 
     dt.on('click', '.del-btn', function(){
@@ -373,6 +473,7 @@ $(function(){
 
     $('#editModal .modal-close, #editModal .btn-cancel').on('click', function(){
         $('#editModal').removeClass('active');
+        editRowNode = null;
     });
 
     $('#editForm').on('submit', function(e){
@@ -386,7 +487,9 @@ $(function(){
                 new_work_rate: parseFloat($('#editNewWorkRate').val()) || 0,
                 changes_rate: parseFloat($('#editChangesRate').val()) || 0,
                 concept_charge: parseFloat($('#editConceptCharge').val()) || 0,
-                ai_charges: parseFloat($('#editAiCharges').val()) || 0
+                ai_charges: parseFloat($('#editAiCharges').val()) || 0,
+                last_moment: parseFloat($('#editLastMoment').val()) || 0,
+                financial_year: $('#editFinancialYear').val()
             }),
             headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('accessToken') || '') },
             success: function(res){
@@ -433,14 +536,26 @@ $(function(){
                     <input type="number" id="editChangesRate" step="0.01" required>
                 </div>
             </div>
-            <div class="modal-form-row">
-                <div class="modal-form-group">
-                    <label>Concept Charge</label>
+            <div class="kpi-edit-row">
+                <div class="kpi-edit-item">
+                    <label>Concept Charge (₹ per output)</label>
                     <input type="number" id="editConceptCharge" step="0.01" required>
                 </div>
-                <div class="modal-form-group">
-                    <label>AI Charges</label>
+                <div class="kpi-edit-item">
+                    <label>AI Charge (₹ per AI image)</label>
                     <input type="number" id="editAiCharges" step="0.01" required>
+                </div>
+                <div class="kpi-edit-item">
+                    <label>Rush / last-moment (% of Base cost)</label>
+                    <input type="number" id="editLastMoment" step="0.01" required>
+                </div>
+                <div class="kpi-edit-item">
+                    <label>Financial Year</label>
+                    <select id="editFinancialYear">
+                        <option value="FY 24-25">FY 24-25</option>
+                        <option value="FY 25-26">FY 25-26</option>
+                        <option value="FY 26-27">FY 26-27</option>
+                    </select>
                 </div>
             </div>
         </form>

@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS `master_card` (
   `changes_rate` DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'Changes rate',
   `concept_charge` DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'Concept charge',
   `ai_charges` DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'AI charges',
+  `last_moment` DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'Last moment charge',
+  `financial_year` VARCHAR(9) NOT NULL DEFAULT 'FY 25-26' COMMENT 'Financial year',
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
