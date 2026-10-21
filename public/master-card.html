@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>D-Map | Master Card</title>
+    <title>D-Map | Rate Card</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <link href="../admin/dmap-theme.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet">
@@ -30,9 +30,9 @@
             <a href="./issuedetails" class="nav-item"><i class="bi bi-exclamation-circle nav-icon"></i><span class="nav-label">Changes</span></a>
             <a href="./workrequesttasks" class="nav-item"><i class="bi bi-table nav-icon"></i><span class="nav-label">Raw Data</span></a>
         </nav>
-        <div class="sidebar-section">Master Card</div>
+        <div class="sidebar-section">Rate Card</div>
         <nav class="sidebar-nav">
-            <a href="./master-card" class="nav-item active"><i class="bi bi-credit-card-2-front nav-icon"></i><span class="nav-label">Master Card</span></a>
+            <a href="./master-card" class="nav-item active"><i class="bi bi-credit-card-2-front nav-icon"></i><span class="nav-label">Rate Card</span></a>
         </nav>
         <div class="sidebar-section">Tokens</div>
         <nav class="sidebar-nav">
@@ -56,7 +56,7 @@
             <div style="display:flex;align-items:center;gap:12px;">
                 <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-chevron-left"></i></button>
                 <div>
-                    <div class="topbar-title"><i class="bi bi-credit-card-2-front" style="color:var(--accent)"></i> Master Card</div>
+                    <div class="topbar-title"><i class="bi bi-credit-card-2-front" style="color:var(--accent)"></i> Rate Card</div>
                     <div class="topbar-subtitle">Master card management</div>
                 </div>
             </div>
@@ -295,7 +295,7 @@ $(function(){
     });
 
     var cols = [
-        {data:'action', title:'Action', defaultContent:'', orderable:false, searchable:false, className:'dt-center', width:'80px'},
+        {data:'action', title:'Action', defaultContent:'', orderable:false, searchable:false, className:'dt-center', width:'60px'},
         {data:'id', title:'ID', defaultContent:'N/A', className:'dt-right', width:'50px'},
         {data:'division_name', title:'Vertical', defaultContent:'N/A'},
         {data:'task_type_name', title:'Task Type', defaultContent:'N/A'},
