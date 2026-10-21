@@ -296,14 +296,14 @@ $(function(){
 
     var cols = [
         {data:'action', title:'Action', defaultContent:'', orderable:false, searchable:false, className:'dt-center', width:'60px'},
-        {data:'id', title:'ID', defaultContent:'N/A', className:'dt-right', width:'50px'},
+        {data:'id', title:'ID', defaultContent:'N/A', className:'dt-left', width:'50px'},
         {data:'division_name', title:'Vertical', defaultContent:'N/A'},
         {data:'task_type_name', title:'Task Type', defaultContent:'N/A'},
         {data:'financial_year', title:'Financial Year', defaultContent:'FY 25-26'},
-        {data:'new_work_rate', title:'New Work Rate', defaultContent:'0', className:'dt-right',
+        {data:'new_work_rate', title:'New Work Rate', defaultContent:'0', className:'dt-left',
             render:function(d,t,row){ return formatCurrency(d); }
         },
-        {data:'changes_rate', title:'Changes Work Rate', defaultContent:'0', className:'dt-right',
+        {data:'changes_rate', title:'Changes Work Rate', defaultContent:'0', className:'dt-left',
             render:function(d,t,row){ return formatCurrency(d); }
         }
     ];
