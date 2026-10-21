@@ -16,7 +16,6 @@ CREATE TABLE IF NOT EXISTS `master_card` (
   PRIMARY KEY (`id`),
   INDEX `idx_master_card_division_id` (`division_id`),
   INDEX `idx_master_card_task_type_id` (`task_type_id`),
-  UNIQUE KEY `uk_master_card_division_task` (`division_id`, `task_type_id`),
   CONSTRAINT `fk_master_card_division`
     FOREIGN KEY (`division_id`)
     REFERENCES `division` (`id`)

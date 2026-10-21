@@ -5272,9 +5272,12 @@ const uploadMasterCard = async (req, res) => {
 
         const seen = {};
         normalRows.forEach(row => {
+            const div = (row['vertical'] || row['division_name'] || row['division'] || '').toString().trim();
             const taskType = (row['task type'] || row['task_type_name'] || row['task_type'] || '').toString().trim();
-            if (taskType) {
-                seen[taskType.toLowerCase()] = row;
+            const financialYear = (row['financial year'] || row['financial_year'] || '').toString().trim() || 'FY 25-26';
+            if (div && taskType) {
+                var key = (div.toLowerCase() + '|' + taskType.toLowerCase() + '|' + financialYear.toLowerCase());
+                seen[key] = row;
             }
         });
         const uniqueRows = Object.values(seen).filter(r => {
@@ -5291,8 +5294,7 @@ const uploadMasterCard = async (req, res) => {
             return res.json({ success: true, message: 'No valid data rows found', rowsProcessed: 0 });
         }
 
-        await sequelize.query('TRUNCATE TABLE master_card');
-        sendProgress(jobId, 0, `Truncated table, importing ${total} unique rows...`, total);
+        sendProgress(jobId, 0, `Importing ${total} unique rows (additive)...`, total);
 
         const chunkSize = 100;
         let inserted = 0;
