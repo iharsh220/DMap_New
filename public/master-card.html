@@ -300,13 +300,16 @@ $(function(){
             var api = this.api();
             api.columns().every(function(){
                 var col = this, idx = col.index();
-                if (idx === 0) return;
                 var th = $(col.header());
                 var labelText = cols[idx].title;
                 th.empty();
                 var wrap = $('<div class="th-wrap"></div>');
                 var label = $('<div class="th-label"><span title="'+labelText+'">'+labelText+'</span><span class="th-sort"></span></div>');
                 wrap.append(label);
+                if (idx === 0) {
+                    th.append(wrap);
+                    return;
+                }
                 var inp = $('<input class="col-filter" type="text" placeholder="Filter...">');
                 inp.on('click mousedown focus',function(e){e.stopPropagation();});
                 inp.on('keyup change clear',function(){if(col.search()!==this.value)col.search(this.value).draw();});
