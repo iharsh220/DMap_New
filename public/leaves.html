@@ -63,6 +63,8 @@
             <div class="topbar-right">
                 <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme"><i class="bi bi-sun"></i></button>
                 <button class="btn-action primary" id="btnAddLeave"><i class="bi bi-plus-lg"></i> Add Leave</button>
+                <button class="btn-action primary" id="btnUploadLeave" type="button"><i class="bi bi-upload"></i> Upload</button>
+                <input type="file" id="fileUploadLeave" accept=".xlsx,.csv" hidden>
                 <button class="btn-action excel" id="btnExcel"><i class="bi bi-file-earmark-excel"></i> Excel</button>
                 <button class="btn-action csv" id="btnCsv"><i class="bi bi-filetype-csv"></i> CSV</button>
                 <div class="user-info">
@@ -77,6 +79,14 @@
         </div>
 
         <div class="content-area">
+            <div class="upload-progress-wrapper" id="progressWrapper" style="display:none">
+                <div class="upload-progress-header">
+                    <span class="upload-progress-label" id="progressLabel">Uploading...</span>
+                    <span class="upload-progress-pct" id="progressPct">0%</span>
+                </div>
+                <div class="progress-bar-track"><div class="progress-bar-fill" id="progressBar" style="width:0%"></div></div>
+                <div class="upload-progress-msg" id="progressMsg"></div>
+            </div>
             <div class="stats-row">
                 <div class="stat-card"><div class="stat-icon blue"><i class="bi bi-calendar-check"></i></div><div><div class="stat-value" id="s1">—</div><div class="stat-label">Total Leaves</div></div></div>
                 <div class="stat-card"><div class="stat-icon green"><i class="bi bi-sun"></i></div><div><div class="stat-value" id="s2">—</div><div class="stat-label">Full Day</div></div></div>
@@ -336,6 +346,95 @@ $(function(){
         openLeaveModal();
     });
 
+    $('#btnUploadLeave').on('click', function(){
+        $('#fileUploadLeave').click();
+    });
+
+    $('#fileUploadLeave').on('change', function(e){
+        var file = e.target.files[0];
+        if(!file){ return; }
+        var jobId = 'job_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+        var formData = new FormData();
+        formData.append('file', file);
+        formData.append('jobId', jobId);
+
+        $('#progressWrapper').show();
+        $('#progressBar').css('width','0%');
+        $('#progressPct').text('0%');
+        $('#progressLabel').text(file.name);
+        $('#progressMsg').text('Starting upload...');
+
+        var sseReady = false;
+        var evtSource = new EventSource(getApiBase()+'datatable/admin/leaves/upload/progress/' + jobId);
+        evtSource.onopen = function(){
+            sseReady = true;
+            $('#progressMsg').text('Processing...');
+        };
+        evtSource.onmessage = function(event){
+            var data = JSON.parse(event.data);
+            var pct = Math.min(100, data.progress || 0);
+            $('#progressBar').css('width', pct + '%');
+            $('#progressPct').text(pct + '%');
+            $('#progressMsg').text(data.message || '');
+            if(pct >= 100){
+                evtSource.close();
+                $('#fileUploadLeave').val('');
+                $('#progressWrapper').hide();
+                location.reload();
+            }
+        };
+        evtSource.onerror = function(){
+            if($('#progressMsg').text() !== 'Processing...'){
+                $('#progressMsg').text('Processing file (SSE reconnecting)...');
+            }
+        };
+
+        setTimeout(function(){
+            if(!sseReady){
+                $('#progressMsg').text('Processing file...');
+            }
+        }, 3000);
+
+        $.ajax({
+            url: getApiBase()+'datatable/admin/leaves/upload',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('accessToken') || '') },
+            success: function(res){
+                if(res.success){
+                    $('#progressBar').css('width','100%');
+                    $('#progressPct').text('100%');
+                    $('#progressMsg').text(res.message || 'Upload complete');
+                    if(evtSource && evtSource.readyState !== evtSource.CLOSED){
+                        evtSource.close();
+                    }
+                    $('#fileUploadLeave').val('');
+                    setTimeout(function(){
+                        $('#progressWrapper').hide();
+                        location.reload();
+                    }, 500);
+                } else {
+                    if(evtSource && evtSource.readyState !== evtSource.CLOSED){
+                        evtSource.close();
+                    }
+                    $('#progressMsg').text('Error: ' + (res.error || 'Unknown'));
+                    alert('Upload failed: ' + (res.error || 'Unknown error'));
+                }
+            },
+            error: function(xhr){
+                if(evtSource && evtSource.readyState !== evtSource.CLOSED){
+                    evtSource.close();
+                }
+                var msg = 'Upload failed';
+                try { msg = xhr.responseJSON && xhr.responseJSON.error || msg; } catch(e){}
+                $('#progressMsg').text(msg);
+                alert('Upload failed: ' + msg);
+            }
+        });
+    });
+
     $('#confirmLeaveBtn').on('click', function(){
         saveLeave();
     });
@@ -496,6 +595,25 @@ function openLeaveModal(leave){
     $('#leaveFromDate').val(today);
     $('#leaveToDate').val(today);
     calculateDaysCount();
+
+    var sessionUser = localStorage.getItem('userData') ? JSON.parse(localStorage.getItem('userData')) : null;
+    if(sessionUser && !leave){
+        $('#leaveUserId').val(sessionUser.id);
+        $('#leaveUserIdReadonly').val(sessionUser.id);
+        $('#leaveUserNameReadonly').val(sessionUser.name || sessionUser.email || '');
+        $('#leaveUserId').prop('disabled', false);
+        if(sessionUser.divisions && sessionUser.divisions.length > 0){
+            var divName = sessionUser.divisions[0].division_name || sessionUser.divisions[0].name || '';
+            $('#leaveVertical').val(divName);
+        } else {
+            $.getJSON(getApiBase()+'datatable/admin/leaves/users/'+sessionUser.id+'/division', function(res){
+                if(res.success && res.data && res.data.division_name){
+                    $('#leaveVertical').val(res.data.division_name);
+                }
+            });
+        }
+        $('#leaveUserId').trigger('change');
+    }
 
     if(leave){
         $('#modalTitle').text('Edit Leave');

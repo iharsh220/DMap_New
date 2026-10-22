@@ -5438,6 +5438,173 @@ const uploadMasterCard = async (req, res) => {
     }
 };
 
+const uploadLeaves = async (req, res) => {
+    const jobId = req.body.jobId || req.query.jobId;
+    let file, ext;
+    try {
+        if (!req.files || !req.files.file) {
+            return res.status(400).json({ success: false, error: 'No file uploaded' });
+        }
+        file = req.files.file;
+        const allowedTypes = ['.xlsx', '.csv'];
+        ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+        if (!allowedTypes.includes(ext)) {
+            return res.status(400).json({ success: false, error: 'Only .xlsx and .csv files are allowed' });
+        }
+
+        let rows = [];
+        if (ext === '.csv') {
+            rows = await parseCSVRows(file.data);
+        } else {
+            rows = await parseExcelRows(file.data);
+        }
+
+        if (!rows.length) {
+            sendProgress(jobId, 100, 'No data rows found in file', 0);
+            return res.json({ success: true, message: 'No data rows found', rowsProcessed: 0 });
+        }
+
+        const normalRows = rows.map(r => {
+            const obj = {};
+            for (const k in r) { obj[k.toLowerCase()] = r[k]; }
+            return obj;
+        });
+
+        const total = normalRows.length;
+        sendProgress(jobId, 0, `Parsed ${rows.length} rows`, rows.length);
+
+        const chunkSize = 100;
+        let inserted = 0;
+        let skipped = 0;
+
+        for (let i = 0; i < normalRows.length; i += chunkSize) {
+            const chunk = normalRows.slice(i, i + chunkSize);
+
+             for (const row of chunk) {
+                const fromDateRaw = (row['from_date'] || row['date'] || '').toString().trim();
+                const toDateRaw = (row['to_date'] || row['date'] || fromDateRaw).toString().trim();
+                const userId = (row['user_id'] || row['user'] || '').toString().trim();
+                const leaveDayType = (row['leave_day_type'] || row['day type'] || 'Full day').toString().trim();
+                const leaveType = (row['leave_type'] || row['type'] || 'Unplanned').toString().trim();
+                const status = (row['status'] || 'Inform').toString().trim();
+                const leaveReason = (row['leave_reason'] || row['reason'] || 'Feeling not well').toString().trim();
+                const remark = row['remark'] || null;
+                const day = row['day'] || null;
+                const month = row['month'] || null;
+                const year = row['year'] || null;
+                const vertical = (row['vertical'] || row['division'] || '').toString().trim() || null;
+                const reason = row['reason'] || null;
+
+                function parseExcelDate(val){
+                    if(!val || val === 'NULL' || val === '' || val === 'undefined'){ return null; }
+                    if(typeof val === 'number'){
+                        var utcDate = new Date(Math.round((val - 25569) * 86400 * 1000));
+                        return utcDate.toISOString().split('T')[0];
+                    }
+                    if(val instanceof Date){ return val.toISOString().split('T')[0]; }
+                    var str = val.toString().trim();
+                    var isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                    if(isoMatch){ return str; }
+                    var ddmmyyyy = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+                    if(ddmmyyyy){
+                        return ddmmyyyy[3]+'-'+ddmmyyyy[2].padStart(2,'0')+'-'+ddmmyyyy[1].padStart(2,'0');
+                    }
+                    var ddmmyy = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
+                    if(ddmmyy){
+                        var yr = parseInt(ddmmyy[3]);
+                        yr = yr < 50 ? 2000+yr : 1900+yr;
+                        return yr+'-'+ddmmyy[2].padStart(2,'0')+'-'+ddmmyy[1].padStart(2,'0');
+                    }
+                    var mmddyy = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
+                    var parsed = new Date(str);
+                    if(!isNaN(parsed.getTime())){ return parsed.toISOString().split('T')[0]; }
+                    return null;
+                }
+
+                var fromDate = parseExcelDate(fromDateRaw);
+                var toDate = parseExcelDate(toDateRaw);
+
+                if(!fromDate && toDate){ fromDate = toDate; }
+                if(!toDate && fromDate){ toDate = fromDate; }
+
+                if(leaveDayType !== 'Full day' && fromDate && toDate && fromDate !== toDate){
+                    toDate = fromDate;
+                }
+
+                let daysCount = row['days_count'] ? parseFloat(row['days_count']) : null;
+
+                if (fromDate && toDate) {
+                    const from = new Date(fromDate);
+                    const to = new Date(toDate);
+                    const deltaDays = Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
+                    if (leaveDayType === 'Half day' || leaveDayType === 'Short Leave' || leaveDayType === 'Optional Leave') {
+                        daysCount = deltaDays * 0.5;
+                    } else {
+                        daysCount = deltaDays;
+                    }
+                }
+
+                try {
+                    await Leave.create({
+                        from_date: fromDate,
+                        to_date: toDate,
+                        user_id: parseInt(userId),
+                        leave_day_type: leaveDayType,
+                        leave_type: leaveType,
+                        status: status,
+                        leave_reason: leaveReason,
+                        remark: remark,
+                        day: day,
+                        month: month,
+                        year: year ? parseInt(year) : null,
+                        vertical: vertical,
+                        days_count: daysCount,
+                        reason: reason
+                    });
+                    inserted++;
+                } catch (rowErr) {
+                    console.error('Error inserting leave row:', rowErr.message, JSON.stringify(row));
+                    skipped++;
+                }
+            }
+
+            const processed = i + chunk.length;
+            const progress = Math.round((processed / total) * 100);
+            sendProgress(jobId, progress, `Processed ${processed}/${total} rows (${inserted} inserted, ${skipped} skipped)`, total);
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+
+        sendProgress(jobId, 100, `Complete! ${inserted} rows imported, ${skipped} skipped`, total);
+
+        if (file) {
+            const fileExt = ext.replace('.', '');
+            await sequelize.query(
+                `INSERT INTO leave_history (source_file, file_size, file_type, upload_job_id, status, rows_processed) VALUES (?, ?, ?, ?, ?, ?)`,
+                { replacements: [file.name, file.size, fileExt, jobId || null, 'success', inserted] }
+            ).catch(() => {});
+        }
+
+        res.json({ success: true, message: 'Upload complete', rowsProcessed: inserted, rowsSkipped: skipped });
+    } catch (error) {
+        console.error('Error uploading leaves:', error);
+        sendProgress(jobId, 0, `Error: ${error.message}`, 0);
+
+        if (file) {
+            const fileExt = ext ? ext.replace('.', '') : '';
+            await sequelize.query(
+                `INSERT INTO leave_history (source_file, file_size, file_type, upload_job_id, status, rows_processed) VALUES (?, ?, ?, ?, ?, ?)`,
+                { replacements: [file.name, file.size, fileExt, jobId || null, 'failed', 0] }
+            ).catch(() => {});
+        }
+
+        res.status(500).json({ success: false, error: error.message });
+    } finally {
+        if (jobId && sseClients[jobId]) {
+            delete sseClients[jobId];
+        }
+    }
+};
+
 const updateMasterCard = async (req, res) => {
     try {
         const { id } = req.params;
@@ -5577,6 +5744,7 @@ module.exports = {
     getLeaveKpis,
     getLeaveUsers,
     getUserDivision,
+    uploadLeaves,
     exportLeavesCsv,
     exportLeavesExcel,
     getEditData,
