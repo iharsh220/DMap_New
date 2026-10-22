@@ -61,7 +61,11 @@
                 </div>
             </div>
             <div class="topbar-right">
-                <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme"><i class="bi bi-sun"></i></button>
+                <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme"><i class="bi bi-sun"></i></ button>
+                <button class="btn-action primary" id="btnUpload" type="button"><i class="bi bi-upload"></i> Upload</button>
+                <input type="file" id="fileUpload" accept=".xlsx,.csv" hidden>
+                <button class="btn-action excel" id="btnExcel" type="button"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+                <button class="btn-action csv" id="btnCsv" type="button"><i class="bi bi-filetype-csv"></i> CSV</button>
                 <div class="user-info">
                     <div class="user-avatar" id="userAvatar">U</div>
                     <div class="user-details">
@@ -83,12 +87,6 @@
                 <div class="loading-overlay" id="loader"><div class="spinner"></div><div class="loading-text">Loading rate cards...</div></div>
                 <div class="table-card-header">
                     <div class="table-card-title"><span class="dot"></span>Rate Card Master</div>
-                    <div class="header-actions">
-                        <button class="btn-action primary" id="btnUpload" type="button"><i class="bi bi-upload"></i> Upload</button>
-                        <input type="file" id="fileUpload" accept=".xlsx,.csv" hidden>
-                        <button class="btn-action excel" id="btnExcel" type="button"><i class="bi bi-file-earmark-excel"></i> Excel</button>
-                        <button class="btn-action csv" id="btnCsv" type="button"><i class="bi bi-filetype-csv"></i> CSV</button>
-                    </div>
                 </div>
                 <div class="upload-progress-wrapper" id="progressWrapper" style="display:none">
                     <div class="upload-progress-header">
