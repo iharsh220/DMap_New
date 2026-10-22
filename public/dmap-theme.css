@@ -251,6 +251,7 @@ html, body {
 .stat-icon.purple { background: rgba(139,92,246,0.15);  color: #c4b5ff; }
 .stat-icon.pink   { background: rgba(236,72,153,0.15);   color: #f9a8d4; }
 .stat-icon.red    { background: rgba(220,38,38,0.15);    color: #f87171; }
+.stat-icon.teal   { background: rgba(20,184,166,0.15);    color: #5eeade; }
 .stat-value { font-size: 22px; font-weight: 700; color: var(--text-1); line-height: 1; }
 .stat-label { font-size: 11px; color: var(--text-3); margin-top: 3px; font-weight: 500; }
 

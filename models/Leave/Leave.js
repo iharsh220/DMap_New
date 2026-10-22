@@ -8,7 +8,11 @@ const Leave = sequelize.define('Leave', {
     primaryKey: true,
     autoIncrement: true,
   },
-  date: {
+  from_date: {
+    type: DataTypes.DATE,
+    allowNull: false,
+  },
+  to_date: {
     type: DataTypes.DATE,
     allowNull: false,
   },
@@ -17,7 +21,7 @@ const Leave = sequelize.define('Leave', {
     allowNull: false,
   },
   leave_day_type: {
-    type: DataTypes.ENUM('Full day', 'Half day', 'Short Leave'),
+    type: DataTypes.ENUM('Full day', 'Half day', 'Short Leave', 'Optional Leave'),
     allowNull: false,
     defaultValue: 'Full day',
   },
