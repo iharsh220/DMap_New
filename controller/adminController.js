@@ -586,8 +586,8 @@ const getAllLeaves = async (req, res) => {
         const { startDate, endDate, userId, leaveDayType, leaveType, status, leaveReason, vertical, year, month } = req.query;
 
         const where = { is_deleted: 0 };
-        if (startDate) where.date = { ...where.date, [Op.gte]: startDate };
-        if (endDate) where.date = { ...where.date, [Op.lte]: endDate };
+        if (startDate) where.from_date = { ...where.from_date, [Op.gte]: startDate };
+        if (endDate) where.to_date = { ...where.to_date, [Op.lte]: endDate };
         if (userId) where.user_id = userId;
         if (leaveDayType) where.leave_day_type = leaveDayType;
         if (leaveType) where.leave_type = leaveType;
@@ -611,7 +611,7 @@ const getAllLeaves = async (req, res) => {
                     required: true
                 }
             ],
-            order: [['date', 'DESC']]
+            order: [['from_date', 'DESC']]
         });
 
         res.json({ success: true, data: leaves });
@@ -626,8 +626,8 @@ const exportLeavesCsv = async (req, res) => {
         const { startDate, endDate, userId, leaveDayType, leaveType, status, leaveReason, vertical, year, month } = req.query;
 
         const where = { is_deleted: 0 };
-        if (startDate) where.date = { ...where.date, [Op.gte]: startDate };
-        if (endDate) where.date = { ...where.date, [Op.lte]: endDate };
+        if (startDate) where.from_date = { ...where.from_date, [Op.gte]: startDate };
+        if (endDate) where.to_date = { ...where.to_date, [Op.lte]: endDate };
         if (userId) where.user_id = userId;
         if (leaveDayType) where.leave_day_type = leaveDayType;
         if (leaveType) where.leave_type = leaveType;
@@ -651,14 +651,15 @@ const exportLeavesCsv = async (req, res) => {
                     required: true
                 }
             ],
-            order: [['date', 'DESC']]
+            order: [['from_date', 'DESC']]
         });
 
-        let csv = 'Date,Name,Email,Day,Leave Day Type,Leave Type,Status,Leave Reason,Division,Days Count,Reason,Remark,Month,Year\n';
+        let csv = 'From Date,To Date,Name,Email,Day,Leave Day Type,Leave Type,Status,Leave Reason,Division,Days Count,Reason,Remark,Month,Year\n';
 
         leaves.forEach(function (leave) {
             csv += [
-                leave.date,
+                leave.from_date,
+                leave.to_date,
                 leave.user ? leave.user.name : '',
                 leave.user ? leave.user.email : '',
                 leave.day || '',
@@ -692,8 +693,8 @@ const exportLeavesExcel = async (req, res) => {
         const { startDate, endDate, userId, leaveDayType, leaveType, status, leaveReason, vertical, year, month } = req.query;
 
         const where = { is_deleted: 0 };
-        if (startDate) where.date = { ...where.date, [Op.gte]: startDate };
-        if (endDate) where.date = { ...where.date, [Op.lte]: endDate };
+        if (startDate) where.from_date = { ...where.from_date, [Op.gte]: startDate };
+        if (endDate) where.to_date = { ...where.to_date, [Op.lte]: endDate };
         if (userId) where.user_id = userId;
         if (leaveDayType) where.leave_day_type = leaveDayType;
         if (leaveType) where.leave_type = leaveType;
@@ -717,14 +718,15 @@ const exportLeavesExcel = async (req, res) => {
                     required: true
                 }
             ],
-            order: [['date', 'DESC']]
+            order: [['from_date', 'DESC']]
         });
 
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Leaves');
 
         worksheet.columns = [
-            { header: 'Date', key: 'date', width: 15 },
+            { header: 'From Date', key: 'from_date', width: 15 },
+            { header: 'To Date', key: 'to_date', width: 15 },
             { header: 'Name', key: 'name', width: 25 },
             { header: 'Email', key: 'email', width: 30 },
             { header: 'Day', key: 'day', width: 15 },
@@ -750,7 +752,8 @@ const exportLeavesExcel = async (req, res) => {
 
         leaves.forEach(function (leave) {
             worksheet.addRow({
-                date: leave.date,
+                from_date: leave.from_date,
+                to_date: leave.to_date,
                 name: leave.user ? leave.user.name : '',
                 email: leave.user ? leave.user.email : '',
                 day: leave.day || '',
@@ -804,14 +807,28 @@ const getLeaveById = async (req, res) => {
 
 const createLeave = async (req, res) => {
     try {
-        const { date, user_id, leave_day_type, leave_type, status, leave_reason, remark, vertical, days_count, reason } = req.body;
+        const { from_date, to_date, user_id, leave_day_type, leave_type, status, leave_reason, remark, vertical, days_count, reason } = req.body;
 
-        const month = new Date(date).toLocaleString('default', { month: 'long' });
-        const year = new Date(date).getFullYear();
-        const day = new Date(date).toLocaleString('default', { weekday: 'long' });
+        const calcDate = new Date(from_date);
+        const month = calcDate.toLocaleString('default', { month: 'long' });
+        const year = calcDate.getFullYear();
+        const day = calcDate.toLocaleString('default', { weekday: 'long' });
+
+        let calculatedDays = days_count;
+        if (from_date && to_date) {
+            const from = new Date(from_date);
+            const to = new Date(to_date);
+            const deltaDays = Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
+            if (leave_day_type === 'Half day' || leave_day_type === 'Short Leave') {
+                calculatedDays = deltaDays * 0.5;
+            } else {
+                calculatedDays = deltaDays;
+            }
+        }
 
         const leave = await Leave.create({
-            date,
+            from_date,
+            to_date,
             user_id,
             leave_day_type,
             leave_type,
@@ -822,7 +839,7 @@ const createLeave = async (req, res) => {
             month,
             year,
             vertical,
-            days_count,
+            days_count: calculatedDays,
             reason
         });
 
@@ -836,15 +853,29 @@ const createLeave = async (req, res) => {
 const updateLeave = async (req, res) => {
     try {
         const { id } = req.params;
-        const { date, user_id, leave_day_type, leave_type, status, leave_reason, remark, vertical, days_count, reason } = req.body;
+        const { from_date, to_date, user_id, leave_day_type, leave_type, status, leave_reason, remark, vertical, days_count, reason } = req.body;
 
-        const month = date ? new Date(date).toLocaleString('default', { month: 'long' }) : undefined;
-        const year = date ? new Date(date).getFullYear() : undefined;
-        const day = date ? new Date(date).toLocaleString('default', { weekday: 'long' }) : undefined;
+        const calcDate = new Date(from_date);
+        const month = calcDate ? calcDate.toLocaleString('default', { month: 'long' }) : undefined;
+        const year = calcDate ? calcDate.getFullYear() : undefined;
+        const day = calcDate ? calcDate.toLocaleString('default', { weekday: 'long' }) : undefined;
+
+        let calculatedDays = days_count;
+        if (from_date && to_date) {
+            const from = new Date(from_date);
+            const to = new Date(to_date);
+            const deltaDays = Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
+            if (leave_day_type === 'Half day' || leave_day_type === 'Short Leave') {
+                calculatedDays = deltaDays * 0.5;
+            } else {
+                calculatedDays = deltaDays;
+            }
+        }
 
         const [affectedRows] = await Leave.update(
             {
-                date,
+                from_date,
+                to_date,
                 user_id,
                 leave_day_type,
                 leave_type,
@@ -855,7 +886,7 @@ const updateLeave = async (req, res) => {
                 month,
                 year,
                 vertical,
-                days_count,
+                days_count: calculatedDays,
                 reason
             },
             { where: { id, is_deleted: 0 } }
@@ -889,8 +920,8 @@ const getLeaveKpis = async (req, res) => {
         const { startDate, endDate, vertical, year, month } = req.query;
 
         const where = { is_deleted: 0 };
-        if (startDate) where.date = { ...where.date, [Op.gte]: startDate };
-        if (endDate) where.date = { ...where.date, [Op.lte]: endDate };
+        if (startDate) where.from_date = { ...where.from_date, [Op.gte]: startDate };
+        if (endDate) where.to_date = { ...where.to_date, [Op.lte]: endDate };
         if (vertical) where.vertical = vertical;
         if (year) where.year = year;
         if (month) where.month = month;
@@ -899,6 +930,7 @@ const getLeaveKpis = async (req, res) => {
         const fullDayLeaves = await Leave.count({ where: { ...where, leave_day_type: 'Full day' } });
         const halfDayLeaves = await Leave.count({ where: { ...where, leave_day_type: 'Half day' } });
         const shortLeaves = await Leave.count({ where: { ...where, leave_day_type: 'Short Leave' } });
+        const optionalLeaveLeaves = await Leave.count({ where: { ...where, leave_day_type: 'Optional Leave' } });
         const plannedLeaves = await Leave.count({ where: { ...where, leave_type: 'Planned' } });
         const unplannedLeaves = await Leave.count({ where: { ...where, leave_type: 'Unplanned' } });
         const informedLeaves = await Leave.count({ where: { ...where, status: 'Inform' } });
@@ -921,6 +953,7 @@ const getLeaveKpis = async (req, res) => {
                 fullDayLeaves,
                 halfDayLeaves,
                 shortLeaves,
+                optionalLeaveLeaves,
                 plannedLeaves,
                 unplannedLeaves,
                 informedLeaves,

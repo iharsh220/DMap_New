@@ -82,6 +82,7 @@
                 <div class="stat-card"><div class="stat-icon green"><i class="bi bi-sun"></i></div><div><div class="stat-value" id="s2">—</div><div class="stat-label">Full Day</div></div></div>
                 <div class="stat-card"><div class="stat-icon orange"><i class="bi bi-sunset"></i></div><div><div class="stat-value" id="s3">—</div><div class="stat-label">Half Day</div></div></div>
                 <div class="stat-card"><div class="stat-icon purple"><i class="bi bi-clock"></i></div><div><div class="stat-value" id="s4">—</div><div class="stat-label">Short Leave</div></div></div>
+                <div class="stat-card"><div class="stat-icon teal"><i class="bi bi-gift"></i></div><div><div class="stat-value" id="s7">—</div><div class="stat-label">Optional Leave</div></div></div>
                 <div class="stat-card"><div class="stat-icon pink"><i class="bi bi-calendar-plus"></i></div><div><div class="stat-value" id="s5">—</div><div class="stat-label">Planned</div></div></div>
                 <div class="stat-card"><div class="stat-icon red"><i class="bi bi-calendar-x"></i></div><div><div class="stat-value" id="s6">—</div><div class="stat-label">Unplanned</div></div></div>
             </div>
@@ -129,8 +130,12 @@
                         <input type="text" id="leaveUserNameReadonly" readonly style="width:100%;padding:8px 12px;border-radius:7px;border:1px solid var(--modal-border);background:var(--input-readonly-bg);color:var(--text-3);font-size:13px;">
                     </div>
                     <div class="form-group">
-                        <label style="color:var(--text-2);font-size:13px;margin-bottom:6px;display:block;">Date <span style="color:var(--danger);">*</span></label>
-                        <input type="date" id="leaveDate" required style="width:100%;padding:8px 12px;border-radius:7px;border:1px solid var(--modal-border);background:var(--input-bg);color:var(--text-1);font-size:13px;">
+                        <label style="color:var(--text-2);font-size:13px;margin-bottom:6px;display:block;">From Date <span style="color:var(--danger);">*</span></label>
+                        <input type="date" id="leaveFromDate" required style="width:100%;padding:8px 12px;border-radius:7px;border:1px solid var(--modal-border);background:var(--input-bg);color:var(--text-1);font-size:13px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="color:var(--text-2);font-size:13px;margin-bottom:6px;display:block;">To Date <span style="color:var(--danger);">*</span></label>
+                        <input type="date" id="leaveToDate" required style="width:100%;padding:8px 12px;border-radius:7px;border:1px solid var(--modal-border);background:var(--input-bg);color:var(--text-1);font-size:13px;">
                     </div>
                     <div class="form-group">
                         <label style="color:var(--text-2);font-size:13px;margin-bottom:6px;display:block;">Leave Day Type <span style="color:var(--danger);">*</span></label>
@@ -138,6 +143,7 @@
                             <option value="Full day">Full day</option>
                             <option value="Half day">Half day</option>
                             <option value="Short Leave">Short Leave</option>
+                            <option value="Optional Leave">Optional Leave</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -171,8 +177,8 @@
                         <input type="text" id="leaveVertical" readonly style="width:100%;padding:8px 12px;border-radius:7px;border:1px solid var(--modal-border);background:var(--input-readonly-bg);color:var(--text-3);font-size:13px;">
                     </div>
                     <div class="form-group">
-                        <label style="color:var(--text-2);font-size:13px;margin-bottom:6px;display:block;">Days Count</label>
-                        <input type="number" id="leaveDaysCount" step="0.5" min="0.5" value="1" style="width:100%;padding:8px 12px;border-radius:7px;border:1px solid var(--modal-border);background:var(--input-bg);color:var(--text-1);font-size:13px;">
+                        <label style="color:var(--text-2);font-size:13px;margin-bottom:6px;display:block;">Days Count <span style="color:var(--danger);">*</span></label>
+                        <input type="number" id="leaveDaysCount" step="0.5" min="0.5" value="1" readonly style="width:100%;padding:8px 12px;border-radius:7px;border:1px solid var(--modal-border);background:var(--input-readonly-bg);color:var(--text-1);font-size:13px;">
                     </div>
                     <div class="form-group" style="grid-column:span 2;">
                         <label style="color:var(--text-2);font-size:13px;margin-bottom:6px;display:block;">Reason</label>
@@ -223,7 +229,8 @@ const HEADERS = {
     id: 'ID',
     user_id: 'User ID',
     name: 'Username',
-    date: 'Date',
+    from_date: 'From Date',
+    to_date: 'To Date',
     day: 'Day',
     leave_day_type: 'Leave Day Type',
     leave_type: 'Leave Type',
@@ -286,6 +293,29 @@ $(function(){
 
     loadLeaveUsers();
 
+    $('#leaveFromDate, #leaveToDate, #leaveDayType').on('change', function(){
+        calculateDaysCount();
+    });
+
+    function calculateDaysCount(){
+        var fromDate = $('#leaveFromDate').val();
+        var toDate = $('#leaveToDate').val();
+        var dayType = $('#leaveDayType').val();
+        var days = 1;
+        if(fromDate && toDate){
+            var from = new Date(fromDate);
+            var to = new Date(toDate);
+            var deltaDays = Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
+            if(deltaDays < 1) deltaDays = 1;
+            if(dayType === 'Half day' || dayType === 'Short Leave'){
+                days = deltaDays * 0.5;
+            } else {
+                days = deltaDays;
+            }
+        }
+        $('#leaveDaysCount').val(days);
+    }
+
     $('#leaveUserId').on('change', function(){
         var userId = $(this).val();
         var selectedOption = $(this).find('option:selected');
@@ -329,7 +359,7 @@ $(function(){
                        +'<button class="del-btn" onclick="deleteLeave('+(row?row.id:'')+')" title="Delete" style="background:var(--danger-bg);border:1px solid var(--danger-border);color:var(--danger);border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;"><i class="bi bi-trash3"></i></button>';
             }
         });
-        var keyOrder=['id','user_id','name','date','day','leave_day_type','leave_type','status','leave_reason','vertical','days_count','reason','remark','month','year'];
+        var keyOrder=['id','user_id','name','from_date','to_date','day','leave_day_type','leave_type','status','leave_reason','vertical','days_count','reason','remark','month','year'];
         keyOrder.forEach(function(k){
             if(k==='name'){
                 cols.push({
@@ -430,6 +460,7 @@ function updateLeaveStats(data){
     $('#s2').text(data.filter(function(r){ return r.leave_day_type === 'Full day'; }).length);
     $('#s3').text(data.filter(function(r){ return r.leave_day_type === 'Half day'; }).length);
     $('#s4').text(data.filter(function(r){ return r.leave_day_type === 'Short Leave'; }).length);
+    $('#s7').text(data.filter(function(r){ return r.leave_day_type === 'Optional Leave'; }).length);
     $('#s5').text(data.filter(function(r){ return r.leave_type === 'Planned'; }).length);
     $('#s6').text(data.filter(function(r){ return r.leave_type === 'Unplanned'; }).length);
 }
@@ -450,7 +481,8 @@ function openLeaveModal(leave){
         $('#leaveUserNameReadonly').val(leave.user ? leave.user.name : '');
         $('#leaveUserId').prop('disabled', true);
         $('#leaveVertical').val(leave.vertical || '');
-        $('#leaveDate').val(leave.date);
+        $('#leaveFromDate').val(leave.from_date ? leave.from_date.split('T')[0] : '');
+        $('#leaveToDate').val(leave.to_date ? leave.to_date.split('T')[0] : '');
         $('#leaveDayType').val(leave.leave_day_type);
         $('#leaveType').val(leave.leave_type);
         $('#leaveStatus').val(leave.status);
@@ -479,8 +511,11 @@ function editLeave(id){
 
 function saveLeave(){
     var id = $('#leaveId').val();
+    var fromDate = $('#leaveFromDate').val();
+    var toDate = $('#leaveToDate').val();
     var data = {
-        date: $('#leaveDate').val(),
+        from_date: fromDate,
+        to_date: toDate,
         user_id: parseInt($('#leaveUserId').val()),
         leave_day_type: $('#leaveDayType').val(),
         leave_type: $('#leaveType').val(),
@@ -492,7 +527,7 @@ function saveLeave(){
         remark: $('#leaveRemark').val() || null
     };
 
-    if(!data.date || !data.user_id){
+    if(!data.from_date || !data.to_date || !data.user_id){
         alert('Please fill in all required fields');
         return;
     }

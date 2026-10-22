@@ -1,9 +1,10 @@
 -- Create leaves table
 CREATE TABLE IF NOT EXISTS `leaves` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  `date` DATE NOT NULL,
+  `from_date` DATE NOT NULL,
+  `to_date` DATE NOT NULL,
   `user_id` INT NOT NULL,
-  `leave_day_type` ENUM('Full day', 'Half day', 'Short Leave') NOT NULL DEFAULT 'Full day',
+  `leave_day_type` ENUM('Full day', 'Half day', 'Short Leave', 'Optional Leave') NOT NULL DEFAULT 'Full day',
   `leave_type` ENUM('Unplanned', 'Planned') NOT NULL DEFAULT 'Unplanned',
   `status` ENUM('Inform', 'Not Inform') NOT NULL DEFAULT 'Inform',
   `leave_reason` ENUM('Emergency', 'Medical', 'Family Emergency', 'Feeling not well', 'Go Early', 'Personal', 'Hospitalized') NOT NULL DEFAULT 'Feeling not well',
@@ -18,7 +19,8 @@ CREATE TABLE IF NOT EXISTS `leaves` (
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  INDEX `idx_leaves_date` (`date`),
+  INDEX `idx_leaves_from_date` (`from_date`),
+  INDEX `idx_leaves_to_date` (`to_date`),
   INDEX `idx_leaves_user_id` (`user_id`),
   INDEX `idx_leaves_vertical` (`vertical`),
   INDEX `idx_leaves_is_deleted` (`is_deleted`),
