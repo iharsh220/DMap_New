@@ -1032,6 +1032,10 @@ const getAdminData = async (req, res) => {
             brand
         } = req.query;
 
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 25;
+        const offset = (page - 1) * limit;
+
         const whereClauses = [];
         const replacements = {};
 
@@ -1083,8 +1087,32 @@ const getAdminData = async (req, res) => {
 
 
         // ---------------------------------------
-        // MAIN QUERY
+        // COLUMN-LEVEL SEARCH (from DataTables serverSide column filters)
         // ---------------------------------------
+
+        const columnSqlMap = {
+            'project_request_status': 'wr.status',
+            'work_request_id':        'wr.id',
+            'project_name':           'wr.project_name',
+            'request_type_name':      'rt.request_type',
+            'project_type_name':      'pt.project_type',
+            'project_priority':       'wr.priority',
+            'project_requester_name': 'ru.name',
+            'client_division':        'ru.name',
+            'request_accepted_by':    'ru.name'
+        };
+
+        Object.keys(req.query).forEach(function (key) {
+            if (key.indexOf('col_') === 0) {
+                const colName = key.substring(4);
+                const searchVal = req.query[key];
+                if (searchVal) {
+                    const sqlCol = columnSqlMap[colName] || ('wr.' + colName);
+                    whereClauses.push(`(${sqlCol} LIKE :col_${colName})`);
+                    replacements[`col_${colName}`] = '%' + searchVal + '%';
+                }
+            }
+        });
 
         let query = `
             SELECT
@@ -1717,6 +1745,39 @@ const getAdminData = async (req, res) => {
             ORDER BY wr.created_at DESC
         `;
 
+        if (limit !== -1) {
+            query += `
+                LIMIT :limit OFFSET :offset
+            `;
+            replacements.limit = limit;
+            replacements.offset = offset;
+        }
+
+
+        // ---------------------------------------
+        // COUNT QUERY (total filtered rows + status summary)
+        // ---------------------------------------
+
+        const countQuery = `
+            SELECT
+                COUNT(*) AS total,
+                SUM(CASE WHEN wr.status = 'completed' THEN 1 ELSE 0 END) AS completed_count,
+                SUM(CASE WHEN wr.status = 'in_progress' THEN 1 ELSE 0 END) AS in_progress_count,
+                SUM(CASE WHEN wr.status = 'pending' THEN 1 ELSE 0 END) AS pending_count
+            FROM work_requests wr
+            ${whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''}
+        `;
+
+        const countResult = await sequelize.query(countQuery, {
+            replacements,
+            type: sequelize.QueryTypes.SELECT
+        });
+
+        const total = countResult[0]?.total || 0;
+        const completedCount = countResult[0]?.completed_count || 0;
+        const inProgressCount = countResult[0]?.in_progress_count || 0;
+        const pendingCount = countResult[0]?.pending_count || 0;
+
 
         // ---------------------------------------
         // EXECUTE QUERY
@@ -1810,7 +1871,18 @@ const getAdminData = async (req, res) => {
         // ---------------------------------------
 
         res.json({
-            data: orderedResults
+            data: orderedResults,
+            total: total,
+            page: page,
+            limit: limit,
+            totalPages: limit === -1 ? 1 : Math.ceil(total / limit),
+            recordsTotal: total,
+            recordsFiltered: total,
+            summary: {
+                completed: completedCount,
+                in_progress: inProgressCount,
+                pending: pendingCount
+            }
         });
 
 
@@ -5560,7 +5632,12 @@ const uploadLeaves = async (req, res) => {
                         vertical: vertical,
                         days_count: daysCount,
                         reason: reason
-                    });
+        });
+
+
+        // ---------------------------------------
+        // MAIN QUERY
+        // ---------------------------------------
                     inserted++;
                 } catch (rowErr) {
                     console.error('Error inserting leave row:', rowErr.message, JSON.stringify(row));

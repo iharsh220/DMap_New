@@ -114,6 +114,9 @@ function getApiBase(){
     return '/digilabs/dmap/api/';
 }
 
+// Store column filter values for server-side AJAX
+var colFilters = {};
+
 // Load user info
 function loadUserInfo(){
     var userData = localStorage.getItem('userData');
@@ -165,82 +168,105 @@ $(function(){
 
     $('#btnLogout').on('click', logout);
 
-    $.getJSON('./projectsdetails/data', function(res){
-        $('#loader').hide();
-        var data = res.data||[];
-        $('#recordCount').text(data.length+' Records');
-        $('#s1').text(data.length);
-        $('#s2').text(data.filter(function(r){return r.project_request_status==='completed';}).length);
-        $('#s3').text(data.filter(function(r){return r.project_request_status==='in_progress';}).length);
-        $('#s4').text(data.filter(function(r){return r.project_request_status==='pending';}).length);
+    var cols = [
+        {data:'project_request_status', title:'Status', defaultContent:'N/A'},
+        {data:'work_request_id', title:'Project ID', defaultContent:'N/A'},
+        {data:'project_name', title:'Project Name', defaultContent:'N/A'},
+        {data:'request_type_name', title:'Vertical', defaultContent:'N/A'},
+        {data:'project_type_name', title:'Type', defaultContent:'N/A'},
+        {data:'project_priority', title:'Priority', defaultContent:'N/A'},
+        {data:'project_requester_name', title:'Client', defaultContent:'N/A'},
+        {data:'task_count', title:'Tasks', defaultContent:'0'},
+        {data:'change_count', title:'Changes', defaultContent:'0'},
+        {data:'project_start_date', title:'Start', defaultContent:'N/A'},
+        {data:'project_end_date', title:'End', defaultContent:'N/A'}
+    ];
 
-        function updateStats(arr){
-            $('#s1').text(arr.length);
-            $('#s2').text(arr.filter(function(r){return r.project_request_status==='completed';}).length);
-            $('#s3').text(arr.filter(function(r){return r.project_request_status==='in_progress';}).length);
-            $('#s4').text(arr.filter(function(r){return r.project_request_status==='pending';}).length);
+    var updateStats = function(summary){
+        if (summary) {
+            $('#s1').text(summary.total || 0);
+            $('#s2').text(summary.completed || 0);
+            $('#s3').text(summary.in_progress || 0);
+            $('#s4').text(summary.pending || 0);
         }
+    };
 
-        var cols = [
-            {data:'project_request_status', title:'Status', defaultContent:'N/A'},
-            {data:'work_request_id', title:'Project ID', defaultContent:'N/A'},
-            {data:'project_name', title:'Project Name', defaultContent:'N/A'},
-            {data:'request_type_name', title:'Vertical', defaultContent:'N/A'},
-            {data:'project_type_name', title:'Type', defaultContent:'N/A'},
-            {data:'project_priority', title:'Priority', defaultContent:'N/A'},
-            {data:'project_requester_name', title:'Client', defaultContent:'N/A'},
-            {data:'task_count', title:'Tasks', defaultContent:'0'},
-            {data:'change_count', title:'Changes', defaultContent:'0'},
-            {data:'project_start_date', title:'Start', defaultContent:'N/A'},
-            {data:'project_end_date', title:'End', defaultContent:'N/A'}
-        ];
-
-        var dt = $('#mainTable').DataTable({
-            data:data, columns:cols,
-            pageLength:25, lengthMenu:[[25,50,100,200,-1],[25,50,100,200,'All']],
-            dom:'<"dt-top-row"lf>rt<"dt-bottom-row"ip>',
-            scrollX:true, scrollY:'calc(100vh - 360px)', scrollCollapse:false, autoWidth:false, fixedColumns:{left:2},
-            language:{ search:'', searchPlaceholder:'Search all columns...', lengthMenu:'Show _MENU_ rows' },
-            initComplete:function(){
-                var api = this.api();
-                api.columns().every(function(){
-                    var col = this, idx = col.index();
-                    var th = $(col.header());
-                    var labelText = cols[idx].title;
-                    th.empty();
-                    var wrap = $('<div class="th-wrap"></div>');
-                    var label = $('<div class="th-label"><span title="'+labelText+'">'+labelText+'</span><span class="th-sort"></span></div>');
-                    wrap.append(label);
-                    var inp = $('<input class="col-filter" type="text" placeholder="Filter...">');
-                    inp.on('click mousedown focus',function(e){e.stopPropagation();});
-                    inp.on('keyup change clear',function(){if(col.search()!==this.value)col.search(this.value).draw();});
-                    wrap.append(inp);
-                    th.append(wrap);
-                    th.off('click').on('click',function(e){
-                        if($(e.target).closest('.col-filter').length===0){
-                            var currentOrder = api.order();
-                            if(currentOrder.length && currentOrder[0][0]===idx){
-                                api.order([idx, currentOrder[0][1]==='asc'?'desc':'asc']).draw();
-                            } else {
-                                api.order([idx,'asc']).draw();
-                            }
-                        }
-                    });
+    var dt = $('#mainTable').DataTable({
+        processing: true,
+        serverSide: true,
+        pageLength: 25,
+        lengthMenu: [[25, 50, 100, 200, -1], [25, 50, 100, 200, 'All']],
+        dom: '<"dt-top-row"lf>rt<"dt-bottom-row"ip>',
+        buttons: ['excel', 'csv'],
+        scrollX: true,
+        scrollY: 'calc(100vh - 360px)',
+        scrollCollapse: false,
+        autoWidth: false,
+        fixedColumns: { left: 2 },
+        language: { search: '', searchPlaceholder: 'Search all columns...', lengthMenu: 'Show _MENU_ rows' },
+        ajax: {
+            url: './projectsdetails/data',
+            dataSrc: function(res){
+                $('#loader').hide();
+                var total = res.total || 0;
+                $('#recordCount').text(total + ' Records');
+                updateStats(res.summary);
+                return res.data;
+            },
+            data: function(d){
+                d.page = Math.floor(d.start / d.length) + 1;
+                d.limit = d.length;
+                d.start = undefined;
+                d.length = undefined;
+                Object.keys(colFilters).forEach(function(key){
+                    if (colFilters[key]) {
+                        d['col_' + key] = colFilters[key];
+                    }
                 });
+                return d;
             }
-        });
+        },
+        columns: cols,
+        initComplete: function(){
+            var api = this.api();
+            api.columns().every(function(){
+                var col = this, idx = col.index();
+                var th = $(col.header());
+                var labelText = cols[idx].title;
+                th.empty();
+                var wrap = $('<div class="th-wrap"></div>');
+                var label = $('<div class="th-label"><span title="'+labelText+'">'+labelText+'</span><span class="th-sort"></span></div>');
+                wrap.append(label);
+                var dataKey = cols[idx].data;
+                var inp = $('<input class="col-filter" type="text" placeholder="Filter...">');
+                inp.on('click mousedown focus',function(e){e.stopPropagation();});
+                inp.on('keyup change clear',function(){
+                    colFilters[dataKey] = this.value;
+                    api.draw();
+                });
+                wrap.append(inp);
+                th.append(wrap);
+                th.off('click').on('click',function(e){
+                    if($(e.target).closest('.col-filter').length===0){
+                        var currentOrder = api.order();
+                        if(currentOrder.length && currentOrder[0][0]===idx){
+                            api.order([idx, currentOrder[0][1]==='asc'?'desc':'asc']).draw();
+                        } else {
+                            api.order([idx,'asc']).draw();
+                        }
+                    }
+                });
+            });
+        }
+    });
 
-        $('#btnExcel').on('click',function(){ dt.button('.buttons-excel').trigger(); });
-        $('#btnCsv').on('click',function(){ dt.button('.buttons-csv').trigger(); });
+    $('#btnExcel').on('click',function(){ dt.button('.buttons-excel').trigger(); });
+    $('#btnCsv').on('click',function(){ dt.button('.buttons-csv').trigger(); });
 
-        dt.on('draw',function(){
-            var rows = dt.rows({ filter:'applied' }).data();
-            var arr = rows.toArray ? rows.toArray() : rows;
-            updateStats(arr);
-            $('#recordCount').text(arr.length+' Records');
-        });
-    }).fail(function(){
-        $('#loader').html('<div style="color:var(--danger);font-size:13px;"><i class="bi bi-exclamation-triangle"></i> Failed to load data</div>');
+    dt.on('draw', function(){
+        var pageInfo = dt.page.info();
+        var total = pageInfo?.recordsTotal || 0;
+        $('#recordCount').text(total + ' Records');
     });
 });
 </script>
