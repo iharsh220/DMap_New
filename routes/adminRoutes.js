@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const path = require('path');
-const paginationMiddleware = require('../middleware/paginationMiddleware');
 const { cachedAdminData, invalidateAdminCache } = require('../services/adminCacheService');
 const { getAdminData, getAllFeedback, getClientsData,getTaskDetailsData, getTasksForWorkRequest, getIssueDetailsData, getWorkRequestTasksData, getDeletePreview, deleteProject, deleteClient, deleteTask, deleteIssue, getAllLeaves, getLeaveById, createLeave, updateLeave, deleteLeave, getLeaveKpis, getLeaveUsers, getUserDivision, uploadLeaves, exportLeavesCsv, exportLeavesExcel, getEditData, getRequestTypes, getProjectTypesByProject, getCreativeManagerByProject, updateProject, updateClient, updateTask, updateIssue, getMasterCardData, uploadMasterCard, updateMasterCard, deleteMasterCard, sseProgress, updateMasterCardField, getFinancialYears } = require('../controller/adminController');
 
@@ -104,7 +103,7 @@ router.get('/admin/token-changes', (req, res) => {
 });
 
 // API endpoint for project details data
-router.get('/admin/projectsdetails/data', paginationMiddleware, cachedAdminData(getAdminData));
+router.get('/admin/projectsdetails/data', cachedAdminData(getAdminData));
 
 // API endpoint for clients data
 router.get('/admin/clients/data', cachedAdminData(getClientsData));
