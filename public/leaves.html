@@ -293,28 +293,24 @@ $(function(){
 
     loadLeaveUsers();
 
-    $('#leaveFromDate, #leaveToDate, #leaveDayType').on('change', function(){
+    $('#leaveFromDate, #leaveToDate').on('change', function(){
         calculateDaysCount();
     });
 
-    function calculateDaysCount(){
-        var fromDate = $('#leaveFromDate').val();
-        var toDate = $('#leaveToDate').val();
-        var dayType = $('#leaveDayType').val();
-        var days = 1;
-        if(fromDate && toDate){
-            var from = new Date(fromDate);
-            var to = new Date(toDate);
-            var deltaDays = Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
-            if(deltaDays < 1) deltaDays = 1;
-            if(dayType === 'Half day' || dayType === 'Short Leave'){
-                days = deltaDays * 0.5;
+    $('#leaveDayType').on('change', function(){
+        var dayType = $(this).val();
+        if(dayType !== 'Full day'){
+            var fromDate = $('#leaveFromDate').val();
+            if(fromDate){
+                $('#leaveToDate').val(fromDate).prop('disabled', true);
             } else {
-                days = deltaDays;
+                $('#leaveToDate').prop('disabled', true);
             }
+        } else {
+            $('#leaveToDate').prop('disabled', false);
         }
-        $('#leaveDaysCount').val(days);
-    }
+        calculateDaysCount();
+    });
 
     $('#leaveUserId').on('change', function(){
         var userId = $(this).val();
@@ -443,6 +439,25 @@ $(function(){
     }).fail(function(){$('#loader').html('<div style="color:var(--danger);font-size:13px"><i class="bi bi-exclamation-triangle"></i> Failed to load data</div>');});
 });
 
+function calculateDaysCount(){
+    var fromDate = $('#leaveFromDate').val();
+    var toDate = $('#leaveToDate').val();
+    var dayType = $('#leaveDayType').val();
+    var days = 1;
+    if(fromDate && toDate){
+        var from = new Date(fromDate);
+        var to = new Date(toDate);
+        var deltaDays = Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
+        if(deltaDays < 1) deltaDays = 1;
+        if(dayType === 'Half day' || dayType === 'Short Leave' || dayType === 'Optional Leave'){
+            days = deltaDays * 0.5;
+        } else {
+            days = deltaDays;
+        }
+    }
+    $('#leaveDaysCount').val(days);
+}
+
 function loadLeaveUsers(){
     $.getJSON(getApiBase()+'datatable/admin/leaves/users', function(res){
         if(res.success && res.data){
@@ -472,6 +487,15 @@ function openLeaveModal(leave){
     $('#leaveUserNameReadonly').val('');
     $('#modalTitle').text('Add Leave');
     $('#leaveUserId').prop('disabled', false);
+    $('#leaveFromDate').val('');
+    $('#leaveToDate').val('');
+    $('#leaveToDate').prop('disabled', false);
+    $('#leaveDayType').val('Full day');
+
+    var today = new Date().toISOString().split('T')[0];
+    $('#leaveFromDate').val(today);
+    $('#leaveToDate').val(today);
+    calculateDaysCount();
 
     if(leave){
         $('#modalTitle').text('Edit Leave');
@@ -490,6 +514,14 @@ function openLeaveModal(leave){
         $('#leaveDaysCount').val(leave.days_count || 1);
         $('#leaveReasonText').val(leave.reason || '');
         $('#leaveRemark').val(leave.remark || '');
+
+        var dayType = leave.leave_day_type;
+        if(dayType !== 'Full day'){
+            $('#leaveToDate').val($('#leaveFromDate').val()).prop('disabled', true);
+        } else {
+            $('#leaveToDate').prop('disabled', false);
+        }
+        calculateDaysCount();
     }
 
     $('#leaveModal').css('display', 'flex');
@@ -529,6 +561,11 @@ function saveLeave(){
 
     if(!data.from_date || !data.to_date || !data.user_id){
         alert('Please fill in all required fields');
+        return;
+    }
+
+    if(data.leave_day_type !== 'Full day' && data.from_date !== data.to_date){
+        alert('Multi-day leaves are only allowed for Full day. '+data.leave_day_type+' leave must be for a single day.');
         return;
     }
 
