@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS `master_card` (
   `division_name` VARCHAR(255) NOT NULL,
   `task_type_id` INT NOT NULL,
   `task_type_name` VARCHAR(255) NOT NULL,
-  `unit_basic` VARCHAR(255) NOT NULL DEFAULT '' COMMENT 'Unit basis for the rate',
+  `unit_basis` VARCHAR(255) NOT NULL DEFAULT '' COMMENT 'Unit basis for the rate',
   `new_work_rate` DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'New work rate',
   `changes_rate` DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'Changes rate',
   `concept_charge` DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'Concept charge',
