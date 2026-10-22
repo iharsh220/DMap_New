@@ -809,17 +809,22 @@ const createLeave = async (req, res) => {
     try {
         const { from_date, to_date, user_id, leave_day_type, leave_type, status, leave_reason, remark, vertical, days_count, reason } = req.body;
 
+        let effectiveToDate = to_date;
+        if (leave_day_type !== 'Full day' && from_date) {
+            effectiveToDate = from_date;
+        }
+
         const calcDate = new Date(from_date);
         const month = calcDate.toLocaleString('default', { month: 'long' });
         const year = calcDate.getFullYear();
         const day = calcDate.toLocaleString('default', { weekday: 'long' });
 
         let calculatedDays = days_count;
-        if (from_date && to_date) {
+        if (from_date && effectiveToDate) {
             const from = new Date(from_date);
-            const to = new Date(to_date);
+            const to = new Date(effectiveToDate);
             const deltaDays = Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
-            if (leave_day_type === 'Half day' || leave_day_type === 'Short Leave') {
+            if (leave_day_type === 'Half day' || leave_day_type === 'Short Leave' || leave_day_type === 'Optional Leave') {
                 calculatedDays = deltaDays * 0.5;
             } else {
                 calculatedDays = deltaDays;
@@ -828,7 +833,7 @@ const createLeave = async (req, res) => {
 
         const leave = await Leave.create({
             from_date,
-            to_date,
+            to_date: effectiveToDate,
             user_id,
             leave_day_type,
             leave_type,
@@ -855,17 +860,22 @@ const updateLeave = async (req, res) => {
         const { id } = req.params;
         const { from_date, to_date, user_id, leave_day_type, leave_type, status, leave_reason, remark, vertical, days_count, reason } = req.body;
 
+        let effectiveToDate = to_date;
+        if (leave_day_type !== 'Full day' && from_date) {
+            effectiveToDate = from_date;
+        }
+
         const calcDate = new Date(from_date);
         const month = calcDate ? calcDate.toLocaleString('default', { month: 'long' }) : undefined;
         const year = calcDate ? calcDate.getFullYear() : undefined;
         const day = calcDate ? calcDate.toLocaleString('default', { weekday: 'long' }) : undefined;
 
         let calculatedDays = days_count;
-        if (from_date && to_date) {
+        if (from_date && effectiveToDate) {
             const from = new Date(from_date);
-            const to = new Date(to_date);
+            const to = new Date(effectiveToDate);
             const deltaDays = Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
-            if (leave_day_type === 'Half day' || leave_day_type === 'Short Leave') {
+            if (leave_day_type === 'Half day' || leave_day_type === 'Short Leave' || leave_day_type === 'Optional Leave') {
                 calculatedDays = deltaDays * 0.5;
             } else {
                 calculatedDays = deltaDays;
@@ -875,7 +885,7 @@ const updateLeave = async (req, res) => {
         const [affectedRows] = await Leave.update(
             {
                 from_date,
-                to_date,
+                to_date: effectiveToDate,
                 user_id,
                 leave_day_type,
                 leave_type,
