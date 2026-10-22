@@ -5213,7 +5213,8 @@ const getMasterCardData = async (req, res) => {
     try {
         const [rows] = await sequelize.query(`
             SELECT id, division_id, division_name, task_type_id, task_type_name,
-                   new_work_rate, changes_rate, concept_charge, ai_charges, last_moment, financial_year
+                   unit_basis, new_work_rate, changes_rate, concept_charge, ai_charges,
+                   no_of_resize_pages, last_moment, financial_year
             FROM master_card
             ORDER BY id ASC
         `);
@@ -5241,13 +5242,14 @@ const getFinancialYears = async (req, res) => {
 
 const uploadMasterCard = async (req, res) => {
     const jobId = req.body.jobId || req.query.jobId;
+    let file, ext;
     try {
         if (!req.files || !req.files.file) {
             return res.status(400).json({ success: false, error: 'No file uploaded' });
         }
-        const file = req.files.file;
+        file = req.files.file;
         const allowedTypes = ['.xlsx', '.csv'];
-        const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+        ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
         if (!allowedTypes.includes(ext)) {
             return res.status(400).json({ success: false, error: 'Only .xlsx and .csv files are allowed' });
         }
@@ -5310,8 +5312,10 @@ const uploadMasterCard = async (req, res) => {
                 const changesRate = parseFloat(row['changes work rate'] || row['changes_rate'] || 0) || 0;
                 const conceptCharge = parseFloat(row['concept charge'] || row['concept_charge'] || 0) || 0;
                 const aiCharges = parseFloat(row['ai charges'] || row['ai_charges'] || 0) || 0;
-        const lastMoment = parseFloat(row['last moment'] || row['last_moment'] || 0) || 0;
-        const financialYear = (row['financial year'] || row['financial_year'] || 'FY 25-26').toString().trim();
+                const lastMoment = parseFloat(row['last moment'] || row['last_moment'] || 0) || 0;
+                const financialYear = (row['financial year'] || row['financial_year'] || 'FY 25-26').toString().trim();
+                const unitBasis = (row['unit basis'] || row['unit_basis'] || '').toString().trim();
+                const noOfResize = parseFloat(row['no of resize pages'] || row['no_of_resize_pages'] || 0) || 0;
 
                 const divRow = await sequelize.query(
                     `SELECT id, title FROM division WHERE title = ? LIMIT 1`,
@@ -5347,11 +5351,11 @@ const uploadMasterCard = async (req, res) => {
                     taskTypeValue = taskType;
                 }
 
-                values.push(`(${divisionId}, '${divisionTitle.split("'").join("''")}', ${taskTypeId}, '${taskTypeValue.split("'").join("''")}', ${newWorkRate}, ${changesRate}, ${conceptCharge}, ${aiCharges}, ${lastMoment}, '${financialYear.split("'").join("''")}', NOW(), NOW())`);
+                values.push(`(${divisionId}, '${divisionTitle.split("'").join("''")}', ${taskTypeId}, '${taskTypeValue.split("'").join("''")}', '${unitBasis.split("'").join("''")}', ${newWorkRate}, ${changesRate}, ${conceptCharge}, ${aiCharges}, ${noOfResize}, ${lastMoment}, '${financialYear.split("'").join("''")}', NOW(), NOW())`);
             }
 
             if (values.length) {
-                const sql = `INSERT INTO master_card (division_id, division_name, task_type_id, task_type_name, new_work_rate, changes_rate, concept_charge, ai_charges, last_moment, financial_year, created_at, updated_at) VALUES ${values.join(', ')}`;
+                const sql = `INSERT INTO master_card (division_id, division_name, task_type_id, task_type_name, unit_basis, new_work_rate, changes_rate, concept_charge, ai_charges, no_of_resize_pages, last_moment, financial_year, created_at, updated_at) VALUES ${values.join(', ')}`;
                 await sequelize.query(sql);
                 inserted += values.length;
             }
@@ -5363,10 +5367,26 @@ const uploadMasterCard = async (req, res) => {
         }
 
         sendProgress(jobId, 100, `Complete! ${inserted} rows imported`, total);
+
+        const fileExt = ext.replace('.', '');
+        await sequelize.query(
+            `INSERT INTO master_card_history (source_file, file_size, file_type, upload_job_id, status, rows_processed) VALUES (?, ?, ?, ?, ?, ?)`,
+            { replacements: [file.name, file.size, fileExt, jobId || null, 'success', inserted] }
+        );
+
         res.json({ success: true, message: 'Upload complete', rowsProcessed: inserted });
     } catch (error) {
         console.error('Error uploading master card:', error);
         sendProgress(jobId, 0, `Error: ${error.message}`, 0);
+
+        if (file) {
+            const fileExt = ext.replace('.', '');
+            await sequelize.query(
+                `INSERT INTO master_card_history (source_file, file_size, file_type, upload_job_id, status, rows_processed) VALUES (?, ?, ?, ?, ?, ?)`,
+                { replacements: [file.name, file.size, fileExt, jobId || null, 'failed', 0] }
+            ).catch(() => {});
+        }
+
         res.status(500).json({ success: false, error: error.message });
     } finally {
         if (jobId && sseClients[jobId]) {
@@ -5378,7 +5398,7 @@ const uploadMasterCard = async (req, res) => {
 const updateMasterCard = async (req, res) => {
     try {
         const { id } = req.params;
-        const { new_work_rate, changes_rate, concept_charge, ai_charges, last_moment, financial_year } = req.body;
+        const { unit_basis, new_work_rate, changes_rate, concept_charge, ai_charges, no_of_resize_pages, last_moment, financial_year } = req.body;
         const setParts = [];
         const replacements = [];
         if (new_work_rate !== undefined) {
@@ -5393,6 +5413,10 @@ const updateMasterCard = async (req, res) => {
             setParts.push(`concept_charge = ?`);
             replacements.push(concept_charge);
         }
+        if (unit_basis !== undefined) {
+            setParts.push(`unit_basis = ?`);
+            replacements.push(unit_basis);
+        }
         if (ai_charges !== undefined) {
             setParts.push(`ai_charges = ?`);
             replacements.push(ai_charges);
@@ -5404,6 +5428,10 @@ const updateMasterCard = async (req, res) => {
         if (financial_year !== undefined) {
             setParts.push(`financial_year = ?`);
             replacements.push(financial_year);
+        }
+        if (no_of_resize_pages !== undefined) {
+            setParts.push(`no_of_resize_pages = ?`);
+            replacements.push(no_of_resize_pages);
         }
         if (setParts.length === 0) {
             return res.status(400).json({ success: false, error: 'No valid fields to update' });
@@ -5428,8 +5456,8 @@ const updateMasterCardField = async (req, res) => {
     try {
         const { field } = req.params;
         const { value } = req.body;
-        const numericFields = ['concept_charge', 'ai_charges', 'last_moment'];
-        const stringFields = ['financial_year'];
+        const numericFields = ['concept_charge', 'ai_charges', 'last_moment', 'no_of_resize_pages'];
+        const stringFields = ['financial_year', 'unit_basis'];
         const validFields = [...numericFields, ...stringFields];
         if(!validFields.includes(field)){
             return res.status(400).json({ success: false, error: 'Invalid field' });

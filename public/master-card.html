@@ -99,34 +99,6 @@
                     <div class="upload-progress-msg" id="progressMsg"></div>
                 </div>
                 <div class="table-card-body">
-                    <div class="kpi-section">
-                        <div class="kpi-card">
-                            <span class="kpi-label">Concept Charge (₹ per output)</span>
-                            <span class="kpi-spacer"></span>
-                            <input type="number" step="0.01" class="kpi-input" id="kpiConceptInput" data-field="concept_charge" placeholder="0">
-                        </div>
-                        <div class="kpi-card">
-                            <span class="kpi-label">AI Charge (₹ per AI image)</span>
-                            <span class="kpi-spacer"></span>
-                            <input type="number" step="0.01" class="kpi-input" id="kpiAiInput" data-field="ai_charges" placeholder="0">
-                        </div>
-                        <div class="kpi-card">
-                            <span class="kpi-label">Rush / last-moment</span>
-                            <span class="kpi-sublabel">(% of Base cost)</span>
-                            <input type="number" step="0.01" class="kpi-input" id="kpiRushInput" data-field="last_moment" placeholder="0">
-                        </div>
-                        <div class="kpi-card">
-                            <span class="kpi-label">Financial Year</span>
-                            <span class="kpi-spacer"></span>
-                            <select class="kpi-select" id="kpiFinancialYearInput" data-field="financial_year">
-                                <option value="">All Financial Years</option>
-                                <option value="FY 24-25">FY 24-25</option>
-                                <option value="FY 25-26">FY 25-26</option>
-                                <option value="FY 26-27">FY 26-27</option>
-                                <option value="FY 27-28">FY 27-28</option>
-                            </select>
-                        </div>
-                    </div>
                     <div class="dt-container">
                         <table id="mainTable" class="display" style="width:100%"><thead></thead><tbody></tbody></table>
                     </div>
@@ -299,13 +271,26 @@ $(function(){
         {data:'id', title:'ID', defaultContent:'N/A', className:'dt-left', width:'50px'},
         {data:'division_name', title:'Vertical', defaultContent:'N/A'},
         {data:'task_type_name', title:'Task Type', defaultContent:'N/A'},
-        {data:'financial_year', title:'Financial Year', defaultContent:'FY 25-26'},
+        {data:'unit_basis', title:'Unit Basis', defaultContent:'—'},
         {data:'new_work_rate', title:'New Work Rate', defaultContent:'0', className:'dt-left',
             render:function(d,t,row){ return formatCurrency(d); }
         },
         {data:'changes_rate', title:'Changes Work Rate', defaultContent:'0', className:'dt-left',
             render:function(d,t,row){ return formatCurrency(d); }
-        }
+        },
+        {data:'concept_charge', title:'Concept Charge', defaultContent:'0', className:'dt-left',
+            render:function(d,t,row){ return formatCurrency(d); }
+        },
+        {data:'ai_charges', title:'AI Charges', defaultContent:'0', className:'dt-left',
+            render:function(d,t,row){ return formatCurrency(d); }
+        },
+        {data:'no_of_resize_pages', title:'No. of Resize Pages', defaultContent:'0', className:'dt-left',
+            render:function(d,t,row){ return (parseFloat(d) || 0) + '%'; }
+        },
+        {data:'last_moment', title:'Last Moment', defaultContent:'0', className:'dt-left',
+            render:function(d,t,row){ return (parseFloat(d) || 0) + '%'; }
+        },
+        {data:'financial_year', title:'Financial Year', defaultContent:'FY 25-26'}
     ];
 
     var dt = $('#mainTable').DataTable({
@@ -368,38 +353,12 @@ $(function(){
 
     dt.on('draw', function(){
         $('#loader').hide();
-        var rows = dt.rows().data();
-        var allArr = rows.toArray ? rows.toArray() : rows;
-        var filterRows = dt.rows({ filter:'applied' }).data();
-        var arr = filterRows.toArray ? filterRows.toArray() : filterRows;
+        var rows = dt.rows({ filter:'applied' }).data();
+        var arr = rows.toArray ? rows.toArray() : rows;
         var divs = {};
         arr.forEach(function(r){ var d = r.division_name || 'N/A'; divs[d] = (divs[d]||0)+1; });
         $('#s1').text(arr.length);
         $('#s2').text(Object.keys(divs).length);
-        var currentFilter = $('#kpiFinancialYearInput').val();
-        var seenFYs = {};
-        var fyList = [];
-        allArr.forEach(function(r){
-            var fy = r.financial_year || 'FY 25-26';
-            if(!seenFYs[fy]){ seenFYs[fy] = true; fyList.push(fy); }
-        });
-        var kpiSelect = $('#kpiFinancialYearInput');
-        var editSelect = $('#editFinancialYear');
-        var kpiVal = kpiSelect.val();
-        kpiSelect.empty();
-        kpiSelect.append('<option value="">All Financial Years</option>');
-        editSelect.empty();
-        fyList.forEach(function(yr){
-            kpiSelect.append('<option value="'+yr+'">'+yr+'</option>');
-            editSelect.append('<option value="'+yr+'">'+yr+'</option>');
-        });
-        if(kpiVal){ kpiSelect.val(kpiVal); }
-        if(arr.length){
-            var r = arr[0];
-            $('#kpiConceptInput').val(parseFloat(r.concept_charge) || 0);
-            $('#kpiAiInput').val(parseFloat(r.ai_charges) || 0);
-            $('#kpiRushInput').val(parseFloat(r.last_moment) || 0);
-        }
     });
 
     $('#btnExcel').on('click',function(){ dt.button('.buttons-excel').trigger(); });
@@ -414,77 +373,29 @@ $(function(){
         var rowData = dt.row(editRowNode).data();
         $('#editVertical').val(rowData.division_name || 'N/A');
         $('#editTaskType').val(rowData.task_type_name || 'N/A');
+        $('#editUnitBasis').val(rowData.unit_basis || '');
         $('#editNewWorkRate').val(parseFloat(rowData.new_work_rate) || 0);
         $('#editChangesRate').val(parseFloat(rowData.changes_rate) || 0);
         $('#editConceptCharge').val(parseFloat(rowData.concept_charge) || 0);
         $('#editAiCharges').val(parseFloat(rowData.ai_charges) || 0);
+        $('#editNoResizePages').val(parseFloat(rowData.no_of_resize_pages) || 0);
         $('#editLastMoment').val(parseFloat(rowData.last_moment) || 0);
         $('#editFinancialYear').val(rowData.financial_year || 'FY 25-26');
-        $('#kpiConceptInput').val(parseFloat(rowData.concept_charge) || 0);
-        $('#kpiAiInput').val(parseFloat(rowData.ai_charges) || 0);
-        $('#kpiRushInput').val(parseFloat(rowData.last_moment) || 0);
-        $('#editModal').addClass('active');
-    });
 
-    function syncKPIFields(field, val){
-        if(field==='concept_charge'){
-            $('#kpiConceptInput').val(val);
-            $('#editConceptCharge').val(val);
-        } else if(field==='ai_charges'){
-            $('#kpiAiInput').val(val);
-            $('#editAiCharges').val(val);
-        } else if(field==='last_moment'){
-            $('#kpiRushInput').val(val);
-            $('#editLastMoment').val(val);
-        }
-    }
-
-    function updateFieldInDB(field, val){
-        $.ajax({
-            url: apiBase + 'admin/master-card/field/' + field,
-            type: 'PUT',
-            contentType: 'application/json',
-            data: JSON.stringify({ value: val }),
-            headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('accessToken') || '') },
-            success: function(res){
-                if(res.success){ dt.ajax.reload(); }
-            }
+        var fyList = [];
+        dt.rows().every(function(){
+            var fy = this.data().financial_year || 'FY 25-26';
+            if(fyList.indexOf(fy) === -1){ fyList.push(fy); }
         });
-    }
-
-    function populateFinancialYearDropdowns(years){
-        var kpiSelect = $('#kpiFinancialYearInput');
         var editSelect = $('#editFinancialYear');
-        kpiSelect.empty();
+        var currentVal = editSelect.val();
         editSelect.empty();
-        kpiSelect.append('<option value="">All Financial Years</option>');
-        years.forEach(function(yr){
-            kpiSelect.append('<option value="'+yr+'">'+yr+'</option>');
+        fyList.forEach(function(yr){
             editSelect.append('<option value="'+yr+'">'+yr+'</option>');
         });
-    }
+        if(currentVal){ editSelect.val(currentVal); } else if(fyList.length){ editSelect.val(fyList[0]); }
 
-    $('#kpiConceptInput, #editConceptCharge').on('input', function(){
-        syncKPIFields('concept_charge', $(this).val());
-    }).on('change', function(){
-        updateFieldInDB('concept_charge', $(this).val());
-    });
-    $('#kpiAiInput, #editAiCharges').on('input', function(){
-        syncKPIFields('ai_charges', $(this).val());
-    }).on('change', function(){
-        updateFieldInDB('ai_charges', $(this).val());
-    });
-    $('#kpiRushInput, #editLastMoment').on('input', function(){
-        syncKPIFields('last_moment', $(this).val());
-    }).on('change', function(){
-        updateFieldInDB('last_moment', $(this).val());
-    });
-    $('#kpiFinancialYearInput').on('change', function(){
-        var val = $(this).val();
-        dt.column(4).search(val).draw();
-    });
-    $('#editFinancialYear').on('change', function(){
-        updateFieldInDB('financial_year', $(this).val());
+        $('#editModal').addClass('active');
     });
 
     dt.on('click', '.del-btn', function(){
@@ -516,11 +427,13 @@ $(function(){
             type: 'PUT',
             contentType: 'application/json',
             data: JSON.stringify({
+                unit_basis: $('#editUnitBasis').val(),
                 new_work_rate: parseFloat($('#editNewWorkRate').val()) || 0,
                 changes_rate: parseFloat($('#editChangesRate').val()) || 0,
                 concept_charge: parseFloat($('#editConceptCharge').val()) || 0,
                 ai_charges: parseFloat($('#editAiCharges').val()) || 0,
-                last_moment: parseFloat($('#editLastMoment').val()) || 0,
+                no_of_resize_pages: parseFloat($('#editNoResizePages').val()) || 0,
+                last_moment: $('#editLastMoment').val(),
                 financial_year: $('#editFinancialYear').val()
             }),
             headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('accessToken') || '') },
@@ -560,6 +473,16 @@ $(function(){
             </div>
             <div class="modal-form-row">
                 <div class="modal-form-group">
+                    <label>Unit Basis</label>
+                    <input type="text" id="editUnitBasis" placeholder="e.g. Per artwork">
+                </div>
+                <div class="modal-form-group">
+                    <label>Financial Year</label>
+                    <select id="editFinancialYear"></select>
+                </div>
+            </div>
+            <div class="modal-form-row">
+                <div class="modal-form-group">
                     <label>New Work Rate</label>
                     <input type="number" id="editNewWorkRate" step="0.01" required>
                 </div>
@@ -568,27 +491,24 @@ $(function(){
                     <input type="number" id="editChangesRate" step="0.01" required>
                 </div>
             </div>
-            <div class="kpi-edit-row">
-                <div class="kpi-edit-item">
-                    <label>Concept Charge (₹ per output)</label>
+            <div class="modal-form-row">
+                <div class="modal-form-group">
+                    <label>Concept Charge</label>
                     <input type="number" id="editConceptCharge" step="0.01" required>
                 </div>
-                <div class="kpi-edit-item">
-                    <label>AI Charge (₹ per AI image)</label>
+                <div class="modal-form-group">
+                    <label>AI Charges</label>
                     <input type="number" id="editAiCharges" step="0.01" required>
                 </div>
-                <div class="kpi-edit-item">
-                    <label>Rush / last-moment (% of Base cost)</label>
-                    <input type="number" id="editLastMoment" step="0.01" required>
+            </div>
+            <div class="modal-form-row">
+                <div class="modal-form-group">
+                    <label>No. of Resize Pages</label>
+                    <input type="number" id="editNoResizePages" step="0.01">
                 </div>
-                <div class="kpi-edit-item">
-                    <label>Financial Year</label>
-                    <select id="editFinancialYear">
-                        <option value="FY 24-25">FY 24-25</option>
-                        <option value="FY 25-26">FY 25-26</option>
-                        <option value="FY 26-27">FY 26-27</option>
-                        <option value="FY 27-28">FY 27-28</option>
-                    </select>
+                <div class="modal-form-group">
+                    <label>Last Moment</label>
+                    <input type="text" id="editLastMoment" placeholder="e.g. 25% on Base Cost">
                 </div>
             </div>
         </form>
