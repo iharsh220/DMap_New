@@ -584,6 +584,7 @@ const deleteIssue = async (req, res) => {
 const getAllLeaves = async (req, res) => {
     try {
         const { startDate, endDate, userId, leaveDayType, leaveType, status, leaveReason, vertical, year, month } = req.query;
+        const { page, limit, offset } = req.pagination;
 
         const where = { is_deleted: 0 };
         if (startDate) where.from_date = { ...where.from_date, [Op.gte]: startDate };
@@ -596,6 +597,8 @@ const getAllLeaves = async (req, res) => {
         if (vertical) where.vertical = vertical;
         if (year) where.year = year;
         if (month) where.month = month;
+
+        const total = await Leave.count({ where });
 
         const leaves = await Leave.findAll({
             where,
@@ -611,10 +614,11 @@ const getAllLeaves = async (req, res) => {
                     required: true
                 }
             ],
-            order: [['from_date', 'DESC']]
+            order: [['from_date', 'DESC']],
+            ...(limit !== -1 ? { limit, offset } : {})
         });
 
-        res.json({ success: true, data: leaves });
+        res.json({ success: true, data: leaves, total: total, recordsTotal: total, recordsFiltered: total });
     } catch (error) {
         console.error('Error fetching leaves:', error);
         res.status(500).json({ error: 'Internal server error' });
@@ -1021,20 +1025,9 @@ const getUserDivision = async (req, res) => {
 
 const getAdminData = async (req, res) => {
     try {
-        const {
-            startDate,
-            endDate,
-            status,
-            priority,
-            requestType,
-            projectType,
-            requester,
-            brand
-        } = req.query;
+        const { startDate, endDate, status, priority, requestType, projectType, requester, brand } = req.query;
 
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 25;
-        const offset = (page - 1) * limit;
+        const { page, limit, offset } = req.pagination;
 
         const whereClauses = [];
         const replacements = {};
@@ -1902,6 +1895,7 @@ const getAdminData = async (req, res) => {
 const getClientsData = async (req, res) => {
     try {
         const { startDate, endDate } = req.query;
+        const { page, limit, offset } = req.pagination;
 
         const replacements = {};
         const whereClauses = [];
@@ -2353,13 +2347,26 @@ const getClientsData = async (req, res) => {
             ORDER BY wr.requested_at DESC
         `;
 
+        const countQuery = `SELECT COUNT(*) AS total FROM ( ${query} ) AS count_table`;
+        const countResult = await sequelize.query(countQuery, { replacements, type: sequelize.QueryTypes.SELECT });
+        const total = countResult[0]?.total || 0;
+
+        if (limit !== -1) {
+            query += ` LIMIT :limit OFFSET :offset`;
+            replacements.limit = limit;
+            replacements.offset = offset;
+        }
+
         const results = await sequelize.query(query, {
             replacements,
             type: sequelize.QueryTypes.SELECT
         });
 
         res.json({
-            data: results
+            data: results,
+            total: total,
+            recordsTotal: total,
+            recordsFiltered: total
         });
 
     } catch (error) {
@@ -2375,6 +2382,7 @@ const getTaskDetailsData = async (req, res) => {
     try {
 
         const { taskStatus } = req.query;
+        const { page, limit, offset } = req.pagination;
 
         const replacements = {};
         const whereClauses = [];
@@ -3385,6 +3393,16 @@ const getTaskDetailsData = async (req, res) => {
             ORDER BY t.id DESC
         `;
 
+        const countQuery = `SELECT COUNT(*) AS total FROM ( ${query} ) AS count_table`;
+        const countResult = await sequelize.query(countQuery, { replacements, type: sequelize.QueryTypes.SELECT });
+        const total = countResult[0]?.total || 0;
+
+        if (limit !== -1) {
+            query += ` LIMIT :limit OFFSET :offset`;
+            replacements.limit = limit;
+            replacements.offset = offset;
+        }
+
 
         // ==========================================
         // EXECUTE QUERY
@@ -3404,7 +3422,10 @@ const getTaskDetailsData = async (req, res) => {
         // ==========================================
 
         res.json({
-            data: results
+            data: results,
+            total: total,
+            recordsTotal: total,
+            recordsFiltered: total
         });
 
 
@@ -3425,6 +3446,7 @@ const getTaskDetailsData = async (req, res) => {
 const getIssueDetailsData = async (req, res) => {
     try {
         const { issueStatus } = req.query;
+        const { page, limit, offset } = req.pagination;
 
         const replacements = {};
         const whereClauses = [];
@@ -4221,13 +4243,26 @@ const getIssueDetailsData = async (req, res) => {
             ORDER BY ia.id DESC
         `;
 
+        const countQuery = `SELECT COUNT(*) AS total FROM ( ${query} ) AS count_table`;
+        const countResult = await sequelize.query(countQuery, { replacements, type: sequelize.QueryTypes.SELECT });
+        const total = countResult[0]?.total || 0;
+
+        if (limit !== -1) {
+            query += ` LIMIT :limit OFFSET :offset`;
+            replacements.limit = limit;
+            replacements.offset = offset;
+        }
+
         const results = await sequelize.query(query, {
             replacements,
             type: sequelize.QueryTypes.SELECT
         });
 
         res.json({
-            data: results
+            data: results,
+            total: total,
+            recordsTotal: total,
+            recordsFiltered: total
         });
 
     } catch (error) {
@@ -4286,6 +4321,7 @@ const getTasksForWorkRequest = async (req, res) => {
 const getWorkRequestTasksData = async (req, res) => {
     try {
         const { startDate, endDate } = req.query;
+        const { page, limit, offset } = req.pagination;
 
         const replacements = {};
         const whereClauses = ['wr.is_deleted = 0'];
@@ -5267,13 +5303,26 @@ const getWorkRequestTasksData = async (req, res) => {
                 ia.id ASC
         `;
 
+        const countQuery = `SELECT COUNT(*) AS total FROM work_requests wr WHERE ${whereClauses.join(' AND ')}`;
+        const countResult = await sequelize.query(countQuery, { replacements, type: sequelize.QueryTypes.SELECT });
+        const total = countResult[0]?.total || 0;
+
+        if (limit !== -1) {
+            query += ` LIMIT :limit OFFSET :offset`;
+            replacements.limit = limit;
+            replacements.offset = offset;
+        }
+
         const results = await sequelize.query(query, {
             replacements,
             type: sequelize.QueryTypes.SELECT
         });
 
         res.json({
-            data: results
+            data: results,
+            total: total,
+            recordsTotal: total,
+            recordsFiltered: total
         });
 
     } catch (error) {
@@ -5291,12 +5340,15 @@ const getWorkRequestTasksData = async (req, res) => {
 const getAllFeedback = async (req, res) => {
     try {
         const { userId, taskId, startDate, endDate } = req.query;
+        const { page, limit, offset } = req.pagination;
 
         const where = { is_deleted: 0 };
         if (userId) where.user_id = userId;
         if (taskId) where.task_id = taskId;
         if (startDate) where.createdAt = { ...where.createdAt, [Op.gte]: new Date(startDate) };
         if (endDate) where.createdAt = { ...where.createdAt, [Op.lte]: new Date(endDate) };
+
+        const total = await Feedbacks.count({ where });
 
         const feedbacks = await Feedbacks.findAll({
             where,
@@ -5314,10 +5366,11 @@ const getAllFeedback = async (req, res) => {
                     include: [{ model: Division, as: 'Divisions', attributes: ['id', 'title'] }]
                 }
             ],
-            order: [['created_at', 'DESC']]
+            order: [['created_at', 'DESC']],
+            ...(limit !== -1 ? { limit, offset } : {})
         });
 
-        res.json({ success: true, data: feedbacks });
+        res.json({ success: true, data: feedbacks, total: total, recordsTotal: total, recordsFiltered: total });
     } catch (error) {
         console.error('Error fetching feedback:', error);
         res.status(500).json({ error: 'Internal server error' });
@@ -5326,14 +5379,31 @@ const getAllFeedback = async (req, res) => {
 
 const getMasterCardData = async (req, res) => {
     try {
-        const [rows] = await sequelize.query(`
+        const { page, limit, offset } = req.pagination;
+
+        const countResult = await sequelize.query(
+            `SELECT COUNT(*) AS total FROM master_card`,
+            { type: sequelize.QueryTypes.SELECT }
+        );
+        const total = countResult[0]?.total || 0;
+
+        let query = `
             SELECT id, division_id, division_name, task_type_id, task_type_name,
                    unit_basis, new_work_rate, changes_rate, concept_charge, ai_charges,
                    no_of_resize_pages, last_moment, financial_year
             FROM master_card
             ORDER BY id ASC
-        `);
-        res.json({ success: true, data: rows });
+        `;
+
+        if (limit !== -1) {
+            query += ` LIMIT :limit OFFSET :offset`;
+        }
+
+        const [rows] = await sequelize.query(query, {
+            replacements: limit !== -1 ? { limit, offset } : {}
+        });
+
+        res.json({ success: true, data: rows, total: total, recordsTotal: total, recordsFiltered: total });
     } catch (error) {
         console.error('Error fetching master card data:', error);
         res.status(500).json({ success: false, error: 'Internal server error' });

@@ -367,51 +367,62 @@ $(function(){
         $('body').addClass('sidebar-collapsed');
         $('#sidebarToggle').find('i').removeClass('bi-chevron-left').addClass('bi-chevron-right');
     }
-    $.getJSON('./workrequesttasks/data',function(res){
-        $('#loader').hide();
-        var data=res.data||[];
-        $('#recordCount').text(data.length+' Records');
-        $('#s1').text(data.length);
-        var wrIds=new Set(),tIds=new Set(),iIds=new Set();
-        data.forEach(function(r){
-            if(r.work_request_id)wrIds.add(r.work_request_id);
-            if(r.task_id)tIds.add(r.task_id);
-            if(r.issue_id)iIds.add(r.issue_id);
+    var orderedKeys=COL_ORDER;
+    var cols=[];
+    orderedKeys.forEach(function(k){
+        cols.push({
+            data:k,title:HEADERS[k]||k,defaultContent:'N/A',
+            render:function(v,type){
+                if(type!=='display')return v;
+                var val=v!=null?v:'N/A';
+                if(STATUS_KEYS.indexOf(k)!==-1&&val&&val!=='N/A'){
+                    var c=STATUS_MAP[val]||'';
+                    return '<span class="status-badge '+c+'">'+val+'</span>';
+                }
+                return val;
+            }
         });
-        $('#s2').text(wrIds.size);
-        $('#s3').text(tIds.size);
-        $('#s4').text(iIds.size);
+    });
 
-        var cols=[];
-        var orderedKeys=[];
-        if(data.length){
-            var availableKeys=new Set(Object.keys(data[0]));
-            // Use COL_ORDER for display order, fall back to remaining keys
-            orderedKeys=COL_ORDER.filter(function(k){return availableKeys.has(k);});
-            // Add any keys not in COL_ORDER at the end
-            Object.keys(data[0]).forEach(function(k){if(!orderedKeys.includes(k))orderedKeys.push(k);});
-            orderedKeys.forEach(function(k){
-                cols.push({
-                    data:k,title:HEADERS[k]||k,defaultContent:'N/A',
-                    render:function(v,type){
-                        if(type!=='display')return v;
-                        var val=v!=null?v:'N/A';
-                        if(STATUS_KEYS.indexOf(k)!==-1&&val&&val!=='N/A'){
-                            var c=STATUS_MAP[val]||'';
-                            return '<span class="status-badge '+c+'">'+val+'</span>';
-                        }
-                        return val;
-                    }
+    var dt=$('#mainTable').DataTable({
+        processing: true,
+        serverSide: true,
+        pageLength:25,lengthMenu:[[25,50,100,200,-1],[25,50,100,200,'All']],
+        dom:'<"dt-top-row"lf>rt<"dt-bottom-row"ip>',
+        scrollX:true,scrollY:'calc(100vh - 360px)',scrollCollapse:false,autoWidth:false,
+        language:{search:'',searchPlaceholder:'Search all columns...',lengthMenu:'Show _MENU_ rows'},
+        ajax: {
+            url: getApiBase()+'datatable/admin/workrequesttasks/data',
+            dataSrc: function(res){
+                $('#loader').hide();
+                var data = res.data || [];
+                var total = res.recordsTotal || 0;
+                $('#recordCount').text(total+' Records');
+                $('#s1').text(total);
+                var wrIds=new Set(),tIds=new Set(),iIds=new Set();
+                data.forEach(function(r){
+                    if(r.work_request_id)wrIds.add(r.work_request_id);
+                    if(r.task_id)tIds.add(r.task_id);
+                    if(r.issue_id)iIds.add(r.issue_id);
                 });
-            });
-        }
-
-        var dt=$('#mainTable').DataTable({
-            data:data,columns:cols,
-            pageLength:25,lengthMenu:[[25,50,100,200,-1],[25,50,100,200,'All']],
-            dom:'<"dt-top-row"lf>rt<"dt-bottom-row"ip>',
-            scrollX:true,scrollY:'calc(100vh - 360px)',scrollCollapse:false,autoWidth:false,
-            language:{search:'',searchPlaceholder:'Search all columns...',lengthMenu:'Show _MENU_ rows'},
+                $('#s2').text(wrIds.size);
+                $('#s3').text(tIds.size);
+                $('#s4').text(iIds.size);
+                return data;
+            },
+            data: function(d){
+                d.page = Math.floor(d.start / d.length) + 1;
+                d.limit = d.length;
+                delete d.start;
+                delete d.length;
+                delete d.draw;
+                delete d.columns;
+                delete d.order;
+                delete d.search;
+                return d;
+            }
+        },
+        columns: cols,
             initComplete:function(){
                 var api=this.api();
                 api.columns().every(function(){
@@ -443,7 +454,21 @@ $(function(){
         ]);
         $('#btnExcel').on('click',function(){dt.button('.buttons-excel').trigger();});
         $('#btnCsv').on('click',function(){dt.button('.buttons-csv').trigger();});
-    }).fail(function(){$('#loader').html('<div style="color:var(--danger);font-size:13px"><i class="bi bi-exclamation-triangle"></i> Failed to load data</div>');});
+        dt.on('draw',function(){
+            var rows=dt.rows({ filter:'applied' }).data();
+            var arr=rows.toArray ? rows.toArray() : rows;
+            var wrIds=new Set(),tIds=new Set(),iIds=new Set();
+            arr.forEach(function(r){
+                if(r.work_request_id)wrIds.add(r.work_request_id);
+                if(r.task_id)tIds.add(r.task_id);
+                if(r.issue_id)iIds.add(r.issue_id);
+            });
+            $('#s2').text(wrIds.size);
+            $('#s3').text(tIds.size);
+            $('#s4').text(iIds.size);
+            $('#s1').text(dt.page.info().recordsTotal);
+            $('#recordCount').text(dt.page.info().recordsTotal+' Records');
+    });
 });
 </script>
 </body>

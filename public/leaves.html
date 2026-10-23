@@ -439,23 +439,17 @@ $(function(){
         saveLeave();
     });
 
-    $.getJSON(getApiBase()+'datatable/admin/leaves/data', function(res){
-        $('#loader').hide();
-        var data = res.data||[];
-        $('#recordCount').text(data.length+' Records');
-        updateLeaveStats(data);
-
-        var cols=[];
-        cols.push({
-            data:null, title:'Action', orderable:false, searchable:false, width:'80px',
-            render:function(v,type,row){
-                if(type!=='display') return '';
-                return '<button class="edit-btn" onclick="editLeave('+(row?row.id:'')+')" title="Edit" style="background:var(--accent-bg);border:1px solid var(--accent-border);color:var(--accent);border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;margin-right:4px;"><i class="bi bi-pencil"></i></button>'
-                       +'<button class="del-btn" onclick="deleteLeave('+(row?row.id:'')+')" title="Delete" style="background:var(--danger-bg);border:1px solid var(--danger-border);color:var(--danger);border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;"><i class="bi bi-trash3"></i></button>';
-            }
-        });
-        var keyOrder=['id','user_id','name','from_date','to_date','day','leave_day_type','leave_type','status','leave_reason','vertical','days_count','reason','remark','month','year'];
-        keyOrder.forEach(function(k){
+    var keyOrder=['id','user_id','name','from_date','to_date','day','leave_day_type','leave_type','status','leave_reason','vertical','days_count','reason','remark','month','year'];
+    var cols=[];
+    cols.push({
+        data:null, title:'Action', orderable:false, searchable:false, width:'80px',
+        render:function(v,type,row){
+            if(type!=='display') return '';
+            return '<button class="edit-btn" onclick="editLeave('+(row?row.id:'')+')" title="Edit" style="background:var(--accent-bg);border:1px solid var(--accent-border);color:var(--accent);border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;margin-right:4px;"><i class="bi bi-pencil"></i></button>'
+                   +'<button class="del-btn" onclick="deleteLeave('+(row?row.id:'')+')" title="Delete" style="background:var(--danger-bg);border:1px solid var(--danger-border);color:var(--danger);border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;"><i class="bi bi-trash3"></i></button>';
+        }
+    });
+    keyOrder.forEach(function(k){
             if(k==='name'){
                 cols.push({
                     data:null, title:HEADERS[k]||k, defaultContent:'N/A',
@@ -477,12 +471,35 @@ $(function(){
                 }
         });
 
-        dt=$('#mainTable').DataTable({
-            data:data,columns:cols,
-            pageLength:25,lengthMenu:[[25,50,100,200,-1],[25,50,100,200,'All']],
-            dom:'<"dt-top-row"lf>rt<"dt-bottom-row"ip>',
-            scrollX:true,scrollY:'calc(100vh - 360px)',scrollCollapse:false,autoWidth:false,fixedColumns:{left:4},
-            language:{search:'',searchPlaceholder:'Search all columns...',lengthMenu:'Show _MENU_ rows'},
+    dt=$('#mainTable').DataTable({
+        processing: true,
+        serverSide: true,
+        pageLength:25,lengthMenu:[[25,50,100,200,-1],[25,50,100,200,'All']],
+        dom:'<"dt-top-row"lf>rt<"dt-bottom-row"ip>',
+        scrollX:true,scrollY:'calc(100vh - 360px)',scrollCollapse:false,autoWidth:false,fixedColumns:{left:4},
+        language:{search:'',searchPlaceholder:'Search all columns...',lengthMenu:'Show _MENU_ rows'},
+        ajax: {
+            url: getApiBase()+'datatable/admin/leaves/data',
+            dataSrc: function(res){
+                $('#loader').hide();
+                var data = res.data || [];
+                $('#recordCount').text((res.recordsTotal || 0)+' Records');
+                updateLeaveStats(data);
+                return data;
+            },
+            data: function(d){
+                d.page = Math.floor(d.start / d.length) + 1;
+                d.limit = d.length;
+                delete d.start;
+                delete d.length;
+                delete d.draw;
+                delete d.columns;
+                delete d.order;
+                delete d.search;
+                return d;
+            }
+        },
+        columns: cols,
             initComplete:function(){
                 var api=this.api();
                 var colKeys=['Action'].concat(keyOrder);
@@ -523,7 +540,7 @@ $(function(){
             }
         });
         var colTitles=cols.map(function(c){return c.title;});
-        new $.fn.dataTable.Buttons(dt,[
+        $.fn.dataTable.Buttons(dt,[
             {extend:'excel',className:'buttons-excel',filename:'leaves_'+new Date().toISOString().slice(0,10),exportOptions:{columns:':gt(0):visible',modifier:{page:'all'},orthogonal:'export',format:{header:function(data,col){return colTitles[col]||data;},body:function(data){return data == null ? '' : data;}}}},
             {extend:'csv',className:'buttons-csv',filename:'leaves_'+new Date().toISOString().slice(0,10),exportOptions:{columns:':gt(0):visible',modifier:{page:'all'},orthogonal:'export',format:{header:function(data,col){return colTitles[col]||data;},body:function(data){return data == null ? '' : data;}}}}
         ]);
@@ -533,10 +550,11 @@ $(function(){
             var rows=dt.rows({ filter:'applied' }).data();
             var arr=rows.toArray ? rows.toArray() : rows;
             updateLeaveStats(arr);
-            $('#recordCount').text(arr.length+' Records');
+            $('#s1').text(dt.page.info().recordsTotal);
+            $('#recordCount').text(dt.page.info().recordsTotal+' Records');
         });
-    }).fail(function(){$('#loader').html('<div style="color:var(--danger);font-size:13px"><i class="bi bi-exclamation-triangle"></i> Failed to load data</div>');});
-});
+    });
+
 
 function calculateDaysCount(){
     var fromDate = $('#leaveFromDate').val();

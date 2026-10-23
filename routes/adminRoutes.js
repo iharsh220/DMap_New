@@ -68,7 +68,7 @@ router.get('/admin/master-card', (req, res) => {
 });
 
 // API endpoint for master card data
-router.get('/admin/master-card/data', cachedAdminData(getMasterCardData));
+router.get('/admin/master-card/data', paginationMiddleware, cachedAdminData(getMasterCardData));
 
 // Upload master card data (Excel/CSV)
 router.post('/admin/master-card/upload', uploadMasterCard);
@@ -107,16 +107,16 @@ router.get('/admin/token-changes', (req, res) => {
 router.get('/admin/projectsdetails/data', paginationMiddleware, cachedAdminData(getAdminData));
 
 // API endpoint for clients data
-router.get('/admin/clients/data', cachedAdminData(getClientsData));
+router.get('/admin/clients/data', paginationMiddleware, cachedAdminData(getClientsData));
 
 // API endpoint for task details data
-router.get('/admin/taskdetails/data', cachedAdminData(getTaskDetailsData));
+router.get('/admin/taskdetails/data', paginationMiddleware, cachedAdminData(getTaskDetailsData));
 
 // API endpoint for issue details data
-router.get('/admin/issuedetails/data', cachedAdminData(getIssueDetailsData));
+router.get('/admin/issuedetails/data', paginationMiddleware, cachedAdminData(getIssueDetailsData));
 
 // API endpoint for workrequest tasks raw data
-router.get('/admin/workrequesttasks/data', cachedAdminData(getWorkRequestTasksData));
+router.get('/admin/workrequesttasks/data', paginationMiddleware, cachedAdminData(getWorkRequestTasksData));
 
 // API endpoint for tasks
 router.get('/admin/projectsdetails/tasks/:workRequestId', cachedAdminData(getTasksForWorkRequest));
@@ -154,10 +154,10 @@ router.get('/admin/feedback', (req, res) => {
 });
 
 // API endpoint for feedback data
-router.get('/admin/feedback/data', getAllFeedback);
+router.get('/admin/feedback/data', paginationMiddleware, getAllFeedback);
 
 // API endpoint for leaves data
-router.get('/admin/leaves/data', getAllLeaves);
+router.get('/admin/leaves/data', paginationMiddleware, getAllLeaves);
 router.get('/admin/leaves/users', getLeaveUsers);
 router.get('/admin/leaves/users/:userId/division', getUserDivision);
 router.get('/admin/leaves/kpis', getLeaveKpis);
