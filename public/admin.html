@@ -206,6 +206,7 @@ $(function(){
         language: { search: '', searchPlaceholder: 'Search all columns...', lengthMenu: 'Show _MENU_ rows' },
         ajax: {
             url: getApiBase() + 'datatable/admin/projectsdetails/data',
+            beforeSend: function(){ $('#loader').show(); },
             dataSrc: function(res){
                 $('#loader').hide();
                 var total = res.total || 0;
@@ -263,6 +264,8 @@ $(function(){
             });
         }
     });
+
+    dt.on('xhr', function(){ $('#loader').show(); });
 
     $('#btnExcel').on('click',function(){ dt.button('.buttons-excel').trigger(); });
     $('#btnCsv').on('click',function(){ dt.button('.buttons-csv').trigger(); });

@@ -257,6 +257,7 @@ $(function(){
         order:[[0,'desc']],
         ajax: {
             url: getApiBase()+'datatable/admin/feedback/data',
+            beforeSend: function(){ $('#loader').show(); },
             dataSrc: function(res){
                 $('#loader').hide();
                 var data = res.data || [];
@@ -304,6 +305,7 @@ $(function(){
             });
         }
     });
+    dt.on('xhr', function(){ $('#loader').show(); });
     dt.on('draw',function(){
         var rows = dt.rows({filter:'applied'}).data().toArray();
         updateFeedbackStats(rows);
