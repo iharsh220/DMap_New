@@ -284,6 +284,7 @@ $(function(){
         language:{search:'',searchPlaceholder:'Search all columns...',lengthMenu:'Show _MENU_ rows'},
         ajax: {
             url: getApiBase()+'datatable/admin/issuedetails/data',
+            beforeSend: function(){ $('#loader').show(); },
             dataSrc: function(res){
                 $('#loader').hide();
                 var data = res.data || [];
@@ -350,6 +351,7 @@ $(function(){
                 });
             }
         });
+        dt.on('xhr', function(){ $('#loader').show(); });
         $('#mainTable').on('click','.del-btn',function(e){e.stopPropagation();openDeleteModal($(this).data('type'),$(this).data('id'));});
         $('#mainTable').on('click','.edit-btn',function(e){e.stopPropagation();openEditModal($(this).data('type'),$(this).data('id'));});
         var colTitles=cols.map(function(c){return c.title;});

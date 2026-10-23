@@ -279,6 +279,7 @@ $(function(){
         serverSide: true,
         ajax: {
             url: getApiBase()+'datatable/admin/clients/data',
+            beforeSend: function(){ $('#loader').show(); },
             dataSrc: function(res){
                 $('#loader').hide();
                 var data = res.data || [];
@@ -345,6 +346,7 @@ $(function(){
                 });
             }
         });
+        dt.on('xhr', function(){ $('#loader').show(); });
         $('#mainTable').on('click','.del-btn',function(e){ e.stopPropagation(); openDeleteModal($(this).data('type'),$(this).data('id')); });
         $('#mainTable').on('click','.edit-btn',function(e){ e.stopPropagation(); openEditModal($(this).data('type'),$(this).data('id')); });
 
