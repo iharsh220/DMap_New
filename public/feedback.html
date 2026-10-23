@@ -205,102 +205,117 @@ $(function(){
         $('#sidebarToggle').find('i').removeClass('bi-chevron-left').addClass('bi-chevron-right');
     }
 
-    $.getJSON(getApiBase()+'datatable/admin/feedback/data', function(res){
-        $('#loader').hide();
-        var data = res.data||[];
-        $('#recordCount').text(data.length+' Records');
-        updateFeedbackStats(data);
-
-        var cols=[];
-        var keyOrder=['id','question','task_id','task_name','task_type','user_name','user_division','rating_functionality','functionality_comment','rating_timeliness','timeliness_comment','rating_communication','communication_comment','recommendation_score','comments','created_at'];
-        keyOrder.forEach(function(k){
-            cols.push({
-                data:k, title:HEADERS[k]||k, defaultContent:'N/A',
-                 render:function(v,type,row){
-                     // Plain text for export (Excel/CSV)
-                     if(type!=='display'){
-                         if(k==='task_type'){ return row&&row.task&&row.task.TaskType?(row.task.TaskType.task_type||''):''; }
-                         if(k==='task_name'){ return row&&row.task?(row.task.task_name||''):''; }
-                         if(k==='user_division'){ return row&&row.user&&row.user.Divisions&&row.user.Divisions.length?(row.user.Divisions[0].title||''):''; }
-                         return v!=null?v:'';
-                     }
-                     var val=v != null ? v : 'N/A';
-                     if(k==='task_type'){
-                         return row && row.task && row.task.TaskType ? (row.task.TaskType.task_type || 'N/A') : 'N/A';
-                     }
-                     if(k==='task_name'){
-                         return row && row.task ? (row.task.task_name || 'N/A') : 'N/A';
-                     }
-                     if(k==='user_name'){
-                         var u = row && row.user ? row.user : null;
-                         return u ? (u.name || 'N/A') : 'N/A';
-                     }
-                     if(k==='user_division'){
-                         if(row && row.user && row.user.Divisions && row.user.Divisions.length){
-                             return row.user.Divisions[0].title || 'N/A';
-                         }
-                         return 'N/A';
-                     }
-                     if(['rating_functionality','rating_timeliness','rating_communication'].indexOf(k) !== -1){
-                         var stars = '';
-                         for(var i=0;i<5;i++){ stars += i < val ? '<i class="bi bi-star-fill rating-stars"></i>' : '<i class="bi bi-star rating-stars"></i>'; }
-                         return val+' '+stars;
-                     }
-                     if(k==='recommendation_score'){
-                         return '<span class="status-badge '+(val>=8?'status-planned':(val>=5?'status-inform':'status-unplanned'))+'">'+val+'</span>';
-                     }
-                     return val;
+    var keyOrder=['id','question','task_id','task_name','task_type','user_name','user_division','rating_functionality','functionality_comment','rating_timeliness','timeliness_comment','rating_communication','communication_comment','recommendation_score','comments','created_at'];
+    var cols=[];
+    keyOrder.forEach(function(k){
+        cols.push({
+            data:k, title:HEADERS[k]||k, defaultContent:'N/A',
+             render:function(v,type,row){
+                 if(type!=='display'){
+                     if(k==='task_type'){ return row&&row.task&&row.task.TaskType?(row.task.TaskType.task_type||''):''; }
+                     if(k==='task_name'){ return row&&row.task?(row.task.task_name||''):''; }
+                     if(k==='user_division'){ return row&&row.user&&row.user.Divisions&&row.user.Divisions.length?(row.user.Divisions[0].title||''):''; }
+                     return v!=null?v:'';
                  }
-            });
+                 var val=v != null ? v : 'N/A';
+                 if(k==='task_type'){
+                     return row && row.task && row.task.TaskType ? (row.task.TaskType.task_type || 'N/A') : 'N/A';
+                 }
+                 if(k==='task_name'){
+                     return row && row.task ? (row.task.task_name || 'N/A') : 'N/A';
+                 }
+                 if(k==='user_name'){
+                     var u = row && row.user ? row.user : null;
+                     return u ? (u.name || 'N/A') : 'N/A';
+                 }
+                 if(k==='user_division'){
+                     if(row && row.user && row.user.Divisions && row.user.Divisions.length){
+                         return row.user.Divisions[0].title || 'N/A';
+                     }
+                     return 'N/A';
+                 }
+                 if(['rating_functionality','rating_timeliness','rating_communication'].indexOf(k) !== -1){
+                     var stars = '';
+                     for(var i=0;i<5;i++){ stars += i < val ? '<i class="bi bi-star-fill rating-stars"></i>' : '<i class="bi bi-star rating-stars"></i>'; }
+                     return val+' '+stars;
+                 }
+                 if(k==='recommendation_score'){
+                     return '<span class="status-badge '+(val>=8?'status-planned':(val>=5?'status-inform':'status-unplanned'))+'">'+val+'</span>';
+                 }
+                 return val;
+             }
         });
+    });
 
-        dt=$('#mainTable').DataTable({
-            data:data,columns:cols,
-            pageLength:25,lengthMenu:[[25,50,100,200,-1],[25,50,100,200,'All']],
-            dom:'<"dt-top-row"lf>rt<"dt-bottom-row"ip>',
-            scrollX:true,scrollY:'calc(100vh - 360px)',scrollCollapse:false,autoWidth:false,fixedColumns:{left:1},
-            language:{search:'',searchPlaceholder:'Search all columns...',lengthMenu:'Show _MENU_ rows'},
-            order:[[0,'desc']],
-            initComplete:function(){
-                var api=this.api();
-                api.columns().every(function(){
-                    var col=this,idx=col.index();
-                    var th=$(col.header());
-                    var labelText=HEADERS[keyOrder[idx]]||keyOrder[idx];
-                    th.empty();
-                    var wrap=$('<div class="th-wrap"></div>');
-                    wrap.append('<div class="th-label"><span title="'+labelText+'">'+labelText+'</span><span class="th-sort"></span></div>');
-                    var inp=$('<input class="col-filter" type="text" placeholder="Filter...">');
-                    inp.on('click mousedown focus',function(e){e.stopPropagation();});
-                    inp.on('keyup change clear',function(){if(col.search()!==this.value)col.search(this.value).draw();});
-                    wrap.append(inp);
-                    th.append(wrap);
-                    th.off('click').on('click',function(e){
-                        if($(e.target).closest('.col-filter').length===0){
-                            var currentOrder = api.order();
-                            if(currentOrder.length && currentOrder[0][0]===idx){
-                                api.order([idx, currentOrder[0][1]==='asc'?'desc':'asc']).draw();
-                            } else {
-                                api.order([idx,'asc']).draw();
-                            }
-                        }
-                    });
-                });
+    dt=$('#mainTable').DataTable({
+        processing: true,
+        serverSide: true,
+        pageLength:25,lengthMenu:[[25,50,100,200,-1],[25,50,100,200,'All']],
+        dom:'<"dt-top-row"lf>rt<"dt-bottom-row"ip>',
+        scrollX:true,scrollY:'calc(100vh - 360px)',scrollCollapse:false,autoWidth:false,fixedColumns:{left:1},
+        language:{search:'',searchPlaceholder:'Search all columns...',lengthMenu:'Show _MENU_ rows'},
+        order:[[0,'desc']],
+        ajax: {
+            url: getApiBase()+'datatable/admin/feedback/data',
+            dataSrc: function(res){
+                $('#loader').hide();
+                var data = res.data || [];
+                $('#recordCount').text((res.recordsTotal || 0)+' Records');
+                updateFeedbackStats(data);
+                return data;
+            },
+            data: function(d){
+                d.page = Math.floor(d.start / d.length) + 1;
+                d.limit = d.length;
+                delete d.start;
+                delete d.length;
+                delete d.draw;
+                delete d.columns;
+                delete d.order;
+                delete d.search;
+                return d;
             }
-        });
-        dt.on('draw',function(){
-            var rows = dt.rows({filter:'applied'}).data().toArray();
-            updateFeedbackStats(rows);
-            $('#recordCount').text(rows.length+' Records');
-        });
-        var colTitles=cols.map(function(c){return c.title;});
-        new $.fn.dataTable.Buttons(dt,[
-            {extend:'excel',className:'buttons-excel',filename:'feedback_'+new Date().toISOString().slice(0,10),exportOptions:{columns:':gt(0):visible',modifier:{page:'all'},orthogonal:'export',format:{header:function(data,col){return colTitles[col]||data;},body:function(data){return data == null ? '' : data;}}}},
-            {extend:'csv',className:'buttons-csv',filename:'feedback_'+new Date().toISOString().slice(0,10),exportOptions:{columns:':gt(0):visible',modifier:{page:'all'},orthogonal:'export',format:{header:function(data,col){return colTitles[col]||data;},body:function(data){return data == null ? '' : data;}}}}
-        ]);
-        $('#btnExcel').on('click',function(){dt.button('.buttons-excel').trigger();});
-        $('#btnCsv').on('click',function(){dt.button('.buttons-csv').trigger();});
-    }).fail(function(){$('#loader').html('<div style="color:var(--danger);font-size:13px"><i class="bi bi-exclamation-triangle"></i> Failed to load data</div>');});
+        },
+        columns: cols,
+        initComplete:function(){
+            var api=this.api();
+            api.columns().every(function(){
+                var col=this,idx=col.index();
+                var th=$(col.header());
+                var labelText=HEADERS[keyOrder[idx]]||keyOrder[idx];
+                th.empty();
+                var wrap=$('<div class="th-wrap"></div>');
+                wrap.append('<div class="th-label"><span title="'+labelText+'">'+labelText+'</span><span class="th-sort"></span></div>');
+                var inp=$('<input class="col-filter" type="text" placeholder="Filter...">');
+                inp.on('click mousedown focus',function(e){e.stopPropagation();});
+                inp.on('keyup change clear',function(){if(col.search()!==this.value)col.search(this.value).draw();});
+                wrap.append(inp);
+                th.append(wrap);
+                th.off('click').on('click',function(e){
+                    if($(e.target).closest('.col-filter').length===0){
+                        var currentOrder = api.order();
+                        if(currentOrder.length && currentOrder[0][0]===idx){
+                            api.order([idx, currentOrder[0][1]==='asc'?'desc':'asc']).draw();
+                        } else {
+                            api.order([idx,'asc']).draw();
+                        }
+                    }
+                });
+            });
+        }
+    });
+    dt.on('draw',function(){
+        var rows = dt.rows({filter:'applied'}).data().toArray();
+        updateFeedbackStats(rows);
+        $('#recordCount').text(dt.page.info().recordsTotal+' Records');
+    });
+    var colTitles=cols.map(function(c){return c.title;});
+    new $.fn.dataTable.Buttons(dt,[
+        {extend:'excel',className:'buttons-excel',filename:'feedback_'+new Date().toISOString().slice(0,10),exportOptions:{columns:':gt(0):visible',modifier:{page:'all'},orthogonal:'export',format:{header:function(data,col){return colTitles[col]||data;},body:function(data){return data == null ? '' : data;}}}},
+        {extend:'csv',className:'buttons-csv',filename:'feedback_'+new Date().toISOString().slice(0,10),exportOptions:{columns:':gt(0):visible',modifier:{page:'all'},orthogonal:'export',format:{header:function(data,col){return colTitles[col]||data;},body:function(data){return data == null ? '' : data;}}}}
+    ]);
+    $('#btnExcel').on('click',function(){dt.button('.buttons-excel').trigger();});
+    $('#btnCsv').on('click',function(){dt.button('.buttons-csv').trigger();});
 });
 </script>
 </body>

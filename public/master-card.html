@@ -292,9 +292,30 @@ $(function(){
     ];
 
     var dt = $('#mainTable').DataTable({
+        processing: true,
+        serverSide: true,
         ajax: {
             url: apiBase + 'admin/master-card/data',
-            dataSrc: function(json){ return json.data || json || []; }
+            dataSrc: function(res){
+                $('#loader').hide();
+                var data = res.data || [];
+                $('#s1').text(res.recordsTotal || 0);
+                var divs = {};
+                data.forEach(function(r){ var d = r.division_name || 'N/A'; divs[d] = (divs[d]||0)+1; });
+                $('#s2').text(Object.keys(divs).length);
+                return data;
+            },
+            data: function(d){
+                d.page = Math.floor(d.start / d.length) + 1;
+                d.limit = d.length;
+                delete d.start;
+                delete d.length;
+                delete d.draw;
+                delete d.columns;
+                delete d.order;
+                delete d.search;
+                return d;
+            }
         },
         columns: cols,
         order: [[1, 'asc']],
@@ -351,12 +372,6 @@ $(function(){
 
     dt.on('draw', function(){
         $('#loader').hide();
-        var rows = dt.rows({ filter:'applied' }).data();
-        var arr = rows.toArray ? rows.toArray() : rows;
-        var divs = {};
-        arr.forEach(function(r){ var d = r.division_name || 'N/A'; divs[d] = (divs[d]||0)+1; });
-        $('#s1').text(arr.length);
-        $('#s2').text(Object.keys(divs).length);
     });
 
     $('#btnExcel').on('click',function(){ dt.button('.buttons-excel').trigger(); });

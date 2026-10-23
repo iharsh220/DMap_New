@@ -252,63 +252,73 @@ $(function(){
         $('body').addClass('sidebar-collapsed');
         $('#sidebarToggle').find('i').removeClass('bi-chevron-left').addClass('bi-chevron-right');
     }
-    $.getJSON('./issuedetails/data',function(res){
-        $('#loader').hide();
-        var data=res.data||[];
-        $('#recordCount').text(data.length+' Records');
-        $('#s1').text(data.length);
-        $('#s2').text(data.filter(r=>r.issue_status==='completed').length);
-        $('#s3').text(data.filter(r=>r.issue_status==='in_progress').length);
-        $('#s4').text(data.filter(r=>r.issue_status==='m_pending'||r.issue_status==='u_pending').length);
-
-        function updateStats(arr){
-            $('#s1').text(arr.length);
-            $('#s2').text(arr.filter(r=>r.issue_status==='completed').length);
-            $('#s3').text(arr.filter(r=>r.issue_status==='in_progress').length);
-            $('#s4').text(arr.filter(r=>r.issue_status==='m_pending'||r.issue_status==='u_pending').length);
+    var keyOrder=Object.keys(HEADERS);
+    var cols=[];
+    cols.push({
+        data:null, title:'Action', orderable:false, searchable:false, width:'80px',
+        render:function(v,type,row){
+            if(type!=='display') return '';
+            return '<button class="edit-btn" data-type="issue" data-id="'+row.issue_id+'" title="Edit Change" style="background:var(--accent-bg);border:1px solid var(--accent-border);color:var(--accent);border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;margin-right:4px;"><i class="bi bi-pencil"></i></button>'
+                  +'<button class="del-btn" data-type="issue" data-id="'+row.issue_id+'" title="Delete Change" style="background:var(--danger-bg);border:1px solid var(--danger-border);color:var(--danger);border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;"><i class="bi bi-trash3"></i></button>';
         }
+    });
+    keyOrder.forEach(function(k){
+        cols.push({
+            data:k,title:HEADERS[k]||k,defaultContent:'N/A',
+            render:function(v,type){
+                if(type!=='display')return v;
+                var val=v!=null?v:'N/A';
+                if(BADGES[k]&&val&&val!=='N/A'){var c=BADGES[k][val]||'';return '<span class="status-badge '+c+'">'+val+'</span>';}
+                if(BOOLS.indexOf(k)!==-1){var y=val==1||val===true||val==='true';return '<span class="status-badge '+(y?'bool-yes':'bool-no')+'">'+(y?'Yes':'No')+'</span>';}
+                return val;
+            }
+        });
+    });
 
-        var cols=[];
-        if(data.length){
-            cols.push({
-                data:null, title:'Action', orderable:false, searchable:false, width:'80px',
-                render:function(v,type,row){
-                    if(type!=='display') return '';
-                    return '<button class="edit-btn" data-type="issue" data-id="'+row.issue_id+'" title="Edit Change" style="background:var(--accent-bg);border:1px solid var(--accent-border);color:var(--accent);border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;margin-right:4px;"><i class="bi bi-pencil"></i></button>'
-                          +'<button class="del-btn" data-type="issue" data-id="'+row.issue_id+'" title="Delete Change" style="background:var(--danger-bg);border:1px solid var(--danger-border);color:var(--danger);border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;"><i class="bi bi-trash3"></i></button>';
-                }
-            });
-            Object.keys(data[0]).forEach(function(k){
-                cols.push({
-                    data:k,title:HEADERS[k]||k,defaultContent:'N/A',
-                    render:function(v,type){
-                        if(type!=='display')return v;
-                        var val=v!=null?v:'N/A';
-                        if(BADGES[k]&&val&&val!=='N/A'){var c=BADGES[k][val]||'';return '<span class="status-badge '+c+'">'+val+'</span>';}
-                        if(BOOLS.indexOf(k)!==-1){var y=val==1||val===true||val==='true';return '<span class="status-badge '+(y?'bool-yes':'bool-no')+'">'+(y?'Yes':'No')+'</span>';}
-                        return val;
-                    }
-                });
-            });
-        }
-
-        var dt=$('#mainTable').DataTable({
-            data:data,columns:cols,
-            pageLength:25,lengthMenu:[[25,50,100,200,-1],[25,50,100,200,'All']],
-            dom:'<"dt-top-row"lf>rt<"dt-bottom-row"ip>',
-            scrollX:true,scrollY:'calc(100vh - 360px)',scrollCollapse:false,autoWidth:false,fixedColumns:{left:5},
-            language:{search:'',searchPlaceholder:'Search all columns...',lengthMenu:'Show _MENU_ rows'},
+    var dt=$('#mainTable').DataTable({
+        processing: true,
+        serverSide: true,
+        pageLength:25,lengthMenu:[[25,50,100,200,-1],[25,50,100,200,'All']],
+        dom:'<"dt-top-row"lf>rt<"dt-bottom-row"ip>',
+        scrollX:true,scrollY:'calc(100vh - 360px)',scrollCollapse:false,autoWidth:false,fixedColumns:{left:5},
+        language:{search:'',searchPlaceholder:'Search all columns...',lengthMenu:'Show _MENU_ rows'},
+        ajax: {
+            url: getApiBase()+'datatable/admin/issuedetails/data',
+            dataSrc: function(res){
+                $('#loader').hide();
+                var data = res.data || [];
+                var total = res.recordsTotal || 0;
+                $('#recordCount').text(total+' Records');
+                $('#s1').text(total);
+                $('#s2').text(data.filter(r=>r.issue_status==='completed').length);
+                $('#s3').text(data.filter(r=>r.issue_status==='in_progress').length);
+                $('#s4').text(data.filter(r=>r.issue_status==='m_pending'||r.issue_status==='u_pending').length);
+                return data;
+            },
+            data: function(d){
+                d.page = Math.floor(d.start / d.length) + 1;
+                d.limit = d.length;
+                delete d.start;
+                delete d.length;
+                delete d.draw;
+                delete d.columns;
+                delete d.order;
+                delete d.search;
+                return d;
+            }
+        },
+        columns: cols,
             initComplete:function(){
                 var api=this.api();
                 api.columns().every(function(){
                     var col=this,idx=col.index();
                     var th=$(col.header());
-                    var labelText=idx===0?'Action':(HEADERS[Object.keys(data[0])[idx-1]]||Object.keys(data[0])[idx-1]);
+                    var labelText=idx===0?'Action':(HEADERS[keyOrder[idx-1]]||keyOrder[idx-1]);
                     th.empty();
                     var wrap=$('<div class="th-wrap"></div>');
                     wrap.append('<div class="th-label"><span title="'+labelText+'">'+labelText+'</span><span class="th-sort"></span></div>');
                     if(idx===0){ th.append(wrap); return; }
-                    var key=Object.keys(data[0])[idx-1];
+                    var key=keyOrder[idx-1];
                     if(BADGES[key]){
                         var sel=$('<select class="col-filter"><option value="">All</option></select>');
                         Object.keys(BADGES[key]).forEach(function(o){sel.append('<option value="'+o+'">'+o+'</option>');});
@@ -352,11 +362,13 @@ $(function(){
         dt.on('draw',function(){
             var rows=dt.rows({ filter:'applied' }).data();
             var arr=rows.toArray ? rows.toArray() : rows;
-            updateStats(arr);
-            $('#recordCount').text(arr.length+' Records');
+            $('#s1').text(dt.page.info().recordsTotal);
+            $('#s2').text(arr.filter(r=>r.issue_status==='completed').length);
+            $('#s3').text(arr.filter(r=>r.issue_status==='in_progress').length);
+            $('#s4').text(arr.filter(r=>r.issue_status==='m_pending'||r.issue_status==='u_pending').length);
+            $('#recordCount').text(dt.page.info().recordsTotal+' Records');
         });
-    }).fail(function(){$('#loader').html('<div style="color:var(--danger);font-size:13px"><i class="bi bi-exclamation-triangle"></i> Failed to load data</div>');});
-});
+    });
 
 function inp(label,name,val,type){
     type=type||'text';

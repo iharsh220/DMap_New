@@ -243,33 +243,17 @@ $(function(){
         $('body').addClass('sidebar-collapsed');
         $('#sidebarToggle').find('i').removeClass('bi-chevron-left').addClass('bi-chevron-right');
     }
-    $.getJSON('./clients/data',function(res){
-        $('#loader').hide();
-        var data=res.data||[];
-        $('#recordCount').text(data.length+' Records');
-
-        function updateStats(arr){
-            $('#s1').text(new Set(arr.map(r=>r.project_requester_name).filter(Boolean)).size);
-            $('#s2').text(arr.length);
-            $('#s3').text(arr.filter(r=>r.project_status==='pending').length);
-            var tatValues=arr.map(r=>parseTatMinutes(r.request_to_response_tat)).filter(v=>v!==null);
-            $('#s4').text(tatValues.length ? Math.round(tatValues.reduce((a,b)=>a+b,0)/tatValues.length)+'m' : 'N/A');
+    var cols=[];
+    cols.push({
+        data:null,title:'Action',orderable:false,searchable:false,width:'82px',
+        render:function(v,type,row){
+            if(type!=='display') return '';
+            return '<button class="edit-btn" data-type="client" data-id="'+row.work_request_id+'" title="Edit Client" style="background:var(--accent-bg);border:1px solid var(--accent-border);color:var(--accent);border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;margin-right:4px;"><i class="bi bi-pencil"></i></button>'
+                  +'<button class="del-btn" data-type="client" data-id="'+row.work_request_id+'" title="Delete Client" style="background:var(--danger-bg);border:1px solid var(--danger-border);color:var(--danger);border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;"><i class="bi bi-trash3"></i></button>';
         }
-        updateStats(data);
-
-        var cols=[];
-        if(data.length){
-            cols.push({
-                data:null,title:'Action',orderable:false,searchable:false,width:'82px',
-                render:function(v,type,row){
-                    if(type!=='display') return '';
-                    return '<button class="edit-btn" data-type="client" data-id="'+row.work_request_id+'" title="Edit Client" style="background:var(--accent-bg);border:1px solid var(--accent-border);color:var(--accent);border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;margin-right:4px;"><i class="bi bi-pencil"></i></button>'
-                          +'<button class="del-btn" data-type="client" data-id="'+row.work_request_id+'" title="Delete Client" style="background:var(--danger-bg);border:1px solid var(--danger-border);color:var(--danger);border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;"><i class="bi bi-trash3"></i></button>';
-                }
-            });
-        }
-        var orderedKeys=COL_ORDER.filter(function(k){return data.length && Object.prototype.hasOwnProperty.call(data[0],k);});
-        orderedKeys.forEach(function(k){
+    });
+    var orderedKeys=COL_ORDER;
+    orderedKeys.forEach(function(k){
             cols.push({
                 data:k,title:HEADERS[k]||k,defaultContent:'N/A',
                 render:function(v,type){
@@ -291,17 +275,45 @@ $(function(){
         });
 
         var dt=$('#mainTable').DataTable({
-            data:data,columns:cols,
-            pageLength:25,lengthMenu:[[25,50,100,200,-1],[25,50,100,200,'All']],
-            dom:'<"dt-top-row"lf>rt<"dt-bottom-row"ip>',
-            scrollX:true,scrollY:'calc(100vh - 360px)',scrollCollapse:false,autoWidth:false,fixedColumns:{left:3},
-            language:{search:'',searchPlaceholder:'Search all columns...',lengthMenu:'Show _MENU_ rows'},
-            initComplete:function(){
-                var api=this.api();
-                api.columns().every(function(){
-                    var col=this,idx=col.index();
-                    var th=$(col.header());
-                    var key=idx===0 ? null : (orderedKeys[idx-1]||Object.keys(data[0])[idx-1]);
+        processing: true,
+        serverSide: true,
+        ajax: {
+            url: getApiBase()+'datatable/admin/clients/data',
+            dataSrc: function(res){
+                $('#loader').hide();
+                var data = res.data || [];
+                var total = res.recordsTotal || 0;
+                $('#recordCount').text(total+' Records');
+                $('#s1').text(new Set(data.map(r=>r.project_requester_name).filter(Boolean)).size);
+                $('#s2').text(total);
+                $('#s3').text(data.filter(r=>r.project_status==='pending').length);
+                var tatValues=data.map(r=>parseTatMinutes(r.request_to_response_tat)).filter(v=>v!==null);
+                $('#s4').text(tatValues.length ? Math.round(tatValues.reduce((a,b)=>a+b,0)/tatValues.length)+'m' : 'N/A');
+                return data;
+            },
+            data: function(d){
+                d.page = Math.floor(d.start / d.length) + 1;
+                d.limit = d.length;
+                delete d.start;
+                delete d.length;
+                delete d.draw;
+                delete d.columns;
+                delete d.order;
+                delete d.search;
+                return d;
+            }
+        },
+        columns: cols,
+        pageLength:25,lengthMenu:[[25,50,100,200,-1],[25,50,100,200,'All']],
+        dom:'<"dt-top-row"lf>rt<"dt-bottom-row"ip>',
+        scrollX:true,scrollY:'calc(100vh - 360px)',scrollCollapse:false,autoWidth:false,fixedColumns:{left:3},
+        language:{search:'',searchPlaceholder:'Search all columns...',lengthMenu:'Show _MENU_ rows'},
+        initComplete:function(){
+            var api=this.api();
+            api.columns().every(function(){
+                var col=this,idx=col.index();
+                var th=$(col.header());
+                var key=idx===0 ? null : orderedKeys[idx-1];
                     var labelText=idx===0 ? 'Action' : (HEADERS[key]||key);
                     th.empty();
                     var wrap=$('<div class="th-wrap"></div>');
@@ -346,11 +358,14 @@ $(function(){
         dt.on('draw',function(){
             var rows=dt.rows({ filter:'applied' }).data();
             var arr=rows.toArray ? rows.toArray() : rows;
-            updateStats(arr);
-            $('#recordCount').text(arr.length+' Records');
+            $('#s1').text(new Set(arr.map(r=>r.project_requester_name).filter(Boolean)).size);
+            $('#s2').text(dt.page.info().recordsTotal);
+            $('#s3').text(arr.filter(r=>r.project_status==='pending').length);
+            var tatValues=arr.map(r=>parseTatMinutes(r.request_to_response_tat)).filter(v=>v!==null);
+            $('#s4').text(tatValues.length ? Math.round(tatValues.reduce((a,b)=>a+b,0)/tatValues.length)+'m' : 'N/A');
+            $('#recordCount').text(dt.page.info().recordsTotal+' Records');
         });
-    }).fail(function(){$('#loader').html('<div style="color:var(--danger);font-size:13px"><i class="bi bi-exclamation-triangle"></i> Failed to load data</div>');});
-});
+    });
 
 function fi(label,name,val,t){
     t=t||'text';
