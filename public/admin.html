@@ -205,7 +205,7 @@ $(function(){
         fixedColumns: { left: 2 },
         language: { search: '', searchPlaceholder: 'Search all columns...', lengthMenu: 'Show _MENU_ rows' },
         ajax: {
-            url: './projectsdetails/data',
+            url: getApiBase() + 'datatable/admin/projectsdetails/data',
             dataSrc: function(res){
                 $('#loader').hide();
                 var total = res.total || 0;
@@ -216,8 +216,12 @@ $(function(){
             data: function(d){
                 d.page = Math.floor(d.start / d.length) + 1;
                 d.limit = d.length;
-                d.start = undefined;
-                d.length = undefined;
+                delete d.start;
+                delete d.length;
+                delete d.draw;
+                delete d.columns;
+                delete d.order;
+                delete d.search;
                 Object.keys(colFilters).forEach(function(key){
                     if (colFilters[key]) {
                         d['col_' + key] = colFilters[key];
