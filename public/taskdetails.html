@@ -171,9 +171,12 @@ const HEADERS  = {
      task_cost:'Task Cost',
     issue_no_of_work_pages:'No. of Change Pages',
     task_no_of_options_provided:'No. of Options',
-    task_concept_work:'No. of Concept Created',
+     task_concept_work:'No. of Concept Created',
+     task_no_of_concepts:'No. of Concepts',
+     concept_work_cost:'Concept Work Cost',
     task_no_of_resize:'No. of Resize Pages',
-    task_no_of_ai_page:'No. of AI Pages',
+     task_no_of_ai_page:'No. of AI Pages',
+     ai_charges_cost:'AI Charges Cost',
     video_duration:'Video Duration',
     task_no_of_products_shot:'No. of Products Used',
     task_no_of_words_written:'No. of Words Written',
@@ -211,9 +214,11 @@ if(userData){
         isAdminUser = u && u.jobRole && u.jobRole.id === 1;
     } catch(e){}
 }
-if(!isAdminUser){
-    delete HEADERS['task_cost'];
-}
+ if(!isAdminUser){
+     delete HEADERS['task_cost'];
+     delete HEADERS['concept_work_cost'];
+     delete HEADERS['ai_charges_cost'];
+ }
 const BADGES = {
     task_status:{draft:'status-draft',pending:'status-pending',accepted:'status-accepted',assigned:'status-assigned',in_progress:'status-in_progress',completed:'status-completed',rejected:'status-rejected',deferred:'status-deferred'}
 };
@@ -279,6 +284,8 @@ $(function(){
                 if(BADGES[k]&&val&&val!=='N/A'){var c=BADGES[k][val]||'';return '<span class="status-badge '+c+'">'+val+'</span>';}
                 if(BOOLS.indexOf(k)!==-1){var y=val==1||val===true||val==='true';return '<span class="status-badge '+(y?'bool-yes':'bool-no')+'">'+(y?'Yes':'No')+'</span>';}
                 if(k==='task_cost'&&val!==null&&val!==undefined){var n=parseFloat(val);if(!isNaN(n))return '₹'+n.toLocaleString('en-IN');}
+                if(k==='concept_work_cost'&&val!==null&&val!==undefined){var n=parseFloat(val);if(!isNaN(n))return '₹'+n.toLocaleString('en-IN');}
+                if(k==='ai_charges_cost'&&val!==null&&val!==undefined){var n=parseFloat(val);if(!isNaN(n))return '₹'+n.toLocaleString('en-IN');}
                 return val;
             }
         });
