@@ -55,14 +55,9 @@ router.get('/admin/powerbi', (req, res) => {
 // Serve leaves HTML
 router.get('/admin/leaves', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'leaves.html'));
-});
-
-// Serve tokens HTML
-router.get('/admin/tokens', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'public', 'tokens.html'));
-});
-
-// Serve master card HTML
+ });
+ 
+ // Serve master card HTML
 router.get('/admin/master-card', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'master-card.html'));
 });
@@ -88,22 +83,7 @@ router.put('/admin/master-card/field/:field', updateMasterCardField);
 // Delete master card rate
 router.delete('/admin/master-card/:id', deleteMasterCard);
 
-// Serve token projects HTML
-router.get('/admin/token-projects', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'public', 'token-projects.html'));
-});
-
-// Serve token tasks HTML
-router.get('/admin/token-tasks', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'public', 'token-tasks.html'));
-});
-
-// Serve token changes HTML
-router.get('/admin/token-changes', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'public', 'token-changes.html'));
-});
-
-// API endpoint for project details data
+ // API endpoint for project details data
 router.get('/admin/projectsdetails/data', paginationMiddleware, cachedAdminData(getAdminData));
 
 // API endpoint for clients data
