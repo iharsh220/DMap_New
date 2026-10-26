@@ -1,10 +1,11 @@
 const { sequelize, Op } = require('../config/databaseConfig');
-const { Tasks, IssueAssignments, Leave, User, Feedbacks, TaskType, Division } = require('../models');
+const { TaskType, User, Feedbacks, Leave, Division, Tasks, IssueAssignments } = require('../models');
 const ExcelJS = require('exceljs');
 const csvParser = require('csv-parser');
 const fs = require('fs');
 const path = require('path');
 const { clearAdminCache } = require('../services/adminCacheService');
+const { decryptToken } = require('../middleware/jwtMiddleware');
 
 let sseClients = {};
 
@@ -2666,7 +2667,14 @@ const getTaskDetailsData = async (req, res) => {
                 ) AS task_no_of_work_pages,
 
 
+                COALESCE(
+                    t.task_count * mc.new_work_rate,
+                    0
+                ) AS task_cost,
+
+
                 /* ==========================================
+
                    ISSUE WORK PAGES
                    
                    IMPORTANT:
@@ -3360,6 +3368,10 @@ const getTaskDetailsData = async (req, res) => {
                 ON tt.id = t.task_type_id
 
 
+            LEFT JOIN master_card mc
+                ON mc.task_type_id = t.task_type_id
+
+
             LEFT JOIN users ru
                 ON ru.id = wr.user_id
         `;
@@ -3418,14 +3430,43 @@ const getTaskDetailsData = async (req, res) => {
 
 
         // ==========================================
+        // ADMIN-ONLY CHECK
+        // Hide task_cost for non-admin users
+        // ==========================================
+
+        let isAdmin = false;
+        const authHeader = req.headers['authorization'];
+        const token = authHeader && authHeader.split(' ')[1];
+        if (token) {
+            try {
+                const payload = await decryptToken(token, process.env.JWT_ENCRYPTION_KEY);
+                if (payload && payload.jobRole && payload.jobRole.id === 1) {
+                    isAdmin = true;
+                }
+            } catch (e) {
+            }
+        }
+
+        let data = results;
+        if (!isAdmin) {
+            data = results.map(row => {
+                const cleanRow = { ...row };
+                delete cleanRow.task_cost;
+                return cleanRow;
+            });
+        }
+
+
+        // ==========================================
         // RESPONSE
         // ==========================================
 
         res.json({
-            data: results,
+            data: data,
             total: total,
             recordsTotal: total,
-            recordsFiltered: total
+            recordsFiltered: total,
+            is_admin: isAdmin
         });
 
 

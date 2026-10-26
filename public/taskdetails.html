@@ -167,7 +167,8 @@ const HEADERS  = {
     task_start_date:'Task Start Date',
     task_end_date:'Task End Date',
     task_deadline:'Task Deadline',
-    task_no_of_work_pages:'No. of Work Pages',
+     task_no_of_work_pages:'No. of Work Pages',
+     task_cost:'Task Cost',
     issue_no_of_work_pages:'No. of Change Pages',
     task_no_of_options_provided:'No. of Options',
     task_concept_work:'No. of Concept Created',
@@ -200,6 +201,19 @@ const HEADERS  = {
     month:'Month',
     fy:'Financial Year'
 };
+
+// Admin-only: remove task_cost column for non-admin users
+var isAdminUser = false;
+var userData = localStorage.getItem('userData');
+if(userData){
+    try {
+        var u = JSON.parse(userData);
+        isAdminUser = u && u.jobRole && u.jobRole.id === 1;
+    } catch(e){}
+}
+if(!isAdminUser){
+    delete HEADERS['task_cost'];
+}
 const BADGES = {
     task_status:{draft:'status-draft',pending:'status-pending',accepted:'status-accepted',assigned:'status-assigned',in_progress:'status-in_progress',completed:'status-completed',rejected:'status-rejected',deferred:'status-deferred'}
 };
@@ -264,6 +278,7 @@ $(function(){
                 var val=v!=null?v:'N/A';
                 if(BADGES[k]&&val&&val!=='N/A'){var c=BADGES[k][val]||'';return '<span class="status-badge '+c+'">'+val+'</span>';}
                 if(BOOLS.indexOf(k)!==-1){var y=val==1||val===true||val==='true';return '<span class="status-badge '+(y?'bool-yes':'bool-no')+'">'+(y?'Yes':'No')+'</span>';}
+                if(k==='task_cost'&&val!==null&&val!==undefined){var n=parseFloat(val);if(!isNaN(n))return '₹'+n.toLocaleString('en-IN');}
                 return val;
             }
         });
@@ -278,7 +293,7 @@ $(function(){
         language:{search:'',searchPlaceholder:'Search all columns...',lengthMenu:'Show _MENU_ rows'},
         ajax: {
             url: getApiBase()+'datatable/admin/taskdetails/data',
-            beforeSend: function(){ $('#loader').show(); },
+            beforeSend: function(xhr){ $('#loader').show(); var token = localStorage.getItem('accessToken'); if(token){ xhr.setRequestHeader('Authorization', 'Bearer ' + token); } },
             dataSrc: function(res){
                 $('#loader').hide();
                 var data = res.data || [];
