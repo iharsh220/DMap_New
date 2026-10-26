@@ -2389,6 +2389,26 @@ const getTaskDetailsData = async (req, res) => {
         const whereClauses = [];
 
         // ==========================================
+        // SEARCH FILTER (DataTables global search)
+        // ==========================================
+
+        const searchTerm = req.query.search && req.query.search.value ? req.query.search.value : '';
+        if (searchTerm) {
+            const likeTerm = `%${searchTerm}%`;
+            const searchColumns = [
+                't.task_name',
+                'tt.task_type',
+                'wr.id',
+                'ru.name',
+                't.status'
+            ];
+            const searchConditions = searchColumns.map(col => `${col} LIKE :searchTerm`);
+            whereClauses.push(`(${searchConditions.join(' OR ')})`);
+            replacements.searchTerm = likeTerm;
+        }
+
+
+        // ==========================================
         // TASK STATUS FILTER
         // ==========================================
 
@@ -2722,6 +2742,18 @@ const getTaskDetailsData = async (req, res) => {
                     0
                 ) AS task_concept_work,
 
+
+                COALESCE(
+                    t.no_of_concepts,
+                    0
+                ) AS task_no_of_concepts,
+
+
+                COALESCE(
+                    t.concept_work * t.no_of_concepts * mc.concept_charge,
+                    0
+                ) AS concept_work_cost,
+
                 COALESCE(
                     t.no_of_resize,
                     0
@@ -2731,6 +2763,12 @@ const getTaskDetailsData = async (req, res) => {
                     t.no_of_images_videos_audio,
                     0
                 ) AS task_no_of_ai_page,
+
+
+                COALESCE(
+                    t.no_of_images_videos_audio * mc.ai_charges,
+                    0
+                ) AS ai_charges_cost,
 
                 COALESCE(
                     t.duration_minutes * 60 +
@@ -3398,11 +3436,47 @@ const getTaskDetailsData = async (req, res) => {
 
 
         // ==========================================
-        // ORDER
+        // ORDER BY (DataTables sorting)
         // ==========================================
 
+        const allowedSortColumns = [
+            'task_status','work_request_id','task_id','change_id','task_name','task_type_name',
+            'task_requester_name','client_division','project_manager','project_manager_vertical',
+            'task_manager','task_manager_vertical','assigned_creative_user','cu_vertical',
+            'task_start_date','task_end_date','task_deadline','task_no_of_work_pages','task_cost',
+            'task_no_of_concepts','concept_work_cost','ai_charges_cost','issue_no_of_work_pages',
+            'task_no_of_options_provided','task_concept_work','task_no_of_resize','task_no_of_ai_page',
+            'video_duration','task_no_of_products_shot','task_no_of_words_written',
+            'task_no_of_responsive_screen','task_resize_work','task_ai','task_shoot_setup',
+            'task_request_timestamp','task_request_response_timestamp','task_request_to_response_tat',
+            'task_output_shared_with_cm_timestamp','task_acceptance_to_completion_tat_by_cu',
+            'task_output_response_by_cm_timestamp','task_output_shared_to_response_by_cm_tat',
+            'task_output_shared_with_client_timestamp','task_internal_tat',
+            'task_output_response_by_client_timestamp','task_whole_tat',
+            'task_request_response_reminder_counter_to_cu','task_output_response_reminder_counter_to_cm',
+            'task_output_response_reminder_counter_to_client','client_change_requested_counter',
+            'cm_change_requested_counter','change_version','month','fy'
+        ];
+
+        let orderByClause = 't.id DESC';
+        if (req.query.order && Array.isArray(req.query.order) && req.query.order.length > 0) {
+            const orderParts = [];
+            req.query.order.forEach((ort) => {
+                if (ort && ort.column !== undefined && ort.dir && ['ASC','DESC'].includes(ort.dir.toUpperCase())) {
+                    const colIdx = parseInt(ort.column);
+                    const colData = req.query.columns && req.query.columns[colIdx] && req.query.columns[colIdx].data;
+                    if (colData && allowedSortColumns.includes(colData)) {
+                        orderParts.push(`${colData} ${ort.dir.toUpperCase()}`);
+                    }
+                }
+            });
+            if (orderParts.length > 0) {
+                orderByClause = orderParts.join(', ');
+            }
+        }
+
         query += `
-            ORDER BY t.id DESC
+            ORDER BY ${orderByClause}
         `;
 
         const countQuery = `SELECT COUNT(*) AS total FROM ( ${query} ) AS count_table`;
@@ -3452,6 +3526,8 @@ const getTaskDetailsData = async (req, res) => {
             data = results.map(row => {
                 const cleanRow = { ...row };
                 delete cleanRow.task_cost;
+                delete cleanRow.concept_work_cost;
+                delete cleanRow.ai_charges_cost;
                 return cleanRow;
             });
         }
