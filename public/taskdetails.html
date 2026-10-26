@@ -181,7 +181,8 @@ const HEADERS  = {
     task_no_of_products_shot:'No. of Products Used',
     task_no_of_words_written:'No. of Words Written',
     task_no_of_responsive_screen:'No. of Responsive UI Created',
-    task_resize_work:'Includes Resize Work',
+     task_resize_work:'Includes Resize Work',
+     resize_work_cost:'Resize Work Cost',
     task_ai:'Includes AI Work',
     task_shoot_setup:'Includes Shoot Setup',
     task_request_timestamp:'Task Request Timestamp',
@@ -218,6 +219,7 @@ if(userData){
      delete HEADERS['task_cost'];
      delete HEADERS['concept_work_cost'];
      delete HEADERS['ai_charges_cost'];
+     delete HEADERS['resize_work_cost'];
  }
 const BADGES = {
     task_status:{draft:'status-draft',pending:'status-pending',accepted:'status-accepted',assigned:'status-assigned',in_progress:'status-in_progress',completed:'status-completed',rejected:'status-rejected',deferred:'status-deferred'}
@@ -286,6 +288,7 @@ $(function(){
                 if(k==='task_cost'&&val!==null&&val!==undefined){var n=parseFloat(val);if(!isNaN(n))return '₹'+n.toLocaleString('en-IN');}
                 if(k==='concept_work_cost'&&val!==null&&val!==undefined){var n=parseFloat(val);if(!isNaN(n))return '₹'+n.toLocaleString('en-IN');}
                 if(k==='ai_charges_cost'&&val!==null&&val!==undefined){var n=parseFloat(val);if(!isNaN(n))return '₹'+n.toLocaleString('en-IN');}
+                if(k==='resize_work_cost'&&val!==null&&val!==undefined){var n=parseFloat(val);if(!isNaN(n))return '₹'+n.toLocaleString('en-IN');}
                 return val;
             }
         });

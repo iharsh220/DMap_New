@@ -2796,6 +2796,12 @@ const getTaskDetailsData = async (req, res) => {
                     0
                 ) AS task_resize_work,
 
+
+                COALESCE(
+                    t.resize_work * mc.new_work_rate * (1 + mc.no_of_resize_pages / 100) * t.no_of_resize,
+                    0
+                ) AS resize_work_cost,
+
                 COALESCE(
                     t.no_of_images_videos_audio,
                     0
@@ -3445,7 +3451,7 @@ const getTaskDetailsData = async (req, res) => {
             'task_manager','task_manager_vertical','assigned_creative_user','cu_vertical',
             'task_start_date','task_end_date','task_deadline','task_no_of_work_pages','task_cost',
             'task_no_of_concepts','concept_work_cost','ai_charges_cost','issue_no_of_work_pages',
-            'task_no_of_options_provided','task_concept_work','task_no_of_resize','task_no_of_ai_page',
+            'task_no_of_options_provided','task_concept_work','task_no_of_resize','task_no_of_ai_page','resize_work_cost',
             'video_duration','task_no_of_products_shot','task_no_of_words_written',
             'task_no_of_responsive_screen','task_resize_work','task_ai','task_shoot_setup',
             'task_request_timestamp','task_request_response_timestamp','task_request_to_response_tat',
@@ -3528,6 +3534,7 @@ const getTaskDetailsData = async (req, res) => {
                 delete cleanRow.task_cost;
                 delete cleanRow.concept_work_cost;
                 delete cleanRow.ai_charges_cost;
+                delete cleanRow.resize_work_cost;
                 return cleanRow;
             });
         }
