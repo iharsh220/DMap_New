@@ -13,7 +13,11 @@ function getStableQuery(query) {
 }
 
 function getAdminCacheKey(req) {
-    return `${ADMIN_CACHE_PREFIX}${req.path}:${JSON.stringify(getStableQuery(req.query))}`;
+    let userKey = '';
+    if (req.user && req.user.jobRole) {
+        userKey = `:${req.user.jobRole.id}`;
+    }
+    return `${ADMIN_CACHE_PREFIX}${req.path}:${JSON.stringify(getStableQuery(req.query))}${userKey}`;
 }
 
 async function clearAdminCache() {
