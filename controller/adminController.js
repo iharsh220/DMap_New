@@ -3603,6 +3603,121 @@ const getIssueDetailsData = async (req, res) => {
         const replacements = {};
         const whereClauses = [];
 
+        // ==========================================
+        // SEARCH FILTER (DataTables global search)
+        // ==========================================
+
+        const searchTerm = req.query.search ? req.query.search : '';
+
+        const colSearchMap = {
+            "issue_status": "ia.status",
+            "work_request_id": "CAST(wr.id AS CHAR)",
+            "task_id": "CAST(t.id AS CHAR)",
+            "issue_id": "CAST(ia.id AS CHAR)",
+            "task_name": "t.task_name",
+            "task_type_name": "tt.task_type",
+            "issue_requester_name": "ru.name",
+            "client_division": "t.client_division",
+            "project_manager": "project_manager",
+            "project_manager_vertical": "project_manager_vertical",
+            "task_manager": "task_manager",
+            "task_manager_vertical": "task_manager_vertical",
+            "assigned_creative_user": "assigned_creative_user",
+            "cu_vertical": "cu_vertical",
+            "issue_start_date": "ia.start_date",
+            "issue_end_date": "ia.end_date",
+            "issue_deadline": "ia.deadline",
+            "task_no_of_work_pages": "CAST(COALESCE(t.task_count, 0) AS CHAR)",
+            "issue_no_of_work_pages": "CAST(COALESCE(ia.task_count, 0) AS CHAR)",
+            "issue_no_of_options_provided": "CAST(COALESCE(ia.no_of_options_provided, 0) AS CHAR)",
+            "issue_concept_work": "CAST(COALESCE(ia.concept_work, 0) AS CHAR)",
+            "issue_no_of_resize": "CAST(COALESCE(ia.no_of_resize, 0) AS CHAR)",
+            "issue_no_of_ai_page": "CAST(COALESCE(ia.no_of_images_videos_audio, 0) AS CHAR)",
+            "issue_video_duration": "CAST(COALESCE(ia.duration_minutes * 60 + ia.duration_seconds, 0) AS CHAR)",
+            "issue_no_of_products_shot": "CAST(COALESCE(ia.no_of_products_shot, 0) AS CHAR)",
+            "issue_no_of_words_written": "CAST(COALESCE(ia.no_of_words_written, 0) AS CHAR)",
+            "issue_no_of_responsive_screen": "CAST(COALESCE(ia.responsive_screen, 0) AS CHAR)",
+            "issue_resize_work": "CAST(COALESCE(ia.resize_work, 0) AS CHAR)",
+            "issue_ai": "CAST(COALESCE(ia.no_of_images_videos_audio, 0) AS CHAR)",
+            "issue_shoot_setup": "CAST(COALESCE(ia.shoot_setup, 0) AS CHAR)",
+            "issue_request_timestamp": "issue_request_timestamp",
+            "issue_request_response_timestamp": "issue_request_response_timestamp",
+            "issue_request_to_response_tat": "issue_request_to_response_tat",
+            "issue_output_shared_with_cm_timestamp": "issue_output_shared_with_cm_timestamp",
+            "issue_acceptance_to_completion_tat_by_cu": "issue_acceptance_to_completion_tat_by_cu",
+            "issue_output_response_by_cm_timestamp": "issue_output_response_by_cm_timestamp",
+            "issue_output_shared_to_response_by_cm_tat": "issue_output_shared_to_response_by_cm_tat",
+            "issue_output_shared_with_client_timestamp": "issue_output_shared_with_client_timestamp",
+            "issue_internal_tat": "issue_internal_tat",
+            "issue_output_response_by_client_timestamp": "issue_output_response_by_client_timestamp",
+            "issue_whole_tat": "issue_whole_tat",
+            "issue_request_response_reminder_counter_to_cu": "CAST(COALESCE(issue_request_response_reminder_counter_to_cu, 0) AS CHAR)",
+            "issue_output_response_reminder_counter_to_cm": "CAST(COALESCE(issue_output_response_reminder_counter_to_cm, 0) AS CHAR)",
+            "issue_output_response_reminder_counter_to_client": "CAST(COALESCE(issue_output_response_reminder_counter_to_client, 0) AS CHAR)",
+            "client_change_requested_counter": "CAST(COALESCE(client_change_requested_counter, 0) AS CHAR)",
+            "cm_change_requested_counter": "CAST(COALESCE(cm_change_requested_counter, 0) AS CHAR)",
+            "change_version": "change_version",
+            "month": "month",
+            "fy": "fy"
+        };
+
+        if (searchTerm) {
+            const likeTerm = `%${searchTerm}%`;
+            const searchColumns = [
+                't.task_name',
+                'tt.task_type',
+                'wr.id',
+                'ru.name',
+                'ia.status'
+            ];
+            const searchConditions = searchColumns.map(col => `${col} LIKE :searchTerm`);
+            whereClauses.push(`(${searchConditions.join(' OR ')})`);
+            replacements.searchTerm = likeTerm;
+        }
+
+        // Per-column search
+        if (req.query.col_searches) {
+            try {
+                const colSearches = JSON.parse(req.query.col_searches);
+                for (const [colKey, colVal] of Object.entries(colSearches)) {
+                    const sqlCol = colSearchMap[colKey];
+                    if (sqlCol && colVal) {
+                        whereClauses.push(`${sqlCol} LIKE :colSearch_${colKey}`);
+                        replacements[`colSearch_${colKey}`] = `%${colVal}%`;
+                    }
+                }
+            } catch(e) {
+            }
+        }
+
+        // ORDER BY with whitelist
+        const allowedSortColumns = [
+            'issue_status', 'work_request_id', 'task_id', 'issue_id', 'task_name',
+            'task_type_name', 'issue_requester_name', 'client_division', 'project_manager',
+            'project_manager_vertical', 'task_manager', 'task_manager_vertical',
+            'assigned_creative_user', 'cu_vertical', 'issue_start_date', 'issue_end_date',
+            'issue_deadline', 'task_no_of_work_pages', 'issue_no_of_work_pages',
+            'issue_no_of_options_provided', 'issue_concept_work', 'issue_no_of_resize',
+            'issue_no_of_ai_page', 'issue_video_duration', 'issue_no_of_products_shot',
+            'issue_no_of_words_written', 'issue_no_of_responsive_screen', 'issue_resize_work',
+            'issue_ai', 'issue_shoot_setup', 'issue_request_timestamp',
+            'issue_request_response_timestamp', 'issue_request_to_response_tat',
+            'issue_output_shared_with_cm_timestamp', 'issue_acceptance_to_completion_tat_by_cu',
+            'issue_output_response_by_cm_timestamp', 'issue_output_shared_to_response_by_cm_tat',
+            'issue_output_shared_with_client_timestamp', 'issue_internal_tat',
+            'issue_output_response_by_client_timestamp', 'issue_whole_tat',
+            'issue_request_response_reminder_counter_to_cu', 'issue_output_response_reminder_counter_to_cm',
+            'issue_output_response_reminder_counter_to_client', 'client_change_requested_counter',
+            'cm_change_requested_counter', 'change_version', 'month', 'fy'
+        ];
+
+        let orderByClause = 'ia.id DESC';
+        const orderCol = req.query.order_column;
+        const orderDir = req.query.order_dir;
+        if (orderCol && allowedSortColumns.includes(orderCol) && orderDir && ['ASC','DESC'].includes(orderDir.toUpperCase())) {
+            orderByClause = `${orderCol} ${orderDir.toUpperCase()}`;
+        }
+
         if (issueStatus) {
             whereClauses.push('ia.status = :issueStatus');
             replacements.issueStatus = issueStatus;
@@ -4392,7 +4507,7 @@ const getIssueDetailsData = async (req, res) => {
                 tt.task_type,
                 ru.name
 
-            ORDER BY ia.id DESC
+            ORDER BY ${orderByClause}
         `;
 
         const countQuery = `SELECT COUNT(*) AS total FROM ( ${query} ) AS count_table`;
