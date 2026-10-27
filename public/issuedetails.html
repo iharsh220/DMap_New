@@ -150,38 +150,21 @@ function getApiBase(){
     return '/digilabs/dmap/api/';
 }
 const HEADERS={
-    issue_status:'Change Status',
-    work_request_id:'Project Request ID',
-    task_id:'Task ID',
-    issue_id:'Change ID',
-    task_name:'Task Name',
-    task_type_name:'Task Type',
-    issue_requester_name:'Client Name',
-    client_division:'Client Division',
-    project_manager:'Project Manager',
-    project_manager_vertical:'Project Manager Vertical',
-    task_manager:'Task Manager',
-    task_manager_vertical:'Task Manager Vertical',
-    assigned_creative_user:'Assigned Creative User',
-    cu_vertical:'CU Vertical',
-    issue_start_date:'Change Start Date',
-    issue_end_date:'Change End Date',
-    issue_deadline:'Change Deadline',
-    task_no_of_work_pages:'No. of Work Pages',
-    issue_no_of_work_pages:'No. of Change Pages',
-    issue_no_of_options_provided:'No. of Options',
-    issue_concept_work:'No. of Concept Created',
-    issue_no_of_resize:'No. of Resize Pages',
-    issue_no_of_ai_page:'No. of AI Pages',
-    issue_video_duration:'Video Duration',
-    issue_no_of_products_shot:'No. of Products Used',
+    issue_status:'Change Status', work_request_id:'Project Request ID', task_id:'Task ID', issue_id:'Change ID', task_name:'Task Name',
+    task_type_name:'Task Type', issue_requester_name:'Client Name', client_division:'Client Division', project_manager:'Project Manager',
+    project_manager_vertical:'Project Manager Vertical', task_manager:'Task Manager', task_manager_vertical:'Task Manager Vertical',
+    assigned_creative_user:'Assigned Creative User', cu_vertical:'CU Vertical', issue_start_date:'Change Start Date',
+    issue_end_date:'Change End Date', issue_deadline:'Change Deadline', task_no_of_work_pages:'No. of Work Pages',
+    issue_no_of_work_pages:'No. of Change Pages', issue_cost:'Issue Cost',
+    issue_no_of_options_provided:'No. of Options', issue_concept_work:'No. of Concept Created',
+    issue_no_of_concepts:'No. of Concepts', concept_work_cost:'Concept Work Cost',
+    issue_no_of_resize:'No. of Resize Pages', resize_work_cost:'Resize Work Cost',
+    issue_no_of_ai_page:'No. of AI Pages', ai_charges_cost:'AI Charges Cost',
+    issue_video_duration:'Video Duration', issue_no_of_products_shot:'No. of Products Used',
     issue_no_of_words_written:'No. of Words Written',
-    issue_no_of_responsive_screen:'No. of Responsive UI Created',
-    issue_resize_work:'Includes Resize Work',
-    issue_ai:'Includes AI Work',
-    issue_shoot_setup:'Includes Shoot Setup',
-    issue_request_timestamp:'Change Request Timestamp',
-    issue_request_response_timestamp:'Change Request Response Timestamp',
+    issue_no_of_responsive_screen:'No. of Responsive UI Created', issue_resize_work:'Includes Resize Work',
+    issue_ai:'Includes AI Work', issue_shoot_setup:'Includes Shoot Setup',
+    issue_request_timestamp:'Change Request Timestamp', issue_request_response_timestamp:'Change Request Response Timestamp',
     issue_request_to_response_tat:'Change Request to Response TAT',
     issue_output_shared_with_cm_timestamp:'Change Output Shared with CM Timestamp',
     issue_acceptance_to_completion_tat_by_cu:'Change Acceptance to Completion TAT by CU',
@@ -264,6 +247,10 @@ $(function(){
                 var val=v!=null?v:'N/A';
                 if(BADGES[k]&&val&&val!=='N/A'){var c=BADGES[k][val]||'';return '<span class="status-badge '+c+'">'+val+'</span>';}
                 if(BOOLS.indexOf(k)!==-1){var y=val==1||val===true||val==='true';return '<span class="status-badge '+(y?'bool-yes':'bool-no')+'">'+(y?'Yes':'No')+'</span>';}
+                if(k==='issue_cost'&&val!==null&&val!==undefined){var n=parseFloat(val);if(!isNaN(n))return '₹'+n.toLocaleString('en-IN');}
+                if(k==='concept_work_cost'&&val!==null&&val!==undefined){var n=parseFloat(val);if(!isNaN(n))return '₹'+n.toLocaleString('en-IN');}
+                if(k==='ai_charges_cost'&&val!==null&&val!==undefined){var n=parseFloat(val);if(!isNaN(n))return '₹'+n.toLocaleString('en-IN');}
+                if(k==='resize_work_cost'&&val!==null&&val!==undefined){var n=parseFloat(val);if(!isNaN(n))return '₹'+n.toLocaleString('en-IN');}
                 return val;
             }
         });
