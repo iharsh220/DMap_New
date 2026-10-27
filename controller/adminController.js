@@ -3620,6 +3620,7 @@ const getIssueDetailsData = async (req, res) => {
             "client_division": "t.client_division",
             "project_manager": "project_manager",
             "project_manager_vertical": "project_manager_vertical",
+            "issue_cost": "CAST(COALESCE(issue_cost, 0) AS CHAR)",
             "task_manager": "task_manager",
             "task_manager_vertical": "task_manager_vertical",
             "assigned_creative_user": "assigned_creative_user",
@@ -3631,6 +3632,8 @@ const getIssueDetailsData = async (req, res) => {
             "issue_no_of_work_pages": "CAST(COALESCE(ia.task_count, 0) AS CHAR)",
             "issue_no_of_options_provided": "CAST(COALESCE(ia.no_of_options_provided, 0) AS CHAR)",
             "issue_concept_work": "CAST(COALESCE(ia.concept_work, 0) AS CHAR)",
+            "issue_no_of_concepts": "CAST(COALESCE(ia.no_of_concepts, 0) AS CHAR)",
+            "concept_work_cost": "CAST(COALESCE(concept_work_cost, 0) AS CHAR)",
             "issue_no_of_resize": "CAST(COALESCE(ia.no_of_resize, 0) AS CHAR)",
             "issue_no_of_ai_page": "CAST(COALESCE(ia.no_of_images_videos_audio, 0) AS CHAR)",
             "issue_video_duration": "CAST(COALESCE(ia.duration_minutes * 60 + ia.duration_seconds, 0) AS CHAR)",
@@ -3638,7 +3641,9 @@ const getIssueDetailsData = async (req, res) => {
             "issue_no_of_words_written": "CAST(COALESCE(ia.no_of_words_written, 0) AS CHAR)",
             "issue_no_of_responsive_screen": "CAST(COALESCE(ia.responsive_screen, 0) AS CHAR)",
             "issue_resize_work": "CAST(COALESCE(ia.resize_work, 0) AS CHAR)",
+            "ai_charges_cost": "CAST(COALESCE(ai_charges_cost, 0) AS CHAR)",
             "issue_ai": "CAST(COALESCE(ia.no_of_images_videos_audio, 0) AS CHAR)",
+            "resize_work_cost": "CAST(COALESCE(resize_work_cost, 0) AS CHAR)",
             "issue_shoot_setup": "CAST(COALESCE(ia.shoot_setup, 0) AS CHAR)",
             "issue_request_timestamp": "issue_request_timestamp",
             "issue_request_response_timestamp": "issue_request_response_timestamp",
@@ -3694,13 +3699,14 @@ const getIssueDetailsData = async (req, res) => {
         const allowedSortColumns = [
             'issue_status', 'work_request_id', 'task_id', 'issue_id', 'task_name',
             'task_type_name', 'issue_requester_name', 'client_division', 'project_manager',
-            'project_manager_vertical', 'task_manager', 'task_manager_vertical',
+            'project_manager_vertical', 'issue_cost', 'task_manager', 'task_manager_vertical',
             'assigned_creative_user', 'cu_vertical', 'issue_start_date', 'issue_end_date',
             'issue_deadline', 'task_no_of_work_pages', 'issue_no_of_work_pages',
-            'issue_no_of_options_provided', 'issue_concept_work', 'issue_no_of_resize',
+            'issue_no_of_options_provided', 'issue_concept_work', 'issue_no_of_concepts',
+            'concept_work_cost', 'issue_no_of_resize', 'resize_work_cost',
             'issue_no_of_ai_page', 'issue_video_duration', 'issue_no_of_products_shot',
             'issue_no_of_words_written', 'issue_no_of_responsive_screen', 'issue_resize_work',
-            'issue_ai', 'issue_shoot_setup', 'issue_request_timestamp',
+            'ai_charges_cost', 'issue_ai', 'issue_shoot_setup', 'issue_request_timestamp',
             'issue_request_response_timestamp', 'issue_request_to_response_tat',
             'issue_output_shared_with_cm_timestamp', 'issue_acceptance_to_completion_tat_by_cu',
             'issue_output_response_by_cm_timestamp', 'issue_output_shared_to_response_by_cm_tat',
@@ -3913,6 +3919,11 @@ const getIssueDetailsData = async (req, res) => {
                 ) AS issue_no_of_work_pages,
 
                 COALESCE(
+                    ia.task_count * mc.changes_rate,
+                    0
+                ) AS issue_cost,
+
+                COALESCE(
                     ia.no_of_options_provided,
                     0
                 ) AS issue_no_of_options_provided,
@@ -3923,14 +3934,34 @@ const getIssueDetailsData = async (req, res) => {
                 ) AS issue_concept_work,
 
                 COALESCE(
+                    ia.no_of_concepts,
+                    0
+                ) AS issue_no_of_concepts,
+
+                COALESCE(
+                    ia.concept_work * ia.no_of_concepts * mc.concept_charge,
+                    0
+                ) AS concept_work_cost,
+
+                COALESCE(
                     ia.no_of_resize,
                     0
                 ) AS issue_no_of_resize,
 
                 COALESCE(
+                    ia.resize_work * mc.changes_rate * (1 + mc.no_of_resize_pages / 100) * ia.no_of_resize,
+                    0
+                ) AS resize_work_cost,
+
+                COALESCE(
                     ia.no_of_images_videos_audio,
                     0
                 ) AS issue_no_of_ai_page,
+
+                COALESCE(
+                    ia.no_of_images_videos_audio * mc.ai_charges,
+                    0
+                ) AS ai_charges_cost,
 
                 COALESCE(
                     ia.duration_minutes * 60 + ia.duration_seconds,
@@ -4479,6 +4510,9 @@ const getIssueDetailsData = async (req, res) => {
 
             LEFT JOIN division d
                 ON d.id = ud.division_id
+
+            LEFT JOIN master_card mc
+                ON mc.task_type_id = t.task_type_id
         `;
 
         if (whereClauses.length > 0) {
@@ -4525,8 +4559,38 @@ const getIssueDetailsData = async (req, res) => {
             type: sequelize.QueryTypes.SELECT
         });
 
+        // ==========================================
+        // ADMIN-ONLY CHECK
+        // Hide cost fields for non-admin users
+        // ==========================================
+
+        let isAdmin = false;
+        const authHeader = req.headers['authorization'];
+        const token = authHeader && authHeader.split(' ')[1];
+        if (token) {
+            try {
+                const payload = await decryptToken(token, process.env.JWT_ENCRYPTION_KEY);
+                if (payload && payload.jobRole && payload.jobRole.id === 1) {
+                    isAdmin = true;
+                }
+            } catch (e) {
+            }
+        }
+
+        let data = results;
+        if (!isAdmin) {
+            data = results.map(row => {
+                const cleanRow = { ...row };
+                delete cleanRow.issue_cost;
+                delete cleanRow.concept_work_cost;
+                delete cleanRow.ai_charges_cost;
+                delete cleanRow.resize_work_cost;
+                return cleanRow;
+            });
+        }
+
         res.json({
-            data: results,
+            data: data,
             total: total,
             recordsTotal: total,
             recordsFiltered: total
