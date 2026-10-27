@@ -21,7 +21,7 @@ const Leave = sequelize.define('Leave', {
     allowNull: false,
   },
   leave_day_type: {
-    type: DataTypes.ENUM('Full day', 'Half day', 'Short Leave', 'Optional Leave'),
+    type: DataTypes.ENUM('Full day', 'Half day', 'Short Leave', 'Optional Leave', 'WFH'),
     allowNull: false,
     defaultValue: 'Full day',
   },
@@ -36,7 +36,7 @@ const Leave = sequelize.define('Leave', {
     defaultValue: 'Inform',
   },
   leave_reason: {
-    type: DataTypes.ENUM('Emergency', 'Medical', 'Family Emergency', 'Feeling not well', 'Go Early', 'Personal', 'Hospitalized'),
+    type: DataTypes.ENUM('Emergency', 'Medical', 'Family Emergency', 'Feeling not well', 'Go Early', 'Personal', 'Hospitalized', 'WFH', 'Short Leave', 'Optional', 'Sick Leave'),
     allowNull: false,
     defaultValue: 'Feeling not well',
   },

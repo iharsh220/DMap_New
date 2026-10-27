@@ -885,8 +885,18 @@ const createLeave = async (req, res) => {
         const { from_date, to_date, user_id, leave_day_type, leave_type, status, leave_reason, remark, vertical, days_count, reason } = req.body;
 
         let effectiveToDate = to_date;
-        if (leave_day_type !== 'Full day' && from_date) {
+        if (leave_day_type !== 'Full day' && leave_day_type !== 'WFH' && from_date) {
             effectiveToDate = from_date;
+        }
+
+        // WFH max 2 days validation
+        if (leave_day_type === 'WFH' && from_date && to_date) {
+            const from = new Date(from_date);
+            const to = new Date(to_date);
+            const wfhDays = Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
+            if (wfhDays > 2) {
+                return res.status(400).json({ success: false, error: 'WFH is allowed for a maximum of 2 days' });
+            }
         }
 
         const calcDate = new Date(from_date);
@@ -936,8 +946,18 @@ const updateLeave = async (req, res) => {
         const { from_date, to_date, user_id, leave_day_type, leave_type, status, leave_reason, remark, vertical, days_count, reason } = req.body;
 
         let effectiveToDate = to_date;
-        if (leave_day_type !== 'Full day' && from_date) {
+        if (leave_day_type !== 'Full day' && leave_day_type !== 'WFH' && from_date) {
             effectiveToDate = from_date;
+        }
+
+        // WFH max 2 days validation
+        if (leave_day_type === 'WFH' && from_date && to_date) {
+            const from = new Date(from_date);
+            const to = new Date(to_date);
+            const wfhDays = Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
+            if (wfhDays > 2) {
+                return res.status(400).json({ success: false, error: 'WFH is allowed for a maximum of 2 days' });
+            }
         }
 
         const calcDate = new Date(from_date);
@@ -1016,6 +1036,7 @@ const getLeaveKpis = async (req, res) => {
         const halfDayLeaves = await Leave.count({ where: { ...where, leave_day_type: 'Half day' } });
         const shortLeaves = await Leave.count({ where: { ...where, leave_day_type: 'Short Leave' } });
         const optionalLeaveLeaves = await Leave.count({ where: { ...where, leave_day_type: 'Optional Leave' } });
+        const wfhLeaves = await Leave.count({ where: { ...where, leave_day_type: 'WFH' } });
         const plannedLeaves = await Leave.count({ where: { ...where, leave_type: 'Planned' } });
         const unplannedLeaves = await Leave.count({ where: { ...where, leave_type: 'Unplanned' } });
         const informedLeaves = await Leave.count({ where: { ...where, status: 'Inform' } });
@@ -1039,6 +1060,7 @@ const getLeaveKpis = async (req, res) => {
                 halfDayLeaves,
                 shortLeaves,
                 optionalLeaveLeaves,
+                wfhLeaves,
                 plannedLeaves,
                 unplannedLeaves,
                 informedLeaves,
