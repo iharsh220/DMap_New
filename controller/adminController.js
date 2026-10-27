@@ -2392,7 +2392,30 @@ const getTaskDetailsData = async (req, res) => {
         // SEARCH FILTER (DataTables global search)
         // ==========================================
 
-        const searchTerm = req.query.search && req.query.search.value ? req.query.search.value : '';
+        const searchTerm = req.query.search ? req.query.search : '';
+
+        const colSearchMap = {
+            "task_status": "t.status",
+            "work_request_id": "CAST(wr.id AS CHAR)",
+            "task_id": "CAST(t.id AS CHAR)",
+            "task_name": "t.task_name",
+            "task_type_name": "tt.task_type",
+            "task_requester_name": "ru.name",
+            "client_division": "t.client_division",
+            "task_no_of_work_pages": "CAST(COALESCE(t.task_count, 0) AS CHAR)",
+            "task_no_of_resize": "CAST(COALESCE(t.no_of_resize, 0) AS CHAR)",
+            "task_no_of_ai_page": "CAST(COALESCE(t.no_of_images_videos_audio, 0) AS CHAR)",
+            "video_duration": "CAST(COALESCE(t.duration_minutes * 60 + t.duration_seconds, 0) AS CHAR)",
+            "task_no_of_options_provided": "CAST(COALESCE(t.no_of_options_provided, 0) AS CHAR)",
+            "task_concept_work": "CAST(COALESCE(t.concept_work, 0) AS CHAR)",
+            "task_no_of_concepts": "CAST(COALESCE(t.no_of_concepts, 0) AS CHAR)",
+            "task_resize_work": "CAST(COALESCE(t.resize_work, 0) AS CHAR)",
+            "task_ai": "CAST(COALESCE(t.no_of_images_videos_audio, 0) AS CHAR)",
+            "task_shoot_setup": "CAST(COALESCE(t.shoot_setup, 0) AS CHAR)",
+            "month": "MONTH(t.end_date)",
+            "fy": "(CASE WHEN MONTH(t.end_date) >= 4 THEN CONCAT(YEAR(t.end_date),'-',RIGHT(YEAR(t.end_date)+1,2)) ELSE CONCAT(YEAR(t.end_date)-1,'-',RIGHT(YEAR(t.end_date),2)) END)"
+        };
+
         if (searchTerm) {
             const likeTerm = `%${searchTerm}%`;
             const searchColumns = [
@@ -2405,6 +2428,21 @@ const getTaskDetailsData = async (req, res) => {
             const searchConditions = searchColumns.map(col => `${col} LIKE :searchTerm`);
             whereClauses.push(`(${searchConditions.join(' OR ')})`);
             replacements.searchTerm = likeTerm;
+        }
+
+        // Per-column search
+        if (req.query.col_searches) {
+            try {
+                const colSearches = JSON.parse(req.query.col_searches);
+                for (const [colKey, colVal] of Object.entries(colSearches)) {
+                    const sqlCol = colSearchMap[colKey];
+                    if (sqlCol && colVal) {
+                        whereClauses.push(`${sqlCol} LIKE :colSearch_${colKey}`);
+                        replacements[`colSearch_${colKey}`] = `%${colVal}%`;
+                    }
+                }
+            } catch(e) {
+            }
         }
 
 
@@ -3465,20 +3503,10 @@ const getTaskDetailsData = async (req, res) => {
         ];
 
         let orderByClause = 't.id DESC';
-        if (req.query.order && Array.isArray(req.query.order) && req.query.order.length > 0) {
-            const orderParts = [];
-            req.query.order.forEach((ort) => {
-                if (ort && ort.column !== undefined && ort.dir && ['ASC','DESC'].includes(ort.dir.toUpperCase())) {
-                    const colIdx = parseInt(ort.column);
-                    const colData = req.query.columns && req.query.columns[colIdx] && req.query.columns[colIdx].data;
-                    if (colData && allowedSortColumns.includes(colData)) {
-                        orderParts.push(`${colData} ${ort.dir.toUpperCase()}`);
-                    }
-                }
-            });
-            if (orderParts.length > 0) {
-                orderByClause = orderParts.join(', ');
-            }
+        const orderCol = req.query.order_column;
+        const orderDir = req.query.order_dir;
+        if (orderCol && allowedSortColumns.includes(orderCol) && orderDir && ['ASC','DESC'].includes(orderDir.toUpperCase())) {
+            orderByClause = `${orderCol} ${orderDir.toUpperCase()}`;
         }
 
         query += `
