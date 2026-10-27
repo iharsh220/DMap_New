@@ -191,6 +191,7 @@ $(function(){
         pageLength: 25,
         lengthMenu: [[25, 50, 100, 200, -1], [25, 50, 100, 200, 'All']],
         dom: '<"dt-top-row"lf>rt<"dt-bottom-row"ip>',
+        searchDelay: 500,
         buttons: ['excel', 'csv'],
         scrollX: true,
         scrollY: 'calc(100vh - 360px)',
@@ -198,32 +199,63 @@ $(function(){
         autoWidth: false,
         fixedColumns: { left: 2 },
         language: { search: '', searchPlaceholder: 'Search all columns...', lengthMenu: 'Show _MENU_ rows' },
-        ajax: {
-            url: getApiBase() + 'datatable/admin/projectsdetails/data',
-            beforeSend: function(){ $('#loader').show(); },
-            dataSrc: function(res){
-                $('#loader').hide();
-                var total = res.total || 0;
-                $('#recordCount').text(total + ' Records');
-                updateStats(res.summary);
-                return res.data;
-            },
-            data: function(d){
-                d.page = Math.floor(d.start / d.length) + 1;
-                d.limit = d.length;
-                delete d.start;
-                delete d.length;
-                delete d.draw;
-                delete d.columns;
-                delete d.order;
-                delete d.search;
-                Object.keys(colFilters).forEach(function(key){
-                    if (colFilters[key]) {
-                        d['col_' + key] = colFilters[key];
-                    }
-                });
-                return d;
+        ajax: function(data, drawCallback, options){
+            var page = Math.floor(data.start / data.length) + 1;
+            var limit = data.length;
+            var search = '';
+            if(data.search && data.search.value){
+                search = data.search.value;
             }
+            var orderCol = '';
+            var orderDir = '';
+            if(data.order && data.order.length > 0){
+                var ord = data.order[0];
+                var colIdx = parseInt(ord.column);
+                if(data.columns && data.columns[colIdx] && data.columns[colIdx].data){
+                    orderCol = data.columns[colIdx].data;
+                    orderDir = ord.dir;
+                }
+            }
+            var colSearches = {};
+            Object.keys(colFilters).forEach(function(k){
+                if(colFilters[k]){
+                    colSearches[k] = colFilters[k];
+                }
+            });
+            var token = localStorage.getItem('accessToken');
+            $.ajax({
+                url: getApiBase() + 'datatable/admin/projectsdetails/data',
+                type: 'GET',
+                data: {
+                    page: page,
+                    limit: limit,
+                    search: search,
+                    col_searches: JSON.stringify(colSearches),
+                    order_column: orderCol,
+                    order_dir: orderDir
+                },
+                beforeSend: function(xhr){
+                    $('#loader').show();
+                    if(token){ xhr.setRequestHeader('Authorization', 'Bearer ' + token); }
+                },
+                success: function(res){
+                    $('#loader').hide();
+                    var rows = res.data || [];
+                    var total = res.recordsTotal || 0;
+                    $('#recordCount').text(total + ' Records');
+                    var summary = res.summary || {};
+                    $('#s1').text(summary.total || total);
+                    $('#s2').text(summary.completed || 0);
+                    $('#s3').text(summary.in_progress || 0);
+                    $('#s4').text(summary.pending || 0);
+                    drawCallback(res);
+                },
+                error: function(xhr){
+                    $('#loader').hide();
+                    console.error('AJAX error:', xhr);
+                    drawCallback({data:[], recordsTotal:0, recordsFiltered:0, summary:{}});
+                }
+            });
         },
         columns: cols,
         initComplete: function(){
@@ -239,9 +271,11 @@ $(function(){
                 var dataKey = cols[idx].data;
                 var inp = $('<input class="col-filter" type="text" placeholder="Filter...">');
                 inp.on('click mousedown focus',function(e){e.stopPropagation();});
+                var debounceTimer=null;
                 inp.on('keyup change clear',function(){
                     colFilters[dataKey] = this.value;
-                    api.draw();
+                    clearTimeout(debounceTimer);
+                    debounceTimer=setTimeout(function(){api.draw();},500);
                 });
                 wrap.append(inp);
                 th.append(wrap);
@@ -258,8 +292,6 @@ $(function(){
             });
         }
     });
-
-    dt.on('xhr', function(){ $('#loader').show(); });
 
     $('#btnExcel').on('click',function(){ dt.button('.buttons-excel').trigger(); });
     $('#btnCsv').on('click',function(){ dt.button('.buttons-csv').trigger(); });

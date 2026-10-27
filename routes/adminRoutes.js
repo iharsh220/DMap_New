@@ -138,7 +138,7 @@ router.get('/admin/feedback/data', paginationMiddleware, getAllFeedback);
 
 // API endpoint for leaves data
 router.get('/admin/leaves/data', paginationMiddleware, getAllLeaves);
-router.get('/admin/leaves/users', getLeaveUsers);
+router.get('/admin/leaves/users', paginationMiddleware, getLeaveUsers);
 router.get('/admin/leaves/users/:userId/division', getUserDivision);
 router.get('/admin/leaves/kpis', getLeaveKpis);
 router.get('/admin/leaves/export/excel', exportLeavesExcel);
