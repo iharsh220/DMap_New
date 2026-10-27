@@ -285,32 +285,54 @@ $(function(){
         {data:'financial_year', title:'Financial Year', defaultContent:'FY 25-26'}
     ];
 
+    var colFilters={};
     var dt = $('#mainTable').DataTable({
         processing: true,
         serverSide: true,
-        ajax: {
-            url: apiBase + 'admin/master-card/data',
-            beforeSend: function(){ $('#loader').show(); },
-            dataSrc: function(res){
-                $('#loader').hide();
-                var data = res.data || [];
-                $('#s1').text(res.recordsTotal || 0);
-                var divs = {};
-                data.forEach(function(r){ var d = r.division_name || 'N/A'; divs[d] = (divs[d]||0)+1; });
-                $('#s2').text(Object.keys(divs).length);
-                return data;
-            },
-            data: function(d){
-                d.page = Math.floor(d.start / d.length) + 1;
-                d.limit = d.length;
-                delete d.start;
-                delete d.length;
-                delete d.draw;
-                delete d.columns;
-                delete d.order;
-                delete d.search;
-                return d;
+        searchDelay: 500,
+        ajax: function(data, drawCallback, settings){
+            var page = Math.floor(data.start / data.length) + 1;
+            var limit = data.length;
+            var search = '';
+            if(data.search && data.search.value){ search = data.search.value; }
+            var orderCol = ''; var orderDir = '';
+            if(data.order && data.order.length > 0){
+                var ord = data.order[0];
+                if(data.columns && data.columns[ord.column] && data.columns[ord.column].data){
+                    orderCol = data.columns[ord.column].data;
+                    orderDir = ord.dir;
+                }
             }
+            var colSearches = {};
+            Object.keys(colFilters).forEach(function(k){ if(colFilters[k]){ colSearches[k] = colFilters[k]; } });
+            var token = localStorage.getItem('accessToken');
+            $.ajax({
+                url: apiBase + 'admin/master-card/data',
+                type: 'GET',
+                data: {
+                    page: page, limit: limit, search: search,
+                    col_searches: JSON.stringify(colSearches),
+                    order_column: orderCol, order_dir: orderDir
+                },
+                beforeSend: function(xhr){
+                    $('#loader').show();
+                    if(token){ xhr.setRequestHeader('Authorization', 'Bearer ' + token); }
+                },
+                success: function(res){
+                    $('#loader').hide();
+                    var data = res.data || [];
+                    $('#s1').text(res.recordsTotal || 0);
+                    var divs = {};
+                    data.forEach(function(r){ var d = r.division_name || 'N/A'; divs[d] = (divs[d]||0)+1; });
+                    $('#s2').text(Object.keys(divs).length);
+                    drawCallback(res);
+                },
+                error: function(xhr){
+                    $('#loader').hide();
+                    console.error('AJAX error:', xhr);
+                    drawCallback({data:[], recordsTotal:0, recordsFiltered:0});
+                }
+            });
         },
         columns: cols,
         order: [[1, 'asc']],
@@ -348,7 +370,12 @@ $(function(){
                 }
                 var inp = $('<input class="col-filter" type="text" placeholder="Filter...">');
                 inp.on('click mousedown focus',function(e){e.stopPropagation();});
-                inp.on('keyup change clear',function(){if(col.search()!==this.value)col.search(this.value).draw();});
+                var debounceTimer = null;
+                inp.on('keyup change clear',function(){
+                    colFilters[cols[idx].data] = this.value;
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(function(){ api.draw(); }, 500);
+                });
                 wrap.append(inp);
                 th.append(wrap);
                 th.off('click').on('click',function(e){
@@ -364,8 +391,6 @@ $(function(){
             });
         }
     });
-
-    dt.on('xhr', function(){ $('#loader').show(); });
 
     $('#btnExcel').on('click',function(){ dt.button('.buttons-excel').trigger(); });
     $('#btnCsv').on('click',function(){ dt.button('.buttons-csv').trigger(); });

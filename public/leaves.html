@@ -465,77 +465,86 @@ $(function(){
                 }
         });
 
+    var colFilters={};
     dt=$('#mainTable').DataTable({
         processing: true,
         serverSide: true,
         pageLength:25,lengthMenu:[[25,50,100,200,-1],[25,50,100,200,'All']],
         dom:'<"dt-top-row"lf>rt<"dt-bottom-row"ip>',
+        searchDelay:500,
         scrollX:true,scrollY:'calc(100vh - 360px)',scrollCollapse:false,autoWidth:false,fixedColumns:{left:4},
         language:{search:'',searchPlaceholder:'Search all columns...',lengthMenu:'Show _MENU_ rows'},
-        ajax: {
-            url: getApiBase()+'datatable/admin/leaves/data',
-            beforeSend: function(){ $('#loader').show(); },
-            dataSrc: function(res){
-                $('#loader').hide();
-                var data = res.data || [];
-                $('#recordCount').text((res.recordsTotal || 0)+' Records');
-                updateLeaveStats(data);
-                return data;
-            },
-            data: function(d){
-                d.page = Math.floor(d.start / d.length) + 1;
-                d.limit = d.length;
-                delete d.start;
-                delete d.length;
-                delete d.draw;
-                delete d.columns;
-                delete d.order;
-                delete d.search;
-                return d;
-            }
+        ajax:function(data,drawCallback,settings){
+            var page=Math.floor(data.start/data.length)+1;
+            var limit=data.length;
+            var search='';
+            if(data.search&&data.search.value){search=data.search.value;}
+            var orderCol='';var orderDir='';
+            if(data.order&&data.order.length>0){var ord=data.order[0];if(data.columns&&data.columns[ord.column]&&data.columns[ord.column].data){orderCol=data.columns[ord.column].data;orderDir=ord.dir;}}
+            var colSearches={};Object.keys(colFilters).forEach(function(k){if(colFilters[k]){colSearches[k]=colFilters[k];}});
+            var token=localStorage.getItem('accessToken');
+            $.ajax({
+                url:getApiBase()+'datatable/admin/leaves/data',
+                type:'GET',
+                data:{page:page,limit:limit,search:search,col_searches:JSON.stringify(colSearches),order_column:orderCol,order_dir:orderDir},
+                beforeSend:function(xhr){
+                    $('#loader').show();
+                    if(token){xhr.setRequestHeader('Authorization','Bearer '+token);}
+                },
+                success:function(res){
+                    $('#loader').hide();
+                    var data=res.data||[];
+                    $('#recordCount').text((res.recordsTotal||0)+' Records');
+                    updateLeaveStats(data);
+                    drawCallback(res);
+                },
+                error:function(xhr){
+                    $('#loader').hide();
+                    console.error('AJAX error:',xhr);
+                    drawCallback({data:[],recordsTotal:0,recordsFiltered:0});
+                }
+            });
         },
         columns: cols,
-            initComplete:function(){
-                var api=this.api();
-                var colKeys=['Action'].concat(keyOrder);
-                api.columns().every(function(){
-                    var col=this,idx=col.index();
-                    var th=$(col.header());
-                    var labelText=HEADERS[colKeys[idx]]||colKeys[idx];
-                    th.empty();
-                    var wrap=$('<div class="th-wrap"></div>');
-                    wrap.append('<div class="th-label"><span title="'+labelText+'">'+labelText+'</span><span class="th-sort"></span></div>');
-                    if(idx>0){
-                        var key=colKeys[idx];
-                        if(BADGES[key]){
-                            var sel=$('<select class="col-filter"><option value="">All</option></select>');
-                            Object.keys(BADGES[key]).forEach(function(o){sel.append('<option value="'+o+'">'+o+'</option>');});
-                            sel.on('change click mousedown',function(e){e.stopPropagation();});
-                            sel.on('change',function(){col.search(this.value).draw();});
-                            wrap.append(sel);
-                        } else {
-                            var inp=$('<input class="col-filter" type="text" placeholder="Filter...">');
-                            inp.on('click mousedown focus',function(e){e.stopPropagation();});
-                            inp.on('keyup change clear',function(){if(col.search()!==this.value)col.search(this.value).draw();});
-                            wrap.append(inp);
-                        }
+        initComplete:function(){
+            var api=this.api();
+            var colKeys=['Action'].concat(keyOrder);
+            api.columns().every(function(){
+                var col=this,idx=col.index();
+                var th=$(col.header());
+                var labelText=HEADERS[colKeys[idx]]||colKeys[idx];
+                th.empty();
+                var wrap=$('<div class="th-wrap"></div>');
+                wrap.append('<div class="th-label"><span title="'+labelText+'">'+labelText+'</span><span class="th-sort"></span></div>');
+                if(idx>0){
+                    var key=colKeys[idx];
+                    if(BADGES[key]){
+                        var sel=$('<select class="col-filter"><option value="">All</option></select>');
+                        Object.keys(BADGES[key]).forEach(function(o){sel.append('<option value="'+o+'">'+o+'</option>');});
+                        sel.on('change click mousedown',function(e){e.stopPropagation();});
+                        var selDebounce=null;
+                        sel.on('change',function(){colFilters[key]=this.value;clearTimeout(selDebounce);selDebounce=setTimeout(function(){api.draw();},500);});
+                        wrap.append(sel);
+                    } else {
+                        var inp=$('<input class="col-filter" type="text" placeholder="Filter...">');
+                        inp.on('click mousedown focus',function(e){e.stopPropagation();});
+                        var inpDebounce=null;
+                        inp.on('keyup change clear',function(){colFilters[key]=this.value;clearTimeout(inpDebounce);inpDebounce=setTimeout(function(){api.draw();},500);});
+                        wrap.append(inp);
                     }
-                    th.append(wrap);
-                    th.off('click').on('click',function(e){
-                        if($(e.target).closest('.col-filter').length===0){
-                            var currentOrder = api.order();
-                            if(currentOrder.length && currentOrder[0][0]===idx){
-                                api.order([idx, currentOrder[0][1]==='asc'?'desc':'asc']).draw();
-                            } else {
-                                api.order([idx,'asc']).draw();
-                            }
-                        }
-                    });
+                }
+                th.append(wrap);
+                th.off('click').on('click',function(e){
+                    if($(e.target).closest('.col-filter').length===0){
+                        var currentOrder=api.order();
+                        if(currentOrder.length&&currentOrder[0][0]===idx){api.order([idx,currentOrder[0][1]==='asc'?'desc':'asc']).draw();}else{api.order([idx,'asc']).draw();}
+                    }
                 });
-            }
-        });
-        dt.on('xhr', function(){ $('#loader').show(); });
-        var colTitles=cols.map(function(c){return c.title;});
+            });
+        }
+    });
+    $('#mainTable').on('click','.col-filter',function(e){e.stopPropagation();});
+    var colTitles=cols.map(function(c){return c.title;});
         $.fn.dataTable.Buttons(dt,[
             {extend:'excel',className:'buttons-excel',filename:'leaves_'+new Date().toISOString().slice(0,10),exportOptions:{columns:':gt(0):visible',modifier:{page:'all'},orthogonal:'export',format:{header:function(data,col){return colTitles[col]||data;},body:function(data){return data == null ? '' : data;}}}},
             {extend:'csv',className:'buttons-csv',filename:'leaves_'+new Date().toISOString().slice(0,10),exportOptions:{columns:':gt(0):visible',modifier:{page:'all'},orthogonal:'export',format:{header:function(data,col){return colTitles[col]||data;},body:function(data){return data == null ? '' : data;}}}}
@@ -572,7 +581,7 @@ function calculateDaysCount(){
 }
 
 function loadLeaveUsers(){
-    $.getJSON(getApiBase()+'datatable/admin/leaves/users', function(res){
+    $.getJSON(getApiBase()+'datatable/admin/leaves/users?limit=-1', function(res){
         if(res.success && res.data){
             var options = '<option value="">Select User</option>';
             res.data.forEach(function(u){

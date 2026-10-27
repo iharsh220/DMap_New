@@ -599,6 +599,76 @@ const getAllLeaves = async (req, res) => {
         if (year) where.year = year;
         if (month) where.month = month;
 
+        // Count before adding search (for recordsTotal)
+        const recordsTotal = await Leave.count({ where });
+
+        // ---------------------------------------
+        // SEARCH FILTER (DataTables global search)
+        // ---------------------------------------
+
+        const searchTerm = req.query.search ? req.query.search : '';
+
+        const colSearchMap = {
+            'user_id': { field: 'user_id' },
+            'name': { field: '$user.name$' },
+            'from_date': { field: 'from_date' },
+            'to_date': { field: 'to_date' },
+            'day': { field: 'day' },
+            'leave_day_type': { field: 'leave_day_type' },
+            'leave_type': { field: 'leave_type' },
+            'status': { field: 'status' },
+            'leave_reason': { field: 'leave_reason' },
+            'vertical': { field: 'vertical' },
+            'days_count': { field: 'days_count' },
+            'reason': { field: 'reason' },
+            'remark': { field: 'remark' },
+            'month': { field: 'month' },
+            'year': { field: 'year' }
+        };
+
+        if (req.query.col_searches) {
+            try {
+                const colSearches = JSON.parse(req.query.col_searches);
+                const userColSearches = {};
+                Object.keys(colSearches).forEach(function(colKey){
+                    const colVal = colSearches[colKey];
+                    if (!colVal) return;
+                    const entry = colSearchMap[colKey.trim()];
+                    if (entry && entry.field.startsWith('$user.')) {
+                        userColSearches[entry.field] = { [Op.like]: '%' + colVal + '%' };
+                    } else if (entry) {
+                        where[entry.field] = { [Op.like]: '%' + colVal + '%' };
+                    }
+                });
+                if (Object.keys(userColSearches).length > 0) {
+                    if (where[Op.or]) {
+                        where[Op.or].push(userColSearches);
+                    } else {
+                        where[Op.or] = userColSearches;
+                    }
+                }
+            } catch(e) {
+            }
+        }
+
+        const allowedSortColumns = [
+            'from_date', 'to_date', 'day', 'leave_day_type', 'leave_type', 'status',
+            'leave_reason', 'vertical', 'days_count', 'reason', 'remark', 'month', 'year',
+            'name', 'user_id'
+        ];
+
+        let orderClause = [['from_date', 'DESC']];
+        const orderCol = req.query.order_column;
+        const orderDir = req.query.order_dir;
+        if (orderCol && allowedSortColumns.includes(orderCol) && orderDir && ['ASC','DESC'].includes(orderDir.toUpperCase())) {
+            let colField = orderCol;
+            if (orderCol === 'name' || orderCol === 'user_id') {
+                colField = orderCol === 'name' ? '$user.name$' : orderCol;
+            }
+            orderClause = [[colField, orderDir.toUpperCase()]];
+        }
+
+        // Count after search (for recordsFiltered)
         const total = await Leave.count({ where });
 
         const leaves = await Leave.findAll({
@@ -615,11 +685,11 @@ const getAllLeaves = async (req, res) => {
                     required: true
                 }
             ],
-            order: [['from_date', 'DESC']],
+            order: orderClause,
             ...(limit !== -1 ? { limit, offset } : {})
         });
 
-        res.json({ success: true, data: leaves, total: total, recordsTotal: total, recordsFiltered: total });
+        res.json({ success: true, data: leaves, total: total, recordsTotal: recordsTotal, recordsFiltered: total });
     } catch (error) {
         console.error('Error fetching leaves:', error);
         res.status(500).json({ error: 'Internal server error' });
@@ -984,16 +1054,52 @@ const getLeaveKpis = async (req, res) => {
 
 const getLeaveUsers = async (req, res) => {
     try {
+        const { page, limit, offset } = req.pagination;
+
+        const where = {
+            department_id: 9,
+            account_status: 'active'
+        };
+
+        // Count before adding search (for recordsTotal)
+        const recordsTotal = await User.count({ where });
+
+        const searchTerm = req.query.search ? req.query.search : '';
+
+        if (searchTerm) {
+            where[Op.or] = [
+                { name: { [Op.like]: '%' + searchTerm + '%' } },
+                { email: { [Op.like]: '%' + searchTerm + '%' } }
+            ];
+        }
+
+        if (req.query.col_searches) {
+            try {
+                const colSearches = JSON.parse(req.query.col_searches);
+                if (colSearches.name) { where.name = { [Op.like]: '%' + colSearches.name + '%' }; }
+                if (colSearches.email) { where.email = { [Op.like]: '%' + colSearches.email + '%' }; }
+            } catch(e) {
+            }
+        }
+
+        const allowedSortColumns = ['id', 'name', 'email'];
+        let orderByClause = [['name', 'ASC']];
+        const orderCol = req.query.order_column;
+        const orderDir = req.query.order_dir;
+        if (orderCol && allowedSortColumns.includes(orderCol) && orderDir && ['ASC','DESC'].includes(orderDir.toUpperCase())) {
+            orderByClause = [[orderCol, orderDir.toUpperCase()]];
+        }
+
+        const total = await User.count({ where });
+
         const users = await User.findAll({
-            where: {
-                department_id: 9,
-                account_status: 'active'
-            },
+            where,
             attributes: ['id', 'name', 'email'],
-            order: [['name', 'ASC']]
+            order: orderByClause,
+            ...(limit !== -1 ? { limit, offset } : {})
         });
 
-        res.json({ success: true, data: users });
+        res.json({ success: true, data: users, total: total, recordsTotal: recordsTotal, recordsFiltered: total });
     } catch (error) {
         console.error('Error fetching leave users:', error);
         res.status(500).json({ error: 'Internal server error' });
@@ -1081,32 +1187,88 @@ const getAdminData = async (req, res) => {
 
 
         // ---------------------------------------
-        // COLUMN-LEVEL SEARCH (from DataTables serverSide column filters)
+        // SEARCH FILTER (DataTables global search)
         // ---------------------------------------
 
-        const columnSqlMap = {
-            'project_request_status': 'wr.status',
-            'work_request_id':        'wr.id',
-            'project_name':           'wr.project_name',
-            'request_type_name':      'rt.request_type',
-            'project_type_name':      'pt.project_type',
-            'project_priority':       'wr.priority',
-            'project_requester_name': 'ru.name',
-            'client_division':        'ru.name',
-            'request_accepted_by':    'ru.name'
+        const searchTerm = req.query.search ? req.query.search : '';
+
+        const colSearchMap = {
+            "project_request_status": "wr.status",
+            "work_request_id": "CAST(wr.id AS CHAR)",
+            "project_name": "wr.project_name",
+            "brand": "wr.brand",
+            "request_type_name": "rt.request_type",
+            "project_type_name": "pt.project_type",
+            "project_priority": "wr.priority",
+            "project_requester_name": "ru.name",
+            "client_division": "client_division",
+            "request_accepted_by": "request_accepted_by",
+            "project_count": "CAST(1 AS CHAR)",
+            "task_count": "CAST((SELECT COUNT(*) FROM tasks WHERE work_request_id = wr.id AND is_deleted = 0) AS CHAR)",
+            "issue_task_count": "CAST((SELECT COUNT(*) FROM issue_assignments ia2 INNER JOIN tasks t4 ON t4.id = ia2.task_id WHERE t4.work_request_id = wr.id AND ia2.is_deleted = 0) AS CHAR)",
+            "change_count": "CAST((SELECT COUNT(*) FROM task_history WHERE work_request_id = wr.id AND action = 'manager_change_requested') AS CHAR)",
+            "project_start_date": "project_start_date",
+            "project_end_date": "project_end_date",
+            "project_deadline": "(SELECT MAX(t2.deadline) FROM tasks t2 WHERE t2.work_request_id = wr.id AND t2.is_deleted = 0)",
+            "project_review": "project_review",
+            "project_stage": "project_stage",
+            "description": "wr.description",
+            "about_project": "wr.about_project",
+            "remarks": "wr.remarks",
+            "work_request_created_at": "wr.created_at",
+            "work_request_updated_at": "wr.updated_at"
         };
 
-        Object.keys(req.query).forEach(function (key) {
-            if (key.indexOf('col_') === 0) {
-                const colName = key.substring(4);
-                const searchVal = req.query[key];
-                if (searchVal) {
-                    const sqlCol = columnSqlMap[colName] || ('wr.' + colName);
-                    whereClauses.push(`(${sqlCol} LIKE :col_${colName})`);
-                    replacements[`col_${colName}`] = '%' + searchVal + '%';
+        if (searchTerm) {
+            const likeTerm = `%${searchTerm}%`;
+            const searchColumns = [
+                'wr.project_name',
+                'rt.request_type',
+                'pt.project_type',
+                'wr.priority',
+                'ru.name',
+                'wr.status',
+                'wr.brand',
+                'wr.description',
+                'CAST(wr.id AS CHAR)'
+            ];
+            const searchConditions = searchColumns.map(col => `${col} LIKE :searchTerm`);
+            whereClauses.push(`(${searchConditions.join(' OR ')})`);
+            replacements.searchTerm = likeTerm;
+        }
+
+        // Per-column search
+        if (req.query.col_searches) {
+            try {
+                const colSearches = JSON.parse(req.query.col_searches);
+                for (const [colKey, colVal] of Object.entries(colSearches)) {
+                    const sqlCol = colSearchMap[colKey];
+                    if (sqlCol && colVal) {
+                        whereClauses.push(`${sqlCol} LIKE :colSearch_${colKey}`);
+                        replacements[`colSearch_${colKey}`] = `%${colVal}%`;
+                    }
                 }
+            } catch(e) {
             }
-        });
+        }
+
+        // ORDER BY with whitelist
+        const allowedSortColumns = [
+            'project_request_status', 'work_request_id', 'project_name', 'brand',
+            'request_type_name', 'project_type_name', 'project_priority',
+            'project_requester_name', 'client_division', 'request_accepted_by',
+            'project_count', 'task_count', 'issue_task_count', 'change_count',
+            'project_start_date', 'project_end_date', 'project_deadline',
+            'project_review', 'project_stage', 'description', 'about_project',
+            'remarks', 'work_request_created_at', 'work_request_updated_at'
+        ];
+
+        let orderByClause = 'wr.created_at DESC';
+        const orderCol = req.query.order_column;
+        const orderDir = req.query.order_dir;
+        if (orderCol && allowedSortColumns.includes(orderCol) && orderDir && ['ASC','DESC'].includes(orderDir.toUpperCase())) {
+            orderByClause = `${orderCol} ${orderDir.toUpperCase()}`;
+        }
 
         let query = `
             SELECT
@@ -1736,7 +1898,7 @@ const getAdminData = async (req, res) => {
         // ---------------------------------------
 
         query += `
-            ORDER BY wr.created_at DESC
+            ORDER BY ${orderByClause}
         `;
 
         if (limit !== -1) {
@@ -1752,6 +1914,7 @@ const getAdminData = async (req, res) => {
         // COUNT QUERY (total filtered rows + status summary)
         // ---------------------------------------
 
+        // Count for filtered data (with search + column filters)
         const countQuery = `
             SELECT
                 COUNT(*) AS total,
@@ -1759,7 +1922,15 @@ const getAdminData = async (req, res) => {
                 SUM(CASE WHEN wr.status = 'in_progress' THEN 1 ELSE 0 END) AS in_progress_count,
                 SUM(CASE WHEN wr.status = 'pending' THEN 1 ELSE 0 END) AS pending_count
             FROM work_requests wr
+            LEFT JOIN request_type rt ON rt.id = wr.request_type_id
+            LEFT JOIN project_type pt ON pt.id = wr.project_id
+            LEFT JOIN users ru ON ru.id = wr.user_id
             ${whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''}
+        `;
+
+        // Count for total data (only is_deleted filter)
+        const totalQuery = `
+            SELECT COUNT(*) AS total FROM work_requests wr WHERE wr.is_deleted = 0
         `;
 
         const countResult = await sequelize.query(countQuery, {
@@ -1771,6 +1942,13 @@ const getAdminData = async (req, res) => {
         const completedCount = countResult[0]?.completed_count || 0;
         const inProgressCount = countResult[0]?.in_progress_count || 0;
         const pendingCount = countResult[0]?.pending_count || 0;
+
+        const totalResult = await sequelize.query(totalQuery, {
+            replacements: {},
+            type: sequelize.QueryTypes.SELECT
+        });
+
+        const recordsTotal = totalResult[0]?.total || 0;
 
 
         // ---------------------------------------
@@ -1870,7 +2048,7 @@ const getAdminData = async (req, res) => {
             page: page,
             limit: limit,
             totalPages: limit === -1 ? 1 : Math.ceil(total / limit),
-            recordsTotal: total,
+            recordsTotal: recordsTotal,
             recordsFiltered: total,
             summary: {
                 completed: completedCount,
@@ -1909,6 +2087,80 @@ const getClientsData = async (req, res) => {
         if (endDate) {
             whereClauses.push('wr.requested_at <= :endDate');
             replacements.endDate = endDate;
+        }
+
+        // ==========================================
+        // SEARCH FILTER (DataTables global search)
+        // ==========================================
+
+        const searchTerm = req.query.search ? req.query.search : '';
+
+        const colSearchMap = {
+            "work_request_id": "CAST(wr.id AS CHAR)",
+            "project_name": "wr.project_name",
+            "request_type_name": "rt.request_type",
+            "project_type_name": "pt.project_type",
+            "project_priority": "wr.priority",
+            "project_requester_name": "ru.name",
+            "client_division": "client_division",
+            "digi_vertical_manager_name": "digi_vertical_manager_name",
+            "project_count": "CAST(1 AS CHAR)",
+            "deferral_count": "CAST(deferral_count AS CHAR)",
+            "project_status": "wr.status",
+            "description": "wr.description",
+            "project_requested_at_client": "wr.requested_at",
+            "response_timestamp": "response_timestamp",
+            "request_to_response_tat": "request_to_response_tat",
+            "month": "month",
+            "financial_year": "financial_year"
+        };
+
+        if (searchTerm) {
+            const likeTerm = `%${searchTerm}%`;
+            const searchColumns = [
+                'wr.project_name',
+                'rt.request_type',
+                'pt.project_type',
+                'wr.priority',
+                'ru.name',
+                'wr.status',
+                'wr.description',
+                'CAST(wr.id AS CHAR)'
+            ];
+            const searchConditions = searchColumns.map(col => `${col} LIKE :searchTerm`);
+            whereClauses.push(`(${searchConditions.join(' OR ')})`);
+            replacements.searchTerm = likeTerm;
+        }
+
+        // Per-column search
+        if (req.query.col_searches) {
+            try {
+                const colSearches = JSON.parse(req.query.col_searches);
+                for (const [colKey, colVal] of Object.entries(colSearches)) {
+                    const sqlCol = colSearchMap[colKey];
+                    if (sqlCol && colVal) {
+                        whereClauses.push(`${sqlCol} LIKE :colSearch_${colKey}`);
+                        replacements[`colSearch_${colKey}`] = `%${colVal}%`;
+                    }
+                }
+            } catch(e) {
+            }
+        }
+
+        // ORDER BY with whitelist
+        const allowedSortColumns = [
+            'work_request_id', 'project_name', 'request_type_name', 'project_type_name',
+            'project_priority', 'project_requester_name', 'client_division',
+            'digi_vertical_manager_name', 'project_count', 'deferral_count',
+            'project_status', 'description', 'project_requested_at_client',
+            'response_timestamp', 'request_to_response_tat', 'month', 'financial_year'
+        ];
+
+        let orderByClause = 'wr.requested_at DESC';
+        const orderCol = req.query.order_column;
+        const orderDir = req.query.order_dir;
+        if (orderCol && allowedSortColumns.includes(orderCol) && orderDir && ['ASC','DESC'].includes(orderDir.toUpperCase())) {
+            orderByClause = `${orderCol} ${orderDir.toUpperCase()}`;
         }
 
         let query = `
@@ -2345,7 +2597,7 @@ const getClientsData = async (req, res) => {
         }
 
         query += `
-            ORDER BY wr.requested_at DESC
+            ORDER BY ${orderByClause}
         `;
 
         const countQuery = `SELECT COUNT(*) AS total FROM ( ${query} ) AS count_table`;
@@ -4667,6 +4919,121 @@ const getWorkRequestTasksData = async (req, res) => {
             replacements.endDate = endDate;
         }
 
+        const searchTerm = req.query.search ? req.query.search : '';
+
+        const colSearchMap = {
+            'work_request_id': 'CAST(wr.id AS CHAR)',
+            'project_name': 'wr.project_name',
+            'brand': 'wr.brand',
+            'work_request_description': 'wr.description',
+            'work_request_digi_comments': 'wr.remarks',
+            'about_project': 'wr.about_project',
+            'work_request_status': 'wr.status',
+            'request_type_name': 'rt.request_type',
+            'project_type_name': 'pt.project_type',
+            'project_priority': 'wr.priority',
+            'request_creator_name': 'creator.name',
+            'request_creator_email': 'creator.email',
+            'request_creator_phone': 'creator.phone',
+            'remarks': 'wr.remarks',
+            'work_request_created_at': 'wr.requested_at',
+            'work_request_updated_at': 'wr.updated_at',
+            'task_id': 'CAST(t.id AS CHAR)',
+            'task_name': 't.task_name',
+            'task_type_name': 'tt.task_type',
+            'assigned_user_name': 'assigned_user.name',
+            'assigned_user_email': 'assigned_user.email',
+            'task_status': 'ta.status',
+            'task_start_date': 't.start_date',
+            'task_end_date': 't.end_date',
+            'task_deadline': 't.deadline',
+            'task_duration_minutes': 'CAST(t.duration_minutes AS CHAR)',
+            'task_duration_seconds': 'CAST(t.duration_seconds AS CHAR)',
+            'task_no_of_work_pages': 'CAST(t.no_of_work_pages AS CHAR)',
+            'task_no_of_options_provided': 'CAST(t.no_of_options_provided AS CHAR)',
+            'task_no_of_words_written': 'CAST(t.no_of_words_written AS CHAR)',
+            'task_options_submitted': 't.options_submitted',
+            'task_version': 'CAST(t.version AS CHAR)',
+            'task_created_at': 't.created_at',
+            'task_updated_at': 't.updated_at',
+            'task_digi_comments': 't.digi_comments',
+            'task_requester_description': 't.requester_description',
+            'task_link': 't.task_link',
+            'issue_id': 'CAST(ia.id AS CHAR)',
+            'issue_no_of_work_pages': 'CAST(ia.no_of_work_pages AS CHAR)',
+            'issue_status': 'ia.status',
+            'issue_start_date': 'ia.start_date',
+            'issue_end_date': 'ia.end_date',
+            'issue_deadline': 'ia.deadline',
+            'issue_duration_minutes': 'CAST(ia.duration_minutes AS CHAR)',
+            'issue_duration_seconds': 'CAST(ia.duration_seconds AS CHAR)',
+            'month': 'month',
+            'fy': 'fy'
+        };
+
+        if (searchTerm) {
+            const likeTerm = '%' + searchTerm + '%';
+            const searchColumns = [
+                'wr.project_name',
+                'wr.brand',
+                'wr.description',
+                'rt.request_type',
+                'pt.project_type',
+                'wr.priority',
+                'creator.name',
+                'creator.email',
+                't.task_name',
+                'tt.task_type',
+                'assigned_user.name',
+                'ta.status',
+                'ia.status',
+                'CAST(wr.id AS CHAR)',
+                'CAST(t.id AS CHAR)',
+                'CAST(ia.id AS CHAR)'
+            ];
+            const searchConditions = searchColumns.map(col => col + ' LIKE :searchTerm');
+            whereClauses.push('(' + searchConditions.join(' OR ') + ')');
+            replacements.searchTerm = likeTerm;
+        }
+
+        if (req.query.col_searches) {
+            try {
+                const colSearches = JSON.parse(req.query.col_searches);
+                for (const [colKey, colVal] of Object.entries(colSearches)) {
+                    const sqlCol = colSearchMap[colKey.trim()];
+                    if (sqlCol && colVal) {
+                        whereClauses.push(sqlCol + ' LIKE :colSearch_' + colKey.trim());
+                        replacements['colSearch_' + colKey.trim()] = '%' + colVal + '%';
+                    }
+                }
+            } catch(e) {
+            }
+        }
+
+        const allowedSortColumns = [
+            'work_request_id', 'project_name', 'brand', 'work_request_description',
+            'work_request_digi_comments', 'about_project', 'work_request_status',
+            'request_type_name', 'project_type_name', 'project_priority',
+            'request_creator_name', 'request_creator_email', 'request_creator_phone', 'remarks',
+            'work_request_created_at', 'work_request_updated_at',
+            'task_id', 'task_name', 'task_type_name', 'assigned_user_name', 'assigned_user_email',
+            'task_status', 'task_start_date', 'task_end_date', 'task_deadline',
+            'task_duration_minutes', 'task_duration_seconds', 'task_no_of_work_pages',
+            'task_no_of_options_provided', 'task_no_of_words_written', 'task_options_submitted',
+            'task_version', 'task_created_at', 'task_updated_at', 'task_digi_comments',
+            'task_requester_description', 'task_link',
+            'issue_id', 'issue_no_of_work_pages', 'issue_status', 'issue_start_date',
+            'issue_end_date', 'issue_deadline', 'issue_duration_minutes', 'issue_duration_seconds',
+            'month', 'fy'
+        ];
+
+        let orderByClause = 'wr.id DESC, t.id ASC, ta.id ASC, ia.id ASC';
+        const orderCol = req.query.order_column;
+        const orderDir = req.query.order_dir;
+        if (orderCol && allowedSortColumns.includes(orderCol) && orderDir && ['ASC','DESC'].includes(orderDir.toUpperCase())) {
+            orderByClause = orderCol + ' ' + orderDir.toUpperCase();
+        }
+
         let query = `
             SELECT
 
@@ -5627,16 +5994,24 @@ const getWorkRequestTasksData = async (req, res) => {
         }
 
         query += `
-            ORDER BY
-                wr.id DESC,
-                t.id ASC,
-                ta.id ASC,
-                ia.id ASC
+            ORDER BY ${orderByClause}
         `;
 
-        const countQuery = `SELECT COUNT(*) AS total FROM work_requests wr WHERE ${whereClauses.join(' AND ')}`;
+        const countQuery = `SELECT COUNT(DISTINCT wr.id) AS total FROM work_requests wr
+            LEFT JOIN request_type rt ON rt.id = wr.request_type_id
+            LEFT JOIN project_type pt ON pt.id = wr.project_id
+            LEFT JOIN users creator ON creator.id = wr.user_id
+            LEFT JOIN tasks t ON t.work_request_id = wr.id AND t.is_deleted = 0
+            LEFT JOIN task_type tt ON tt.id = t.task_type_id
+            LEFT JOIN task_assignments ta ON ta.task_id = t.id
+            LEFT JOIN users assignee ON assignee.id = ta.user_id
+            ${whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''}`;
         const countResult = await sequelize.query(countQuery, { replacements, type: sequelize.QueryTypes.SELECT });
         const total = countResult[0]?.total || 0;
+
+        const totalUnfilteredQuery = `SELECT COUNT(*) AS total FROM work_requests wr WHERE wr.is_deleted = 0`;
+        const totalUnfilteredResult = await sequelize.query(totalUnfilteredQuery, { replacements: {}, type: sequelize.QueryTypes.SELECT });
+        const recordsTotal = totalUnfilteredResult[0]?.total || 0;
 
         if (limit !== -1) {
             query += ` LIMIT :limit OFFSET :offset`;
@@ -5652,7 +6027,7 @@ const getWorkRequestTasksData = async (req, res) => {
         res.json({
             data: results,
             total: total,
-            recordsTotal: total,
+            recordsTotal: recordsTotal,
             recordsFiltered: total
         });
 
@@ -5711,30 +6086,104 @@ const getAllFeedback = async (req, res) => {
 const getMasterCardData = async (req, res) => {
     try {
         const { page, limit, offset } = req.pagination;
+        const replacements = {};
+        const whereClauses = [];
 
-        const countResult = await sequelize.query(
-            `SELECT COUNT(*) AS total FROM master_card`,
-            { type: sequelize.QueryTypes.SELECT }
-        );
+        const searchTerm = req.query.search ? req.query.search : '';
+        if (searchTerm) {
+            const likeTerm = '%' + searchTerm + '%';
+            const searchColumns = [
+                'division_name',
+                'task_type_name',
+                'unit_basis',
+                'CAST(new_work_rate AS CHAR)',
+                'CAST(changes_rate AS CHAR)',
+                'CAST(concept_charge AS CHAR)',
+                'CAST(ai_charges AS CHAR)',
+                'CAST(no_of_resize_pages AS CHAR)',
+                'CAST(last_moment AS CHAR)',
+                'financial_year'
+            ];
+            const searchConditions = searchColumns.map(col => col + ' LIKE :searchTerm');
+            whereClauses.push('(' + searchConditions.join(' OR ') + ')');
+            replacements.searchTerm = likeTerm;
+        }
+
+        if (req.query.col_searches) {
+            try {
+                const colSearches = JSON.parse(req.query.col_searches);
+                const colSearchMap = {
+                    'division_name': 'division_name',
+                    'task_type_name': 'task_type_name',
+                    'unit_basis': 'unit_basis',
+                    'new_work_rate': 'CAST(new_work_rate AS CHAR)',
+                    'changes_rate': 'CAST(changes_rate AS CHAR)',
+                    'concept_charge': 'CAST(concept_charge AS CHAR)',
+                    'ai_charges': 'CAST(ai_charges AS CHAR)',
+                    'no_of_resize_pages': 'CAST(no_of_resize_pages AS CHAR)',
+                    'last_moment': 'CAST(last_moment AS CHAR)',
+                    'financial_year': 'financial_year'
+                };
+                for (const [colKey, colVal] of Object.entries(colSearches)) {
+                    const sqlCol = colSearchMap[colKey.trim()];
+                    if (sqlCol && colVal) {
+                        whereClauses.push(sqlCol + ' LIKE :colSearch_' + colKey.trim());
+                        replacements['colSearch_' + colKey.trim()] = '%' + colVal + '%';
+                    }
+                }
+            } catch(e) {
+            }
+        }
+
+        const allowedSortColumns = [
+            'id', 'division_name', 'task_type_name', 'unit_basis',
+            'new_work_rate', 'changes_rate', 'concept_charge', 'ai_charges',
+            'no_of_resize_pages', 'last_moment', 'financial_year'
+        ];
+
+        let orderByClause = 'id ASC';
+        const orderCol = req.query.order_column;
+        const orderDir = req.query.order_dir;
+        if (orderCol && allowedSortColumns.includes(orderCol) && orderDir && ['ASC','DESC'].includes(orderDir.toUpperCase())) {
+            orderByClause = orderCol + ' ' + orderDir.toUpperCase();
+        }
+
+        if (whereClauses.length > 0) {
+            var dataWhereClause = ' WHERE ' + whereClauses.join(' AND ');
+            var countQuery = 'SELECT COUNT(*) AS total FROM master_card ' + dataWhereClause;
+        } else {
+            var countQuery = 'SELECT COUNT(*) AS total FROM master_card';
+        }
+
+        const countResult = await sequelize.query(countQuery, { replacements, type: sequelize.QueryTypes.SELECT });
         const total = countResult[0]?.total || 0;
+
+        const totalUnfilteredQuery = 'SELECT COUNT(*) AS total FROM master_card';
+        const totalUnfilteredResult = await sequelize.query(totalUnfilteredQuery, { replacements: {}, type: sequelize.QueryTypes.SELECT });
+        const recordsTotal = totalUnfilteredResult[0]?.total || 0;
 
         let query = `
             SELECT id, division_id, division_name, task_type_id, task_type_name,
                    unit_basis, new_work_rate, changes_rate, concept_charge, ai_charges,
                    no_of_resize_pages, last_moment, financial_year
             FROM master_card
-            ORDER BY id ASC
         `;
+
+        if (whereClauses.length > 0) {
+            query += dataWhereClause;
+        }
+
+        query += ` ORDER BY ${orderByClause}`;
 
         if (limit !== -1) {
             query += ` LIMIT :limit OFFSET :offset`;
+            replacements.limit = limit;
+            replacements.offset = offset;
         }
 
-        const [rows] = await sequelize.query(query, {
-            replacements: limit !== -1 ? { limit, offset } : {}
-        });
+        const rows = await sequelize.query(query, { replacements, type: sequelize.QueryTypes.SELECT });
 
-        res.json({ success: true, data: rows, total: total, recordsTotal: total, recordsFiltered: total });
+        res.json({ success: true, data: rows, total: total, recordsTotal: recordsTotal, recordsFiltered: total });
     } catch (error) {
         console.error('Error fetching master card data:', error);
         res.status(500).json({ success: false, error: 'Internal server error' });
