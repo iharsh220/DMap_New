@@ -87,6 +87,7 @@
                 <div class="stat-card"><div class="stat-icon orange"><i class="bi bi-sunset"></i></div><div><div class="stat-value" id="s3">—</div><div class="stat-label">Half Day</div></div></div>
                 <div class="stat-card"><div class="stat-icon purple"><i class="bi bi-clock"></i></div><div><div class="stat-value" id="s4">—</div><div class="stat-label">Short Leave</div></div></div>
                 <div class="stat-card"><div class="stat-icon teal"><i class="bi bi-gift"></i></div><div><div class="stat-value" id="s7">—</div><div class="stat-label">Optional Leave</div></div></div>
+                <div class="stat-card"><div class="stat-icon indigo"><i class="bi bi-house-door"></i></div><div><div class="stat-value" id="s8">—</div><div class="stat-label">WFH</div></div></div>
                 <div class="stat-card"><div class="stat-icon pink"><i class="bi bi-calendar-plus"></i></div><div><div class="stat-value" id="s5">—</div><div class="stat-label">Planned</div></div></div>
                 <div class="stat-card"><div class="stat-icon red"><i class="bi bi-calendar-x"></i></div><div><div class="stat-value" id="s6">—</div><div class="stat-label">Unplanned</div></div></div>
             </div>
@@ -148,6 +149,7 @@
                             <option value="Half day">Half day</option>
                             <option value="Short Leave">Short Leave</option>
                             <option value="Optional Leave">Optional Leave</option>
+                            <option value="WFH">WFH</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -174,6 +176,10 @@
                             <option value="Go Early">Go Early</option>
                             <option value="Personal">Personal</option>
                             <option value="Hospitalized">Hospitalized</option>
+                            <option value="WFH">WFH</option>
+                            <option value="Short Leave">Short Leave</option>
+                            <option value="Optional">Optional</option>
+                            <option value="Sick Leave">Sick Leave</option>
                         </select>
                     </div>
                     <div class="form-group" style="grid-column:span 2;">
@@ -201,6 +207,7 @@
                             <option value="Personal work">Personal work</option>
                             <option value="Reached late">Reached late</option>
                             <option value="Vacation">Vacation</option>
+                            <option value="WFH">WFH</option>
                         </select>
                     </div>
                     <div class="form-group" style="grid-column:span 2;">
@@ -598,6 +605,7 @@ function updateLeaveStats(data){
     $('#s3').text(data.filter(function(r){ return r.leave_day_type === 'Half day'; }).length);
     $('#s4').text(data.filter(function(r){ return r.leave_day_type === 'Short Leave'; }).length);
     $('#s7').text(data.filter(function(r){ return r.leave_day_type === 'Optional Leave'; }).length);
+    $('#s8').text(data.filter(function(r){ return r.leave_day_type === 'WFH'; }).length);
     $('#s5').text(data.filter(function(r){ return r.leave_type === 'Planned'; }).length);
     $('#s6').text(data.filter(function(r){ return r.leave_type === 'Unplanned'; }).length);
 }
@@ -618,6 +626,45 @@ function openLeaveModal(leave){
     $('#leaveFromDate').val(today);
     $('#leaveToDate').val(today);
     calculateDaysCount();
+
+    // Disable WFH option in leaveReason when leaveDayType is not WFH
+    function updateReasonOptions(dayType){
+        $('#leaveReason option[value="WFH"]').prop('disabled', dayType !== 'WFH');
+    }
+
+    // Set up day type change handler
+    $('#leaveDayType').off('change').on('change', function(){
+        var dt = $(this).val();
+        if(dt === 'Full day' || dt === 'WFH'){
+            $('#leaveToDate').prop('disabled', false);
+        } else {
+            $('#leaveToDate').val($('#leaveFromDate').val()).prop('disabled', true);
+        }
+        if(dt === 'WFH'){
+            $('#leaveReason').val('WFH').prop('disabled', true);
+        } else {
+            $('#leaveReason').prop('disabled', false);
+            if($('#leaveReason').val() === 'WFH') $('#leaveReason').val('Feeling not well');
+        }
+        updateReasonOptions(dt);
+        calculateDaysCount();
+    });
+
+    // Set up reason change handler
+    $('#leaveReason').off('change').on('change', function(){
+        var r = $(this).val();
+        if(r === 'WFH'){
+            $('#leaveDayType').val('WFH').prop('disabled', true);
+            $('#leaveToDate').prop('disabled', false);
+        } else {
+            $('#leaveDayType').prop('disabled', false);
+            if($('#leaveDayType').val() === 'WFH') $('#leaveDayType').val('Full day');
+        }
+        updateReasonOptions($('#leaveDayType').val());
+        calculateDaysCount();
+    });
+
+    updateReasonOptions($('#leaveDayType').val());
 
     var sessionUser = localStorage.getItem('userData') ? JSON.parse(localStorage.getItem('userData')) : null;
     if(sessionUser && !leave){
@@ -657,12 +704,58 @@ function openLeaveModal(leave){
         $('#leaveRemark').val(leave.remark || '');
 
         var dayType = leave.leave_day_type;
-        if(dayType !== 'Full day'){
+        if(dayType !== 'Full day' && dayType !== 'WFH'){
             $('#leaveToDate').val($('#leaveFromDate').val()).prop('disabled', true);
         } else {
             $('#leaveToDate').prop('disabled', false);
         }
         calculateDaysCount();
+
+        // Disable WFH option in leaveReason when leaveDayType is not WFH
+        function updateReasonOptionsEdit(dayTypeVal){
+            $('#leaveReason option[value="WFH"]').prop('disabled', dayTypeVal !== 'WFH');
+        }
+
+        // Set initial state
+        if(dayType === 'WFH'){
+            $('#leaveReason').val('WFH').prop('disabled', true);
+        } else {
+            $('#leaveReason').prop('disabled', false);
+            if($('#leaveReason').val() === 'WFH') $('#leaveReason').val('Feeling not well');
+        }
+        updateReasonOptionsEdit(dayType);
+
+        // Set up day type change handler for edit mode
+        $('#leaveDayType').off('change').on('change', function(){
+            var dt = $(this).val();
+            if(dt === 'Full day' || dt === 'WFH'){
+                $('#leaveToDate').prop('disabled', false);
+            } else {
+                $('#leaveToDate').val($('#leaveFromDate').val()).prop('disabled', true);
+            }
+            if(dt === 'WFH'){
+                $('#leaveReason').val('WFH').prop('disabled', true);
+            } else {
+                $('#leaveReason').prop('disabled', false);
+                if($('#leaveReason').val() === 'WFH') $('#leaveReason').val('Feeling not well');
+            }
+            updateReasonOptionsEdit(dt);
+            calculateDaysCount();
+        });
+
+        // Set up reason change handler for edit mode
+        $('#leaveReason').off('change').on('change', function(){
+            var r = $(this).val();
+            if(r === 'WFH'){
+                $('#leaveDayType').val('WFH').prop('disabled', true);
+                $('#leaveToDate').prop('disabled', false);
+            } else {
+                $('#leaveDayType').prop('disabled', false);
+                if($('#leaveDayType').val() === 'WFH') $('#leaveDayType').val('Full day');
+            }
+            updateReasonOptionsEdit($('#leaveDayType').val());
+            calculateDaysCount();
+        });
     }
 
     $('#leaveModal').css('display', 'flex');
@@ -705,9 +798,19 @@ function saveLeave(){
         return;
     }
 
-    if(data.leave_day_type !== 'Full day' && data.from_date !== data.to_date){
-        alert('Multi-day leaves are only allowed for Full day. '+data.leave_day_type+' leave must be for a single day.');
+    if(data.leave_day_type !== 'Full day' && data.leave_day_type !== 'WFH' && data.from_date !== data.to_date){
+        alert('Multi-day leaves are only allowed for Full day and WFH. '+data.leave_day_type+' leave must be for a single day.');
         return;
+    }
+
+    if(data.leave_day_type === 'WFH'){
+        var from = new Date(data.from_date);
+        var to = new Date(data.to_date);
+        var wfhDays = Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
+        if(wfhDays > 2){
+            alert('WFH is allowed for a maximum of 2 days.');
+            return;
+        }
     }
 
     var url = id ? getApiBase()+'datatable/admin/leaves/'+id : getApiBase()+'datatable/admin/leaves';
