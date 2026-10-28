@@ -6078,6 +6078,94 @@ const getAllFeedback = async (req, res) => {
 
         const total = await Feedbacks.count({ where });
 
+        const searchTerm = req.query.search ? req.query.search.replace(/%/g, '\\%').replace(/_/g, '\\_') : '';
+
+        if (searchTerm) {
+            const likeTerm = '%' + searchTerm + '%';
+            where[Op.or] = [
+                { question: { [Op.like]: { [Op.col]: 'question' }, [Op.like]: likeTerm } },
+                { comments: { [Op.like]: likeTerm } },
+                { rating_functionality_comment: { [Op.like]: likeTerm } },
+                { rating_timeliness_comment: { [Op.like]: likeTerm } },
+                { rating_communication_comment: { [Op.like]: likeTerm } },
+                { '$task.task_name$': { [Op.like]: likeTerm } },
+                { '$task.TaskType.task_type$': { [Op.like]: likeTerm } },
+                { '$user.name$': { [Op.like]: likeTerm } },
+                { '$user.email$': { [Op.like]: likeTerm } },
+                { '$user.Divisions.title$': { [Op.like]: likeTerm } }
+            ];
+        }
+
+        if (req.query.col_searches) {
+            try {
+                const colSearches = JSON.parse(req.query.col_searches);
+                const colSearchMap = {
+                    'id': 'id',
+                    'question': 'question',
+                    'task_id': 'task_id',
+                    'task_name': '$task.task_name$',
+                    'task_type': '$task.TaskType.task_type$',
+                    'user_name': '$user.name$',
+                    'user_division': '$user.Divisions.title$',
+                    'functionality_comment': 'rating_functionality_comment',
+                    'rating_functionality': 'rating_functionality',
+                    'timeliness_comment': 'rating_timeliness_comment',
+                    'rating_timeliness': 'rating_timeliness',
+                    'communication_comment': 'rating_communication_comment',
+                    'rating_communication': 'rating_communication',
+                    'recommendation_score': 'recommendation_score',
+                    'comments': 'comments',
+                    'created_at': 'created_at'
+                };
+                for (const [colKey, colVal] of Object.entries(colSearches)) {
+                    const colName = colSearchMap[colKey];
+                    if (colName && colVal) {
+                        where[colName] = { [Op.like]: '%' + colVal + '%' };
+                    }
+                }
+            } catch(e) {
+            }
+        }
+
+        let orderBy = [['created_at', 'DESC']];
+        const orderCol = req.query.order_column;
+        const orderDir = req.query.order_dir;
+        const allowedSortColumns = [
+            'id', 'question', 'task_id', 'task_name', 'task_type',
+            'user_name', 'user_division', 'rating_functionality',
+            'functionality_comment', 'rating_timeliness', 'timeliness_comment',
+            'rating_communication', 'communication_comment', 'recommendation_score',
+            'comments', 'created_at'
+        ];
+        if (orderCol && allowedSortColumns.includes(orderCol) && orderDir && ['ASC', 'DESC'].includes(orderDir.toUpperCase())) {
+            const orderMap = {
+                'id': ['id', orderDir.toUpperCase()],
+                'question': ['question', orderDir.toUpperCase()],
+                'task_id': ['task_id', orderDir.toUpperCase()],
+                'task_name': ['task', 'task_name', orderDir.toUpperCase()],
+                'task_type': ['task', 'TaskType', 'task_type', orderDir.toUpperCase()],
+                'user_name': ['user', 'name', orderDir.toUpperCase()],
+                'functionality_comment': ['rating_functionality_comment', orderDir.toUpperCase()],
+                'rating_timeliness_comment': ['rating_timeliness_comment', orderDir.toUpperCase()],
+                'communication_comment': ['rating_communication_comment', orderDir.toUpperCase()],
+                'rating_functionality': ['rating_functionality', orderDir.toUpperCase()],
+                'rating_timeliness': ['rating_timeliness', orderDir.toUpperCase()],
+                'rating_communication': ['rating_communication', orderDir.toUpperCase()],
+                'recommendation_score': ['recommendation_score', orderDir.toUpperCase()],
+                'comments': ['comments', orderDir.toUpperCase()],
+                'created_at': ['created_at', orderDir.toUpperCase()]
+            };
+            orderBy = [orderMap[orderCol]];
+        }
+
+        const filteredCount = await Feedbacks.count({
+            where: { ...where },
+            include: [
+                { model: Tasks, as: 'task', attributes: [], include: [{ model: TaskType, as: 'TaskType', attributes: [] }] },
+                { model: User, as: 'user', attributes: [], include: [{ model: Division, as: 'Divisions', attributes: [] }] }
+            ]
+        });
+
         const feedbacks = await Feedbacks.findAll({
             where,
             include: [
@@ -6094,14 +6182,14 @@ const getAllFeedback = async (req, res) => {
                     include: [{ model: Division, as: 'Divisions', attributes: ['id', 'title'] }]
                 }
             ],
-            order: [['created_at', 'DESC']],
+            order: orderBy,
             ...(limit !== -1 ? { limit, offset } : {})
         });
 
-        res.json({ success: true, data: feedbacks, total: total, recordsTotal: total, recordsFiltered: total });
+        res.json({ success: true, data: feedbacks, total: feedbacks.length, recordsTotal: total, recordsFiltered: filteredCount });
     } catch (error) {
         console.error('Error fetching feedback:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ success: false, error: 'Internal server error' });
     }
 };
 
