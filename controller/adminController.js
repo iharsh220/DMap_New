@@ -622,6 +622,7 @@ const getAllLeaves = async (req, res) => {
             'days_count': { field: 'days_count' },
             'reason': { field: 'reason' },
             'remark': { field: 'remark' },
+            'my_remark': { field: 'my_remark' },
             'month': { field: 'month' },
             'year': { field: 'year' }
         };
@@ -653,7 +654,7 @@ const getAllLeaves = async (req, res) => {
 
         const allowedSortColumns = [
             'from_date', 'to_date', 'day', 'leave_day_type', 'leave_type', 'status',
-            'leave_reason', 'vertical', 'days_count', 'reason', 'remark', 'month', 'year',
+            'leave_reason', 'vertical', 'days_count', 'reason', 'remark', 'my_remark', 'month', 'year',
             'name', 'user_id'
         ];
 
@@ -729,7 +730,7 @@ const exportLeavesCsv = async (req, res) => {
             order: [['from_date', 'DESC']]
         });
 
-        let csv = 'From Date,To Date,Name,Email,Day,Leave Day Type,Leave Type,Status,Leave Reason,Division,Days Count,Reason,Remark,Month,Year\n';
+        let csv = 'From Date,To Date,Name,Email,Day,Leave Day Type,Leave Type,Status,Leave Reason,Division,Days Count,Reason,Remark,My Remark,Month,Year\n';
 
         leaves.forEach(function (leave) {
             csv += [
@@ -746,6 +747,7 @@ const exportLeavesCsv = async (req, res) => {
                 leave.days_count || 1,
                 leave.reason || '',
                 (leave.remark || '').replace(/"/g, '""'),
+                (leave.my_remark || '').replace(/"/g, '""'),
                 leave.month || '',
                 leave.year || ''
             ].map(function (v) {
@@ -882,7 +884,7 @@ const getLeaveById = async (req, res) => {
 
 const createLeave = async (req, res) => {
     try {
-        const { from_date, to_date, user_id, leave_day_type, leave_type, status, leave_reason, remark, vertical, days_count, reason } = req.body;
+        const { from_date, to_date, user_id, leave_day_type, leave_type, status, leave_reason, remark, my_remark, vertical, days_count, reason } = req.body;
 
         let effectiveToDate = to_date;
         if (leave_day_type !== 'Full day' && leave_day_type !== 'WFH' && from_date) {
@@ -909,7 +911,7 @@ const createLeave = async (req, res) => {
             const from = new Date(from_date);
             const to = new Date(effectiveToDate);
             const deltaDays = Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
-            if (leave_day_type === 'Half day' || leave_day_type === 'Short Leave' || leave_day_type === 'Optional Leave') {
+            if (leave_day_type === 'Half day' || leave_day_type === 'Short Hours') {
                 calculatedDays = deltaDays * 0.5;
             } else {
                 calculatedDays = deltaDays;
@@ -926,6 +928,7 @@ const createLeave = async (req, res) => {
             leave_reason,
             remark,
             day,
+            my_remark,
             month,
             year,
             vertical,
@@ -943,7 +946,7 @@ const createLeave = async (req, res) => {
 const updateLeave = async (req, res) => {
     try {
         const { id } = req.params;
-        const { from_date, to_date, user_id, leave_day_type, leave_type, status, leave_reason, remark, vertical, days_count, reason } = req.body;
+        const { from_date, to_date, user_id, leave_day_type, leave_type, status, leave_reason, remark, my_remark, vertical, days_count, reason } = req.body;
 
         let effectiveToDate = to_date;
         if (leave_day_type !== 'Full day' && leave_day_type !== 'WFH' && from_date) {
@@ -970,7 +973,7 @@ const updateLeave = async (req, res) => {
             const from = new Date(from_date);
             const to = new Date(effectiveToDate);
             const deltaDays = Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
-            if (leave_day_type === 'Half day' || leave_day_type === 'Short Leave' || leave_day_type === 'Optional Leave') {
+            if (leave_day_type === 'Half day' || leave_day_type === 'Short Hours') {
                 calculatedDays = deltaDays * 0.5;
             } else {
                 calculatedDays = deltaDays;
@@ -988,6 +991,7 @@ const updateLeave = async (req, res) => {
                 leave_reason,
                 remark,
                 day,
+                my_remark,
                 month,
                 year,
                 vertical,
@@ -1034,8 +1038,7 @@ const getLeaveKpis = async (req, res) => {
         const totalLeaves = await Leave.count({ where });
         const fullDayLeaves = await Leave.count({ where: { ...where, leave_day_type: 'Full day' } });
         const halfDayLeaves = await Leave.count({ where: { ...where, leave_day_type: 'Half day' } });
-        const shortLeaves = await Leave.count({ where: { ...where, leave_day_type: 'Short Leave' } });
-        const optionalLeaveLeaves = await Leave.count({ where: { ...where, leave_day_type: 'Optional Leave' } });
+        const shortLeaves = await Leave.count({ where: { ...where, leave_day_type: 'Short Hours' } });
         const wfhLeaves = await Leave.count({ where: { ...where, leave_day_type: 'WFH' } });
         const plannedLeaves = await Leave.count({ where: { ...where, leave_type: 'Planned' } });
         const unplannedLeaves = await Leave.count({ where: { ...where, leave_type: 'Unplanned' } });
@@ -1058,9 +1061,8 @@ const getLeaveKpis = async (req, res) => {
                 totalLeaves,
                 fullDayLeaves,
                 halfDayLeaves,
-                shortLeaves,
-                optionalLeaveLeaves,
-                wfhLeaves,
+                 shortLeaves,
+                 wfhLeaves,
                 plannedLeaves,
                 unplannedLeaves,
                 informedLeaves,
@@ -6569,7 +6571,7 @@ const uploadLeaves = async (req, res) => {
                     const from = new Date(fromDate);
                     const to = new Date(toDate);
                     const deltaDays = Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
-                    if (leaveDayType === 'Half day' || leaveDayType === 'Short Leave' || leaveDayType === 'Optional Leave') {
+                    if (leaveDayType === 'Half day' || leaveDayType === 'Short Hours') {
                         daysCount = deltaDays * 0.5;
                     } else {
                         daysCount = deltaDays;
