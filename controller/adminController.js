@@ -1848,109 +1848,319 @@ const getAdminData = async (req, res) => {
                 /* ==================================================
                    TASK REQUEST TO RESPONSE TAT AVG
                    ================================================== */
-                'N/A' AS task_request_to_response_tat_avg,
+                COALESCE(
+                    (
+                        SELECT CONCAT(
+                            FLOOR(AVG(TIMESTAMPDIFF(MINUTE, th1.created_at, th2.created_at))/60), 'h ',
+                            MOD(AVG(TIMESTAMPDIFF(MINUTE, th1.created_at, th2.created_at)), 60), 'm'
+                        )
+                        FROM task_history th1
+                        JOIN task_history th2 ON th2.task_id = th1.task_id
+                        JOIN tasks t_t ON t_t.id = th1.task_id
+                        WHERE t_t.work_request_id = wr.id
+                          AND th1.action = 'manager_accepted'
+                          AND th2.action = 'shared_for_client_review'
+                    ),
+                    'N/A'
+                ) AS task_request_to_response_tat_avg,
 
 
                 /* ==================================================
                    TASK ACCEPTANCE TO COMPLETION TAT BY CU AVG
                    ================================================== */
-                'N/A' AS task_acceptance_to_completion_tat_by_cu_avg,
+                COALESCE(
+                    (
+                        SELECT CONCAT(
+                            FLOOR(AVG(TIMESTAMPDIFF(MINUTE, th1.created_at, th2.created_at))/60), 'h ',
+                            MOD(AVG(TIMESTAMPDIFF(MINUTE, th1.created_at, th2.created_at)), 60), 'm'
+                        )
+                        FROM task_history th1
+                        JOIN task_history th2 ON th2.task_id = th1.task_id
+                        JOIN tasks t_t ON t_t.id = th1.task_id
+                        WHERE t_t.work_request_id = wr.id
+                          AND th1.action = 'manager_accepted'
+                          AND th2.action = 'pm_approved_task'
+                    ),
+                    'N/A'
+                ) AS task_acceptance_to_completion_tat_by_cu_avg,
 
 
                 /* ==================================================
                    TASK OUTPUT SHARED TO RESPONSE BY CM TAT AVG
                    ================================================== */
-                'N/A' AS task_output_shared_to_response_by_cm_tat_avg,
+                COALESCE(
+                    (
+                        SELECT CONCAT(
+                            FLOOR(AVG(TIMESTAMPDIFF(MINUTE, th1.created_at, th2.created_at))/60), 'h ',
+                            MOD(AVG(TIMESTAMPDIFF(MINUTE, th1.created_at, th2.created_at)), 60), 'm'
+                        )
+                        FROM task_history th1
+                        JOIN task_history th2 ON th2.task_id = th1.task_id
+                        JOIN tasks t_t ON t_t.id = th1.task_id
+                        WHERE t_t.work_request_id = wr.id
+                          AND th1.action = 'shared_for_client_review'
+                          AND th2.action = 'client_approved_task'
+                    ),
+                    'N/A'
+                ) AS task_output_shared_to_response_by_cm_tat_avg,
 
 
                 /* ==================================================
                    TASK INTERNAL TAT AVG
                    ================================================== */
-                'N/A' AS task_internal_tat_avg,
+                COALESCE(
+                    (
+                        SELECT CONCAT(
+                            FLOOR(AVG(TIMESTAMPDIFF(MINUTE, th1.created_at, th2.created_at))/60), 'h ',
+                            MOD(AVG(TIMESTAMPDIFF(MINUTE, th1.created_at, th2.created_at)), 60), 'm'
+                        )
+                        FROM task_history th1
+                        JOIN task_history th2 ON th2.task_id = th1.task_id
+                        JOIN tasks t_t ON t_t.id = th1.task_id
+                        WHERE t_t.work_request_id = wr.id
+                          AND th1.action = 'manager_accepted'
+                          AND th2.action = 'pm_approved_task'
+                    ),
+                    'N/A'
+                ) AS task_internal_tat_avg,
 
 
                 /* ==================================================
                    TASK WHOLE TAT AVG
                    ================================================== */
-                'N/A' AS task_whole_tat_avg,
+                COALESCE(
+                    (
+                        SELECT CONCAT(
+                            FLOOR(AVG(TIMESTAMPDIFF(MINUTE, th1.created_at, th2.created_at))/60), 'h ',
+                            MOD(AVG(TIMESTAMPDIFF(MINUTE, th1.created_at, th2.created_at)), 60), 'm'
+                        )
+                        FROM task_history th1
+                        JOIN task_history th2 ON th2.task_id = th1.task_id
+                        JOIN tasks t_t ON t_t.id = th1.task_id
+                        WHERE t_t.work_request_id = wr.id
+                          AND th1.action = 'manager_assigned'
+                          AND th2.action = 'client_approved_task'
+                    ),
+                    'N/A'
+                ) AS task_whole_tat_avg,
 
 
                 /* ==================================================
                    CHANGE REQUEST TO RESPONSE TAT AVG
                    ================================================== */
-                'N/A' AS change_request_to_response_tat_avg,
+                COALESCE(
+                    (
+                        SELECT CONCAT(
+                            FLOOR(AVG(TIMESTAMPDIFF(MINUTE, ih1.created_at, ih2.created_at))/60), 'h ',
+                            MOD(AVG(TIMESTAMPDIFF(MINUTE, ih1.created_at, ih2.created_at)), 60), 'm'
+                        )
+                        FROM issue_history ih1
+                        JOIN issue_history ih2 ON ih2.issue_assignment_id = ih1.issue_assignment_id
+                        JOIN issue_assignments ia_ih ON ia_ih.id = ih1.issue_assignment_id
+                        JOIN tasks t_ih ON t_ih.id = ia_ih.task_id
+                        WHERE t_ih.work_request_id = wr.id
+                          AND ih1.action = 'child_change_request_created'
+                          AND ih2.action = 'shared_for_client_review'
+                    ),
+                    'N/A'
+                ) AS change_request_to_response_tat_avg,
 
 
                 /* ==================================================
                    CHANGE ACCEPTANCE TO COMPLETION TAT BY CU AVG
                    ================================================== */
-                'N/A' AS change_acceptance_to_completion_tat_by_cu_avg,
+                COALESCE(
+                    (
+                        SELECT CONCAT(
+                            FLOOR(AVG(TIMESTAMPDIFF(MINUTE, ih1.created_at, ih2.created_at))/60), 'h ',
+                            MOD(AVG(TIMESTAMPDIFF(MINUTE, ih1.created_at, ih2.created_at)), 60), 'm'
+                        )
+                        FROM issue_history ih1
+                        JOIN issue_history ih2 ON ih2.issue_assignment_id = ih1.issue_assignment_id
+                        JOIN issue_assignments ia_ih ON ia_ih.id = ih1.issue_assignment_id
+                        JOIN tasks t_ih ON t_ih.id = ia_ih.task_id
+                        WHERE t_ih.work_request_id = wr.id
+                          AND ih1.action = 'child_change_request_created'
+                          AND ih2.action = 'pm_approved_issue'
+                    ),
+                    'N/A'
+                ) AS change_acceptance_to_completion_tat_by_cu_avg,
 
 
                 /* ==================================================
                    CHANGE OUTPUT SHARED TO RESPONSE BY CM TAT AVG
                    ================================================== */
-                'N/A' AS change_output_shared_to_response_by_cm_tat_avg,
+                COALESCE(
+                    (
+                        SELECT CONCAT(
+                            FLOOR(AVG(TIMESTAMPDIFF(MINUTE, ih1.created_at, ih2.created_at))/60), 'h ',
+                            MOD(AVG(TIMESTAMPDIFF(MINUTE, ih1.created_at, ih2.created_at)), 60), 'm'
+                        )
+                        FROM issue_history ih1
+                        JOIN issue_history ih2 ON ih2.issue_assignment_id = ih1.issue_assignment_id
+                        JOIN issue_assignments ia_ih ON ia_ih.id = ih1.issue_assignment_id
+                        JOIN tasks t_ih ON t_ih.id = ia_ih.task_id
+                        WHERE t_ih.work_request_id = wr.id
+                          AND ih1.action = 'shared_for_client_review'
+                          AND ih2.action = 'client_approved_issue'
+                    ),
+                    'N/A'
+                ) AS change_output_shared_to_response_by_cm_tat_avg,
 
 
                 /* ==================================================
                    CHANGE INTERNAL TAT AVG
                    ================================================== */
-                'N/A' AS change_internal_tat_avg,
+                COALESCE(
+                    (
+                        SELECT CONCAT(
+                            FLOOR(AVG(TIMESTAMPDIFF(MINUTE, ih1.created_at, ih2.created_at))/60), 'h ',
+                            MOD(AVG(TIMESTAMPDIFF(MINUTE, ih1.created_at, ih2.created_at)), 60), 'm'
+                        )
+                        FROM issue_history ih1
+                        JOIN issue_history ih2 ON ih2.issue_assignment_id = ih1.issue_assignment_id
+                        JOIN issue_assignments ia_ih ON ia_ih.id = ih1.issue_assignment_id
+                        JOIN tasks t_ih ON t_ih.id = ia_ih.task_id
+                        WHERE t_ih.work_request_id = wr.id
+                          AND ih1.action = 'child_change_request_created'
+                          AND ih2.action = 'pm_approved_issue'
+                    ),
+                    'N/A'
+                ) AS change_internal_tat_avg,
 
 
                 /* ==================================================
                    CHANGE WHOLE TAT AVG
                    ================================================== */
-                'N/A' AS change_whole_tat_avg,
+                COALESCE(
+                    (
+                        SELECT CONCAT(
+                            FLOOR(AVG(TIMESTAMPDIFF(MINUTE, ih1.created_at, ih2.created_at))/60), 'h ',
+                            MOD(AVG(TIMESTAMPDIFF(MINUTE, ih1.created_at, ih2.created_at)), 60), 'm'
+                        )
+                        FROM issue_history ih1
+                        JOIN issue_history ih2 ON ih2.issue_assignment_id = ih1.issue_assignment_id
+                        JOIN issue_assignments ia_ih ON ia_ih.id = ih1.issue_assignment_id
+                        JOIN tasks t_ih ON t_ih.id = ia_ih.task_id
+                        WHERE t_ih.work_request_id = wr.id
+                          AND ih1.action IN ('manager_accepted','child_change_request_created')
+                          AND ih2.action = 'client_approved_issue'
+                    ),
+                    'N/A'
+                ) AS change_whole_tat_avg,
 
 
                 /* ==================================================
                    PROJECT REQUEST RESPONSE REMINDER COUNTER TO CM
                    ================================================== */
-                'N/A' AS project_request_response_reminder_counter_to_cm,
-
+                COALESCE(
+                    (
+                        SELECT COUNT(*)
+                        FROM pm_review_reminder_history prrh
+                        WHERE prrh.work_request_id = wr.id
+                          AND prrh.task_id IS NULL
+                          AND prrh.issue_assignment_id IS NULL
+                    ),
+                    0
+                ) AS project_request_response_reminder_counter_to_cm,
 
                 /* ==================================================
                    TASK REQUEST RESPONSE REMINDER COUNTER TO CU
                    ================================================== */
-                'N/A' AS task_request_response_reminder_counter_to_cu,
-
+                COALESCE(
+                    (
+                        SELECT COUNT(*)
+                        FROM pm_review_reminder_history prrh
+                        JOIN tasks t_tr ON t_tr.id = prrh.task_id
+                        WHERE t_tr.work_request_id = wr.id
+                          AND prrh.issue_assignment_id IS NULL
+                    ),
+                    0
+                ) AS task_request_response_reminder_counter_to_cu,
 
                 /* ==================================================
                    TASK OUTPUT RESPONSE REMINDER COUNTER TO CM
                    ================================================== */
-                'N/A' AS task_output_response_reminder_counter_to_cm,
-
+                COALESCE(
+                    (
+                        SELECT COUNT(*)
+                        FROM pm_review_reminder_history prrh
+                        JOIN tasks t_tr ON t_tr.id = prrh.task_id
+                        WHERE t_tr.work_request_id = wr.id
+                          AND prrh.issue_assignment_id IS NULL
+                    ),
+                    0
+                ) AS task_output_response_reminder_counter_to_cm,
 
                 /* ==================================================
                    TASK OUTPUT RESPONSE REMINDER COUNTER TO CLIENT
                    ================================================== */
-                'N/A' AS task_output_response_reminder_counter_to_client,
-
+                COALESCE(
+                    (
+                        SELECT COUNT(*)
+                        FROM pm_review_reminder_history prrh
+                        JOIN tasks t_tr ON t_tr.id = prrh.task_id
+                        WHERE t_tr.work_request_id = wr.id
+                          AND prrh.issue_assignment_id IS NULL
+                    ),
+                    0
+                ) AS task_output_response_reminder_counter_to_client,
 
                 /* ==================================================
                    CHANGE REQUEST RESPONSE REMINDER COUNTER TO CU
                    ================================================== */
-                'N/A' AS change_request_response_reminder_counter_to_cu,
-
+                COALESCE(
+                    (
+                        SELECT COUNT(*)
+                        FROM pm_review_reminder_history prrh
+                        JOIN issue_assignments ia_r ON ia_r.id = prrh.issue_assignment_id
+                        JOIN tasks t_ir ON t_ir.id = ia_r.task_id
+                        WHERE t_ir.work_request_id = wr.id
+                    ),
+                    0
+                ) AS change_request_response_reminder_counter_to_cu,
 
                 /* ==================================================
                    CHNAGE OUTPUT RESPONSE REMINDER COUNTER TO CM
                    ================================================== */
-                'N/A' AS chnage_output_response_reminder_counter_to_cm,
-
+                COALESCE(
+                    (
+                        SELECT COUNT(*)
+                        FROM pm_review_reminder_history prrh
+                        JOIN issue_assignments ia_r ON ia_r.id = prrh.issue_assignment_id
+                        JOIN tasks t_ir ON t_ir.id = ia_r.task_id
+                        WHERE t_ir.work_request_id = wr.id
+                    ),
+                    0
+                ) AS chnage_output_response_reminder_counter_to_cm,
 
                 /* ==================================================
                    CHANGE OUTPUT RESPONSE REMINDER COUNTER TO CLIENT
                    ================================================== */
-                'N/A' AS change_output_response_reminder_counter_to_client,
-
+                COALESCE(
+                    (
+                        SELECT COUNT(*)
+                        FROM pm_review_reminder_history prrh
+                        JOIN issue_assignments ia_r ON ia_r.id = prrh.issue_assignment_id
+                        JOIN tasks t_ir ON t_ir.id = ia_r.task_id
+                        WHERE t_ir.work_request_id = wr.id
+                    ),
+                    0
+                ) AS change_output_response_reminder_counter_to_client,
 
                 /* ==================================================
                    PROJECT CLOSURE REMINDER COUNTER TO CLIENT
                    ================================================== */
-                'N/A' AS project_closure_reminder_counter_to_client,
+                COALESCE(
+                    (
+                        SELECT COUNT(*)
+                        FROM pm_review_reminder_history prrh
+                        WHERE prrh.work_request_id = wr.id
+                          AND prrh.task_id IS NULL
+                          AND prrh.issue_assignment_id IS NULL
+                    ),
+                    0
+                ) AS project_closure_reminder_counter_to_client,
 
 
                 /* ==================================================
