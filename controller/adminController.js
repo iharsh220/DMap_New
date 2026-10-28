@@ -1642,7 +1642,15 @@ const getAdminData = async (req, res) => {
                 /* ==================================================
                    NO. OF AI PAGES
                    ================================================== */
-                'N/A' AS task_no_of_ai_page,
+                COALESCE(
+                    (
+                        SELECT SUM(COALESCE(t_ai_cnt.no_of_images_videos_audio, 0))
+                        FROM tasks t_ai_cnt
+                        WHERE t_ai_cnt.work_request_id = wr.id
+                          AND t_ai_cnt.is_deleted = 0
+                    ),
+                    0
+                ) AS task_no_of_ai_page,
 
 
                 /* ==================================================
@@ -1681,13 +1689,29 @@ const getAdminData = async (req, res) => {
                 /* ==================================================
                    INCLUDES RESIZE WORK
                    ================================================== */
-                'N/A' AS task_resize_work,
+                COALESCE(
+                    (
+                        SELECT IF(SUM(COALESCE(t_resize.resize_work, 0)) > 0, 1, 0)
+                        FROM tasks t_resize
+                        WHERE t_resize.work_request_id = wr.id
+                          AND t_resize.is_deleted = 0
+                    ),
+                    0
+                ) AS task_resize_work,
 
 
                 /* ==================================================
                    INCLUDES AI WORK
                    ================================================== */
-                'N/A' AS task_ai,
+                COALESCE(
+                    (
+                        SELECT IF(SUM(COALESCE(t_ai.no_of_images_videos_audio, 0)) > 0, 1, 0)
+                        FROM tasks t_ai
+                        WHERE t_ai.work_request_id = wr.id
+                          AND t_ai.is_deleted = 0
+                    ),
+                    0
+                ) AS task_ai,
 
 
                 /* ==================================================
@@ -1699,37 +1723,126 @@ const getAdminData = async (req, res) => {
                 /* ==================================================
                    PROJECT ACCEPTANCE TIMESTAMP
                    ================================================== */
-                'N/A' AS project_acceptance_timestamp,
+                COALESCE(
+                    (
+                        SELECT wrh_acc.created_at
+                        FROM work_request_history wrh_acc
+                        WHERE wrh_acc.work_request_id = wr.id
+                          AND wrh_acc.action = 'manager_accepted'
+                          AND wrh_acc.actor_type = 'manager'
+                        ORDER BY wrh_acc.created_at ASC
+                        LIMIT 1
+                    ),
+                    'N/A'
+                ) AS project_acceptance_timestamp,
 
 
                 /* ==================================================
                    PROJECT MARKED COMPLETED TIMESTAMP
                    ================================================== */
-                'N/A' AS project_marked_completed_timestamp,
-
+                COALESCE(
+                    (
+                        SELECT wrh_comp.created_at
+                        FROM work_request_history wrh_comp
+                        WHERE wrh_comp.work_request_id = wr.id
+                          AND wrh_comp.action = 'completed'
+                        ORDER BY wrh_comp.created_at DESC
+                        LIMIT 1
+                    ),
+                    'N/A'
+                ) AS project_marked_completed_timestamp,
 
                 /* ==================================================
                    PROJECT MARKED COMPLETED BY
                    ================================================== */
-                'N/A' AS project_marked_completed_by,
+                COALESCE(
+                    (
+                        SELECT COALESCE(NULLIF(TRIM(wrh_comp2.actor_name), ''), u_comp.name)
+                        FROM work_request_history wrh_comp2
+                        LEFT JOIN users u_comp ON u_comp.id = wrh_comp2.actor_id
+                        WHERE wrh_comp2.work_request_id = wr.id
+                          AND wrh_comp2.action = 'completed'
+                        ORDER BY wrh_comp2.created_at DESC
+                        LIMIT 1
+                    ),
+                    'N/A'
+                ) AS project_marked_completed_by,
+
+                /* ==================================================
+                   PROJECT COMPLETION TIMESTAMP
+                   ================================================== */
+                COALESCE(
+                    (
+                        SELECT wrh_comp_ts.created_at
+                        FROM work_request_history wrh_comp_ts
+                        WHERE wrh_comp_ts.work_request_id = wr.id
+                          AND wrh_comp_ts.action = 'completed'
+                        ORDER BY wrh_comp_ts.created_at DESC
+                        LIMIT 1
+                    ),
+                    'N/A'
+                ) AS project_completion_timestamp,
 
 
                 /* ==================================================
                    PROJECT INTERNAL TAT
                    ================================================== */
-                'N/A' AS internal_project_tat,
+                COALESCE(
+                    (
+                        SELECT CONCAT(
+                            FLOOR(TIMESTAMPDIFF(MINUTE, wrh_ptat2.created_at, wrh_ptat3.created_at)/60), 'h ',
+                            MOD(TIMESTAMPDIFF(MINUTE, wrh_ptat2.created_at, wrh_ptat3.created_at), 60), 'm'
+                        )
+                        FROM work_request_history wrh_ptat2
+                        JOIN work_request_history wrh_ptat3 ON wrh_ptat3.work_request_id = wrh_ptat2.work_request_id
+                        WHERE wrh_ptat2.work_request_id = wr.id
+                          AND wrh_ptat2.action = 'manager_accepted'
+                          AND wrh_ptat2.actor_type = 'manager'
+                          AND wrh_ptat3.action = 'completed'
+                        ORDER BY wrh_ptat2.created_at ASC, wrh_ptat3.created_at DESC
+                        LIMIT 1
+                    ),
+                    'N/A'
+                ) AS internal_project_tat,
 
 
                 /* ==================================================
                    PROJECT TAT
                    ================================================== */
-                'N/A' AS project_tat,
+                COALESCE(
+                    (
+                        SELECT CONCAT(
+                            FLOOR(TIMESTAMPDIFF(MINUTE, wr.requested_at, wrh_ptat.created_at)/60), 'h ',
+                            MOD(TIMESTAMPDIFF(MINUTE, wr.requested_at, wrh_ptat.created_at), 60), 'm'
+                        )
+                        FROM work_request_history wrh_ptat
+                        WHERE wrh_ptat.work_request_id = wr.id
+                          AND wrh_ptat.action = 'completed'
+                        ORDER BY wrh_ptat.created_at DESC
+                        LIMIT 1
+                    ),
+                    'N/A'
+                ) AS project_tat,
 
 
                 /* ==================================================
                    PROJECT REQUEST TO RESPONSE TAT
                    ================================================== */
-                'N/A' AS project_request_to_response_tat,
+                COALESCE(
+                    (
+                        SELECT CONCAT(
+                            FLOOR(TIMESTAMPDIFF(MINUTE, wr.requested_at, wrh_tat.created_at)/60), 'h ',
+                            MOD(TIMESTAMPDIFF(MINUTE, wr.requested_at, wrh_tat.created_at), 60), 'm'
+                        )
+                        FROM work_request_history wrh_tat
+                        WHERE wrh_tat.work_request_id = wr.id
+                          AND wrh_tat.action = 'manager_accepted'
+                          AND wrh_tat.actor_type = 'manager'
+                        ORDER BY wrh_tat.created_at ASC
+                        LIMIT 1
+                    ),
+                    'N/A'
+                ) AS project_request_to_response_tat,
 
 
                 /* ==================================================
