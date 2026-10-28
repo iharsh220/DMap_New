@@ -44,7 +44,7 @@ const Leave = sequelize.define('Leave', {
     type: DataTypes.TEXT,
     allowNull: true,
   },
-  my_remark: {
+  checker_remark: {
     type: DataTypes.TEXT,
     allowNull: true,
   },

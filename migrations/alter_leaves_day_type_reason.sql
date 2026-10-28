@@ -17,6 +17,6 @@ ALTER TABLE `leaves`
 -- Step 4: Update leave_reason for WFH day type records (replace 'WFH' reason with 'FWFH')
 UPDATE `leaves` SET `leave_reason` = 'FWFH' WHERE `leave_day_type` = 'WFH` AND `leave_reason` = 'WFH';
 
--- Step 5: Add my_remark column
+-- Step 5: Add checker_remark column
 ALTER TABLE `leaves`
-    ADD COLUMN `my_remark` TEXT NULL DEFAULT NULL AFTER `remark`;
+    ADD COLUMN `checker_remark` TEXT NULL DEFAULT NULL AFTER `remark`;

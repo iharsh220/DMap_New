@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS `leaves` (
   `status` ENUM('Inform', 'Not Inform') NOT NULL DEFAULT 'Inform',
   `leave_reason` ENUM('Emergency', 'Medical', 'Family Emergency', 'Feeling not well', 'Go Early', 'Personal', 'Hospitalized', 'WFH', 'Short Leave', 'Optional', 'Sick Leave', 'Going Early', 'Reached late', 'FWFH', 'RWFH') NOT NULL DEFAULT 'Feeling not well',
   `remark` TEXT NULL DEFAULT NULL,
-  `my_remark` TEXT NULL DEFAULT NULL,
+  `checker_remark` TEXT NULL DEFAULT NULL,
   `day` VARCHAR(20) NULL DEFAULT NULL,
   `month` VARCHAR(20) NULL DEFAULT NULL,
   `year` INT NULL DEFAULT NULL,

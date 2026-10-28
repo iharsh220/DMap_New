@@ -153,14 +153,14 @@
                     </div>
                     <div class="form-group">
                         <label style="color:var(--text-2);font-size:13px;margin-bottom:6px;display:block;">Leave Type <span style="color:var(--danger);">*</span></label>
-                        <select id="leaveType" required style="width:100%;padding:8px 12px;border-radius:7px;border:1px solid var(--modal-border);background:var(--input-bg);color:var(--text-1);font-size:13px;">
+                        <select id="leaveType" required style="width:100%;padding:8px 12px;border-radius:7px;border:1px solid var(--modal-border);background:var(--input-bg);color:var(--text-1);font-size:13px;" disabled>
                             <option value="Unplanned">Unplanned</option>
                             <option value="Planned">Planned</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label style="color:var(--text-2);font-size:13px;margin-bottom:6px;display:block;">Status <span style="color:var(--danger);">*</span></label>
-                        <select id="leaveStatus" required style="width:100%;padding:8px 12px;border-radius:7px;border:1px solid var(--modal-border);background:var(--input-bg);color:var(--text-1);font-size:13px;">
+                        <select id="leaveStatus" required style="width:100%;padding:8px 12px;border-radius:7px;border:1px solid var(--modal-border);background:var(--input-bg);color:var(--text-1);font-size:13px;" disabled>
                             <option value="Inform">Inform</option>
                             <option value="Not Inform">Not Inform</option>
                         </select>
@@ -202,8 +202,8 @@
                         <textarea id="leaveRemark" rows="2" style="width:100%;padding:8px 12px;border-radius:7px;border:1px solid var(--modal-border);background:var(--input-bg);color:var(--text-1);font-size:13px;resize:vertical;"></textarea>
                     </div>
                     <div class="form-group" style="grid-column:span 2;">
-                        <label style="color:var(--text-2);font-size:13px;margin-bottom:6px;display:block;">My Remark</label>
-                        <textarea id="leaveMyRemark" rows="2" style="width:100%;padding:8px 12px;border-radius:7px;border:1px solid var(--modal-border);background:var(--input-bg);color:var(--text-1);font-size:13px;resize:vertical;"></textarea>
+                        <label style="color:var(--text-2);font-size:13px;margin-bottom:6px;display:block;">Checker Remark</label>
+                        <textarea id="leaveCheckerRemark" rows="2" style="width:100%;padding:8px 12px;border-radius:7px;border:1px solid var(--modal-border);background:var(--input-bg);color:var(--text-1);font-size:13px;resize:vertical;"></textarea>
                     </div>
                 </div>
             </form>
@@ -242,7 +242,7 @@ const HEADERS = {
     days_count: 'Days Count',
     reason: 'Reason',
     remark: 'Remark',
-    my_remark: 'My Remark',
+    checker_remark: 'Checker Remark',
     month: 'Month',
     year: 'Year'
 };
@@ -272,6 +272,28 @@ function populateLeaveReasons(dayType, selectedReason){
 
 function updateToDateForWFH(){
     updateToDate('WFH', $('#leaveFromDate').val());
+}
+
+function updateLeaveType(fromDate){
+    if(!fromDate) return;
+    var now = new Date();
+    var leaveStart = new Date(fromDate);
+    var diffHours = (leaveStart - now) / (1000 * 60 * 60);
+    if(diffHours >= 24){
+        $('#leaveType').val('Planned');
+    } else {
+        $('#leaveType').val('Unplanned');
+    }
+}
+
+function updateStatus(fromDate){
+    if(!fromDate) return;
+    var today = new Date().toISOString().split('T')[0];
+    if(fromDate >= today){
+        $('#leaveStatus').val('Inform');
+    } else {
+        $('#leaveStatus').val('Not Inform');
+    }
 }
 
 function updateToDate(dayType, fromDate){
@@ -307,6 +329,7 @@ $(function(){
 
     // Load user info
     var userData = localStorage.getItem('userData');
+    var isAdmin = false;
     if(userData){
         try {
             var user = JSON.parse(userData);
@@ -317,7 +340,15 @@ $(function(){
             if(user.jobRole && user.jobRole.role_title){
                 $('#userRole').text(user.jobRole.role_title);
             }
+            if(user.jobRole && user.jobRole.id === 1){
+                isAdmin = true;
+            }
         } catch(e){}
+    }
+
+    if(!isAdmin){
+        $('#leaveCheckerRemark').prop('disabled', true);
+        $('#leaveCheckerRemark').parent().hide();
     }
 
     $('#btnLogout').on('click', function(){
@@ -345,6 +376,8 @@ $(function(){
     $('#leaveFromDate').on('change', function(){
         calculateDaysCount();
         updateToDate($('#leaveDayType').val(), $(this).val());
+        updateLeaveType($(this).val());
+        updateStatus($(this).val());
     });
 
     $('#leaveToDate').on('change', function(){
@@ -356,6 +389,7 @@ $(function(){
         var fromDate = $('#leaveFromDate').val();
         if(fromDate){
             updateToDate(dayType, fromDate);
+            updateStatus(fromDate);
         } else {
             $('#leaveToDate').prop('disabled', true).val('');
         }
@@ -479,7 +513,7 @@ $(function(){
         saveLeave();
     });
 
-    var keyOrder=['id','user_id','name','from_date','to_date','day','leave_day_type','leave_type','status','leave_reason','vertical','days_count','reason','remark','my_remark','month','year'];
+    var keyOrder=['id','user_id','name','from_date','to_date','day','leave_day_type','leave_type','status','leave_reason','vertical','days_count','reason','remark','checker_remark','month','year'];
     var cols=[];
     cols.push({
         data:null, title:'Action', orderable:false, searchable:false, width:'80px',
@@ -617,7 +651,9 @@ function calculateDaysCount(){
         var to = new Date(toDate);
         var deltaDays = Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
         if(deltaDays < 1) deltaDays = 1;
-        if(dayType === 'Half day' || dayType === 'Short Hours'){
+        if(dayType === 'WFH' || dayType === 'Short Hours'){
+            days = 0;
+        } else if(dayType === 'Half day'){
             days = deltaDays * 0.5;
         } else {
             days = deltaDays;
@@ -663,6 +699,8 @@ function openLeaveModal(leave){
     var today = new Date().toISOString().split('T')[0];
     $('#leaveFromDate').val(today);
     updateToDate('Full day', today);
+    updateLeaveType(today);
+    updateStatus(today);
     calculateDaysCount();
 
     populateLeaveReasons('Full day');
@@ -672,6 +710,8 @@ function openLeaveModal(leave){
         var fromDate = $('#leaveFromDate').val();
         if(fromDate){
             updateToDate(dt, fromDate);
+            updateLeaveType(fromDate);
+            updateStatus(fromDate);
         } else {
             $('#leaveToDate').prop('disabled', true).val('');
         }
@@ -683,6 +723,8 @@ function openLeaveModal(leave){
         var dt = $('#leaveDayType').val();
         if($(this).val()){
             updateToDate(dt, $(this).val());
+            updateLeaveType($(this).val());
+            updateStatus($(this).val());
         } else {
             $('#leaveToDate').prop('disabled', true).val('');
         }
@@ -724,11 +766,13 @@ function openLeaveModal(leave){
         $('#leaveDaysCount').val(leave.days_count || 1);
         $('#leaveReasonText').val(leave.reason || '');
         $('#leaveRemark').val(leave.remark || '');
-        $('#leaveMyRemark').val(leave.my_remark || '');
+        $('#leaveCheckerRemark').val(leave.checker_remark || '');
 
         var dayType = leave.leave_day_type;
         var fromDate = leave.from_date ? leave.from_date.split('T')[0] : '';
         updateToDate(dayType, fromDate);
+        updateLeaveType(fromDate);
+        updateStatus(fromDate);
         calculateDaysCount();
 
         populateLeaveReasons(dayType, leave.leave_reason);
@@ -788,7 +832,7 @@ function saveLeave(){
         days_count: parseFloat($('#leaveDaysCount').val()) || 1,
         reason: $('#leaveReasonText').val() || null,
         remark: $('#leaveRemark').val() || null,
-        my_remark: $('#leaveMyRemark').val() || null
+        checker_remark: $('#leaveCheckerRemark').val() || null
     };
 
     if(!data.from_date || !data.to_date || !data.user_id){
