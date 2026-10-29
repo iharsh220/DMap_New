@@ -1826,19 +1826,21 @@ const getAdminData = async (req, res) => {
 
 
                 /* ==================================================
-                   PROJECT REQUEST TO RESPONSE TAT
-                   ================================================== */
+                    PROJECT REQUEST TO RESPONSE TAT
+                    ================================================== */
                 COALESCE(
                     (
                         SELECT CONCAT(
-                            FLOOR(TIMESTAMPDIFF(MINUTE, wr.requested_at, wrh_tat.created_at)/60), 'h ',
-                            MOD(TIMESTAMPDIFF(MINUTE, wr.requested_at, wrh_tat.created_at), 60), 'm'
+                            FLOOR(TIMESTAMPDIFF(MINUTE, wrh_create.created_at, wrh_pm.created_at)/60), 'h ',
+                            MOD(TIMESTAMPDIFF(MINUTE, wrh_create.created_at, wrh_pm.created_at), 60), 'm'
                         )
-                        FROM work_request_history wrh_tat
-                        WHERE wrh_tat.work_request_id = wr.id
-                          AND wrh_tat.action = 'manager_accepted'
-                          AND wrh_tat.actor_type = 'manager'
-                        ORDER BY wrh_tat.created_at ASC
+                        FROM work_request_history wrh_create
+                        JOIN work_request_history wrh_pm
+                            ON wrh_pm.work_request_id = wrh_create.work_request_id
+                        WHERE wrh_create.work_request_id = wr.id
+                          AND wrh_create.action = 'create'
+                          AND wrh_pm.action = 'pm_approved'
+                        ORDER BY wrh_create.created_at ASC, wrh_pm.created_at ASC
                         LIMIT 1
                     ),
                     'N/A'
@@ -1846,8 +1848,8 @@ const getAdminData = async (req, res) => {
 
 
                 /* ==================================================
-                   TASK REQUEST TO RESPONSE TAT AVG
-                   ================================================== */
+                    TASK REQUEST TO RESPONSE TAT AVG
+                    ================================================== */
                 COALESCE(
                     (
                         SELECT CONCAT(
@@ -1858,16 +1860,16 @@ const getAdminData = async (req, res) => {
                         JOIN task_history th2 ON th2.task_id = th1.task_id
                         JOIN tasks t_t ON t_t.id = th1.task_id
                         WHERE t_t.work_request_id = wr.id
-                          AND th1.action = 'manager_accepted'
-                          AND th2.action = 'shared_for_client_review'
+                          AND th1.action = 'created'
+                          AND th2.action = 'submitted'
                     ),
                     'N/A'
                 ) AS task_request_to_response_tat_avg,
 
 
                 /* ==================================================
-                   TASK ACCEPTANCE TO COMPLETION TAT BY CU AVG
-                   ================================================== */
+                    TASK ACCEPTANCE TO COMPLETION TAT BY CU AVG
+                    ================================================== */
                 COALESCE(
                     (
                         SELECT CONCAT(
@@ -1878,16 +1880,16 @@ const getAdminData = async (req, res) => {
                         JOIN task_history th2 ON th2.task_id = th1.task_id
                         JOIN tasks t_t ON t_t.id = th1.task_id
                         WHERE t_t.work_request_id = wr.id
-                          AND th1.action = 'manager_accepted'
-                          AND th2.action = 'pm_approved_task'
+                          AND th1.action = 'accepted'
+                          AND th2.action = 'submitted'
                     ),
                     'N/A'
                 ) AS task_acceptance_to_completion_tat_by_cu_avg,
 
 
                 /* ==================================================
-                   TASK OUTPUT SHARED TO RESPONSE BY CM TAT AVG
-                   ================================================== */
+                    TASK OUTPUT SHARED TO RESPONSE BY CM TAT AVG
+                    ================================================== */
                 COALESCE(
                     (
                         SELECT CONCAT(
@@ -1898,16 +1900,18 @@ const getAdminData = async (req, res) => {
                         JOIN task_history th2 ON th2.task_id = th1.task_id
                         JOIN tasks t_t ON t_t.id = th1.task_id
                         WHERE t_t.work_request_id = wr.id
-                          AND th1.action = 'shared_for_client_review'
-                          AND th2.action = 'client_approved_task'
+                          AND th1.action = 'submitted'
+                          AND th1.actor_type = 'user'
+                          AND th2.action = 'manager_approved'
+                          AND th2.actor_type = 'manager'
                     ),
                     'N/A'
                 ) AS task_output_shared_to_response_by_cm_tat_avg,
 
 
                 /* ==================================================
-                   TASK INTERNAL TAT AVG
-                   ================================================== */
+                    TASK INTERNAL TAT AVG
+                    ================================================== */
                 COALESCE(
                     (
                         SELECT CONCAT(
@@ -1918,16 +1922,16 @@ const getAdminData = async (req, res) => {
                         JOIN task_history th2 ON th2.task_id = th1.task_id
                         JOIN tasks t_t ON t_t.id = th1.task_id
                         WHERE t_t.work_request_id = wr.id
-                          AND th1.action = 'manager_accepted'
-                          AND th2.action = 'pm_approved_task'
+                          AND th1.action = 'accepted'
+                          AND th2.action = 'submitted'
                     ),
                     'N/A'
                 ) AS task_internal_tat_avg,
 
 
                 /* ==================================================
-                   TASK WHOLE TAT AVG
-                   ================================================== */
+                    TASK WHOLE TAT AVG
+                    ================================================== */
                 COALESCE(
                     (
                         SELECT CONCAT(
@@ -1938,16 +1942,16 @@ const getAdminData = async (req, res) => {
                         JOIN task_history th2 ON th2.task_id = th1.task_id
                         JOIN tasks t_t ON t_t.id = th1.task_id
                         WHERE t_t.work_request_id = wr.id
-                          AND th1.action = 'manager_assigned'
-                          AND th2.action = 'client_approved_task'
+                          AND th1.action = 'accepted'
+                          AND th2.action = 'pm_approved'
                     ),
                     'N/A'
                 ) AS task_whole_tat_avg,
 
 
                 /* ==================================================
-                   CHANGE REQUEST TO RESPONSE TAT AVG
-                   ================================================== */
+                    CHANGE REQUEST TO RESPONSE TAT AVG
+                    ================================================== */
                 COALESCE(
                     (
                         SELECT CONCAT(
@@ -1959,16 +1963,16 @@ const getAdminData = async (req, res) => {
                         JOIN issue_assignments ia_ih ON ia_ih.id = ih1.issue_assignment_id
                         JOIN tasks t_ih ON t_ih.id = ia_ih.task_id
                         WHERE t_ih.work_request_id = wr.id
-                          AND ih1.action = 'child_change_request_created'
-                          AND ih2.action = 'shared_for_client_review'
+                          AND ih1.action = 'created'
+                          AND ih2.action = 'submitted'
                     ),
                     'N/A'
                 ) AS change_request_to_response_tat_avg,
 
 
                 /* ==================================================
-                   CHANGE ACCEPTANCE TO COMPLETION TAT BY CU AVG
-                   ================================================== */
+                    CHANGE ACCEPTANCE TO COMPLETION TAT BY CU AVG
+                    ================================================== */
                 COALESCE(
                     (
                         SELECT CONCAT(
@@ -1980,8 +1984,8 @@ const getAdminData = async (req, res) => {
                         JOIN issue_assignments ia_ih ON ia_ih.id = ih1.issue_assignment_id
                         JOIN tasks t_ih ON t_ih.id = ia_ih.task_id
                         WHERE t_ih.work_request_id = wr.id
-                          AND ih1.action = 'child_change_request_created'
-                          AND ih2.action = 'pm_approved_issue'
+                          AND ih1.action = 'accepted'
+                          AND ih2.action = 'submitted'
                     ),
                     'N/A'
                 ) AS change_acceptance_to_completion_tat_by_cu_avg,
@@ -2009,8 +2013,8 @@ const getAdminData = async (req, res) => {
 
 
                 /* ==================================================
-                   CHANGE INTERNAL TAT AVG
-                   ================================================== */
+                    CHANGE INTERNAL TAT AVG
+                    ================================================== */
                 COALESCE(
                     (
                         SELECT CONCAT(
@@ -2022,16 +2026,16 @@ const getAdminData = async (req, res) => {
                         JOIN issue_assignments ia_ih ON ia_ih.id = ih1.issue_assignment_id
                         JOIN tasks t_ih ON t_ih.id = ia_ih.task_id
                         WHERE t_ih.work_request_id = wr.id
-                          AND ih1.action = 'child_change_request_created'
-                          AND ih2.action = 'pm_approved_issue'
+                          AND ih1.action = 'accepted'
+                          AND ih2.action = 'submitted'
                     ),
                     'N/A'
                 ) AS change_internal_tat_avg,
 
 
                 /* ==================================================
-                   CHANGE WHOLE TAT AVG
-                   ================================================== */
+                    CHANGE WHOLE TAT AVG
+                    ================================================== */
                 COALESCE(
                     (
                         SELECT CONCAT(
@@ -2043,8 +2047,8 @@ const getAdminData = async (req, res) => {
                         JOIN issue_assignments ia_ih ON ia_ih.id = ih1.issue_assignment_id
                         JOIN tasks t_ih ON t_ih.id = ia_ih.task_id
                         WHERE t_ih.work_request_id = wr.id
-                          AND ih1.action IN ('manager_accepted','child_change_request_created')
-                          AND ih2.action = 'client_approved_issue'
+                          AND ih1.action = 'accepted'
+                          AND ih2.action = 'pm_approved'
                     ),
                     'N/A'
                 ) AS change_whole_tat_avg,
