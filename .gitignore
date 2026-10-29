@@ -119,3 +119,5 @@ ecosystem.config.js
 
 #Killo code
 .kilo/
+# Ignore all SQL files in migrations folder
+migrations/*.sql
