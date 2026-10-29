@@ -824,15 +824,15 @@ function saveLeave(){
         from_date: fromDate,
         to_date: toDate,
         user_id: parseInt($('#leaveUserId').val()),
-        leave_day_type: $('#leaveDayType').val(),
-        leave_type: $('#leaveType').val(),
-        status: $('#leaveStatus').val(),
-        leave_reason: $('#leaveReason').val(),
-        vertical: $('#leaveVertical').val() || null,
+        leave_day_type: $('#leaveDayType').val().trim(),
+        leave_type: $('#leaveType').val().trim(),
+        status: $('#leaveStatus').val().trim(),
+        leave_reason: $('#leaveReason').val().trim(),
+        vertical: $('#leaveVertical').val().trim() || null,
         days_count: parseFloat($('#leaveDaysCount').val()) || 1,
-        reason: $('#leaveReasonText').val() || null,
-        remark: $('#leaveRemark').val() || null,
-        checker_remark: $('#leaveCheckerRemark').val() || null
+        reason: $('#leaveReasonText').val().trim() || null,
+        remark: $('#leaveRemark').val().trim() || null,
+        checker_remark: $('#leaveCheckerRemark').val().trim() || null
     };
 
     if(!data.from_date || !data.to_date || !data.user_id){
