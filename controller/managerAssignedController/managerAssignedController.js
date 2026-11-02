@@ -1810,15 +1810,17 @@ const createTask = async (req, res) => {
         }
 
         let dependencyIds = [];
-        if (Array.isArray(dependencies) && dependencies.length > 0) {
-            dependencyIds = parseIdArray(dependencies);
-            if (!dependencyIds) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'dependencies must be an array of task IDs'
-                });
+        if (Array.isArray(dependencies)) {
+            if (dependencies.length > 0) {
+                dependencyIds = parseIdArray(dependencies);
+                if (!dependencyIds) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'dependencies must be an array of task IDs'
+                    });
+                }
             }
-        } else if (dependencies !== undefined && dependencies !== null) {
+        } else if (dependencies !== undefined && dependencies !== null && dependencies !== '' && dependencies !== false) {
             // If dependencies is sent but not in expected format
             return res.status(400).json({
                 success: false,
@@ -3869,60 +3871,90 @@ const reviewTask = async (req, res) => {
                 return res.status(400).json({ success: false, error: 'Invalid task ID' });
             }
 
-            // Find the task with its work request and verify manager access
-            const task = await Tasks.findByPk(taskId, {
-                include: [
-                    {
-                        model: WorkRequests,
-                        required: true,
-                        include: [
-                            {
-                                model: WorkRequestManagers,
-                                where: { manager_id: manager_id },
-                                required: true,
-                                attributes: []
-                            },
-                            {
-                                model: User,
-                                as: 'users',
-                                attributes: ['id', 'name', 'email']
-                            }
-                        ]
-                    },
-                    {
-                        model: User,
-                        as: 'assignedUsers',
-                        attributes: ['id', 'name', 'email'],
-                        through: { attributes: [] }
-                    },
-                    {
-                        model: IssueAssignments,
-                        as: 'issueAssignments',
-                        where: { is_deleted: 0 },
-                        required: false,
-                        include: [
-                            {
-                                model: IssueAssignmentTypes,
-                                as: 'issueTypeLinks',
-                                include: [
-                                    {
-                                        model: IssueRegister,
-                                        as: 'issueRegister',
-                                        attributes: ['id', 'change_issue_type', 'description']
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                ]
-            });
-
-            if (!task) {
-                return res.status(404).json({
-                    success: false,
-                    error: 'Task not found or not assigned to you'
+                // Find the task with its work request and verify manager access
+                const task = await Tasks.findByPk(taskId, {
+                    include: [
+                        {
+                            model: WorkRequests,
+                            required: true,
+                            include: [
+                                {
+                                    model: User,
+                                    as: 'users',
+                                    attributes: ['id', 'name', 'email']
+                                }
+                            ]
+                        },
+                        {
+                            model: User,
+                            as: 'assignedUsers',
+                            attributes: ['id', 'name', 'email'],
+                            through: { attributes: [] }
+                        },
+                        {
+                            model: IssueAssignments,
+                            as: 'issueAssignments',
+                            where: { is_deleted: 0 },
+                            required: false,
+                            include: [
+                                {
+                                    model: IssueAssignmentTypes,
+                                    as: 'issueTypeLinks',
+                                    include: [
+                                        {
+                                            model: IssueRegister,
+                                            as: 'issueRegister',
+                                            attributes: ['id', 'change_issue_type', 'description']
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
                 });
-            }
+
+                if (!task) {
+                    return res.status(404).json({
+                        success: false,
+                        error: 'Task not found'
+                    });
+                }
+
+                // Verify manager access - check if manager is assigned to work request or is creative manager in same division
+                let hasManagerAccess = false;
+                const workRequestIdTask = task.work_request_id;
+
+                // Check if manager is in WorkRequestManagers
+                const managerCheckTask = await WorkRequestManagers.findOne({
+                    where: { work_request_id: workRequestIdTask, manager_id: manager_id }
+                });
+                if (managerCheckTask) {
+                    hasManagerAccess = true;
+                } else {
+                    // Check if manager is creative manager in same division as assigned users
+                    const assignedUserIdsTask = task.assignedUsers ? task.assignedUsers.map(u => u.id) : [];
+                    if (assignedUserIdsTask.length > 0) {
+                        const divisionManagerCheckTask = await sequelize.query(
+                            `SELECT COUNT(*) AS cnt
+                             FROM user_divisions ud_assignee
+                             JOIN user_divisions ud_manager ON ud_manager.division_id = ud_assignee.division_id AND ud_manager.user_id = :userId
+                             JOIN users u ON u.id = ud_manager.user_id
+                             JOIN job_role jr ON jr.id = u.job_role_id AND jr.role_title = 'creative manager'
+                             WHERE ud_assignee.user_id IN (:assignedUserIds)`,
+                            { replacements: { userId: manager_id, assignedUserIds: assignedUserIdsTask }, type: sequelize.QueryTypes.SELECT }
+                        );
+                        if (divisionManagerCheckTask[0].cnt > 0) {
+                            hasManagerAccess = true;
+                        }
+                    }
+                }
+
+                if (!hasManagerAccess) {
+                    return res.status(404).json({
+                        success: false,
+                        error: 'Task not found or not assigned to you'
+                    });
+                }
 
             // Validation: Task must be completed for manager to review
             if (task.status !== 'completed') {
@@ -4098,12 +4130,6 @@ const reviewTask = async (req, res) => {
                                 required: true,
                                 include: [
                                     {
-                                        model: WorkRequestManagers,
-                                        where: { manager_id: manager_id },
-                                        required: true,
-                                        attributes: []
-                                    },
-                                    {
                                         model: User,
                                         as: 'users',
                                         attributes: ['id', 'name', 'email']
@@ -4143,6 +4169,44 @@ const reviewTask = async (req, res) => {
             });
 
             if (!issueAssignment) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Issue not found'
+                });
+            }
+
+            // Verify manager access - check if manager is assigned to work request or is creative manager in same division
+            let hasIssueManagerAccess = false;
+            const issueWorkRequestId = issueAssignment.task?.work_request_id;
+
+            if (issueWorkRequestId) {
+                // Check if manager is in WorkRequestManagers
+                const issueManagerCheck = await WorkRequestManagers.findOne({
+                    where: { work_request_id: issueWorkRequestId, manager_id: manager_id }
+                });
+                if (issueManagerCheck) {
+                    hasIssueManagerAccess = true;
+                } else {
+                    // Check if manager is creative manager in same division as assigned users
+                    const assignedIssueUserIds = issueAssignment.userAssignments ? issueAssignment.userAssignments.map(iua => iua.user_id) : [];
+                    if (assignedIssueUserIds.length > 0) {
+                        const divisionIssueManagerCheck = await sequelize.query(
+                            `SELECT COUNT(*) AS cnt
+                             FROM user_divisions ud_assignee
+                             JOIN user_divisions ud_manager ON ud_manager.division_id = ud_assignee.division_id AND ud_manager.user_id = :userId
+                             JOIN users u ON u.id = ud_manager.user_id
+                             JOIN job_role jr ON jr.id = u.job_role_id AND jr.role_title = 'creative manager'
+                             WHERE ud_assignee.user_id IN (:assignedUserIds)`,
+                            { replacements: { userId: manager_id, assignedUserIds: assignedIssueUserIds }, type: sequelize.QueryTypes.SELECT }
+                        );
+                        if (divisionIssueManagerCheck[0].cnt > 0) {
+                            hasIssueManagerAccess = true;
+                        }
+                    }
+                }
+            }
+
+            if (!hasIssueManagerAccess) {
                 return res.status(404).json({
                     success: false,
                     error: 'Issue not found or not assigned to you'
@@ -5831,16 +5895,23 @@ const assignIssueToUser = async (req, res) => {
             return res.status(400).json({ success: false, error: 'User account is not active' });
         }
 
-        // Re-assigning the same user reuses the existing row instead of inserting a duplicate
-        const existingAssignment = await IssueUserAssignments.findOne({
-            where: { issue_assignment_id, user_id }
+        // Update existing assignment for this issue_assignment_id if exists, else create new
+        let issueUserAssignment;
+        const existingAssignmentForIssue = await IssueUserAssignments.findOne({
+            where: { issue_assignment_id }
         });
 
-        // Create the assignment in issue_user_assignments
-        const issueUserAssignment = existingAssignment || await IssueUserAssignments.create({
-            issue_assignment_id,
-            user_id
-        });
+        if (existingAssignmentForIssue) {
+            if (existingAssignmentForIssue.user_id !== user_id) {
+                await existingAssignmentForIssue.update({ user_id });
+            }
+            issueUserAssignment = existingAssignmentForIssue;
+        } else {
+            issueUserAssignment = await IssueUserAssignments.create({
+                issue_assignment_id,
+                user_id
+            });
+        }
 
         // Update issue_assignment status to 'u_pending', intimate_team to 1, and notification_alert to 1
         await IssueAssignments.update(
