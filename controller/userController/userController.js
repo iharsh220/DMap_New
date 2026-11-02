@@ -26,6 +26,10 @@ const {
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
 const { recordTaskHistory, recordIssueHistory, recordWorkRequestHistory, getTaskHistory: getTaskHistoryRecords, getIssueHistory: getIssueHistoryRecords } = require('../../services/historyService');
+const { sequelize } = require('../../config/databaseConfig');
+const { canDelegateTask, isDivisionManagerForRequestType, canViewWorkRequest, workRequestIdForTask, workRequestIdForIssue } = require('../../services/accessService');
+const { pickModelFilters, pickModelFields } = require('../../utils/queryFilters');
+const { parseId, parseDateOnly, todayDateOnly, safePathSegment } = require('../../utils/validators');
 const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
@@ -113,7 +117,7 @@ const getAssignedTasks = async (req, res) => {
         if (req.filters) {
             // console.log('req.filters:', JSON.stringify(req.filters));
             const { user_name, username, status, assigned_to, assinged_to, ...otherFilters } = req.filters;
-            whereCondition = { ...whereCondition, ...otherFilters };
+            whereCondition = { ...whereCondition, ...pickModelFilters(Tasks, otherFilters) };
         }
 
         // Apply search - handle user_name/username specially since it's on the WorkRequest's user (client)
@@ -123,7 +127,7 @@ const getAssignedTasks = async (req, res) => {
             const hasUserNameSearch = searchFields.includes('user_name') || searchFields.includes('username');
 
             // Remove user_name and username from search fields for direct query
-            const directSearchFields = searchFields.filter(field => field !== 'user_name' && field !== 'username');
+            const directSearchFields = pickModelFields(Tasks, searchFields.filter(field => field !== 'user_name' && field !== 'username'));
 
             // Build OR condition array combining direct fields and work_request_id subquery (if applicable)
             const orConditions = [];
@@ -612,8 +616,17 @@ const assignTaskToUser = async (req, res) => {
         // Get task details
         const task = await Tasks.findByPk(taskId);
 
-        if (!task) {
+        if (!task || task.is_deleted) {
             return res.status(404).json({ success: false, error: 'Task not found' });
+        }
+
+        if (task.work_request_id !== workRequestId) {
+            return res.status(400).json({ success: false, error: 'Task does not belong to this work request' });
+        }
+
+        // Delegation chain: request manager / division manager / current assignee (delegated manager)
+        if (!(await canDelegateTask(req.user, task))) {
+            return res.status(403).json({ success: false, error: 'You are not allowed to reassign this task' });
         }
 
         // Get work request details
@@ -648,7 +661,6 @@ const assignTaskToUser = async (req, res) => {
         if (!workRequest) {
             return res.status(404).json({ success: false, error: 'Work request not found' });
         }
-        console.log(workRequest.status);
         // Check if work request is accepted
         if (workRequest.status !== 'accepted' && workRequest.status !== 'in_progress' && workRequest.status !== 'assigned') {
             return res.status(400).json({
@@ -657,13 +669,30 @@ const assignTaskToUser = async (req, res) => {
             });
         }
 
+        // Finished work cannot be handed over again (it would reset its status to pending)
+        if (['completed', 'cancelled', 'rejected'].includes(task.status)) {
+            return res.status(400).json({
+                success: false,
+                error: `Task cannot be reassigned from status '${task.status}'`
+            });
+        }
+
         // Get user details
         const assignedUser = await User.findByPk(userId, {
-            attributes: ['id', 'name', 'email']
+            attributes: ['id', 'name', 'email', 'account_status']
         });
 
         if (!assignedUser) {
             return res.status(404).json({ success: false, error: 'User not found' });
+        }
+
+        if (assignedUser.account_status !== 'active') {
+            return res.status(400).json({ success: false, error: 'User account is not active' });
+        }
+
+        // Division isolation: the assignee must belong to a division of the task's request type
+        if (!(await isDivisionManagerForRequestType(userId, task.request_type_id))) {
+            return res.status(403).json({ success: false, error: 'User does not belong to the division of this task' });
         }
 
         // Prepare task update data
@@ -671,8 +700,8 @@ const assignTaskToUser = async (req, res) => {
 
         // Validate and set deadline if provided
         if (deadline) {
-            const deadlineDate = new Date(deadline);
-            if (isNaN(deadlineDate.getTime())) {
+            const deadlineDate = parseDateOnly(deadline);
+            if (!deadlineDate) {
                 return res.status(400).json({
                     success: false,
                     error: 'Invalid deadline format'
@@ -680,9 +709,7 @@ const assignTaskToUser = async (req, res) => {
             }
 
             // Validate that deadline is not in the past
-            const today = new Date();
-            today.setHours(0, 0, 0, 0); // Set to start of day for date comparison
-            if (deadlineDate < today) {
+            if (deadlineDate < todayDateOnly()) {
                 return res.status(400).json({
                     success: false,
                     error: 'Deadline cannot be in the past'
@@ -692,18 +719,6 @@ const assignTaskToUser = async (req, res) => {
             taskUpdateData.deadline = deadlineDate;
         }
 
-        // Update task deadline if provided
-        if (Object.keys(taskUpdateData).length > 0) {
-            await Tasks.update(taskUpdateData, {
-                where: { id: taskId }
-            });
-        }
-
-        // Delete all existing task assignments for this task
-        await TaskAssignments.destroy({
-            where: { task_id: taskId }
-        });
-
         // Reset task status to pending when reassigning to a new user
         // This ensures the new user has to accept the task again
         const statusUpdate = { status: 'pending' };
@@ -712,16 +727,22 @@ const assignTaskToUser = async (req, res) => {
             statusUpdate.end_date = null;
         }
 
-        // Combine status update with intimate_team update
-        await Tasks.update(
-            { ...statusUpdate, intimate_team: 1 },
-            { where: { id: taskId } }
-        );
+        // Replace the assignment atomically so a failure never leaves the task without an assignee
+        await sequelize.transaction(async (transaction) => {
+            await TaskAssignments.destroy({
+                where: { task_id: taskId },
+                transaction
+            });
 
-        // Create new task assignment for the user
-        await TaskAssignments.create({
-            task_id: taskId,
-            user_id: userId
+            await Tasks.update(
+                { ...taskUpdateData, ...statusUpdate, intimate_team: 1 },
+                { where: { id: taskId }, transaction }
+            );
+
+            await TaskAssignments.create({
+                task_id: taskId,
+                user_id: userId
+            }, { transaction });
         });
 
         await recordTaskHistory({
@@ -1149,26 +1170,37 @@ const acceptTask = async (req, res) => {
             });
         }
 
-        // Check if deadline is today or in the future
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); // Set to start of day for date comparison
-        const deadlineDate = new Date(task.deadline);
-        deadlineDate.setHours(0, 0, 0, 0); // Set to start of day for date comparison
+        // Only a pending/assigned task can be accepted; otherwise an in-progress or
+        // completed task would be moved back to 'accepted'.
+        if (!['pending', 'assigned'].includes(task.status)) {
+            return res.status(400).json({
+                success: false,
+                error: `Task cannot be accepted from status '${task.status}'`
+            });
+        }
 
-        const isDeadlineTodayOrFuture = deadlineDate >= today;
-        const isDeadlineToday = deadlineDate.getTime() === today.getTime();
+        const today = todayDateOnly();
 
         // Validate start_date if provided
+        let startDate = null;
         if (start_date) {
-            const providedStartDate = new Date(start_date);
-            providedStartDate.setHours(0, 0, 0, 0);
-            if (providedStartDate < today) {
+            startDate = parseDateOnly(start_date);
+            if (!startDate) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Invalid start_date. Use YYYY-MM-DD format.'
+                });
+            }
+            if (startDate < today) {
                 return res.status(400).json({
                     success: false,
                     error: 'Start date cannot be before today'
                 });
             }
         }
+
+        // A task without a deadline is treated like one with a future deadline.
+        const isDeadlineTodayOrFuture = !task.deadline || String(task.deadline).slice(0, 10) >= today;
 
         // Prepare update data
         const updateData = {
@@ -1177,18 +1209,12 @@ const acceptTask = async (req, res) => {
         };
 
         // Set start_date automatically if deadline is today or in the future and no start_date provided
-        if (isDeadlineTodayOrFuture && !start_date) {
-            updateData.start_date = new Date();
-        } else if (start_date) {
-            updateData.start_date = start_date;
-
-            // Check if the selected start date is today
-            const providedStartDate = new Date(start_date);
-            providedStartDate.setHours(0, 0, 0, 0);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
-            if (providedStartDate.getTime() === today.getTime()) {
+        // (the daily scheduler then moves the task and its work request to in_progress)
+        if (isDeadlineTodayOrFuture && !startDate) {
+            updateData.start_date = today;
+        } else if (startDate) {
+            updateData.start_date = startDate;
+            if (startDate === today) {
                 updateData.status = 'in_progress'; // Set status to in_progress if start date is today
             }
         }
@@ -1386,33 +1412,25 @@ const submitTask = async (req, res) => {
         let providedStartDate = null;
         if (start_date) {
             // Validate and parse the start_date
-            const startDateObj = new Date(start_date);
-            if (isNaN(startDateObj.getTime())) {
+            providedStartDate = parseDateOnly(start_date);
+            if (!providedStartDate) {
                 return res.status(400).json({
                     success: false,
                     error: 'Invalid start_date format. Use YYYY-MM-DD format.'
                 });
             }
-            providedStartDate = startDateObj;
-            taskUpdateData.start_date = startDateObj;
+            taskUpdateData.start_date = providedStartDate;
         } else if (task.start_date) {
             // If no new start_date provided, use the existing one from the task
-            providedStartDate = new Date(task.start_date);
+            providedStartDate = String(task.start_date).slice(0, 10);
         }
 
-        // Validate that end_date is not before start_date
-        if (providedStartDate) {
-            const endDate = new Date(); // Current date/time when submitting
-            endDate.setHours(0, 0, 0, 0); // Set to start of day for comparison
-            const startDateOnly = new Date(providedStartDate);
-            startDateOnly.setHours(0, 0, 0, 0);
-
-            if (endDate < startDateOnly) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'End date cannot be before start date'
-                });
-            }
+        // Validate that end_date (today) is not before start_date
+        if (providedStartDate && todayDateOnly() < providedStartDate) {
+            return res.status(400).json({
+                success: false,
+                error: 'End date cannot be before start date'
+            });
         }
 
         if (link) {
@@ -1477,16 +1495,7 @@ const submitTask = async (req, res) => {
             taskUpdateData.no_of_images_videos_audio = parseInt(no_of_images_videos_audio, 10) || 0;
         }
 
-        console.log(`Updating task ${taskId} to completed...`);
-        const [affectedRows] = await Tasks.update(taskUpdateData, {
-            where: { id: taskId }
-        });
-        console.log(`Task update result: ${affectedRows} rows affected`);
-
-        const updatedTask = await Tasks.findByPk(taskId);
-        console.log(`Task ${taskId} status after update: ${updatedTask?.status}`);
-
-        // Handle file uploads
+        // Handle file uploads first: if a file fails, the task is not marked completed
         const documents = [];
         if (req.files && req.files.documents) {
             const files = Array.isArray(req.files.documents) ? req.files.documents : [req.files.documents];
@@ -1494,9 +1503,11 @@ const submitTask = async (req, res) => {
             // Create user folder with V1 structure if it doesn't exist
             const uploadDir = path.join(__dirname, '../../uploads');
             const sanitizedProjectName = workRequest.project_name.replace(/[^a-zA-Z0-9]/g, '_');
+            const taskFolderName = safePathSegment(task.task_name);
+            const userFolderName = safePathSegment(user.name);
             const projectFolder = path.join(uploadDir, sanitizedProjectName);
-            const taskFolder = path.join(projectFolder, task.task_name);
-            const userFolder = path.join(taskFolder, user.name);
+            const taskFolder = path.join(projectFolder, taskFolderName);
+            const userFolder = path.join(taskFolder, userFolderName);
             const versionFolder = path.join(userFolder, 'V1');
 
             if (!fs.existsSync(versionFolder)) {
@@ -1522,7 +1533,7 @@ const submitTask = async (req, res) => {
                 const documentData = {
                     task_assignment_id: taskAssignment.id,
                     document_name: file.name,
-                    document_path: `${process.env.BASE_ROUTE}/uploads/${sanitizedProjectName}/${task.task_name}/${user.name}/V1/${filename}`,
+                    document_path: `${process.env.BASE_ROUTE}/uploads/${sanitizedProjectName}/${taskFolderName}/${userFolderName}/V1/${filename}`,
                     document_type: file.mimetype,
                     document_size: file.size,
                     status: 'uploading',
@@ -1577,6 +1588,10 @@ const submitTask = async (req, res) => {
                 }
             }
         }
+
+        await Tasks.update(taskUpdateData, {
+            where: { id: taskId }
+        });
 
         await recordTaskHistory({
             req,
@@ -2610,10 +2625,13 @@ const submitIssue = async (req, res) => {
             // Create user folder with version structure if it doesn't exist
             const uploadDir = path.join(__dirname, '../../uploads');
             const sanitizedProjectName = workRequest ? workRequest.project_name.replace(/[^a-zA-Z0-9]/g, '_') : 'Issue';
+            const taskFolderName = task ? safePathSegment(task.task_name) : 'Issue_' + issueId;
+            const userFolderName = safePathSegment(req.user.name);
+            const versionFolderName = safePathSegment(issueAssignment.version || 'V1');
             const projectFolder = path.join(uploadDir, sanitizedProjectName);
-            const taskFolder = task ? path.join(projectFolder, task.task_name) : path.join(projectFolder, 'Issue_' + issueId);
-            const userFolder = path.join(taskFolder, req.user.name);
-            const versionFolder = path.join(userFolder, issueAssignment.version || 'V1');
+            const taskFolder = path.join(projectFolder, taskFolderName);
+            const userFolder = path.join(taskFolder, userFolderName);
+            const versionFolder = path.join(userFolder, versionFolderName);
 
             if (!fs.existsSync(versionFolder)) {
                 fs.mkdirSync(versionFolder, { recursive: true });
@@ -2638,7 +2656,7 @@ const submitIssue = async (req, res) => {
                 const documentData = {
                     issue_user_assignment_id: userIssueAssignment.id,
                     document_name: file.name,
-                    document_path: `${process.env.BASE_ROUTE}/uploads/${sanitizedProjectName}/${task ? task.task_name : 'Issue_' + issueId}/${req.user.name}/${issueAssignment.version || 'V1'}/${filename}`,
+                    document_path: `${process.env.BASE_ROUTE}/uploads/${sanitizedProjectName}/${taskFolderName}/${userFolderName}/${versionFolderName}/${filename}`,
                     document_type: file.mimetype,
                     document_size: file.size,
                     version: issueAssignment.version || 'V1',
@@ -2847,6 +2865,10 @@ const getUserTaskHistory = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Invalid task ID' });
         }
 
+        if (!(await canViewWorkRequest(req.user, await workRequestIdForTask(taskId)))) {
+            return res.status(403).json({ success: false, error: 'You do not have access to this task' });
+        }
+
         const limit = parseInt(req.query.limit, 10) || 200;
         const offset = parseInt(req.query.offset, 10) || 0;
         const history = await getTaskHistoryRecords(taskId, { limit, offset });
@@ -2867,6 +2889,10 @@ const getUserIssueHistory = async (req, res) => {
         const issueAssignmentId = parseInt(req.params.issueAssignmentId, 10);
         if (isNaN(issueAssignmentId)) {
             return res.status(400).json({ success: false, error: 'Invalid issue assignment ID' });
+        }
+
+        if (!(await canViewWorkRequest(req.user, await workRequestIdForIssue(issueAssignmentId)))) {
+            return res.status(403).json({ success: false, error: 'You do not have access to this issue' });
         }
 
         const limit = parseInt(req.query.limit, 10) || 200;

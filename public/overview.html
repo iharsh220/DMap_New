@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overview · D-Map Admin</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%235b2be0'/%3E%3Ctext x='16' y='22' font-family='Arial' font-size='16' font-weight='700' fill='white' text-anchor='middle'%3ED%3C/text%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="../admin/dmap-theme.css" rel="stylesheet">
+    <script>try{document.documentElement.setAttribute('data-theme',localStorage.getItem('themePreference')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'))}catch(e){}</script>
+    <script src="../admin/admin-app.js" defer></script>
+</head>
+<body>
+<noscript>The D-Map admin panel needs JavaScript.</noscript>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const D = window.DMap;
+    const esc = D.esc, fmt = D.fmt;
+    const OPEN_TASK = ['draft', 'pending', 'accepted', 'assigned', 'in_progress', 'deferred'];
+
+    const body = D.shell({ page: 'overview', title: 'Overview', icon: 'grid-1x2', subtitle: 'How Digilabs is doing: demand, delivery, workload and client satisfaction' });
+    body.innerHTML = `
+<div class="dm-filters-row">
+  <div class="dm-seg" role="group" aria-label="Period" data-presets></div>
+  <span data-custom></span>
+  <span class="muted" style="font-size:12.5px;margin-left:auto" data-range-label></span>
+</div>
+<div class="dm-kpis" data-kpis></div>
+<div class="dm-grid-2" data-charts style="transition:opacity .15s">
+  <section class="dm-card dm-col-8"><div class="dm-card-head"><div><h3 class="dm-card-title">Monthly activity</h3><p class="dm-card-sub">Last 12 months up to the end of the period</p></div><div data-trend-legend></div></div><div class="dm-card-body"><div data-trend></div></div></section>
+  <section class="dm-card dm-col-4"><div class="dm-card-head"><div><h3 class="dm-card-title">Project pipeline</h3><p class="dm-card-sub">Work requests by status · click to open</p></div></div><div class="dm-card-body"><div data-pipeline></div></div></section>
+  <section class="dm-card dm-col-7"><div class="dm-card-head"><div><h3 class="dm-card-title">Demand by vertical</h3><p class="dm-card-sub">Work requests per requested vertical</p></div><div data-vertical-legend></div></div><div class="dm-card-body"><div data-verticals></div></div></section>
+  <section class="dm-card dm-col-5"><div class="dm-card-head"><div><h3 class="dm-card-title">Top task types</h3><p class="dm-card-sub">Tasks created in the period</p></div></div><div class="dm-card-body"><div data-tasktypes></div></div></section>
+  <section class="dm-card dm-col-7"><div class="dm-card-head"><div><h3 class="dm-card-title">Team workload</h3><p class="dm-card-sub">Open tasks per assignee · click a name to see their tasks</p></div></div><div class="dm-card-body" style="overflow-x:auto"><table class="dm-mini-table" data-workload></table></div></section>
+  <section class="dm-card dm-col-5"><div class="dm-card-head"><div><h3 class="dm-card-title">Top clients</h3><p class="dm-card-sub">Most work requests in the period</p></div></div><div class="dm-card-body" style="overflow-x:auto"><table class="dm-mini-table" data-clients></table></div></section>
+</div>`;
+
+    const q = s => body.querySelector(s);
+    const presets = [{ id: 'all', label: 'All time' }].concat(D.datePresets().filter(p => ['This FY', 'Last 90 days', 'Last 30 days', 'Last FY'].includes(p.label)).map(p => Object.assign({ id: p.label }, p)));
+    let period = D.store.get('dmOverviewPeriod', { id: 'all' });
+
+    const custom = D.rangeInput({ kind: 'date', button: true, placeholder: 'Custom range', value: period.id === 'custom' ? period : null, onChange: v => {
+        if (!v.from && !v.to) { setPeriod({ id: 'all' }); return; }
+        setPeriod({ id: 'custom', from: v.from, to: v.to });
+    } });
+    q('[data-custom]').appendChild(custom.el);
+
+    function renderPresets() {
+        const host = q('[data-presets]');
+        host.innerHTML = '';
+        presets.forEach(p => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.textContent = p.label;
+            b.className = period.id === p.id ? 'is-active' : '';
+            b.setAttribute('aria-pressed', period.id === p.id ? 'true' : 'false');
+            b.addEventListener('click', () => { custom.set(null); setPeriod(p.id === 'all' ? { id: 'all' } : { id: p.id, from: p.from, to: p.to }); });
+            host.appendChild(b);
+        });
+    }
+    function setPeriod(p) {
+        // preset dates are recomputed on reload so "Last 30 days" stays relative
+        const fresh = presets.find(x => x.id === p.id);
+        period = fresh && fresh.from ? { id: p.id, from: fresh.from, to: fresh.to } : p;
+        D.store.set('dmOverviewPeriod', period);
+        renderPresets();
+        load();
+    }
+
+    // Links into the grids with the same period applied
+    const rangeFilter = key => (period.from || period.to ? { [key]: { type: 'range', from: period.from || '', to: period.to || '' } } : {});
+    const link = (page, dateKey, filters) => D.gridLink(page, { f: Object.assign({}, rangeFilter(dateKey), filters || {}) });
+
+    let current = null;
+    async function load() {
+        const charts = q('[data-charts]');
+        charts.style.opacity = current ? '.55' : '1';
+        const params = new URLSearchParams();
+        if (period.from) params.set('from', period.from);
+        if (period.to) params.set('to', period.to);
+        q('[data-range-label]').textContent = period.from || period.to
+            ? `Showing ${fmt.date(period.from) || 'the start'} – ${fmt.date(period.to) || 'today'}`
+            : 'Showing all time';
+        if (!current) q('[data-kpis]').innerHTML = Array.from({ length: 6 }, () => '<div class="dm-kpi"><span class="dm-skel" style="width:50%"></span><span class="dm-skel" style="height:24px;width:60%"></span><span class="dm-skel" style="width:40%"></span></div>').join('');
+        try {
+            const res = await D.api('overview/data?' + params.toString());
+            current = res.data;
+            render(current);
+        } catch (err) {
+            q('[data-kpis]').innerHTML = '';
+            const box = document.createElement('div');
+            box.className = 'dm-card dm-state';
+            box.style.gridColumn = '1 / -1';
+            box.innerHTML = '<i class="bi bi-cloud-slash"></i><h4>Couldn’t load the overview</h4><p></p><button class="dm-btn" type="button">Try again</button>';
+            box.querySelector('p').textContent = err.message;
+            box.querySelector('button').addEventListener('click', load);
+            q('[data-kpis]').appendChild(box);
+        } finally {
+            charts.style.opacity = '1';
+        }
+    }
+
+    function kpi(host, k) {
+        const el = document.createElement(k.href ? 'a' : 'div');
+        el.className = 'dm-kpi';
+        if (k.href) { el.href = k.href; el.style.textDecoration = 'none'; el.style.color = 'inherit'; }
+        el.innerHTML = `<div class="dm-kpi-top"><span class="dm-kpi-label"></span><span class="dm-kpi-icon tone-${esc(k.tone)}"><i class="bi bi-${esc(k.icon)}"></i></span></div><div class="dm-kpi-value"></div>${k.meter !== undefined ? `<div class="dm-kpi-meter fg-${esc(k.tone)}"><span style="width:${Math.min(100, k.meter * 100)}%"></span></div>` : ''}<div class="dm-kpi-hint"></div>`;
+        el.querySelector('.dm-kpi-label').textContent = k.label;
+        el.querySelector('.dm-kpi-value').textContent = k.value;
+        el.querySelector('.dm-kpi-hint').textContent = k.hint || '';
+        host.appendChild(el);
+    }
+
+    function render(d) {
+        const wr = d.work_requests, t = d.tasks, ch = d.changes;
+        const done = (wr.status_counts.completed || 0);
+        const tDone = t.status_counts.completed || 0;
+        const kpis = q('[data-kpis]');
+        kpis.innerHTML = '';
+        kpi(kpis, { label: 'Projects', icon: 'folder2-open', tone: 'brand', value: fmt.num(wr.total), meter: wr.total ? done / wr.total : 0, hint: `${fmt.pct(done, wr.total)} completed`, href: link('projectsdetails', 'work_request_created_at') });
+        kpi(kpis, { label: 'Tasks', icon: 'check2-square', tone: 'info', value: fmt.num(t.total), meter: t.total ? tDone / t.total : 0, hint: `${fmt.pct(tDone, t.total)} completed`, href: link('taskdetails', 'task_created_at') });
+        kpi(kpis, { label: 'Changes', icon: 'arrow-repeat', tone: 'accent', value: fmt.num(ch.total), hint: t.total ? `${(ch.total / Math.max(1, t.total)).toFixed(2)} per task · on ${fmt.num(ch.tasks_with_changes)} tasks` : '', href: link('issuedetails', 'issue_created_at') });
+        kpi(kpis, { label: 'Overdue tasks', icon: 'alarm', tone: 'danger', value: fmt.num(t.overdue), hint: 'Open past the deadline', href: D.gridLink('taskdetails', { f: Object.assign(rangeFilter('task_created_at'), { task_deadline: { type: 'range', from: '', to: D.isoDay(new Date(Date.now() - 864e5)) }, task_status: { type: 'exact', values: OPEN_TASK } }) }) });
+        kpi(kpis, { label: 'Due in 7 days', icon: 'calendar-week', tone: 'warning', value: fmt.num(t.due_7_days), hint: 'Open tasks with a deadline this week', href: D.gridLink('taskdetails', { f: Object.assign(rangeFilter('task_created_at'), { task_deadline: { type: 'range', from: D.isoDay(new Date()), to: D.isoDay(new Date(Date.now() + 7 * 864e5)) }, task_status: { type: 'exact', values: OPEN_TASK } }) }) });
+        kpi(kpis, { label: 'Client NPS', icon: 'emoji-smile', tone: 'success', value: d.feedback.nps === null ? '—' : (d.feedback.nps > 0 ? '+' : '') + d.feedback.nps, hint: `${fmt.num(d.feedback.total)} responses · ${d.feedback.timeliness ?? '—'}/5 timeliness`, href: link('feedback', 'created_at') });
+
+        // monthly trend: three counts on one axis
+        const series = [
+            { name: 'New requests', slot: 1, values: d.monthly.map(m => m.requests) },
+            { name: 'Tasks completed', slot: 3, values: d.monthly.map(m => m.tasks_completed) },
+            { name: 'Changes raised', slot: 2, values: d.monthly.map(m => m.changes) }
+        ];
+        const monthLabel = m => { const [y, mo] = m.split('-'); return new Date(+y, +mo - 1, 1).toLocaleDateString('en-IN', { month: 'short' }); };
+        const monthFull = m => { const [y, mo] = m.split('-'); return new Date(+y, +mo - 1, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }); };
+        D.legend(q('[data-trend-legend]'), series, 'line');
+        D.lineChart(q('[data-trend]'), { labels: d.monthly.map(m => monthLabel(m.month)), fullLabels: d.monthly.map(m => monthFull(m.month)), series }, { height: 270, label: 'Monthly requests, completed tasks and changes' });
+
+        // pipeline: one bar per status (label carries identity)
+        const pipeline = Object.keys(wr.status_counts).filter(k => wr.status_counts[k] > 0)
+            .map(k => ({ label: D.statusLabel(k), value: wr.status_counts[k], parts: [{ name: D.statusLabel(k), value: wr.status_counts[k], slot: D.statusSlot(k) }], href: link('projectsdetails', 'work_request_created_at', { project_request_status: { type: 'exact', values: [k] } }), slot: D.statusSlot(k) }))
+            .sort((a, b) => a.slot - b.slot);
+        D.barList(q('[data-pipeline]'), pipeline);
+
+        // verticals: stacked active / pending / completed
+        const vSeries = [{ name: 'Active', slot: 1 }, { name: 'Pending', slot: 2 }, { name: 'Completed', slot: 3 }];
+        D.legend(q('[data-vertical-legend]'), vSeries, 'bar');
+        D.barList(q('[data-verticals]'), d.by_vertical.map(v => ({
+            label: v.name, value: v.requests,
+            parts: [{ name: 'Active', value: v.active, slot: 1 }, { name: 'Pending', value: v.pending, slot: 2 }, { name: 'Completed', value: v.completed, slot: 3 }, { name: 'Other', value: Math.max(0, v.requests - v.active - v.pending - v.completed), slot: 7 }],
+            href: link('projectsdetails', 'work_request_created_at', { request_type_name: { type: 'exact', values: [v.name] } })
+        })));
+
+        D.barList(q('[data-tasktypes]'), d.by_task_type.map(x => ({
+            label: x.name, value: x.tasks, parts: [{ name: 'Tasks', value: x.tasks, slot: 1 }],
+            href: link('taskdetails', 'task_created_at', { task_type_name: { type: 'exact', values: [x.name] } })
+        })));
+
+        const maxOpen = Math.max(1, ...d.workload.map(w => w.open_tasks));
+        const wl = q('[data-workload]');
+        wl.innerHTML = '<thead><tr><th>Assignee</th><th>Role</th><th class="t-num">Open</th><th class="t-num">Overdue</th><th class="t-num">Completed</th></tr></thead><tbody></tbody>';
+        if (!d.workload.length) wl.tBodies[0].innerHTML = '<tr><td colspan="5" class="muted">No assignments in this period</td></tr>';
+        d.workload.forEach(w => {
+            const tr = document.createElement('tr');
+            const href = link('taskdetails', 'task_created_at', { assigned_creative_user: { type: 'contains', value: w.name, values: [w.name] } });
+            tr.innerHTML = `<td><a></a></td><td class="muted"></td><td class="t-num"><span class="dm-inline-meter"><span style="width:${(w.open_tasks / maxOpen) * 100}%;background:var(--series-1)"></span></span><b>${fmt.num(w.open_tasks)}</b></td><td class="t-num">${w.overdue ? `<span class="dm-pill no-dot tone-danger">${fmt.num(w.overdue)}</span>` : '<span class="muted">0</span>'}</td><td class="t-num">${fmt.num(w.completed)}</td>`;
+            tr.querySelector('a').textContent = w.name;
+            tr.querySelector('a').href = href;
+            tr.children[1].textContent = w.role || '';
+            wl.tBodies[0].appendChild(tr);
+        });
+
+        const cl = q('[data-clients]');
+        cl.innerHTML = '<thead><tr><th>Client</th><th>Division</th><th class="t-num">Requests</th><th class="t-num">Done</th></tr></thead><tbody></tbody>';
+        if (!d.top_clients.length) cl.tBodies[0].innerHTML = '<tr><td colspan="4" class="muted">No requests in this period</td></tr>';
+        d.top_clients.forEach(c => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td><a></a></td><td class="muted"></td><td class="t-num"><b>${fmt.num(c.requests)}</b></td><td class="t-num">${fmt.pct(c.completed, c.requests)}</td>`;
+            tr.querySelector('a').textContent = c.name;
+            tr.querySelector('a').href = link('clients', 'work_request_created_at', { project_requester_name: { type: 'exact', values: [c.name] } });
+            tr.children[1].textContent = c.division || '—';
+            cl.tBodies[0].appendChild(tr);
+        });
+    }
+
+    window.addEventListener('dm:theme', () => { if (current) render(current); });
+    renderPresets();
+    load();
+});
+</script>
+</body>
+</html>

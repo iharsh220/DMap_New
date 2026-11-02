@@ -1,4 +1,34 @@
-const { sequelize, Op } = require('../config/databaseConfig');
+const { sequelize } = require('../config/databaseConfig');
+const { Op } = require('sequelize');
+const { parseGridFilters, applyGridFilters, selectAliases, resolveSort, orderSql, runOuterQuery, statusCountSql, statusCountsFrom, tatHoursSql } = require('../services/adminGridService');
+
+// Status values per entity (schema ENUMs), used for the KPI status breakdowns
+const WORK_REQUEST_STATUSES = ['draft', 'pending', 'accepted', 'assigned', 'in_progress', 'completed', 'rejected', 'deferred', 'cancelled'];
+const TASK_STATUSES = ['draft', 'pending', 'accepted', 'assigned', 'in_progress', 'completed', 'rejected', 'deferred', 'cancelled'];
+const ISSUE_STATUSES = ['m_pending', 'm_accepted', 'u_pending', 'u_accepted', 'in_progress', 'completed', 'rejected', 'on_hold', 'cancelled'];
+
+// Cost columns are only returned (and only filterable / sortable) for Super Admin
+const TASK_COST_KEYS = ['task_cost', 'concept_work_cost', 'ai_charges_cost', 'resize_work_cost'];
+const ISSUE_COST_KEYS = ['issue_cost', 'concept_work_cost', 'ai_charges_cost', 'resize_work_cost'];
+
+async function isAdminRequest(req) {
+    if (req.user && req.user.jobRole) return req.user.jobRole.id === 1;
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (!token) return false;
+    try {
+        const payload = await decryptToken(token, process.env.JWT_ENCRYPTION_KEY);
+        return !!(payload && payload.jobRole && payload.jobRole.id === 1);
+    } catch (e) {
+        return false;
+    }
+}
+
+function omitKeys(row, keys) {
+    const copy = { ...row };
+    keys.forEach(key => { delete copy[key]; });
+    return copy;
+}
 const { TaskType, User, Feedbacks, Leave, Division, Tasks, IssueAssignments } = require('../models');
 const ExcelJS = require('exceljs');
 const csvParser = require('csv-parser');
@@ -599,8 +629,11 @@ const getAllLeaves = async (req, res) => {
         if (year) where.year = year;
         if (month) where.month = month;
 
-        // Count before adding search (for recordsTotal)
-        const recordsTotal = await Leave.count({ where });
+        // Count before adding search (for recordsTotal); same user join as the listed rows
+        const recordsTotal = await Leave.count({
+            where,
+            include: [{ model: User, as: 'user', attributes: [], where: { department_id: 9, account_status: 'active' }, required: true }]
+        });
 
         // ---------------------------------------
         // SEARCH FILTER (DataTables global search)
@@ -608,89 +641,92 @@ const getAllLeaves = async (req, res) => {
 
         const searchTerm = req.query.search ? req.query.search : '';
 
-        const colSearchMap = {
-            'user_id': { field: 'user_id' },
-            'name': { field: '$user.name$' },
-            'from_date': { field: 'from_date' },
-            'to_date': { field: 'to_date' },
-            'day': { field: 'day' },
-            'leave_day_type': { field: 'leave_day_type' },
-            'leave_type': { field: 'leave_type' },
-            'status': { field: 'status' },
-            'leave_reason': { field: 'leave_reason' },
-            'vertical': { field: 'vertical' },
-            'days_count': { field: 'days_count' },
-            'reason': { field: 'reason' },
-            'remark': { field: 'remark' },
-            'checker_remark': { field: 'checker_remark' },
-            'month': { field: 'month' },
-            'year': { field: 'year' }
+        const conditions = [];
+        if (searchTerm) {
+            const likeTerm = '%' + searchTerm + '%';
+            conditions.push({
+                [Op.or]: ['leave_day_type', 'leave_type', 'status', 'leave_reason', 'vertical', 'reason', 'remark', 'checker_remark', 'month', 'year', 'day']
+                    .map(field => ({ [field]: { [Op.like]: likeTerm } }))
+                    .concat([{ '$user.name$': { [Op.like]: likeTerm } }, { '$user.email$': { [Op.like]: likeTerm } }])
+            });
+        }
+        conditions.push(...sequelizeGridConditions(parseGridFilters(req.query), {
+            id: 'id',
+            user_id: 'user_id',
+            name: '$user.name$',
+            from_date: 'from_date',
+            to_date: 'to_date',
+            day: 'day',
+            leave_day_type: 'leave_day_type',
+            leave_type: 'leave_type',
+            status: 'status',
+            leave_reason: 'leave_reason',
+            vertical: 'vertical',
+            days_count: 'days_count',
+            reason: 'reason',
+            remark: 'remark',
+            checker_remark: 'checker_remark',
+            month: 'month',
+            year: 'year'
+        }));
+        if (conditions.length) where[Op.and] = conditions;
+
+        const dir = String(req.query.order_dir || '').toUpperCase();
+        const sortable = ['id', 'user_id', 'from_date', 'to_date', 'day', 'leave_day_type', 'leave_type', 'status',
+            'leave_reason', 'vertical', 'days_count', 'reason', 'remark', 'checker_remark', 'month', 'year'];
+        let orderClause = [['from_date', 'DESC'], ['id', 'DESC']];
+        if (['ASC', 'DESC'].includes(dir)) {
+            if (req.query.order_column === 'name') orderClause = [[{ model: User, as: 'user' }, 'name', dir], ['id', 'DESC']];
+            else if (sortable.includes(req.query.order_column)) orderClause = [[req.query.order_column, dir], ['id', 'DESC']];
+        }
+
+        // Only leaves of active users in department 9 are listed; count with the same join so
+        // pagination matches the rows
+        const userInclude = {
+            model: User,
+            as: 'user',
+            attributes: ['id', 'name', 'email'],
+            where: {
+                department_id: 9,
+                account_status: 'active'
+            },
+            required: true
+        };
+        const countInclude = { ...userInclude, attributes: [] };
+
+        const [total, summaryRows, leaves] = await Promise.all([
+            Leave.count({ where, include: [countInclude] }),
+            Leave.findAll({
+                attributes: ['leave_day_type', 'leave_type', 'status', [sequelize.fn('COUNT', sequelize.col('Leave.id')), 'count'], [sequelize.fn('SUM', sequelize.col('days_count')), 'days']],
+                where,
+                include: [countInclude],
+                group: ['leave_day_type', 'leave_type', 'status'],
+                raw: true
+            }),
+            Leave.findAll({
+                where,
+                include: [userInclude],
+                order: orderClause,
+                ...(limit !== -1 ? { limit, offset } : {})
+            })
+        ]);
+
+        // KPI summary over all filtered leaves
+        const sumWhere = test => summaryRows.filter(test).reduce((acc, row) => acc + Number(row.count || 0), 0);
+        const summary = {
+            total,
+            days: Math.round(summaryRows.reduce((acc, row) => acc + Number(row.days || 0), 0) * 10) / 10,
+            full_day: sumWhere(row => row.leave_day_type === 'Full day'),
+            half_day: sumWhere(row => row.leave_day_type === 'Half day'),
+            short_hours: sumWhere(row => row.leave_day_type === 'Short Hours'),
+            wfh: sumWhere(row => row.leave_day_type === 'WFH'),
+            planned: sumWhere(row => row.leave_type === 'Planned'),
+            unplanned: sumWhere(row => row.leave_type === 'Unplanned'),
+            informed: sumWhere(row => row.status === 'Inform'),
+            not_informed: sumWhere(row => row.status === 'Not Inform')
         };
 
-        if (req.query.col_searches) {
-            try {
-                const colSearches = JSON.parse(req.query.col_searches);
-                const userColSearches = {};
-                Object.keys(colSearches).forEach(function(colKey){
-                    const colVal = colSearches[colKey];
-                    if (!colVal) return;
-                    const entry = colSearchMap[colKey.trim()];
-                    if (entry && entry.field.startsWith('$user.')) {
-                        userColSearches[entry.field] = { [Op.like]: '%' + colVal + '%' };
-                    } else if (entry) {
-                        where[entry.field] = { [Op.like]: '%' + colVal + '%' };
-                    }
-                });
-                if (Object.keys(userColSearches).length > 0) {
-                    if (where[Op.or]) {
-                        where[Op.or].push(userColSearches);
-                    } else {
-                        where[Op.or] = userColSearches;
-                    }
-                }
-            } catch(e) {
-            }
-        }
-
-        const allowedSortColumns = [
-            'from_date', 'to_date', 'day', 'leave_day_type', 'leave_type', 'status',
-            'leave_reason', 'vertical', 'days_count', 'reason', 'remark', 'checker_remark', 'month', 'year',
-            'name', 'user_id'
-        ];
-
-        let orderClause = [['from_date', 'DESC']];
-        const orderCol = req.query.order_column;
-        const orderDir = req.query.order_dir;
-        if (orderCol && allowedSortColumns.includes(orderCol) && orderDir && ['ASC','DESC'].includes(orderDir.toUpperCase())) {
-            let colField = orderCol;
-            if (orderCol === 'name' || orderCol === 'user_id') {
-                colField = orderCol === 'name' ? '$user.name$' : orderCol;
-            }
-            orderClause = [[colField, orderDir.toUpperCase()]];
-        }
-
-        // Count after search (for recordsFiltered)
-        const total = await Leave.count({ where });
-
-        const leaves = await Leave.findAll({
-            where,
-            include: [
-                {
-                    model: User,
-                    as: 'user',
-                    attributes: ['id', 'name', 'email'],
-                    where: {
-                        department_id: 9,
-                        account_status: 'active'
-                    },
-                    required: true
-                }
-            ],
-            order: orderClause,
-            ...(limit !== -1 ? { limit, offset } : {})
-        });
-
-        res.json({ success: true, data: leaves, total: total, recordsTotal: recordsTotal, recordsFiltered: total });
+        res.json({ success: true, data: leaves, total: total, recordsTotal: recordsTotal, recordsFiltered: total, summary });
     } catch (error) {
         console.error('Error fetching leaves:', error);
         res.status(500).json({ error: 'Internal server error' });
@@ -1225,17 +1261,13 @@ const getAdminData = async (req, res) => {
             "project_type_name": "pt.project_type",
             "project_priority": "wr.priority",
             "project_requester_name": "ru.name",
-            "client_division": "client_division",
-            "request_accepted_by": "request_accepted_by",
+            // client_division, request_accepted_by, project dates, TATs, counters... are
+            // select aliases: they are filtered through the outer query
             "project_count": "CAST(1 AS CHAR)",
             "task_count": "CAST((SELECT COUNT(*) FROM tasks WHERE work_request_id = wr.id AND is_deleted = 0) AS CHAR)",
             "issue_task_count": "CAST((SELECT COUNT(*) FROM issue_assignments ia2 INNER JOIN tasks t4 ON t4.id = ia2.task_id WHERE t4.work_request_id = wr.id AND ia2.is_deleted = 0) AS CHAR)",
             "change_count": "CAST((SELECT COUNT(*) FROM task_history WHERE work_request_id = wr.id AND action = 'manager_change_requested') AS CHAR)",
-            "project_start_date": "project_start_date",
-            "project_end_date": "project_end_date",
             "project_deadline": "(SELECT MAX(t2.deadline) FROM tasks t2 WHERE t2.work_request_id = wr.id AND t2.is_deleted = 0)",
-            "project_review": "project_review",
-            "project_stage": "project_stage",
             "description": "wr.description",
             "about_project": "wr.about_project",
             "remarks": "wr.remarks",
@@ -1261,38 +1293,8 @@ const getAdminData = async (req, res) => {
             replacements.searchTerm = likeTerm;
         }
 
-        // Per-column search
-        if (req.query.col_searches) {
-            try {
-                const colSearches = JSON.parse(req.query.col_searches);
-                for (const [colKey, colVal] of Object.entries(colSearches)) {
-                    const sqlCol = colSearchMap[colKey];
-                    if (sqlCol && colVal) {
-                        whereClauses.push(`${sqlCol} LIKE :colSearch_${colKey}`);
-                        replacements[`colSearch_${colKey}`] = `%${colVal}%`;
-                    }
-                }
-            } catch(e) {
-            }
-        }
-
-        // ORDER BY with whitelist
-        const allowedSortColumns = [
-            'project_request_status', 'work_request_id', 'project_name', 'brand',
-            'request_type_name', 'project_type_name', 'project_priority',
-            'project_requester_name', 'client_division', 'request_accepted_by',
-            'project_count', 'task_count', 'issue_task_count', 'change_count',
-            'project_start_date', 'project_end_date', 'project_deadline',
-            'project_review', 'project_stage', 'description', 'about_project',
-            'remarks', 'work_request_created_at', 'work_request_updated_at'
-        ];
-
-        let orderByClause = 'wr.created_at DESC';
-        const orderCol = req.query.order_column;
-        const orderDir = req.query.order_dir;
-        if (orderCol && allowedSortColumns.includes(orderCol) && orderDir && ['ASC','DESC'].includes(orderDir.toUpperCase())) {
-            orderByClause = `${orderCol} ${orderDir.toUpperCase()}`;
-        }
+        // Column filters and sorting are applied once the select list is known (below)
+        const gridFilters = parseGridFilters(req.query);
 
         let query = `
             SELECT
@@ -1830,17 +1832,16 @@ const getAdminData = async (req, res) => {
                     ================================================== */
                 COALESCE(
                     (
+                        /* requested -> first manager acceptance (same as the Clients page);
+                           the history has no 'create' / 'pm_approved' actions */
                         SELECT CONCAT(
-                            FLOOR(TIMESTAMPDIFF(MINUTE, wrh_create.created_at, wrh_pm.created_at)/60), 'h ',
-                            MOD(TIMESTAMPDIFF(MINUTE, wrh_create.created_at, wrh_pm.created_at), 60), 'm'
+                            FLOOR(TIMESTAMPDIFF(MINUTE, wr.requested_at, wrh_acc.created_at)/60), 'h ',
+                            MOD(TIMESTAMPDIFF(MINUTE, wr.requested_at, wrh_acc.created_at), 60), 'm'
                         )
-                        FROM work_request_history wrh_create
-                        JOIN work_request_history wrh_pm
-                            ON wrh_pm.work_request_id = wrh_create.work_request_id
-                        WHERE wrh_create.work_request_id = wr.id
-                          AND wrh_create.action = 'create'
-                          AND wrh_pm.action = 'pm_approved'
-                        ORDER BY wrh_create.created_at ASC, wrh_pm.created_at ASC
+                        FROM work_request_history wrh_acc
+                        WHERE wrh_acc.work_request_id = wr.id
+                          AND wrh_acc.action = 'manager_accepted'
+                        ORDER BY wrh_acc.created_at ASC
                         LIMIT 1
                     ),
                     'N/A'
@@ -2234,6 +2235,18 @@ const getAdminData = async (req, res) => {
 
 
         // ---------------------------------------
+        // COLUMN FILTERS + SORT
+        // Plain columns go into WHERE; computed columns (division, manager, TATs, counters...)
+        // are filtered on an outer query over the full select. Any output column can be sorted.
+        // ---------------------------------------
+
+        const outputKeys = selectAliases(query.slice(0, query.lastIndexOf('\n            FROM work_requests wr\n')));
+        const outerConditions = applyGridFilters({ filters: gridFilters, directMap: colSearchMap, outerKeys: outputKeys, whereClauses, replacements });
+        const sort = resolveSort(req.query, outputKeys);
+        const orderByClause = sort ? `${orderSql(sort)}, wr.id DESC` : 'wr.created_at DESC';
+
+
+        // ---------------------------------------
         // WHERE
         // ---------------------------------------
 
@@ -2243,73 +2256,100 @@ const getAdminData = async (req, res) => {
             `;
         }
 
-
-        // ---------------------------------------
-        // ORDER
-        // ---------------------------------------
-
-        query += `
-            ORDER BY ${orderByClause}
-        `;
-
-        if (limit !== -1) {
-            query += `
-                LIMIT :limit OFFSET :offset
-            `;
-            replacements.limit = limit;
-            replacements.offset = offset;
-        }
-
-
-        // ---------------------------------------
-        // COUNT QUERY (total filtered rows + status summary)
-        // ---------------------------------------
-
-        // Count for filtered data (with search + column filters)
-        const countQuery = `
-            SELECT
-                COUNT(*) AS total,
-                SUM(CASE WHEN wr.status = 'completed' THEN 1 ELSE 0 END) AS completed_count,
-                SUM(CASE WHEN wr.status = 'in_progress' THEN 1 ELSE 0 END) AS in_progress_count,
-                SUM(CASE WHEN wr.status = 'pending' THEN 1 ELSE 0 END) AS pending_count
-            FROM work_requests wr
-            LEFT JOIN request_type rt ON rt.id = wr.request_type_id
-            LEFT JOIN project_type pt ON pt.id = wr.project_id
-            LEFT JOIN users ru ON ru.id = wr.user_id
-            ${whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''}
-        `;
-
-        // Count for total data (only is_deleted filter)
-        const totalQuery = `
-            SELECT COUNT(*) AS total FROM work_requests wr WHERE wr.is_deleted = 0
-        `;
-
-        const countResult = await sequelize.query(countQuery, {
-            replacements,
-            type: sequelize.QueryTypes.SELECT
+        // Status counts for the KPI cards (same keys in both query paths)
+        const statusSummary = (status) => ({
+            completed_count: `SUM(CASE WHEN ${status} = 'completed' THEN 1 ELSE 0 END)`,
+            in_progress_count: `SUM(CASE WHEN ${status} = 'in_progress' THEN 1 ELSE 0 END)`,
+            pending_count: `SUM(CASE WHEN ${status} = 'pending' THEN 1 ELSE 0 END)`,
+            ...statusCountSql(status, WORK_REQUEST_STATUSES)
         });
 
-        const total = countResult[0]?.total || 0;
-        const completedCount = countResult[0]?.completed_count || 0;
-        const inProgressCount = countResult[0]?.in_progress_count || 0;
-        const pendingCount = countResult[0]?.pending_count || 0;
+        let total, completedCount, inProgressCount, pendingCount, statusRow, results;
 
-        const totalResult = await sequelize.query(totalQuery, {
+        if (outerConditions.length > 0) {
+            const outer = await runOuterQuery({
+                innerSql: query,
+                replacements,
+                outerConditions,
+                sort,
+                defaultOrder: 'x.project_request_timestamp DESC, x.work_request_id DESC',
+                limit,
+                offset,
+                summary: statusSummary('x.project_request_status')
+            });
+            total = outer.total;
+            statusRow = outer.summary;
+            // keep the count types of the plain path (MySQL SUM returns strings there)
+            completedCount = String(statusRow.completed_count);
+            inProgressCount = String(statusRow.in_progress_count);
+            pendingCount = String(statusRow.pending_count);
+            results = outer.rows;
+        } else {
+
+            // ---------------------------------------
+            // ORDER
+            // ---------------------------------------
+
+            query += `
+                ORDER BY ${orderByClause}
+            `;
+
+            if (limit !== -1) {
+                query += `
+                    LIMIT :limit OFFSET :offset
+                `;
+                replacements.limit = limit;
+                replacements.offset = offset;
+            }
+
+
+            // ---------------------------------------
+            // COUNT QUERY (total filtered rows + status summary)
+            // ---------------------------------------
+
+            // Count for filtered data (with search + column filters)
+            const countQuery = `
+                SELECT
+                    COUNT(*) AS total,
+                    ${Object.entries(statusSummary('wr.status')).map(([key, sql]) => `${sql} AS ${key}`).join(',\n                    ')}
+                FROM work_requests wr
+                LEFT JOIN request_type rt ON rt.id = wr.request_type_id
+                LEFT JOIN project_type pt ON pt.id = wr.project_id
+                LEFT JOIN users ru ON ru.id = wr.user_id
+                ${whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''}
+            `;
+
+            const countResult = await sequelize.query(countQuery, {
+                replacements,
+                type: sequelize.QueryTypes.SELECT
+            });
+
+            statusRow = countResult[0] || {};
+            total = statusRow.total || 0;
+            completedCount = statusRow.completed_count || 0;
+            inProgressCount = statusRow.in_progress_count || 0;
+            pendingCount = statusRow.pending_count || 0;
+
+
+            // ---------------------------------------
+            // EXECUTE QUERY
+            // ---------------------------------------
+
+            results = await sequelize.query(query, {
+                replacements,
+                type: sequelize.QueryTypes.SELECT
+            });
+        }
+
+        // Count for total data (only is_deleted filter)
+        const totalResult = await sequelize.query(`
+            SELECT COUNT(*) AS total FROM work_requests wr WHERE wr.is_deleted = 0
+        `, {
             replacements: {},
             type: sequelize.QueryTypes.SELECT
         });
 
         const recordsTotal = totalResult[0]?.total || 0;
-
-
-        // ---------------------------------------
-        // EXECUTE QUERY
-        // ---------------------------------------
-
-        const results = await sequelize.query(query, {
-            replacements,
-            type: sequelize.QueryTypes.SELECT
-        });
 
         const columnOrder = [
             'project_request_status',
@@ -2404,7 +2444,9 @@ const getAdminData = async (req, res) => {
             summary: {
                 completed: completedCount,
                 in_progress: inProgressCount,
-                pending: pendingCount
+                pending: pendingCount,
+                total: Number(total),
+                status_counts: statusCountsFrom(statusRow, WORK_REQUEST_STATUSES)
             }
         });
 
@@ -2447,23 +2489,19 @@ const getClientsData = async (req, res) => {
         const searchTerm = req.query.search ? req.query.search : '';
 
         const colSearchMap = {
+            "work_request_created_at": "wr.created_at",
             "work_request_id": "CAST(wr.id AS CHAR)",
             "project_name": "wr.project_name",
             "request_type_name": "rt.request_type",
             "project_type_name": "pt.project_type",
             "project_priority": "wr.priority",
             "project_requester_name": "ru.name",
-            "client_division": "client_division",
-            "digi_vertical_manager_name": "digi_vertical_manager_name",
             "project_count": "CAST(1 AS CHAR)",
-            "deferral_count": "CAST(deferral_count AS CHAR)",
             "project_status": "wr.status",
             "description": "wr.description",
-            "project_requested_at_client": "wr.requested_at",
-            "response_timestamp": "response_timestamp",
-            "request_to_response_tat": "request_to_response_tat",
-            "month": "month",
-            "financial_year": "financial_year"
+            "project_requested_at_client": "wr.requested_at"
+            // client_division, manager, deferral_count, response time, TAT, month and
+            // financial_year are select aliases: filtered through the outer query
         };
 
         if (searchTerm) {
@@ -2483,36 +2521,8 @@ const getClientsData = async (req, res) => {
             replacements.searchTerm = likeTerm;
         }
 
-        // Per-column search
-        if (req.query.col_searches) {
-            try {
-                const colSearches = JSON.parse(req.query.col_searches);
-                for (const [colKey, colVal] of Object.entries(colSearches)) {
-                    const sqlCol = colSearchMap[colKey];
-                    if (sqlCol && colVal) {
-                        whereClauses.push(`${sqlCol} LIKE :colSearch_${colKey}`);
-                        replacements[`colSearch_${colKey}`] = `%${colVal}%`;
-                    }
-                }
-            } catch(e) {
-            }
-        }
-
-        // ORDER BY with whitelist
-        const allowedSortColumns = [
-            'work_request_id', 'project_name', 'request_type_name', 'project_type_name',
-            'project_priority', 'project_requester_name', 'client_division',
-            'digi_vertical_manager_name', 'project_count', 'deferral_count',
-            'project_status', 'description', 'project_requested_at_client',
-            'response_timestamp', 'request_to_response_tat', 'month', 'financial_year'
-        ];
-
-        let orderByClause = 'wr.requested_at DESC';
-        const orderCol = req.query.order_column;
-        const orderDir = req.query.order_dir;
-        if (orderCol && allowedSortColumns.includes(orderCol) && orderDir && ['ASC','DESC'].includes(orderDir.toUpperCase())) {
-            orderByClause = `${orderCol} ${orderDir.toUpperCase()}`;
-        }
+        // Column filters and sorting are applied once the select list is known (below)
+        const gridFilters = parseGridFilters(req.query);
 
         let query = `
             SELECT
@@ -2943,17 +2953,77 @@ const getClientsData = async (req, res) => {
                 ON ru.id = wr.user_id
         `;
 
+        // Column filters: plain columns in WHERE, computed columns on an outer query over the
+        // full select. Any output column can be sorted.
+        const outputKeys = selectAliases(query.slice(0, query.lastIndexOf('\n            FROM work_requests wr\n')));
+        const outerConditions = applyGridFilters({ filters: gridFilters, directMap: colSearchMap, outerKeys: outputKeys, whereClauses, replacements });
+        const sort = resolveSort(req.query, outputKeys);
+        const orderByClause = sort ? `${orderSql(sort)}, wr.id DESC` : 'wr.requested_at DESC';
+
         if (whereClauses.length > 0) {
             query += ` WHERE ${whereClauses.join(' AND ')}`;
         }
+
+        // KPI summary over all filtered rows. The average response TAT is computed from the select
+        // list, so it always reads the full query as a derived table.
+        const summarySql = (c) => ({
+            clients_count: `COUNT(DISTINCT NULLIF(${c.client}, ''))`,
+            pending_count: `SUM(CASE WHEN ${c.status} = 'pending' THEN 1 ELSE 0 END)`,
+            ...statusCountSql(c.status, WORK_REQUEST_STATUSES)
+        });
+        const buildSummary = (row, total, avgTat) => ({
+            total: Number(total),
+            clients: Number(row.clients_count || 0),
+            pending: Number(row.pending_count || 0),
+            avg_response_tat_hours: avgTat === null || avgTat === undefined ? null : Math.round(Number(avgTat) * 10) / 10,
+            status_counts: statusCountsFrom(row, WORK_REQUEST_STATUSES)
+        });
+        const avgTatQuery = (whereSql) => sequelize.query(
+            `SELECT AVG(${tatHoursSql('x.request_to_response_tat')}) AS avg_tat FROM (${query}) x ${whereSql}`,
+            { replacements, type: sequelize.QueryTypes.SELECT }
+        );
+
+        if (outerConditions.length > 0) {
+            const [outer, avgRows] = await Promise.all([
+                runOuterQuery({
+                    innerSql: query,
+                    replacements,
+                    outerConditions,
+                    sort,
+                    defaultOrder: 'x.project_requested_at_client DESC, x.work_request_id DESC',
+                    limit,
+                    offset,
+                    summary: summarySql({ client: 'x.project_requester_name', status: 'x.project_status' })
+                }),
+                avgTatQuery(`WHERE ${outerConditions.join(' AND ')}`)
+            ]);
+            return res.json({
+                data: outer.rows,
+                total: outer.total,
+                recordsTotal: outer.total,
+                recordsFiltered: outer.total,
+                summary: buildSummary(outer.summary, outer.total, avgRows[0] && avgRows[0].avg_tat)
+            });
+        }
+
+        // All joins are one-to-one, so count over FROM/WHERE without evaluating the select list
+        const fromWhereSql = query.slice(query.lastIndexOf('\n            FROM work_requests wr\n'));
+        // Also returns the KPI summary over all filtered rows
+        const countQuery = `
+            SELECT
+                COUNT(*) AS total,
+                ${Object.entries(summarySql({ client: 'ru.name', status: 'wr.status' })).map(([key, sql]) => `${sql} AS ${key}`).join(',\n                ')}
+            ${fromWhereSql}`;
+        const avgTatPromise = avgTatQuery('');
 
         query += `
             ORDER BY ${orderByClause}
         `;
 
-        const countQuery = `SELECT COUNT(*) AS total FROM ( ${query} ) AS count_table`;
         const countResult = await sequelize.query(countQuery, { replacements, type: sequelize.QueryTypes.SELECT });
         const total = countResult[0]?.total || 0;
+        const avgRows = await avgTatPromise;
+        const summary = buildSummary(countResult[0] || {}, total, avgRows[0] && avgRows[0].avg_tat);
 
         if (limit !== -1) {
             query += ` LIMIT :limit OFFSET :offset`;
@@ -2970,7 +3040,8 @@ const getClientsData = async (req, res) => {
             data: results,
             total: total,
             recordsTotal: total,
-            recordsFiltered: total
+            recordsFiltered: total,
+            summary
         });
 
     } catch (error) {
@@ -2998,13 +3069,14 @@ const getTaskDetailsData = async (req, res) => {
         const searchTerm = req.query.search ? req.query.search : '';
 
         const colSearchMap = {
+            "task_created_at": "t.created_at",
             "task_status": "t.status",
             "work_request_id": "CAST(wr.id AS CHAR)",
             "task_id": "CAST(t.id AS CHAR)",
             "task_name": "t.task_name",
             "task_type_name": "tt.task_type",
             "task_requester_name": "ru.name",
-            "client_division": "t.client_division",
+            "client_division": "(SELECT GROUP_CONCAT(d_search.title) FROM user_divisions ud_search JOIN division d_search ON d_search.id = ud_search.division_id WHERE ud_search.user_id = ru.id)",
             "task_no_of_work_pages": "CAST(COALESCE(t.task_count, 0) AS CHAR)",
             "task_no_of_resize": "CAST(COALESCE(t.no_of_resize, 0) AS CHAR)",
             "task_no_of_ai_page": "CAST(COALESCE(t.no_of_images_videos_audio, 0) AS CHAR)",
@@ -3033,20 +3105,10 @@ const getTaskDetailsData = async (req, res) => {
             replacements.searchTerm = likeTerm;
         }
 
-        // Per-column search
-        if (req.query.col_searches) {
-            try {
-                const colSearches = JSON.parse(req.query.col_searches);
-                for (const [colKey, colVal] of Object.entries(colSearches)) {
-                    const sqlCol = colSearchMap[colKey];
-                    if (sqlCol && colVal) {
-                        whereClauses.push(`${sqlCol} LIKE :colSearch_${colKey}`);
-                        replacements[`colSearch_${colKey}`] = `%${colVal}%`;
-                    }
-                }
-            } catch(e) {
-            }
-        }
+        // Column filters (col_searches / col_exact / col_ranges) are applied once the select
+        // list is known, see "COLUMN FILTERS" below
+        const gridFilters = parseGridFilters(req.query);
+        const isAdmin = await isAdminRequest(req);
 
 
         // ==========================================
@@ -3063,7 +3125,7 @@ const getTaskDetailsData = async (req, res) => {
         // MAIN QUERY
         // ==========================================
 
-        let query = `
+        const selectSql = `
             SELECT
 
                 COALESCE(
@@ -4041,7 +4103,9 @@ const getTaskDetailsData = async (req, res) => {
 
                 ) AS fy
 
+        `;
 
+        const fromSql = `
             FROM tasks t
 
 
@@ -4063,65 +4127,120 @@ const getTaskDetailsData = async (req, res) => {
 
 
         // ==========================================
+        // COLUMN FILTERS
+        // Plain columns go into WHERE; computed columns (TATs, managers, counters...) are
+        // filtered on an outer query over the full select. Cost columns stay admin-only.
+        // ==========================================
+
+        const outputKeys = selectAliases(selectSql);
+        if (!isAdmin) TASK_COST_KEYS.forEach(key => outputKeys.delete(key));
+        const outerConditions = applyGridFilters({ filters: gridFilters, directMap: colSearchMap, outerKeys: outputKeys, whereClauses, replacements });
+
+
+        // ==========================================
         // WHERE
         // ==========================================
 
-        if (whereClauses.length > 0) {
-
-            query += `
-                WHERE ${whereClauses.join(' AND ')}
-                AND t.is_deleted = 0
-            `;
-
-        } else {
-
-            query += `
-                WHERE t.is_deleted = 0
-            `;
-
-        }
+        const whereSql = whereClauses.length > 0
+            ? `WHERE ${whereClauses.join(' AND ')} AND t.is_deleted = 0`
+            : 'WHERE t.is_deleted = 0';
 
 
         // ==========================================
         // ORDER BY (DataTables sorting)
         // ==========================================
 
-        const allowedSortColumns = [
-            'task_status','work_request_id','task_id','change_id','task_name','task_type_name',
-            'task_requester_name','client_division','project_manager','project_manager_vertical',
-            'task_manager','task_manager_vertical','assigned_creative_user','cu_vertical',
-            'task_start_date','task_end_date','task_deadline','task_no_of_work_pages','task_cost',
-            'task_no_of_concepts','concept_work_cost','ai_charges_cost','issue_no_of_work_pages',
-            'task_no_of_options_provided','task_concept_work','task_no_of_resize','task_no_of_ai_page','resize_work_cost',
-            'video_duration','task_no_of_products_shot','task_no_of_words_written',
-            'task_no_of_responsive_screen','task_resize_work','task_ai','task_shoot_setup',
-            'task_request_timestamp','task_request_response_timestamp','task_request_to_response_tat',
-            'task_output_shared_with_cm_timestamp','task_acceptance_to_completion_tat_by_cu',
-            'task_output_response_by_cm_timestamp','task_output_shared_to_response_by_cm_tat',
-            'task_output_shared_with_client_timestamp','task_internal_tat',
-            'task_output_response_by_client_timestamp','task_whole_tat',
-            'task_request_response_reminder_counter_to_cu','task_output_response_reminder_counter_to_cm',
-            'task_output_response_reminder_counter_to_client','client_change_requested_counter',
-            'cm_change_requested_counter','change_version','month','fy'
-        ];
+        // Any output column can be sorted (ties broken by id so pages stay stable)
+        const sort = resolveSort(req.query, outputKeys);
+        const orderByClause = sort ? `${orderSql(sort)}, t.id DESC` : 't.id DESC';
 
-        let orderByClause = 't.id DESC';
-        const orderCol = req.query.order_column;
-        const orderDir = req.query.order_dir;
-        if (orderCol && allowedSortColumns.includes(orderCol) && orderDir && ['ASC','DESC'].includes(orderDir.toUpperCase())) {
-            orderByClause = `${orderCol} ${orderDir.toUpperCase()}`;
+        // KPI summary over all filtered rows (same keys in both query paths)
+        const summarySql = (c) => ({
+            completed_count: `SUM(CASE WHEN ${c.status} = 'completed' THEN 1 ELSE 0 END)`,
+            in_progress_count: `SUM(CASE WHEN ${c.status} = 'in_progress' THEN 1 ELSE 0 END)`,
+            pending_count: `SUM(CASE WHEN ${c.status} = 'pending' THEN 1 ELSE 0 END)`,
+            overdue_count: `SUM(CASE WHEN DATE(${c.deadline}) < CURDATE() AND ${c.status} NOT IN ('completed', 'cancelled', 'rejected') THEN 1 ELSE 0 END)`,
+            projects_count: `COUNT(DISTINCT ${c.workRequest})`,
+            ...statusCountSql(c.status, TASK_STATUSES)
+        });
+        const buildSummary = (row, total) => ({
+            total: Number(total),
+            completed: Number(row.completed_count || 0),
+            in_progress: Number(row.in_progress_count || 0),
+            pending: Number(row.pending_count || 0),
+            overdue: Number(row.overdue_count || 0),
+            projects: Number(row.projects_count || 0),
+            status_counts: statusCountsFrom(row, TASK_STATUSES)
+        });
+
+        if (outerConditions.length > 0) {
+            const outer = await runOuterQuery({
+                innerSql: `${selectSql} ${fromSql} ${whereSql}`,
+                replacements,
+                outerConditions,
+                sort,
+                defaultOrder: 'x.task_id DESC',
+                limit,
+                offset,
+                summary: summarySql({ status: 'x.task_status', deadline: 'x.task_deadline', workRequest: 'x.work_request_id' })
+            });
+            return res.json({
+                data: isAdmin ? outer.rows : outer.rows.map(row => omitKeys(row, TASK_COST_KEYS)),
+                total: outer.total,
+                recordsTotal: outer.total,
+                recordsFiltered: outer.total,
+                is_admin: isAdmin,
+                summary: buildSummary(outer.summary, outer.total)
+            });
         }
 
-        query += `
-            ORDER BY ${orderByClause}
-        `;
-
-        const countQuery = `SELECT COUNT(*) AS total FROM ( ${query} ) AS count_table`;
+        // The select list does not change the number of rows, so count over the joins only
+        // (counting the full query evaluated every per-row subquery for every task).
+        // Same query also returns the status summary for the KPI cards (over all filtered rows)
+        const countSummarySql = summarySql({ status: 't.status', deadline: 't.deadline', workRequest: 't.work_request_id' });
+        const countQuery = `
+            SELECT
+                COUNT(*) AS total,
+                ${Object.entries(countSummarySql).map(([key, sql]) => `${sql} AS ${key}`).join(',\n                ')}
+            ${fromSql} ${whereSql}`;
         const countResult = await sequelize.query(countQuery, { replacements, type: sequelize.QueryTypes.SELECT });
         const total = countResult[0]?.total || 0;
+        const summary = buildSummary(countResult[0] || {}, total);
+
+        let query;
+        if (orderByClause === 't.id DESC' && limit !== -1) {
+            // Default sort: pick the page rows first, then run the per-row subqueries only for them.
+            // page_mc_id keeps the exact (task, master_card) row pairs of the plain join.
+            query = `${selectSql}
+            FROM (
+                SELECT t.id AS page_task_id, mc.id AS page_mc_id
+                ${fromSql}
+                ${whereSql}
+                ORDER BY t.id DESC
+                LIMIT :limit OFFSET :offset
+            ) page_rows
+            JOIN tasks t
+                ON t.id = page_rows.page_task_id
+            LEFT JOIN work_requests wr
+                ON wr.id = t.work_request_id
+            LEFT JOIN task_type tt
+                ON tt.id = t.task_type_id
+            LEFT JOIN master_card mc
+                ON mc.id <=> page_rows.page_mc_id
+            LEFT JOIN users ru
+                ON ru.id = wr.user_id
+            ORDER BY t.id DESC
+            `;
+        } else {
+            query = `${selectSql} ${fromSql} ${whereSql}
+            ORDER BY ${orderByClause}
+            `;
+            if (limit !== -1) {
+                query += ` LIMIT :limit OFFSET :offset`;
+            }
+        }
 
         if (limit !== -1) {
-            query += ` LIMIT :limit OFFSET :offset`;
             replacements.limit = limit;
             replacements.offset = offset;
         }
@@ -4145,30 +4264,7 @@ const getTaskDetailsData = async (req, res) => {
         // Hide task_cost for non-admin users
         // ==========================================
 
-        let isAdmin = false;
-        const authHeader = req.headers['authorization'];
-        const token = authHeader && authHeader.split(' ')[1];
-        if (token) {
-            try {
-                const payload = await decryptToken(token, process.env.JWT_ENCRYPTION_KEY);
-                if (payload && payload.jobRole && payload.jobRole.id === 1) {
-                    isAdmin = true;
-                }
-            } catch (e) {
-            }
-        }
-
-        let data = results;
-        if (!isAdmin) {
-            data = results.map(row => {
-                const cleanRow = { ...row };
-                delete cleanRow.task_cost;
-                delete cleanRow.concept_work_cost;
-                delete cleanRow.ai_charges_cost;
-                delete cleanRow.resize_work_cost;
-                return cleanRow;
-            });
-        }
+        const data = isAdmin ? results : results.map(row => omitKeys(row, TASK_COST_KEYS));
 
 
         // ==========================================
@@ -4180,7 +4276,8 @@ const getTaskDetailsData = async (req, res) => {
             total: total,
             recordsTotal: total,
             recordsFiltered: total,
-            is_admin: isAdmin
+            is_admin: isAdmin,
+            summary
         });
 
 
@@ -4213,6 +4310,9 @@ const getIssueDetailsData = async (req, res) => {
         const searchTerm = req.query.search ? req.query.search : '';
 
         const colSearchMap = {
+            // Plain columns only: computed columns (managers, verticals, costs, TATs, counters,
+            // month/fy) are select aliases and are filtered through the outer query
+            "issue_created_at": "ia.created_at",
             "issue_status": "ia.status",
             "work_request_id": "CAST(wr.id AS CHAR)",
             "task_id": "CAST(t.id AS CHAR)",
@@ -4220,14 +4320,6 @@ const getIssueDetailsData = async (req, res) => {
             "task_name": "t.task_name",
             "task_type_name": "tt.task_type",
             "issue_requester_name": "ru.name",
-            "client_division": "t.client_division",
-            "project_manager": "project_manager",
-            "project_manager_vertical": "project_manager_vertical",
-            "issue_cost": "CAST(COALESCE(issue_cost, 0) AS CHAR)",
-            "task_manager": "task_manager",
-            "task_manager_vertical": "task_manager_vertical",
-            "assigned_creative_user": "assigned_creative_user",
-            "cu_vertical": "cu_vertical",
             "issue_start_date": "ia.start_date",
             "issue_end_date": "ia.end_date",
             "issue_deadline": "ia.deadline",
@@ -4236,7 +4328,6 @@ const getIssueDetailsData = async (req, res) => {
             "issue_no_of_options_provided": "CAST(COALESCE(ia.no_of_options_provided, 0) AS CHAR)",
             "issue_concept_work": "CAST(COALESCE(ia.concept_work, 0) AS CHAR)",
             "issue_no_of_concepts": "CAST(COALESCE(ia.no_of_concepts, 0) AS CHAR)",
-            "concept_work_cost": "CAST(COALESCE(concept_work_cost, 0) AS CHAR)",
             "issue_no_of_resize": "CAST(COALESCE(ia.no_of_resize, 0) AS CHAR)",
             "issue_no_of_ai_page": "CAST(COALESCE(ia.no_of_images_videos_audio, 0) AS CHAR)",
             "issue_video_duration": "CAST(COALESCE(ia.duration_minutes * 60 + ia.duration_seconds, 0) AS CHAR)",
@@ -4244,29 +4335,8 @@ const getIssueDetailsData = async (req, res) => {
             "issue_no_of_words_written": "CAST(COALESCE(ia.no_of_words_written, 0) AS CHAR)",
             "issue_no_of_responsive_screen": "CAST(COALESCE(ia.responsive_screen, 0) AS CHAR)",
             "issue_resize_work": "CAST(COALESCE(ia.resize_work, 0) AS CHAR)",
-            "ai_charges_cost": "CAST(COALESCE(ai_charges_cost, 0) AS CHAR)",
             "issue_ai": "CAST(COALESCE(ia.no_of_images_videos_audio, 0) AS CHAR)",
-            "resize_work_cost": "CAST(COALESCE(resize_work_cost, 0) AS CHAR)",
-            "issue_shoot_setup": "CAST(COALESCE(ia.shoot_setup, 0) AS CHAR)",
-            "issue_request_timestamp": "issue_request_timestamp",
-            "issue_request_response_timestamp": "issue_request_response_timestamp",
-            "issue_request_to_response_tat": "issue_request_to_response_tat",
-            "issue_output_shared_with_cm_timestamp": "issue_output_shared_with_cm_timestamp",
-            "issue_acceptance_to_completion_tat_by_cu": "issue_acceptance_to_completion_tat_by_cu",
-            "issue_output_response_by_cm_timestamp": "issue_output_response_by_cm_timestamp",
-            "issue_output_shared_to_response_by_cm_tat": "issue_output_shared_to_response_by_cm_tat",
-            "issue_output_shared_with_client_timestamp": "issue_output_shared_with_client_timestamp",
-            "issue_internal_tat": "issue_internal_tat",
-            "issue_output_response_by_client_timestamp": "issue_output_response_by_client_timestamp",
-            "issue_whole_tat": "issue_whole_tat",
-            "issue_request_response_reminder_counter_to_cu": "CAST(COALESCE(issue_request_response_reminder_counter_to_cu, 0) AS CHAR)",
-            "issue_output_response_reminder_counter_to_cm": "CAST(COALESCE(issue_output_response_reminder_counter_to_cm, 0) AS CHAR)",
-            "issue_output_response_reminder_counter_to_client": "CAST(COALESCE(issue_output_response_reminder_counter_to_client, 0) AS CHAR)",
-            "client_change_requested_counter": "CAST(COALESCE(client_change_requested_counter, 0) AS CHAR)",
-            "cm_change_requested_counter": "CAST(COALESCE(cm_change_requested_counter, 0) AS CHAR)",
-            "change_version": "change_version",
-            "month": "month",
-            "fy": "fy"
+            "issue_shoot_setup": "CAST(COALESCE(ia.shoot_setup, 0) AS CHAR)"
         };
 
         if (searchTerm) {
@@ -4283,49 +4353,9 @@ const getIssueDetailsData = async (req, res) => {
             replacements.searchTerm = likeTerm;
         }
 
-        // Per-column search
-        if (req.query.col_searches) {
-            try {
-                const colSearches = JSON.parse(req.query.col_searches);
-                for (const [colKey, colVal] of Object.entries(colSearches)) {
-                    const sqlCol = colSearchMap[colKey];
-                    if (sqlCol && colVal) {
-                        whereClauses.push(`${sqlCol} LIKE :colSearch_${colKey}`);
-                        replacements[`colSearch_${colKey}`] = `%${colVal}%`;
-                    }
-                }
-            } catch(e) {
-            }
-        }
-
-        // ORDER BY with whitelist
-        const allowedSortColumns = [
-            'issue_status', 'work_request_id', 'task_id', 'issue_id', 'task_name',
-            'task_type_name', 'issue_requester_name', 'client_division', 'project_manager',
-            'project_manager_vertical', 'issue_cost', 'task_manager', 'task_manager_vertical',
-            'assigned_creative_user', 'cu_vertical', 'issue_start_date', 'issue_end_date',
-            'issue_deadline', 'task_no_of_work_pages', 'issue_no_of_work_pages',
-            'issue_no_of_options_provided', 'issue_concept_work', 'issue_no_of_concepts',
-            'concept_work_cost', 'issue_no_of_resize', 'resize_work_cost',
-            'issue_no_of_ai_page', 'issue_video_duration', 'issue_no_of_products_shot',
-            'issue_no_of_words_written', 'issue_no_of_responsive_screen', 'issue_resize_work',
-            'ai_charges_cost', 'issue_ai', 'issue_shoot_setup', 'issue_request_timestamp',
-            'issue_request_response_timestamp', 'issue_request_to_response_tat',
-            'issue_output_shared_with_cm_timestamp', 'issue_acceptance_to_completion_tat_by_cu',
-            'issue_output_response_by_cm_timestamp', 'issue_output_shared_to_response_by_cm_tat',
-            'issue_output_shared_with_client_timestamp', 'issue_internal_tat',
-            'issue_output_response_by_client_timestamp', 'issue_whole_tat',
-            'issue_request_response_reminder_counter_to_cu', 'issue_output_response_reminder_counter_to_cm',
-            'issue_output_response_reminder_counter_to_client', 'client_change_requested_counter',
-            'cm_change_requested_counter', 'change_version', 'month', 'fy'
-        ];
-
-        let orderByClause = 'ia.id DESC';
-        const orderCol = req.query.order_column;
-        const orderDir = req.query.order_dir;
-        if (orderCol && allowedSortColumns.includes(orderCol) && orderDir && ['ASC','DESC'].includes(orderDir.toUpperCase())) {
-            orderByClause = `${orderCol} ${orderDir.toUpperCase()}`;
-        }
+        // Column filters and sorting are applied once the select list is known (below)
+        const gridFilters = parseGridFilters(req.query);
+        const isAdmin = await isAdminRequest(req);
 
         if (issueStatus) {
             whereClauses.push('ia.status = :issueStatus');
@@ -5118,6 +5148,14 @@ const getIssueDetailsData = async (req, res) => {
                 ON mc.task_type_id = t.task_type_id
         `;
 
+        // Column filters: plain columns in WHERE, computed columns on an outer query over the
+        // full select. Any output column can be sorted; cost columns stay admin-only.
+        const outputKeys = selectAliases(query.slice(0, query.lastIndexOf('\n            FROM issue_assignments ia\n')));
+        if (!isAdmin) ISSUE_COST_KEYS.forEach(key => outputKeys.delete(key));
+        const outerConditions = applyGridFilters({ filters: gridFilters, directMap: colSearchMap, outerKeys: outputKeys, whereClauses, replacements });
+        const sort = resolveSort(req.query, outputKeys);
+        const orderByClause = sort ? `${orderSql(sort)}, ia.id DESC` : 'ia.id DESC';
+
         if (whereClauses.length > 0) {
             query += `
                 WHERE ${whereClauses.join(' AND ')}
@@ -5129,7 +5167,11 @@ const getIssueDetailsData = async (req, res) => {
             `;
         }
 
-        query += `
+        // FROM ... WHERE part only (no select list); every other joined table is one-to-one with ia
+        // or is aggregated, so the result has exactly one row per ia.id
+        const fromWhereSql = query.slice(query.lastIndexOf('\n            FROM issue_assignments ia\n'));
+
+        const groupBySql = `
             GROUP BY
                 ia.id,
                 t.id,
@@ -5143,18 +5185,80 @@ const getIssueDetailsData = async (req, res) => {
                 t.deadline,
                 tt.task_type,
                 ru.name
-
-            ORDER BY ${orderByClause}
         `;
 
-        const countQuery = `SELECT COUNT(*) AS total FROM ( ${query} ) AS count_table`;
+        // KPI summary over all filtered issues (same keys in both query paths)
+        const buildSummary = (row, total) => ({
+            total: Number(total),
+            completed: Number(row.completed_count || 0),
+            in_progress: Number(row.in_progress_count || 0),
+            pending: Number(row.pending_count || 0),
+            overdue: Number(row.overdue_count || 0),
+            tasks: Number(row.tasks_count || 0),
+            status_counts: statusCountsFrom(row, ISSUE_STATUSES)
+        });
+
+        if (outerConditions.length > 0) {
+            const outer = await runOuterQuery({
+                innerSql: `${query} ${groupBySql}`,
+                replacements,
+                outerConditions,
+                sort,
+                defaultOrder: 'x.issue_id DESC',
+                limit,
+                offset,
+                summary: {
+                    completed_count: "SUM(CASE WHEN x.issue_status = 'completed' THEN 1 ELSE 0 END)",
+                    in_progress_count: "SUM(CASE WHEN x.issue_status = 'in_progress' THEN 1 ELSE 0 END)",
+                    pending_count: "SUM(CASE WHEN x.issue_status IN ('m_pending', 'u_pending') THEN 1 ELSE 0 END)",
+                    overdue_count: "SUM(CASE WHEN DATE(x.issue_deadline) < CURDATE() AND x.issue_status NOT IN ('completed', 'cancelled', 'rejected') THEN 1 ELSE 0 END)",
+                    tasks_count: 'COUNT(DISTINCT x.task_id)',
+                    ...statusCountSql('x.issue_status', ISSUE_STATUSES)
+                }
+            });
+            return res.json({
+                data: isAdmin ? outer.rows : outer.rows.map(row => omitKeys(row, ISSUE_COST_KEYS)),
+                total: outer.total,
+                recordsTotal: outer.total,
+                recordsFiltered: outer.total,
+                summary: buildSummary(outer.summary, outer.total)
+            });
+        }
+
+        // Count issues over the joins only (counting the full query evaluated every per-row subquery)
+        // Same query also returns the status summary for the KPI cards (over all filtered issues)
+        const countSummarySql = {
+            completed_count: "COUNT(DISTINCT CASE WHEN ia.status = 'completed' THEN ia.id END)",
+            in_progress_count: "COUNT(DISTINCT CASE WHEN ia.status = 'in_progress' THEN ia.id END)",
+            pending_count: "COUNT(DISTINCT CASE WHEN ia.status IN ('m_pending', 'u_pending') THEN ia.id END)",
+            overdue_count: "COUNT(DISTINCT CASE WHEN ia.deadline < CURDATE() AND ia.status NOT IN ('completed', 'cancelled', 'rejected') THEN ia.id END)",
+            tasks_count: 'COUNT(DISTINCT ia.task_id)',
+            ...statusCountSql('ia.status', ISSUE_STATUSES, 'ia.id')
+        };
+        const countQuery = `
+            SELECT
+                COUNT(DISTINCT ia.id) AS total,
+                ${Object.entries(countSummarySql).map(([key, sql]) => `${sql} AS ${key}`).join(',\n                ')}
+            ${fromWhereSql}`;
         const countResult = await sequelize.query(countQuery, { replacements, type: sequelize.QueryTypes.SELECT });
         const total = countResult[0]?.total || 0;
+        const summary = buildSummary(countResult[0] || {}, total);
 
-        if (limit !== -1) {
-            query += ` LIMIT :limit OFFSET :offset`;
-            replacements.limit = limit;
-            replacements.offset = offset;
+        if (orderByClause === 'ia.id DESC' && limit !== -1) {
+            // Default sort: find the page's issue ids first, then build the full rows for those ids only
+            const pageRows = await sequelize.query(
+                `SELECT DISTINCT ia.id ${fromWhereSql} ORDER BY ia.id DESC LIMIT :limit OFFSET :offset`,
+                { replacements: { ...replacements, limit, offset }, type: sequelize.QueryTypes.SELECT }
+            );
+            replacements.pageIssueIds = pageRows.length > 0 ? pageRows.map(r => r.id) : [0];
+            query += ` AND ia.id IN (:pageIssueIds) ${groupBySql} ORDER BY ${orderByClause}`;
+        } else {
+            query += ` ${groupBySql} ORDER BY ${orderByClause}`;
+            if (limit !== -1) {
+                query += ` LIMIT :limit OFFSET :offset`;
+                replacements.limit = limit;
+                replacements.offset = offset;
+            }
         }
 
         const results = await sequelize.query(query, {
@@ -5167,36 +5271,14 @@ const getIssueDetailsData = async (req, res) => {
         // Hide cost fields for non-admin users
         // ==========================================
 
-        let isAdmin = false;
-        const authHeader = req.headers['authorization'];
-        const token = authHeader && authHeader.split(' ')[1];
-        if (token) {
-            try {
-                const payload = await decryptToken(token, process.env.JWT_ENCRYPTION_KEY);
-                if (payload && payload.jobRole && payload.jobRole.id === 1) {
-                    isAdmin = true;
-                }
-            } catch (e) {
-            }
-        }
-
-        let data = results;
-        if (!isAdmin) {
-            data = results.map(row => {
-                const cleanRow = { ...row };
-                delete cleanRow.issue_cost;
-                delete cleanRow.concept_work_cost;
-                delete cleanRow.ai_charges_cost;
-                delete cleanRow.resize_work_cost;
-                return cleanRow;
-            });
-        }
+        const data = isAdmin ? results : results.map(row => omitKeys(row, ISSUE_COST_KEYS));
 
         res.json({
             data: data,
             total: total,
             recordsTotal: total,
-            recordsFiltered: total
+            recordsFiltered: total,
+            summary
         });
 
     } catch (error) {
@@ -5292,34 +5374,28 @@ const getWorkRequestTasksData = async (req, res) => {
             'task_id': 'CAST(t.id AS CHAR)',
             'task_name': 't.task_name',
             'task_type_name': 'tt.task_type',
-            'assigned_user_name': 'assigned_user.name',
-            'assigned_user_email': 'assigned_user.email',
-            'task_status': 'ta.status',
+            'assigned_user_name': 'assignee.name',
+            'task_status': 't.status',
             'task_start_date': 't.start_date',
             'task_end_date': 't.end_date',
             'task_deadline': 't.deadline',
             'task_duration_minutes': 'CAST(t.duration_minutes AS CHAR)',
             'task_duration_seconds': 'CAST(t.duration_seconds AS CHAR)',
-            'task_no_of_work_pages': 'CAST(t.no_of_work_pages AS CHAR)',
             'task_no_of_options_provided': 'CAST(t.no_of_options_provided AS CHAR)',
             'task_no_of_words_written': 'CAST(t.no_of_words_written AS CHAR)',
             'task_options_submitted': 't.options_submitted',
             'task_version': 'CAST(t.version AS CHAR)',
             'task_created_at': 't.created_at',
             'task_updated_at': 't.updated_at',
-            'task_digi_comments': 't.digi_comments',
-            'task_requester_description': 't.requester_description',
-            'task_link': 't.task_link',
             'issue_id': 'CAST(ia.id AS CHAR)',
-            'issue_no_of_work_pages': 'CAST(ia.no_of_work_pages AS CHAR)',
             'issue_status': 'ia.status',
             'issue_start_date': 'ia.start_date',
             'issue_end_date': 'ia.end_date',
             'issue_deadline': 'ia.deadline',
             'issue_duration_minutes': 'CAST(ia.duration_minutes AS CHAR)',
-            'issue_duration_seconds': 'CAST(ia.duration_seconds AS CHAR)',
-            'month': 'month',
-            'fy': 'fy'
+            'issue_duration_seconds': 'CAST(ia.duration_seconds AS CHAR)'
+            // Every other output column (emails, pages, comments, links, month, fy, ...) is
+            // filtered through the outer query by its select alias
         };
 
         if (searchTerm) {
@@ -5335,8 +5411,8 @@ const getWorkRequestTasksData = async (req, res) => {
                 'creator.email',
                 't.task_name',
                 'tt.task_type',
-                'assigned_user.name',
-                'ta.status',
+                'assignee.name',
+                't.status',
                 'ia.status',
                 'CAST(wr.id AS CHAR)',
                 'CAST(t.id AS CHAR)',
@@ -5347,43 +5423,8 @@ const getWorkRequestTasksData = async (req, res) => {
             replacements.searchTerm = likeTerm;
         }
 
-        if (req.query.col_searches) {
-            try {
-                const colSearches = JSON.parse(req.query.col_searches);
-                for (const [colKey, colVal] of Object.entries(colSearches)) {
-                    const sqlCol = colSearchMap[colKey.trim()];
-                    if (sqlCol && colVal) {
-                        whereClauses.push(sqlCol + ' LIKE :colSearch_' + colKey.trim());
-                        replacements['colSearch_' + colKey.trim()] = '%' + colVal + '%';
-                    }
-                }
-            } catch(e) {
-            }
-        }
-
-        const allowedSortColumns = [
-            'work_request_id', 'project_name', 'brand', 'work_request_description',
-            'work_request_digi_comments', 'about_project', 'work_request_status',
-            'request_type_name', 'project_type_name', 'project_priority',
-            'request_creator_name', 'request_creator_email', 'request_creator_phone', 'remarks',
-            'work_request_created_at', 'work_request_updated_at',
-            'task_id', 'task_name', 'task_type_name', 'assigned_user_name', 'assigned_user_email',
-            'task_status', 'task_start_date', 'task_end_date', 'task_deadline',
-            'task_duration_minutes', 'task_duration_seconds', 'task_no_of_work_pages',
-            'task_no_of_options_provided', 'task_no_of_words_written', 'task_options_submitted',
-            'task_version', 'task_created_at', 'task_updated_at', 'task_digi_comments',
-            'task_requester_description', 'task_link',
-            'issue_id', 'issue_no_of_work_pages', 'issue_status', 'issue_start_date',
-            'issue_end_date', 'issue_deadline', 'issue_duration_minutes', 'issue_duration_seconds',
-            'month', 'fy'
-        ];
-
-        let orderByClause = 'wr.id DESC, t.id ASC, ta.id ASC, ia.id ASC';
-        const orderCol = req.query.order_column;
-        const orderDir = req.query.order_dir;
-        if (orderCol && allowedSortColumns.includes(orderCol) && orderDir && ['ASC','DESC'].includes(orderDir.toUpperCase())) {
-            orderByClause = orderCol + ' ' + orderDir.toUpperCase();
-        }
+        // Column filters and sorting are applied once the select list is known (below)
+        const gridFilters = parseGridFilters(req.query);
 
         let query = `
             SELECT
@@ -5682,9 +5723,9 @@ const getWorkRequestTasksData = async (req, res) => {
 
                 t.description AS task_description,
 
-                t.request_type_id AS task_request_type_id,
+                task_rt.id AS task_request_type_id,
 
-                t.task_type_id,
+                tt.id AS task_type_id,
 
                 t.work_request_id AS task_work_request_id,
 
@@ -5895,9 +5936,9 @@ const getWorkRequestTasksData = async (req, res) => {
 
                 /* =====================================================
                    TASK TYPE
+                   (task_type_id is selected once, above, so the query can be used
+                   as a derived table; it has always returned tt.id)
                    ===================================================== */
-
-                tt.id AS task_type_id,
 
                 tt.task_type AS task_type_name,
 
@@ -5906,9 +5947,9 @@ const getWorkRequestTasksData = async (req, res) => {
 
                 /* =====================================================
                    TASK REQUEST TYPE
+                   (task_request_type_id is selected once, above, so the query can be
+                   used as a derived table; it has always returned task_rt.id)
                    ===================================================== */
-
-                task_rt.id AS task_request_type_id,
 
                 task_rt.request_type
                     AS task_request_type_name,
@@ -6338,31 +6379,94 @@ const getWorkRequestTasksData = async (req, res) => {
                     issue_requester.location_id
         `;
 
+        // Column filters: plain columns in WHERE, every other output column on an outer query
+        // over the full select. Any output column can be sorted.
+        const outputKeys = selectAliases(query.slice(0, query.lastIndexOf('\n            FROM work_requests wr\n')));
+        // columns selected without AS keep their own name
+        ['project_name', 'brand', 'about_project', 'priority', 'requested_at', 'remarks', 'task_name'].forEach(key => outputKeys.add(key));
+        const outerConditions = applyGridFilters({ filters: gridFilters, directMap: colSearchMap, outerKeys: outputKeys, whereClauses, replacements });
+        const sort = resolveSort(req.query, outputKeys);
+        const orderByClause = sort
+            ? `${orderSql(sort)}, wr.id DESC, t.id ASC, ta.id ASC, ia.id ASC`
+            : 'wr.id DESC, t.id ASC, ta.id ASC, ia.id ASC';
+
         if (whereClauses.length > 0) {
             query += `
                 WHERE ${whereClauses.join(' AND ')}
             `;
         }
 
+        if (outerConditions.length > 0) {
+            const outer = await runOuterQuery({
+                innerSql: query,
+                replacements,
+                outerConditions,
+                sort,
+                defaultOrder: 'x.work_request_id DESC, x.task_id ASC, x.task_assignment_id ASC, x.issue_id ASC',
+                limit,
+                offset,
+                summary: {
+                    work_requests_count: 'COUNT(DISTINCT x.work_request_id)',
+                    tasks_count: 'COUNT(DISTINCT x.task_id)',
+                    changes_count: 'COUNT(DISTINCT x.issue_id)'
+                }
+            });
+            const unfiltered = await sequelize.query(
+                `SELECT COUNT(*) AS total_rows ${query.slice(query.lastIndexOf('\n            FROM work_requests wr\n'), query.lastIndexOf('\n                WHERE '))} WHERE wr.is_deleted = 0`,
+                { type: sequelize.QueryTypes.SELECT }
+            );
+            return res.json({
+                data: outer.rows,
+                total: outer.total,
+                recordsTotal: Number(unfiltered[0]?.total_rows || 0),
+                recordsFiltered: outer.total,
+                summary: {
+                    total: outer.total,
+                    work_requests: outer.summary.work_requests_count,
+                    tasks: outer.summary.tasks_count,
+                    changes: outer.summary.changes_count
+                }
+            });
+        }
+
         query += `
             ORDER BY ${orderByClause}
         `;
 
-        const countQuery = `SELECT COUNT(DISTINCT wr.id) AS total FROM work_requests wr
-            LEFT JOIN request_type rt ON rt.id = wr.request_type_id
-            LEFT JOIN project_type pt ON pt.id = wr.project_id
-            LEFT JOIN users creator ON creator.id = wr.user_id
-            LEFT JOIN tasks t ON t.work_request_id = wr.id AND t.is_deleted = 0
-            LEFT JOIN task_type tt ON tt.id = t.task_type_id
-            LEFT JOIN task_assignments ta ON ta.task_id = t.id
-            LEFT JOIN users assignee ON assignee.id = ta.user_id
-            ${whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''}`;
-        const countResult = await sequelize.query(countQuery, { replacements, type: sequelize.QueryTypes.SELECT });
-        const total = countResult[0]?.total || 0;
+        // The page is row-level (request x task x assignee x change), so paging must count rows,
+        // not distinct work requests (that cut pagination short). Counted over the main query's own
+        // FROM/WHERE, which also gives the KPI summary.
+        const fromSql = query.slice(
+            query.lastIndexOf('\n            FROM work_requests wr\n'),
+            query.lastIndexOf('\n                WHERE ')
+        );
+        const countSelect = `
+            SELECT
+                COUNT(*) AS total_rows,
+                COUNT(DISTINCT wr.id) AS work_requests_count,
+                COUNT(DISTINCT t.id) AS tasks_count,
+                COUNT(DISTINCT ia.id) AS changes_count`;
+        const countResult = await sequelize.query(
+            `${countSelect} ${fromSql} WHERE ${whereClauses.join(' AND ')}`,
+            { replacements, type: sequelize.QueryTypes.SELECT }
+        );
+        const total = Number(countResult[0]?.total_rows || 0);
+        const summary = {
+            total: total,
+            work_requests: Number(countResult[0]?.work_requests_count || 0),
+            tasks: Number(countResult[0]?.tasks_count || 0),
+            changes: Number(countResult[0]?.changes_count || 0)
+        };
 
-        const totalUnfilteredQuery = `SELECT COUNT(*) AS total FROM work_requests wr WHERE wr.is_deleted = 0`;
-        const totalUnfilteredResult = await sequelize.query(totalUnfilteredQuery, { replacements: {}, type: sequelize.QueryTypes.SELECT });
-        const recordsTotal = totalUnfilteredResult[0]?.total || 0;
+        // whereClauses always starts with 'wr.is_deleted = 0'; only extra filters need a second count
+        let recordsTotal = total;
+        if (whereClauses.length > 1) {
+            const unfilteredResult = await sequelize.query(
+                `SELECT COUNT(*) AS total_rows ${fromSql} WHERE wr.is_deleted = 0`,
+                { type: sequelize.QueryTypes.SELECT }
+            );
+            recordsTotal = Number(unfilteredResult[0]?.total_rows || 0);
+        }
 
         if (limit !== -1) {
             query += ` LIMIT :limit OFFSET :offset`;
@@ -6379,7 +6483,8 @@ const getWorkRequestTasksData = async (req, res) => {
             data: results,
             total: total,
             recordsTotal: recordsTotal,
-            recordsFiltered: total
+            recordsFiltered: total,
+            summary
         });
 
     } catch (error) {
@@ -6394,6 +6499,31 @@ const getWorkRequestTasksData = async (req, res) => {
     }
 };
 
+// Sequelize version of the grid filters (feedback and leaves). `fieldMap` maps a grid key to a
+// model attribute or a '$assoc.attr$' path; keys without an entry are ignored.
+function sequelizeGridConditions(filters, fieldMap) {
+    const conditions = [];
+    filters.forEach(filter => {
+        const field = fieldMap[filter.key];
+        if (!field) return;
+        const target = typeof field === 'function' ? null : field;
+        if (filter.type === 'contains') {
+            conditions.push(typeof field === 'function' ? field(`%${filter.value}%`) : { [target]: { [Op.like]: `%${filter.value}%` } });
+        } else if (filter.type === 'exact' && target) {
+            conditions.push({ [target]: { [Op.in]: filter.values } });
+        } else if (filter.type === 'range' && target) {
+            const range = {};
+            if (filter.from) range[Op.gte] = filter.from.value;
+            if (filter.to) range[Op.lte] = filter.to.kind === 'date' ? `${filter.to.value} 23:59:59` : filter.to.value;
+            conditions.push({ [target]: range });
+        }
+    });
+    return conditions;
+}
+
+// Feedback author's division title(s), as SQL over the Feedbacks row
+const FEEDBACK_DIVISION_SQL = '(SELECT GROUP_CONCAT(d_fb.title ORDER BY d_fb.title) FROM user_divisions ud_fb JOIN division d_fb ON d_fb.id = ud_fb.division_id WHERE ud_fb.user_id = `Feedbacks`.`user_id`)';
+
 const getAllFeedback = async (req, res) => {
     try {
         const { userId, taskId, startDate, endDate } = req.query;
@@ -6407,96 +6537,96 @@ const getAllFeedback = async (req, res) => {
 
         const total = await Feedbacks.count({ where });
 
+        const conditions = [];
         const searchTerm = req.query.search ? req.query.search.replace(/%/g, '\\%').replace(/_/g, '\\_') : '';
-
         if (searchTerm) {
             const likeTerm = '%' + searchTerm + '%';
-            where[Op.or] = [
-                { question: { [Op.like]: { [Op.col]: 'question' }, [Op.like]: likeTerm } },
-                { comments: { [Op.like]: likeTerm } },
-                { rating_functionality_comment: { [Op.like]: likeTerm } },
-                { rating_timeliness_comment: { [Op.like]: likeTerm } },
-                { rating_communication_comment: { [Op.like]: likeTerm } },
-                { '$task.task_name$': { [Op.like]: likeTerm } },
-                { '$task.TaskType.task_type$': { [Op.like]: likeTerm } },
-                { '$user.name$': { [Op.like]: likeTerm } },
-                { '$user.email$': { [Op.like]: likeTerm } },
-                { '$user.Divisions.title$': { [Op.like]: likeTerm } }
-            ];
+            conditions.push({
+                [Op.or]: [
+                    { question: { [Op.like]: likeTerm } },
+                    { comments: { [Op.like]: likeTerm } },
+                    { rating_functionality_comment: { [Op.like]: likeTerm } },
+                    { rating_timeliness_comment: { [Op.like]: likeTerm } },
+                    { rating_communication_comment: { [Op.like]: likeTerm } },
+                    { '$task.task_name$': { [Op.like]: likeTerm } },
+                    { '$task.TaskType.task_type$': { [Op.like]: likeTerm } },
+                    { '$user.name$': { [Op.like]: likeTerm } },
+                    { '$user.email$': { [Op.like]: likeTerm } },
+                    sequelize.literal(`${FEEDBACK_DIVISION_SQL} LIKE ${sequelize.escape(likeTerm)}`)
+                ]
+            });
         }
 
-        if (req.query.col_searches) {
-            try {
-                const colSearches = JSON.parse(req.query.col_searches);
-                const colSearchMap = {
-                    'id': 'id',
-                    'question': 'question',
-                    'task_id': 'task_id',
-                    'task_name': '$task.task_name$',
-                    'task_type': '$task.TaskType.task_type$',
-                    'user_name': '$user.name$',
-                    'user_division': '$user.Divisions.title$',
-                    'functionality_comment': 'rating_functionality_comment',
-                    'rating_functionality': 'rating_functionality',
-                    'timeliness_comment': 'rating_timeliness_comment',
-                    'rating_timeliness': 'rating_timeliness',
-                    'communication_comment': 'rating_communication_comment',
-                    'rating_communication': 'rating_communication',
-                    'recommendation_score': 'recommendation_score',
-                    'comments': 'comments',
-                    'created_at': 'created_at'
-                };
-                for (const [colKey, colVal] of Object.entries(colSearches)) {
-                    const colName = colSearchMap[colKey];
-                    if (colName && colVal) {
-                        where[colName] = { [Op.like]: '%' + colVal + '%' };
-                    }
-                }
-            } catch(e) {
-            }
-        }
+        conditions.push(...sequelizeGridConditions(parseGridFilters(req.query), {
+            id: 'id',
+            question: 'question',
+            task_id: 'task_id',
+            task_name: '$task.task_name$',
+            task_type: '$task.TaskType.task_type$',
+            user_name: '$user.name$',
+            user_id: 'user_id',
+            user_email: '$user.email$',
+            user_division: likeTerm => sequelize.literal(`${FEEDBACK_DIVISION_SQL} LIKE ${sequelize.escape(likeTerm)}`),
+            functionality_comment: 'rating_functionality_comment',
+            rating_functionality: 'rating_functionality',
+            timeliness_comment: 'rating_timeliness_comment',
+            rating_timeliness: 'rating_timeliness',
+            communication_comment: 'rating_communication_comment',
+            rating_communication: 'rating_communication',
+            recommendation_score: 'recommendation_score',
+            comments: 'comments',
+            created_at: 'created_at',
+            updated_at: 'updated_at'
+        }));
+        if (conditions.length) where[Op.and] = conditions;
 
-        let orderBy = [['created_at', 'DESC']];
-        const orderCol = req.query.order_column;
-        const orderDir = req.query.order_dir;
-        const allowedSortColumns = [
-            'id', 'question', 'task_id', 'task_name', 'task_type',
-            'user_name', 'user_division', 'rating_functionality',
-            'functionality_comment', 'rating_timeliness', 'timeliness_comment',
-            'rating_communication', 'communication_comment', 'recommendation_score',
-            'comments', 'created_at'
+        const dir = String(req.query.order_dir || '').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+        const orderMap = {
+            id: [['id', dir]],
+            question: [['question', dir]],
+            task_id: [['task_id', dir]],
+            task_name: [[{ model: Tasks, as: 'task' }, 'task_name', dir]],
+            task_type: [[{ model: Tasks, as: 'task' }, { model: TaskType, as: 'TaskType' }, 'task_type', dir]],
+            user_name: [[{ model: User, as: 'user' }, 'name', dir]],
+            user_id: [['user_id', dir]],
+            user_email: [[{ model: User, as: 'user' }, 'email', dir]],
+            user_division: [[sequelize.literal(FEEDBACK_DIVISION_SQL), dir]],
+            functionality_comment: [['rating_functionality_comment', dir]],
+            timeliness_comment: [['rating_timeliness_comment', dir]],
+            communication_comment: [['rating_communication_comment', dir]],
+            rating_functionality: [['rating_functionality', dir]],
+            rating_timeliness: [['rating_timeliness', dir]],
+            rating_communication: [['rating_communication', dir]],
+            recommendation_score: [['recommendation_score', dir]],
+            comments: [['comments', dir]],
+            created_at: [['created_at', dir]],
+            updated_at: [['updated_at', dir]]
+        };
+        const hasOrderDir = ['ASC', 'DESC'].includes(String(req.query.order_dir || '').toUpperCase());
+        const orderBy = (hasOrderDir && orderMap[req.query.order_column]) || [['created_at', 'DESC']];
+
+        // Filters, sorting and paging only need the one-to-one joins; the user's divisions
+        // (one-to-many) are loaded afterwards for the page rows, so LIMIT counts feedbacks.
+        const filterIncludes = [
+            { model: Tasks, as: 'task', attributes: [], include: [{ model: TaskType, as: 'TaskType', attributes: [] }] },
+            { model: User, as: 'user', attributes: [] }
         ];
-        if (orderCol && allowedSortColumns.includes(orderCol) && orderDir && ['ASC', 'DESC'].includes(orderDir.toUpperCase())) {
-            const orderMap = {
-                'id': ['id', orderDir.toUpperCase()],
-                'question': ['question', orderDir.toUpperCase()],
-                'task_id': ['task_id', orderDir.toUpperCase()],
-                'task_name': ['task', 'task_name', orderDir.toUpperCase()],
-                'task_type': ['task', 'TaskType', 'task_type', orderDir.toUpperCase()],
-                'user_name': ['user', 'name', orderDir.toUpperCase()],
-                'functionality_comment': ['rating_functionality_comment', orderDir.toUpperCase()],
-                'rating_timeliness_comment': ['rating_timeliness_comment', orderDir.toUpperCase()],
-                'communication_comment': ['rating_communication_comment', orderDir.toUpperCase()],
-                'rating_functionality': ['rating_functionality', orderDir.toUpperCase()],
-                'rating_timeliness': ['rating_timeliness', orderDir.toUpperCase()],
-                'rating_communication': ['rating_communication', orderDir.toUpperCase()],
-                'recommendation_score': ['recommendation_score', orderDir.toUpperCase()],
-                'comments': ['comments', orderDir.toUpperCase()],
-                'created_at': ['created_at', orderDir.toUpperCase()]
-            };
-            orderBy = [orderMap[orderCol]];
-        }
+        const [filteredCount, pageIds, ratingRows] = await Promise.all([
+            Feedbacks.count({ where, include: filterIncludes }),
+            Feedbacks.findAll({
+                attributes: ['id'], where, include: filterIncludes, raw: true,
+                order: orderBy.concat([['id', 'DESC']]),
+                ...(limit !== -1 ? { limit, offset } : {})
+            }),
+            Feedbacks.findAll({
+                attributes: ['rating_functionality', 'rating_timeliness', 'rating_communication', 'recommendation_score'],
+                where, include: filterIncludes, raw: true
+            })
+        ]);
 
-        const filteredCount = await Feedbacks.count({
-            where: { ...where },
-            include: [
-                { model: Tasks, as: 'task', attributes: [], include: [{ model: TaskType, as: 'TaskType', attributes: [] }] },
-                { model: User, as: 'user', attributes: [], include: [{ model: Division, as: 'Divisions', attributes: [] }] }
-            ]
-        });
-
-        const feedbacks = await Feedbacks.findAll({
-            where,
+        const ids = pageIds.map(row => row.id);
+        const feedbacks = ids.length === 0 ? [] : await Feedbacks.findAll({
+            where: { id: ids },
             include: [
                 {
                     model: Tasks,
@@ -6510,12 +6640,30 @@ const getAllFeedback = async (req, res) => {
                     attributes: ['id', 'name', 'email'],
                     include: [{ model: Division, as: 'Divisions', attributes: ['id', 'title'] }]
                 }
-            ],
-            order: orderBy,
-            ...(limit !== -1 ? { limit, offset } : {})
+            ]
         });
+        const position = new Map(ids.map((id, index) => [id, index]));
+        feedbacks.sort((a, b) => position.get(a.id) - position.get(b.id));
 
-        res.json({ success: true, data: feedbacks, total: feedbacks.length, recordsTotal: total, recordsFiltered: filteredCount });
+        // KPI summary over all filtered feedback: average ratings and NPS (promoters 9-10, detractors 0-6)
+        const average = key => {
+            const values = ratingRows.map(row => row[key]).filter(v => v !== null && v !== undefined && v !== '').map(Number);
+            return values.length ? Math.round(values.reduce((a, b) => a + b, 0) / values.length * 10) / 10 : null;
+        };
+        const scores = ratingRows.map(row => row.recommendation_score).filter(v => v !== null && v !== undefined && v !== '').map(Number);
+        const summary = {
+            total: filteredCount,
+            avg_functionality: average('rating_functionality'),
+            avg_timeliness: average('rating_timeliness'),
+            avg_communication: average('rating_communication'),
+            avg_recommendation: average('recommendation_score'),
+            promoters: scores.filter(v => v >= 9).length,
+            passives: scores.filter(v => v >= 7 && v <= 8).length,
+            detractors: scores.filter(v => v <= 6).length,
+            nps: scores.length ? Math.round((scores.filter(v => v >= 9).length - scores.filter(v => v <= 6).length) / scores.length * 100) : null
+        };
+
+        res.json({ success: true, data: feedbacks, total: feedbacks.length, recordsTotal: total, recordsFiltered: filteredCount, summary });
     } catch (error) {
         console.error('Error fetching feedback:', error);
         res.status(500).json({ success: false, error: 'Internal server error' });
@@ -6548,31 +6696,25 @@ const getMasterCardData = async (req, res) => {
             replacements.searchTerm = likeTerm;
         }
 
-        if (req.query.col_searches) {
-            try {
-                const colSearches = JSON.parse(req.query.col_searches);
-                const colSearchMap = {
-                    'division_name': 'division_name',
-                    'task_type_name': 'task_type_name',
-                    'unit_basis': 'unit_basis',
-                    'new_work_rate': 'CAST(new_work_rate AS CHAR)',
-                    'changes_rate': 'CAST(changes_rate AS CHAR)',
-                    'concept_charge': 'CAST(concept_charge AS CHAR)',
-                    'ai_charges': 'CAST(ai_charges AS CHAR)',
-                    'no_of_resize_pages': 'CAST(no_of_resize_pages AS CHAR)',
-                    'last_moment': 'CAST(last_moment AS CHAR)',
-                    'financial_year': 'financial_year'
-                };
-                for (const [colKey, colVal] of Object.entries(colSearches)) {
-                    const sqlCol = colSearchMap[colKey.trim()];
-                    if (sqlCol && colVal) {
-                        whereClauses.push(sqlCol + ' LIKE :colSearch_' + colKey.trim());
-                        replacements['colSearch_' + colKey.trim()] = '%' + colVal + '%';
-                    }
-                }
-            } catch(e) {
-            }
-        }
+        applyGridFilters({
+            filters: parseGridFilters(req.query),
+            directMap: {
+                id: 'CAST(id AS CHAR)',
+                division_name: 'division_name',
+                task_type_name: 'task_type_name',
+                unit_basis: 'unit_basis',
+                new_work_rate: 'new_work_rate',
+                changes_rate: 'changes_rate',
+                concept_charge: 'concept_charge',
+                ai_charges: 'ai_charges',
+                no_of_resize_pages: 'no_of_resize_pages',
+                last_moment: 'CAST(last_moment AS CHAR)',
+                financial_year: 'financial_year'
+            },
+            outerKeys: new Set(),
+            whereClauses,
+            replacements
+        });
 
         const allowedSortColumns = [
             'id', 'division_name', 'task_type_name', 'unit_basis',
@@ -6587,15 +6729,27 @@ const getMasterCardData = async (req, res) => {
             orderByClause = orderCol + ' ' + orderDir.toUpperCase();
         }
 
-        if (whereClauses.length > 0) {
-            var dataWhereClause = ' WHERE ' + whereClauses.join(' AND ');
-            var countQuery = 'SELECT COUNT(*) AS total FROM master_card ' + dataWhereClause;
-        } else {
-            var countQuery = 'SELECT COUNT(*) AS total FROM master_card';
-        }
+        const dataWhereClause = whereClauses.length > 0 ? ' WHERE ' + whereClauses.join(' AND ') : '';
+        // Also returns the KPI summary over all filtered rates
+        const countQuery = `SELECT COUNT(*) AS total,
+                COUNT(DISTINCT division_name) AS divisions,
+                COUNT(DISTINCT task_type_name) AS task_types,
+                COUNT(DISTINCT financial_year) AS financial_years,
+                AVG(new_work_rate) AS avg_new_work_rate,
+                AVG(changes_rate) AS avg_changes_rate
+            FROM master_card${dataWhereClause}`;
 
         const countResult = await sequelize.query(countQuery, { replacements, type: sequelize.QueryTypes.SELECT });
         const total = countResult[0]?.total || 0;
+        const counts = countResult[0] || {};
+        const summary = {
+            total: Number(total),
+            divisions: Number(counts.divisions || 0),
+            task_types: Number(counts.task_types || 0),
+            financial_years: Number(counts.financial_years || 0),
+            avg_new_work_rate: counts.avg_new_work_rate === null || counts.avg_new_work_rate === undefined ? null : Math.round(Number(counts.avg_new_work_rate) * 100) / 100,
+            avg_changes_rate: counts.avg_changes_rate === null || counts.avg_changes_rate === undefined ? null : Math.round(Number(counts.avg_changes_rate) * 100) / 100
+        };
 
         const totalUnfilteredQuery = 'SELECT COUNT(*) AS total FROM master_card';
         const totalUnfilteredResult = await sequelize.query(totalUnfilteredQuery, { replacements: {}, type: sequelize.QueryTypes.SELECT });
@@ -6622,7 +6776,7 @@ const getMasterCardData = async (req, res) => {
 
         const rows = await sequelize.query(query, { replacements, type: sequelize.QueryTypes.SELECT });
 
-        res.json({ success: true, data: rows, total: total, recordsTotal: recordsTotal, recordsFiltered: total });
+        res.json({ success: true, data: rows, total: total, recordsTotal: recordsTotal, recordsFiltered: total, summary });
     } catch (error) {
         console.error('Error fetching master card data:', error);
         res.status(500).json({ success: false, error: 'Internal server error' });
@@ -6755,7 +6909,8 @@ const uploadMasterCard = async (req, res) => {
                     taskTypeValue = taskType;
                 }
 
-                values.push(`(${divisionId}, '${divisionTitle.split("'").join("''")}', ${taskTypeId}, '${taskTypeValue.split("'").join("''")}', '${unitBasis.split("'").join("''")}', ${newWorkRate}, ${changesRate}, ${conceptCharge}, ${aiCharges}, ${noOfResize}, ${lastMoment}, '${financialYear.split("'").join("''")}', NOW(), NOW())`);
+                // sequelize.escape also escapes backslashes (quote doubling alone let a value ending in \ break out)
+                values.push(`(${Number(divisionId)}, ${sequelize.escape(divisionTitle)}, ${Number(taskTypeId)}, ${sequelize.escape(taskTypeValue)}, ${sequelize.escape(unitBasis)}, ${newWorkRate}, ${changesRate}, ${conceptCharge}, ${aiCharges}, ${noOfResize}, ${lastMoment}, ${sequelize.escape(financialYear)}, NOW(), NOW())`);
             }
 
             if (values.length) {
@@ -6770,6 +6925,7 @@ const uploadMasterCard = async (req, res) => {
             await new Promise(resolve => setTimeout(resolve, 50));
         }
 
+        await clearAdminCache();
         sendProgress(jobId, 100, `Complete! ${inserted} rows imported`, total);
 
         const fileExt = ext.replace('.', '');
@@ -7072,6 +7228,162 @@ const deleteMasterCard = async (req, res) => {
     }
 };
 
+// Values for the admin grids' select filters (lookup tables + status enums)
+const getFilterOptions = async (req, res) => {
+    try {
+        const list = (sql) => sequelize.query(sql, { type: sequelize.QueryTypes.SELECT }).then(rows => rows.map(row => row.v));
+        const [requestTypes, projectTypes, taskTypes, divisions, financialYears, creativeTeam, managers, clients] = await Promise.all([
+            list("SELECT DISTINCT request_type AS v FROM request_type WHERE request_type IS NOT NULL AND request_type <> '' ORDER BY v"),
+            list("SELECT DISTINCT project_type AS v FROM project_type WHERE project_type IS NOT NULL AND project_type <> '' ORDER BY v"),
+            list("SELECT DISTINCT task_type AS v FROM task_type WHERE task_type IS NOT NULL AND task_type <> '' ORDER BY v"),
+            list("SELECT DISTINCT title AS v FROM division WHERE title IS NOT NULL AND title <> '' ORDER BY v"),
+            list("SELECT DISTINCT financial_year AS v FROM master_card WHERE financial_year IS NOT NULL AND financial_year <> '' ORDER BY v"),
+            list("SELECT DISTINCT name AS v FROM users WHERE job_role_id IN (2, 3, 4) AND name IS NOT NULL ORDER BY v"),
+            list("SELECT DISTINCT name AS v FROM users WHERE job_role_id IN (1, 2, 3) AND name IS NOT NULL ORDER BY v"),
+            list("SELECT DISTINCT u.name AS v FROM work_requests wr JOIN users u ON u.id = wr.user_id WHERE wr.is_deleted = 0 AND u.name IS NOT NULL ORDER BY v")
+        ]);
+        res.json({
+            success: true,
+            data: {
+                request_types: requestTypes,
+                project_types: projectTypes,
+                task_types: taskTypes,
+                divisions,
+                financial_years: financialYears,
+                creative_team: creativeTeam,
+                managers,
+                clients,
+                priorities: ['low', 'medium', 'high', 'critical'],
+                work_request_statuses: WORK_REQUEST_STATUSES,
+                task_statuses: TASK_STATUSES,
+                issue_statuses: ISSUE_STATUSES,
+                review_statuses: ['pending', 'approved', 'change_request'],
+                review_stages: ['not_started', 'manager_review', 'pm_review', 'change_requested', 'final_approved'],
+                leave_day_types: ['Full day', 'Half day', 'Short Hours', 'WFH'],
+                leave_types: ['Planned', 'Unplanned'],
+                leave_statuses: ['Inform', 'Not Inform']
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching filter options:', error);
+        res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+};
+
+// Cross-entity KPIs and trends for the admin Overview page. Optional ?from=&to= (YYYY-MM-DD)
+// limit everything to items created in that range; the monthly trend covers the 12 months up to `to`.
+const getOverviewData = async (req, res) => {
+    try {
+        const isDate = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
+        const from = isDate(req.query.from) ? req.query.from : null;
+        const to = isDate(req.query.to) ? req.query.to : null;
+        const replacements = { from, to };
+        const range = column => [from ? `${column} >= :from` : null, to ? `${column} < DATE_ADD(:to, INTERVAL 1 DAY)` : null].filter(Boolean).map(c => ` AND ${c}`).join('');
+        const select = (sql) => sequelize.query(sql, { replacements, type: sequelize.QueryTypes.SELECT });
+        const counts = (column, statuses) => Object.entries(statusCountSql(column, statuses)).map(([key, sql]) => `${sql} AS ${key}`).join(', ');
+
+        const openTask = "t.status NOT IN ('completed', 'cancelled', 'rejected', 'draft')";
+        const [wrRow, taskRow, issueRow, clientRow, feedbackRow, monthly, byVertical, byTaskType, workload, topClients] = await Promise.all([
+            select(`SELECT COUNT(*) AS total, ${counts('wr.status', WORK_REQUEST_STATUSES)}
+                FROM work_requests wr WHERE wr.is_deleted = 0${range('wr.created_at')}`),
+            select(`SELECT COUNT(*) AS total, ${counts('t.status', TASK_STATUSES)},
+                    SUM(CASE WHEN ${openTask} AND DATE(t.deadline) < CURDATE() THEN 1 ELSE 0 END) AS overdue,
+                    SUM(CASE WHEN ${openTask} AND DATE(t.deadline) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) AS due_7_days,
+                    SUM(CASE WHEN t.status = 'completed' AND t.review_stage = 'final_approved' THEN 1 ELSE 0 END) AS final_approved
+                FROM tasks t WHERE t.is_deleted = 0${range('t.created_at')}`),
+            select(`SELECT COUNT(*) AS total, ${counts('ia.status', ISSUE_STATUSES)}, COUNT(DISTINCT ia.task_id) AS tasks_with_changes
+                FROM issue_assignments ia WHERE ia.is_deleted = 0${range('ia.created_at')}`),
+            select(`SELECT COUNT(DISTINCT wr.user_id) AS clients, COUNT(DISTINCT wr.request_type_id) AS verticals
+                FROM work_requests wr WHERE wr.is_deleted = 0${range('wr.created_at')}`),
+            select(`SELECT COUNT(*) AS total, AVG(f.rating_functionality) AS functionality, AVG(f.rating_timeliness) AS timeliness,
+                    AVG(f.rating_communication) AS communication,
+                    SUM(CASE WHEN f.recommendation_score >= 9 THEN 1 ELSE 0 END) AS promoters,
+                    SUM(CASE WHEN f.recommendation_score <= 6 THEN 1 ELSE 0 END) AS detractors,
+                    COUNT(f.recommendation_score) AS scored
+                FROM feedbacks f WHERE f.is_deleted = 0${range('f.created_at')}`),
+            select(`SELECT m.month,
+                    (SELECT COUNT(*) FROM work_requests wr WHERE wr.is_deleted = 0 AND DATE_FORMAT(wr.created_at, '%Y-%m') = m.month) AS requests,
+                    (SELECT COUNT(*) FROM tasks t WHERE t.is_deleted = 0 AND DATE_FORMAT(t.created_at, '%Y-%m') = m.month) AS tasks_created,
+                    (SELECT COUNT(*) FROM tasks t WHERE t.is_deleted = 0 AND t.status = 'completed' AND DATE_FORMAT(t.end_date, '%Y-%m') = m.month) AS tasks_completed,
+                    (SELECT COUNT(*) FROM issue_assignments ia WHERE ia.is_deleted = 0 AND DATE_FORMAT(ia.created_at, '%Y-%m') = m.month) AS changes
+                FROM (
+                    SELECT DATE_FORMAT(DATE_SUB(${to ? ':to' : 'CURDATE()'}, INTERVAL n MONTH), '%Y-%m') AS month
+                    FROM (SELECT 0 n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5
+                          UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10 UNION ALL SELECT 11) months
+                ) m ORDER BY m.month`),
+            select(`SELECT COALESCE(rt.request_type, 'Unassigned') AS name, COUNT(*) AS requests,
+                    SUM(CASE WHEN wr.status = 'completed' THEN 1 ELSE 0 END) AS completed,
+                    SUM(CASE WHEN wr.status IN ('accepted', 'assigned', 'in_progress') THEN 1 ELSE 0 END) AS active,
+                    SUM(CASE WHEN wr.status = 'pending' THEN 1 ELSE 0 END) AS pending
+                FROM work_requests wr LEFT JOIN request_type rt ON rt.id = wr.request_type_id
+                WHERE wr.is_deleted = 0${range('wr.created_at')}
+                GROUP BY name ORDER BY requests DESC LIMIT 12`),
+            select(`SELECT COALESCE(tt.task_type, 'Unassigned') AS name, COUNT(*) AS tasks,
+                    SUM(CASE WHEN t.status = 'completed' THEN 1 ELSE 0 END) AS completed
+                FROM tasks t LEFT JOIN task_type tt ON tt.id = t.task_type_id
+                WHERE t.is_deleted = 0${range('t.created_at')}
+                GROUP BY name ORDER BY tasks DESC LIMIT 10`),
+            select(`SELECT u.name, jr.role_title AS role,
+                    SUM(CASE WHEN ${openTask} THEN 1 ELSE 0 END) AS open_tasks,
+                    SUM(CASE WHEN ${openTask} AND DATE(t.deadline) < CURDATE() THEN 1 ELSE 0 END) AS overdue,
+                    SUM(CASE WHEN t.status = 'completed' THEN 1 ELSE 0 END) AS completed
+                FROM task_assignments ta
+                JOIN tasks t ON t.id = ta.task_id AND t.is_deleted = 0
+                JOIN users u ON u.id = ta.user_id
+                LEFT JOIN job_role jr ON jr.id = u.job_role_id
+                WHERE 1 = 1${range('t.created_at')}
+                GROUP BY u.id, u.name, jr.role_title
+                ORDER BY open_tasks DESC, completed DESC LIMIT 10`),
+            select(`SELECT u.name,
+                    (SELECT GROUP_CONCAT(d.title ORDER BY d.title SEPARATOR ', ') FROM user_divisions ud JOIN division d ON d.id = ud.division_id WHERE ud.user_id = u.id) AS division,
+                    COUNT(*) AS requests,
+                    SUM(CASE WHEN wr.status = 'completed' THEN 1 ELSE 0 END) AS completed
+                FROM work_requests wr JOIN users u ON u.id = wr.user_id
+                WHERE wr.is_deleted = 0${range('wr.created_at')}
+                GROUP BY u.id, u.name ORDER BY requests DESC LIMIT 10`)
+        ]);
+
+        const num = value => Number(value || 0);
+        const round1 = value => value === null || value === undefined ? null : Math.round(Number(value) * 10) / 10;
+        const fb = feedbackRow[0] || {};
+        res.json({
+            success: true,
+            data: {
+                range: { from, to },
+                work_requests: { total: num(wrRow[0].total), status_counts: statusCountsFrom(wrRow[0], WORK_REQUEST_STATUSES) },
+                tasks: {
+                    total: num(taskRow[0].total),
+                    status_counts: statusCountsFrom(taskRow[0], TASK_STATUSES),
+                    overdue: num(taskRow[0].overdue),
+                    due_7_days: num(taskRow[0].due_7_days),
+                    final_approved: num(taskRow[0].final_approved)
+                },
+                changes: {
+                    total: num(issueRow[0].total),
+                    status_counts: statusCountsFrom(issueRow[0], ISSUE_STATUSES),
+                    tasks_with_changes: num(issueRow[0].tasks_with_changes)
+                },
+                clients: { total: num(clientRow[0].clients), verticals: num(clientRow[0].verticals) },
+                feedback: {
+                    total: num(fb.total),
+                    functionality: round1(fb.functionality),
+                    timeliness: round1(fb.timeliness),
+                    communication: round1(fb.communication),
+                    nps: num(fb.scored) ? Math.round((num(fb.promoters) - num(fb.detractors)) / num(fb.scored) * 100) : null
+                },
+                monthly: monthly.map(row => ({ month: row.month, requests: num(row.requests), tasks_created: num(row.tasks_created), tasks_completed: num(row.tasks_completed), changes: num(row.changes) })),
+                by_vertical: byVertical.map(row => ({ name: row.name, requests: num(row.requests), completed: num(row.completed), active: num(row.active), pending: num(row.pending) })),
+                by_task_type: byTaskType.map(row => ({ name: row.name, tasks: num(row.tasks), completed: num(row.completed) })),
+                workload: workload.map(row => ({ name: row.name, role: row.role, open_tasks: num(row.open_tasks), overdue: num(row.overdue), completed: num(row.completed) })),
+                top_clients: topClients.map(row => ({ name: row.name, division: row.division, requests: num(row.requests), completed: num(row.completed) }))
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching overview data:', error);
+        res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+};
+
 const sseProgress = (req, res) => {
     const jobId = req.params.jobId;
     res.writeHead(200, {
@@ -7127,5 +7439,7 @@ module.exports = {
     deleteMasterCard,
     updateMasterCardField,
     getFinancialYears,
+    getFilterOptions,
+    getOverviewData,
     sseProgress
 };

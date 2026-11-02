@@ -33,6 +33,9 @@ const {
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
 const { recordWorkRequestHistory, recordTaskHistory, recordIssueHistory, getWorkRequestHistory: getWorkRequestHistoryRecords } = require('../../services/historyService');
+const { canActAsRequester, canViewWorkRequest } = require('../../services/accessService');
+const { pickModelFilters, pickModelFields } = require('../../utils/queryFilters');
+const { parseId } = require('../../utils/validators');
 // const { queueFileUpload } = require('../../services/fileUploadService');
 const path = require('path');
 const fs = require('fs');
@@ -766,16 +769,17 @@ const getMyWorkRequests = async (req, res) => {
 
                 // Remove status, review, review_stages, review_stage from req.filters to avoid overriding
                 const { status, review, review_stages, review_stage, ...otherFilters } = req.filters;
-                where = { ...where, ...otherFilters };
+                where = { ...where, ...pickModelFilters(WorkRequests, otherFilters) };
             } else {
                 const { review, review_stages, review_stage, ...otherFilters } = req.filters;
-                where = { ...where, ...otherFilters };
+                where = { ...where, ...pickModelFilters(WorkRequests, otherFilters) };
             }
         }
 
         // Apply search
-        if (req.search.term && req.search.fields.length > 0) {
-            where[Op.or] = req.search.fields.map(field => ({
+        const searchFields = pickModelFields(WorkRequests, req.search.fields);
+        if (req.search.term && searchFields.length > 0) {
+            where[Op.or] = searchFields.map(field => ({
                 [field]: { [Op.like]: `%${req.search.term}%` }
             }));
         }
@@ -892,11 +896,6 @@ const getMyWorkRequests = async (req, res) => {
 
 const getWorkRequestById = async (req, res) => {
     try {
-        // Define associations for TaskAssignments
-        Tasks.hasMany(TaskAssignments, { foreignKey: 'task_id' });
-        TaskAssignments.belongsTo(Tasks, { foreignKey: 'task_id' });
-        TaskAssignments.hasMany(TaskDocuments, { foreignKey: 'task_assignment_id' });
-        TaskDocuments.belongsTo(TaskAssignments, { foreignKey: 'task_assignment_id' });
 
         const id = parseInt(req.params.id, 10);
         if (isNaN(id)) {
@@ -1420,12 +1419,15 @@ const getDivisionWorkRequests = async (req, res) => {
 
         // Apply filters
         if (req.filters) {
-            where = { ...where, ...req.filters };
+            // user_id stays scoped to the caller's divisions
+            const { user_id, ...otherFilters } = pickModelFilters(WorkRequests, req.filters);
+            where = { ...where, ...otherFilters };
         }
 
         // Apply search
-        if (req.search.term && req.search.fields.length > 0) {
-            where[Op.or] = req.search.fields.map(field => ({
+        const searchFields = pickModelFields(WorkRequests, req.search.fields);
+        if (req.search.term && searchFields.length > 0) {
+            where[Op.or] = searchFields.map(field => ({
                 [field]: { [Op.like]: `%${req.search.term}%` }
             }));
         }
@@ -1746,6 +1748,13 @@ const getUserDashboardStats = async (req, res) => {
 
 // PM Approve Task - Update task status to completed and review to approved
 // Only approves tasks where intimate_client = 1 and associated documents with intimate_client = 1
+// PM-side review actions are limited to the requester (or a colleague in the requester's division)
+const canReviewAsRequester = async (user, workRequestId) => {
+    if (!workRequestId) return false;
+    const workRequest = await WorkRequests.findByPk(workRequestId, { attributes: ['id', 'user_id'] });
+    return !!workRequest && canActAsRequester(user.id, workRequest.user_id);
+};
+
 const checkAndCompleteWorkRequest = async (workRequestId) => {
     const tasks = await Tasks.findAll({ where: { work_request_id: workRequestId, is_deleted: 0 } });
     if (tasks.length === 0) {
@@ -1790,14 +1799,23 @@ const pmApproveTask = async (req, res) => {
             });
         }
 
-        // Find the task
-        const task = await Tasks.findByPk(task_id);
+        const taskId = parseId(task_id);
+        if (!taskId) {
+            return res.status(400).json({ success: false, error: 'Invalid task ID' });
+        }
 
-        if (!task) {
+        // Find the task
+        const task = await Tasks.findByPk(taskId);
+
+        if (!task || task.is_deleted) {
             return res.status(404).json({
                 success: false,
                 error: 'Task not found'
             });
+        }
+
+        if (!(await canReviewAsRequester(req.user, task.work_request_id))) {
+            return res.status(403).json({ success: false, error: 'Only the requester can approve this task' });
         }
 
         // Check if task has intimate_client = 1
@@ -1920,11 +1938,15 @@ const handleIssuePmApproval = async (req, res, issueId) => {
             ]
         });
 
-        if (!issueAssignment) {
+        if (!issueAssignment || issueAssignment.is_deleted) {
             return res.status(404).json({
                 success: false,
                 error: 'Issue not found'
             });
+        }
+
+        if (!(await canReviewAsRequester(req.user, issueAssignment.task?.work_request_id))) {
+            return res.status(403).json({ success: false, error: 'Only the requester can approve this issue' });
         }
 
         // Check if issue has intimate_client = 1
@@ -2169,7 +2191,8 @@ const pmRejectTask = async (req, res) => {
             });
             const issueAssignment = await IssueAssignments.create({
                 issue_id: parentIssueId || null,
-                task_id: parentIssueId ? null : targetTaskId,
+                // Child issues keep the task link too; manager issue lists are scoped by task_id
+                task_id: targetTaskId,
                 requested_by_user_id: manager.id,
                 assignment_type: 'mod',
                 version: `V${versionCount + 1}`,
@@ -2213,8 +2236,12 @@ const pmRejectTask = async (req, res) => {
                 ]
             });
 
-            if (!task) {
+            if (!task || task.is_deleted) {
                 return res.status(404).json({ success: false, error: 'Task not found' });
+            }
+
+            if (!task.WorkRequest || !(await canActAsRequester(manager.id, task.WorkRequest.user_id))) {
+                return res.status(403).json({ success: false, error: 'Only the requester can request changes on this task' });
             }
 
             if (task.intimate_client !== 1) {
@@ -2317,8 +2344,13 @@ const pmRejectTask = async (req, res) => {
             ]
         });
 
-        if (!issueAssignment) {
+        if (!issueAssignment || issueAssignment.is_deleted) {
             return res.status(404).json({ success: false, error: 'Issue not found' });
+        }
+
+        const issueWorkRequest = issueAssignment.task?.WorkRequest;
+        if (!issueWorkRequest || !(await canActAsRequester(manager.id, issueWorkRequest.user_id))) {
+            return res.status(403).json({ success: false, error: 'Only the requester can request changes on this issue' });
         }
 
         if (issueAssignment.intimate_client !== 1) {
@@ -2422,8 +2454,9 @@ const pmRejectTask = async (req, res) => {
 
 // Get my task requests - based on issue_assignments
 // This gets work requests where the manager is assigned via issue_assignments -> task -> user -> user's manager
+// Not implemented yet: respond immediately instead of leaving the request hanging.
 const getMyTaskRequests = async (req, res) => {
-
+    res.status(501).json({ success: false, error: 'my-task-requests is not implemented' });
 };
 
 const getWorkRequestHistory = async (req, res) => {
@@ -2431,6 +2464,10 @@ const getWorkRequestHistory = async (req, res) => {
         const workRequestId = parseInt(req.params.workRequestId, 10);
         if (isNaN(workRequestId)) {
             return res.status(400).json({ success: false, error: 'Invalid work request ID' });
+        }
+
+        if (!(await canViewWorkRequest(req.user, workRequestId))) {
+            return res.status(403).json({ success: false, error: 'You do not have access to this work request' });
         }
 
         const limit = parseInt(req.query.limit, 10) || 200;
@@ -2551,6 +2588,10 @@ const getFeedback = async (req, res) => {
         const task = await Tasks.findByPk(taskId);
         if (!task) {
             return res.status(404).json({ success: false, error: 'Task not found' });
+        }
+
+        if (!(await canViewWorkRequest(req.user, task.work_request_id))) {
+            return res.status(403).json({ success: false, error: 'You do not have access to this task' });
         }
 
         // Get all non-deleted feedbacks for this task with user details

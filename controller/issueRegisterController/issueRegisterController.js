@@ -1,9 +1,11 @@
-const { Op } = require('sequelize');
+const { Op, fn, col, literal } = require('sequelize');
 const path = require('path');
 const fs = require('fs');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
 const { recordTaskHistory, recordIssueHistory, recordWorkRequestHistory, recordTaskReviewHistory } = require('../../services/historyService');
+const { parseId } = require('../../utils/validators');
+const { viewableWorkRequestIdsSubquery } = require('../../services/accessService');
 const {
     IssueRegister,
     ChangeIssueTasktype,
@@ -422,17 +424,44 @@ const getIssueAssignmentsWithTaskDetails = async (req, res) => {
         const { task_id, status } = req.query;
         let whereCondition = {};
 
-        if (task_id) whereCondition.task_id = parseInt(task_id);
+        if (task_id) {
+            const taskId = parseId(task_id);
+            if (!taskId) {
+                return res.status(400).json({ success: false, error: 'Invalid task_id' });
+            }
+            whereCondition.task_id = taskId;
+        }
         if (status) whereCondition.status = status;
 
-        // Get all issue assignments first
+        // Division isolation: only issues of work requests this user may view
+        const viewableWorkRequestIds = viewableWorkRequestIdsSubquery(req.user);
+        if (viewableWorkRequestIds) {
+            whereCondition[Op.and] = [{
+                task_id: { [Op.in]: literal(`(SELECT t_scope.id FROM tasks t_scope WHERE t_scope.work_request_id IN ${viewableWorkRequestIds})`) }
+            }];
+        }
+
+        // The result is grouped by task, so paginate over the matching task ids
+        const { page, limit, offset } = req.pagination;
+        const matchingTaskIds = (await IssueAssignments.findAll({
+            where: { ...whereCondition, task_id: whereCondition.task_id || { [Op.ne]: null } },
+            attributes: [[fn('DISTINCT', col('task_id')), 'task_id']],
+            order: [['task_id', 'ASC']],
+            raw: true
+        })).map(row => row.task_id);
+        const total = matchingTaskIds.length;
+        const pageTaskIds = limit === -1 ? matchingTaskIds : matchingTaskIds.slice(offset, offset + limit);
+        whereCondition.task_id = { [Op.in]: pageTaskIds };
+
+        // Get the issue assignments of this page's tasks
         const issueAssignments = await IssueAssignments.findAll({
             where: whereCondition,
             include: [
                 { model: IssueAssignments, as: 'parentIssue', attributes: ['id', 'version', 'description', 'status', 'assignment_type'] },
                 { model: User, as: 'requester', attributes: ['id', 'name', 'email', 'job_role_id'], include: [{ model: JobRole, attributes: ['id', 'role_title'] }] },
-                { model: IssueAssignmentTypes, as: 'issueTypeLinks', attributes: ['id', 'issue_register_id'], include: [{ model: IssueRegister, as: 'issueRegister', attributes: ['id', 'change_issue_type', 'description', 'quantification'] }] },
-                { model: IssueUserAssignments, as: 'userAssignments', attributes: ['id', 'issue_assignment_id', 'user_id'], include: [{ model: User, as: 'user', attributes: ['id', 'name', 'email', 'job_role_id'], include: [{ model: JobRole, attributes: ['id', 'role_title'] }, { model: Designation, attributes: ['id', 'designation_name'] }, { model: Department, attributes: ['id', 'department_name'] }, { model: Location, attributes: ['id', 'location_name'] }] }, { model: IssueDocuments, as: 'documents', attributes: ['id', 'document_name', 'document_path', 'document_type', 'document_size', 'version', 'status', 'review', 'intimate_client', 'uploaded_at', 'uploaded_by'] }] }
+                // separate: one-to-many lists load in their own query instead of multiplying the main join
+                { model: IssueAssignmentTypes, as: 'issueTypeLinks', separate: true, attributes: ['id', 'issue_assignment_id', 'issue_register_id'], include: [{ model: IssueRegister, as: 'issueRegister', attributes: ['id', 'change_issue_type', 'description', 'quantification'] }] },
+                { model: IssueUserAssignments, as: 'userAssignments', separate: true, attributes: ['id', 'issue_assignment_id', 'user_id'], include: [{ model: User, as: 'user', attributes: ['id', 'name', 'email', 'job_role_id'], include: [{ model: JobRole, attributes: ['id', 'role_title'] }, { model: Designation, attributes: ['id', 'designation_name'] }, { model: Department, attributes: ['id', 'department_name'] }, { model: Location, attributes: ['id', 'location_name'] }] }, { model: IssueDocuments, as: 'documents', attributes: ['id', 'document_name', 'document_path', 'document_type', 'document_size', 'version', 'status', 'review', 'intimate_client', 'uploaded_at', 'uploaded_by'] }] }
             ]
         });
 
@@ -442,12 +471,13 @@ const getIssueAssignmentsWithTaskDetails = async (req, res) => {
         // Fetch all tasks with their details
         const tasks = await Tasks.findAll({
             where: { id: { [Op.in]: taskIds } },
+            order: [['id', 'ASC']],
             include: [
                 { model: RequestType, attributes: ['id', 'request_type', 'description'] },
                 { model: TaskType, attributes: ['id', 'task_type', 'description'] },
                 { model: WorkRequests, attributes: ['id', 'project_name', 'brand', 'description', 'priority', 'status', 'requested_at'], include: [{ model: User, as: 'users', attributes: ['id', 'name', 'email'] }] },
-                { model: TaskDependencies, as: 'dependencies', attributes: ['id', 'dependency_task_id'], include: [{ model: Tasks, as: 'dependencyTask', attributes: ['id', 'task_name', 'status'] }] },
-                { model: TaskReviewHistory, as: 'reviewHistory', attributes: ['id', 'reviewer_id', 'reviewer_type', 'action', 'comments', 'previous_stage', 'new_stage'], include: [{ model: User, as: 'reviewer', attributes: ['id', 'name', 'email'] }] },
+                { model: TaskDependencies, as: 'dependencies', separate: true, attributes: ['id', 'task_id', 'dependency_task_id'], include: [{ model: Tasks, as: 'dependencyTask', attributes: ['id', 'task_name', 'status'] }] },
+                { model: TaskReviewHistory, as: 'reviewHistory', separate: true, order: [['id', 'ASC']], attributes: ['id', 'task_id', 'reviewer_id', 'reviewer_type', 'action', 'comments', 'previous_stage', 'new_stage'], include: [{ model: User, as: 'reviewer', attributes: ['id', 'name', 'email'] }] },
                 { model: User, as: 'assignedUsers', attributes: ['id', 'name', 'email', 'job_role_id'], through: { attributes: [] }, include: [{ model: JobRole, attributes: ['id', 'role_title'] }, { model: Designation, attributes: ['id', 'designation_name'] }, { model: Department, attributes: ['id', 'department_name'] }, { model: Location, attributes: ['id', 'location_name'] }] }
             ]
         });
@@ -472,12 +502,29 @@ const getIssueAssignmentsWithTaskDetails = async (req, res) => {
             });
         }
 
+        // Group rows by task once instead of filtering the full arrays for every task
+        const issuesByTaskId = new Map();
+        issueAssignments.forEach(ia => {
+            if (!issuesByTaskId.has(ia.task_id)) issuesByTaskId.set(ia.task_id, []);
+            issuesByTaskId.get(ia.task_id).push(ia);
+        });
+        const taskAssignmentIdsByTaskId = new Map();
+        allTaskAssignments.forEach(ta => {
+            if (!taskAssignmentIdsByTaskId.has(ta.task_id)) taskAssignmentIdsByTaskId.set(ta.task_id, []);
+            taskAssignmentIdsByTaskId.get(ta.task_id).push(ta.id);
+        });
+
         // Get divisions and managers
         const requestTypeIds = [...new Set(tasks.map(t => t.request_type_id).filter(id => id !== null))];
         let managersMap = {};
+        const divisionIdsByRequestType = new Map();
         if (requestTypeIds.length > 0) {
             const requestDivisionRefs = await RequestDivisionReference.findAll({
                 where: { request_id: { [Op.in]: requestTypeIds } }
+            });
+            requestDivisionRefs.forEach(ref => {
+                if (!divisionIdsByRequestType.has(ref.request_id)) divisionIdsByRequestType.set(ref.request_id, []);
+                divisionIdsByRequestType.get(ref.request_id).push(ref.division_id);
             });
             const divisionIds = [...new Set(requestDivisionRefs.map(ref => ref.division_id))];
 
@@ -521,7 +568,7 @@ const getIssueAssignmentsWithTaskDetails = async (req, res) => {
 
         for (const task of tasks) {
             // Get all issue assignments for this task
-            const taskIssueAssignments = issueAssignments.filter(ia => ia.task_id === task.id);
+            const taskIssueAssignments = issuesByTaskId.get(task.id) || [];
 
             // Process issue types for each issue assignment
             const issues = taskIssueAssignments.map(issueAssignment => {
@@ -609,7 +656,7 @@ const getIssueAssignmentsWithTaskDetails = async (req, res) => {
 
             // Get task documents
             const taskDocs = [];
-            const taskAssignmentIds = allTaskAssignments.filter(ta => ta.task_id === task.id).map(ta => ta.id);
+            const taskAssignmentIds = taskAssignmentIdsByTaskId.get(task.id) || [];
             taskAssignmentIds.forEach(taId => {
                 if (taskDocumentsMap[taId]) {
                     taskDocumentsMap[taId].forEach(doc => {
@@ -632,10 +679,7 @@ const getIssueAssignmentsWithTaskDetails = async (req, res) => {
             // Get managers for this task's request_type
             const taskManagers = [];
             if (task.request_type_id) {
-                const reqDivRefs = await RequestDivisionReference.findAll({
-                    where: { request_id: task.request_type_id }
-                });
-                const reqDivisionIds = reqDivRefs.map(ref => ref.division_id);
+                const reqDivisionIds = divisionIdsByRequestType.get(task.request_type_id) || [];
                 reqDivisionIds.forEach(divId => {
                     if (managersMap[divId]) {
                         taskManagers.push(...managersMap[divId]);
@@ -676,30 +720,30 @@ const getIssueAssignmentsWithTaskDetails = async (req, res) => {
                     task_name: task.task_name,
                     description: task.description,
                     request_type_id: task.request_type_id,
-                    request_type: task.requesttype ? {
-                        id: task.requesttype.id,
-                        request_type: task.requesttype.request_type,
-                        description: task.requesttype.description
+                    request_type: task.RequestType ? {
+                        id: task.RequestType.id,
+                        request_type: task.RequestType.request_type,
+                        description: task.RequestType.description
                     } : null,
                     task_type_id: task.task_type_id,
-                    task_type: task.tasktype ? {
-                        id: task.tasktype.id,
-                        task_type: task.tasktype.task_type,
-                        description: task.tasktype.description
+                    task_type: task.TaskType ? {
+                        id: task.TaskType.id,
+                        task_type: task.TaskType.task_type,
+                        description: task.TaskType.description
                     } : null,
                     work_request_id: task.work_request_id,
-                    work_request: task.workrequest ? {
-                        id: task.workrequest.id,
-                        project_name: task.workrequest.project_name,
-                        brand: task.workrequest.brand,
-                        description: task.workrequest.description,
-                        priority: task.workrequest.priority,
-                        status: task.workrequest.status,
-                        requested_at: task.workrequest.requested_at,
-                        client: task.workrequest.users ? {
-                            id: task.workrequest.users.id,
-                            name: task.workrequest.users.name,
-                            email: task.workrequest.users.email
+                    work_request: task.WorkRequest ? {
+                        id: task.WorkRequest.id,
+                        project_name: task.WorkRequest.project_name,
+                        brand: task.WorkRequest.brand,
+                        description: task.WorkRequest.description,
+                        priority: task.WorkRequest.priority,
+                        status: task.WorkRequest.status,
+                        requested_at: task.WorkRequest.requested_at,
+                        client: task.WorkRequest.users ? {
+                            id: task.WorkRequest.users.id,
+                            name: task.WorkRequest.users.name,
+                            email: task.WorkRequest.users.email
                         } : null
                     } : null,
                     deadline: task.deadline,
@@ -733,7 +777,12 @@ const getIssueAssignmentsWithTaskDetails = async (req, res) => {
             });
         }
 
-        res.json({ success: true, data: result, message: 'Tasks with issue assignments retrieved successfully' });
+        res.json({
+            success: true,
+            data: result,
+            pagination: { page, limit, total, total_pages: limit === -1 ? 1 : Math.ceil(total / limit) },
+            message: 'Tasks with issue assignments retrieved successfully'
+        });
     } catch (error) {
         console.error('Error fetching issue assignments with task details:', error);
         res.status(500).json({ success: false, error: error.message, message: 'Failed to fetch issue assignments with task details' });

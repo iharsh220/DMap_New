@@ -62,7 +62,7 @@ app.use(cors({
 }));
 
 app.use(compression({
-    skip: function(req, res) {
+    skip: function (req, res) {
         if (req.path && req.path.indexOf('/upload/progress/') !== -1) {
             return true;
         }
@@ -101,6 +101,10 @@ app.get(baseRoute, (req, res) => res.redirect(`${basePath}/datatable/admin/login
 
 // Error handling middleware
 app.use((err, req, res, next) => {
+    // Malformed JSON body is a client error, not a server failure
+    if (err.type === 'entity.parse.failed') {
+        return res.status(400).json({ success: false, error: 'Invalid JSON in request body' });
+    }
     console.error(err.stack);
     res.status(500).json({ error: 'Something went wrong!' });
 });

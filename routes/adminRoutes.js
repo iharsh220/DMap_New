@@ -2,8 +2,21 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const paginationMiddleware = require('../middleware/paginationMiddleware');
+const { authenticateToken } = require('../middleware/jwtMiddleware');
 const { cachedAdminData, invalidateAdminCache } = require('../services/adminCacheService');
-const { getAdminData, getAllFeedback, getClientsData,getTaskDetailsData, getTasksForWorkRequest, getIssueDetailsData, getWorkRequestTasksData, getDeletePreview, deleteProject, deleteClient, deleteTask, deleteIssue, getAllLeaves, getLeaveById, createLeave, updateLeave, deleteLeave, getLeaveKpis, getLeaveUsers, getUserDivision, uploadLeaves, exportLeavesCsv, exportLeavesExcel, getEditData, getRequestTypes, getProjectTypesByProject, getCreativeManagerByProject, updateProject, updateClient, updateTask, updateIssue, getMasterCardData, uploadMasterCard, updateMasterCard, deleteMasterCard, sseProgress, updateMasterCardField, getFinancialYears } = require('../controller/adminController');
+const { getAdminData, getAllFeedback, getClientsData,getTaskDetailsData, getTasksForWorkRequest, getIssueDetailsData, getWorkRequestTasksData, getDeletePreview, deleteProject, deleteClient, deleteTask, deleteIssue, getAllLeaves, getLeaveById, createLeave, updateLeave, deleteLeave, getLeaveKpis, getLeaveUsers, getUserDivision, uploadLeaves, exportLeavesCsv, exportLeavesExcel, getEditData, getRequestTypes, getProjectTypesByProject, getCreativeManagerByProject, updateProject, updateClient, updateTask, updateIssue, getMasterCardData, uploadMasterCard, updateMasterCard, deleteMasterCard, sseProgress, updateMasterCardField, getFinancialYears, getFilterOptions, getOverviewData } = require('../controller/adminController');
+
+// Every admin API call needs a valid access token. Only the HTML pages, their shared
+// CSS/JS and the upload progress streams (EventSource cannot send headers; they are
+// keyed by a random job id) are served without one.
+const PUBLIC_ADMIN_GET_PATHS = /^\/admin\/(login|overview|clients|projectsdetails|taskdetails|issuedetails|workrequesttasks|powerbi|leaves|master-card|feedback|dmap-theme\.css|admin-app\.js)$|^\/admin\/(leaves|master-card)\/upload\/progress\/[^/]+$/;
+
+router.use((req, res, next) => {
+    if (req.method === 'GET' && PUBLIC_ADMIN_GET_PATHS.test(req.path)) {
+        return next();
+    }
+    return authenticateToken(req, res, next);
+});
 
 // Serve shared CSS theme
 router.get('/admin/dmap-theme.css', (req, res) => {
@@ -11,16 +24,25 @@ router.get('/admin/dmap-theme.css', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'dmap-theme.css'));
 });
 
-// Serve shared theme toggle JS
-router.get('/admin/admin-theme.js', (req, res) => {
+// Serve the shared admin UI script (layout, data grid, filters, KPIs, export, dialogs)
+router.get('/admin/admin-app.js', (req, res) => {
     res.setHeader('Content-Type', 'application/javascript');
-    res.sendFile(path.join(__dirname, '..', 'public', 'admin-theme.js'));
+    res.sendFile(path.join(__dirname, '..', 'public', 'admin-app.js'));
 });
 
 // Serve login HTML
 router.get('/admin/login', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'login.html'));
 });
+
+// Serve overview dashboard HTML
+router.get('/admin/overview', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'overview.html'));
+});
+
+// Overview KPIs / trends and the select-filter values used by every grid
+router.get('/admin/overview/data', cachedAdminData(getOverviewData));
+router.get('/admin/filter-options', cachedAdminData(getFilterOptions));
 
 // Serve clients HTML
 router.get('/admin/clients', (req, res) => {
