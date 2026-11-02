@@ -5833,6 +5833,7 @@ const getIssueAssignments = async (req, res) => {
 
 // Assign issue assignment to a user
 const assignIssueToUser = async (req, res) => {
+    
     try {
         const manager_id = req.user.id;
         const issue_assignment_id = parseId(req.body.issue_assignment_id);
