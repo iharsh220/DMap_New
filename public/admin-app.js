@@ -205,21 +205,27 @@
             { page: 'powerbi', label: 'Power BI', icon: 'bar-chart-line' }
         ] },
         { section: 'Work', items: [
-            { page: 'projectsdetails', label: 'Projects', icon: 'folder2-open' },
             { page: 'clients', label: 'Client requests', icon: 'people' },
+            { page: 'projectsdetails', label: 'Projects', icon: 'folder2-open' },
             { page: 'taskdetails', label: 'Tasks', icon: 'check2-square' },
             { page: 'issuedetails', label: 'Changes', icon: 'arrow-repeat' },
-            { page: 'workrequesttasks', label: 'Raw data', icon: 'table' }
+            { page: 'workrequesttasks', label: 'Raw data', icon: 'table', adminOnly: true }
         ] },
-        { section: 'Manage', items: [
+        // Manage pages (and Raw data above) are for the super admin only (their APIs are role-checked too)
+        { section: 'Manage', adminOnly: true, items: [
             { page: 'feedback', label: 'Feedback', icon: 'chat-square-heart' },
             { page: 'leaves', label: 'Leaves', icon: 'calendar2-week' },
             { page: 'master-card', label: 'Rate card', icon: 'credit-card-2-front' }
         ] }
     ];
 
+    const ADMIN_ONLY_PAGES = NAV.flatMap(g => g.items.filter(i => g.adminOnly || i.adminOnly).map(i => i.page));
+    D.canOpenPage = page => D.isAdmin() || !ADMIN_ONLY_PAGES.includes(page);
+
     D.shell = function (opts) {
         if (!token()) { toLogin(); throw new Error('Not signed in'); }
+        if (!D.canOpenPage(opts.page)) { window.location.replace(ADMIN + 'overview'); throw new Error('Admins only'); }
+        const nav = NAV.filter(g => !g.adminOnly || D.isAdmin()).map(g => Object.assign({}, g, { items: g.items.filter(i => D.canOpenPage(i.page)) }));
         const u = user() || {};
         const name = u.name || u.email || 'Admin';
         const initials = name.split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase();
@@ -235,7 +241,7 @@
       <div class="dm-brand-text"><div class="dm-brand-name">D-Map</div><div class="dm-brand-sub">Digilabs admin</div></div>
     </div>
     <nav class="dm-nav">
-      ${NAV.map(group => `
+      ${nav.map(group => `
         <div class="dm-nav-section">${esc(group.section)}</div>
         ${group.items.map(item => `
           <a class="dm-nav-item${item.page === opts.page ? ' is-active' : ''}" href="${esc(ADMIN + item.page)}" title="${esc(item.label)}"${item.page === opts.page ? ' aria-current="page"' : ''}>
@@ -827,7 +833,8 @@
         const hash = readHashState() || {};
         this.state = {
             page: hash.p || 1,
-            limit: hash.l || saved.limit || cfg.pageSize || 25,
+            // every page load starts at the default page size; "All" (-1) is never restored
+            limit: hash.l > 0 ? hash.l : (cfg.pageSize || 25),
             search: hash.q || '',
             sort: hash.o ? { key: hash.o[0], dir: hash.o[1] } : (cfg.defaultSort || null),
             filters: hash.f || {}
@@ -842,7 +849,7 @@
     }
 
     Grid.prototype.save = function () {
-        store.set(this.storeKey, { v: this.cfg.version, hidden: [...this.hidden], compact: this.compact, limit: this.state.limit });
+        store.set(this.storeKey, { v: this.cfg.version, hidden: [...this.hidden], compact: this.compact });
     };
 
     // filterOnly columns (e.g. a created date) can be filtered but are not shown as table columns
@@ -1144,7 +1151,7 @@ ${cfg.statusBar ? '<div class="dm-card dm-statusbar" data-status></div>' : ''}
     Grid.prototype.writeHash = function () {
         const s = {};
         if (this.state.page > 1) s.p = this.state.page;
-        if (this.state.limit !== (this.cfg.pageSize || 25)) s.l = this.state.limit;
+        if (this.state.limit > 0 && this.state.limit !== (this.cfg.pageSize || 25)) s.l = this.state.limit;
         if (this.state.search) s.q = this.state.search;
         if (this.state.sort && JSON.stringify(this.state.sort) !== JSON.stringify(this.cfg.defaultSort || null)) s.o = [this.state.sort.key, this.state.sort.dir];
         if (Object.keys(this.state.filters).length) s.f = this.state.filters;
@@ -1624,7 +1631,7 @@ ${share !== null ? `<div class="dm-kpi-meter fg-${esc(k.tone || 'brand')}"><span
         items.forEach(item => {
             const row = document.createElement('div');
             row.className = 'dm-bar-row';
-            if (item.href) { row.dataset.href = item.href; row.tabIndex = 0; row.setAttribute('role', 'link'); }
+            if (item.href || item.onClick) { row.dataset.href = item.href || ''; row.tabIndex = 0; row.setAttribute('role', item.href ? 'link' : 'button'); }
             row.innerHTML = '<span class="dm-bar-label"></span><div class="dm-bar-track"></div><span class="dm-bar-value"></span>';
             row.children[0].textContent = item.label;
             row.children[0].title = item.label;
@@ -1650,9 +1657,10 @@ ${share !== null ? `<div class="dm-kpi-meter fg-${esc(k.tone || 'brand')}"><span
             row.addEventListener('focus', () => showTip());
             row.addEventListener('pointerleave', () => { tip.style.display = 'none'; });
             row.addEventListener('blur', () => { tip.style.display = 'none'; });
-            if (item.href) {
-                row.addEventListener('click', () => { window.location.href = item.href; });
-                row.addEventListener('keydown', e => { if (e.key === 'Enter') window.location.href = item.href; });
+            if (item.href || item.onClick) {
+                const go = () => (item.onClick ? item.onClick() : (window.location.href = item.href));
+                row.addEventListener('click', go);
+                row.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
             }
             list.appendChild(row);
         });

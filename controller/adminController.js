@@ -36,6 +36,7 @@ const fs = require('fs');
 const path = require('path');
 const { clearAdminCache } = require('../services/adminCacheService');
 const { decryptToken } = require('../middleware/jwtMiddleware');
+const { parseId } = require('../utils/validators');
 
 let sseClients = {};
 
@@ -7270,42 +7271,109 @@ const getFilterOptions = async (req, res) => {
     }
 };
 
-// Cross-entity KPIs and trends for the admin Overview page. Optional ?from=&to= (YYYY-MM-DD)
-// limit everything to items created in that range; the monthly trend covers the 12 months up to `to`.
+// Who the Overview is about. Super Admin sees everyone; every other role sees themselves and
+// their team (everyone sharing one of their divisions, the same team as `my-team`).
+// ?division_id= narrows to one division's people and ?user_id= to one person, both only
+// within what the caller may see. `people` is null when nothing narrows the admin's view.
+async function resolveOverviewScope(req) {
+    const select = (sql, replacements) => sequelize.query(sql, { replacements, type: sequelize.QueryTypes.SELECT });
+    const me = req.user.id;
+    const isAdmin = req.user.jobRole && req.user.jobRole.id === 1;
+    const divisionId = req.query.division_id ? parseId(req.query.division_id) : null;
+    const userId = req.query.user_id ? parseId(req.query.user_id) : null;
+    if ((req.query.division_id && !divisionId) || (req.query.user_id && !userId)) {
+        return { status: 400, error: 'Invalid division_id or user_id' };
+    }
+
+    const divisions = isAdmin
+        ? await select('SELECT id, title FROM division ORDER BY title')
+        : await select('SELECT DISTINCT d.id, d.title FROM user_divisions ud JOIN division d ON d.id = ud.division_id WHERE ud.user_id = :me ORDER BY d.title', { me });
+    const divisionIds = divisions.map(d => d.id);
+
+    // Roster for the person filter: all users for the admin, the team for everyone else
+    const roster = await select(`SELECT u.id, u.name, jr.role_title AS role, u.job_role_id, u.account_status,
+            (SELECT GROUP_CONCAT(ud.division_id) FROM user_divisions ud WHERE ud.user_id = u.id) AS division_ids
+        FROM users u LEFT JOIN job_role jr ON jr.id = u.job_role_id
+        WHERE u.name IS NOT NULL AND ${isAdmin ? '1 = 1' : `(u.id = :me${divisionIds.length ? ' OR u.id IN (SELECT ud.user_id FROM user_divisions ud WHERE ud.division_id IN (:divisionIds))' : ''})`}
+        ORDER BY u.name`, { me, divisionIds });
+    roster.forEach(u => { u.division_ids = u.division_ids ? String(u.division_ids).split(',').map(Number) : []; });
+
+    if (divisionId && !divisionIds.includes(divisionId)) return { status: 403, error: 'You cannot view this division' };
+    if (userId && !roster.some(u => u.id === userId)) return { status: 403, error: 'You cannot view this user' };
+
+    let people = isAdmin ? null : roster.map(u => u.id);
+    if (divisionId) people = roster.filter(u => u.division_ids.includes(divisionId)).map(u => u.id);
+    if (userId) people = [userId];
+    // a division with no members: keep the IN list valid and match nobody
+    if (people && !people.length) people = [0];
+
+    return { isAdmin, me, divisionId, userId, divisions, roster, people };
+}
+
+// Cross-entity KPIs, trends and per-person totals for the admin Overview page, limited to the
+// caller's scope (see resolveOverviewScope). Optional ?from=&to= (YYYY-MM-DD) limit everything
+// to items created in that range; the monthly trend covers the 12 months up to `to`.
+// Work pages = tasks.task_count, change pages = issue_assignments.task_count.
 const getOverviewData = async (req, res) => {
     try {
+        const scope = await resolveOverviewScope(req);
+        if (scope.error) return res.status(scope.status).json({ success: false, error: scope.error });
+        const { people } = scope;
+
         const isDate = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
         const from = isDate(req.query.from) ? req.query.from : null;
         const to = isDate(req.query.to) ? req.query.to : null;
-        const replacements = { from, to };
+        const replacements = { from, to, people };
         const range = column => [from ? `${column} >= :from` : null, to ? `${column} < DATE_ADD(:to, INTERVAL 1 DAY)` : null].filter(Boolean).map(c => ` AND ${c}`).join('');
         const select = (sql) => sequelize.query(sql, { replacements, type: sequelize.QueryTypes.SELECT });
         const counts = (column, statuses) => Object.entries(statusCountSql(column, statuses)).map(([key, sql]) => `${sql} AS ${key}`).join(', ');
 
+        // A work request is in scope when someone in `people` raised it, manages it, or was
+        // assigned one of its tasks or changes. A task when it is assigned to them or its request
+        // was raised / managed by them; a change when it is assigned to them, they raised it, or
+        // its task is in scope. Aliases: wr, t, ia, f.
+        const managedOrRaised = alias => `(${alias}.user_id IN (:people) OR EXISTS (SELECT 1 FROM work_request_managers s_wrm WHERE s_wrm.work_request_id = ${alias}.id AND s_wrm.manager_id IN (:people)))`;
+        const taskScopeCond = `(EXISTS (SELECT 1 FROM task_assignments s_ta WHERE s_ta.task_id = t.id AND s_ta.user_id IN (:people))
+            OR EXISTS (SELECT 1 FROM work_requests s_wr WHERE s_wr.id = t.work_request_id AND ${managedOrRaised('s_wr')}))`;
+        const wrScope = people ? ` AND (${managedOrRaised('wr')}
+            OR EXISTS (SELECT 1 FROM tasks s_t JOIN task_assignments s_ta ON s_ta.task_id = s_t.id WHERE s_t.work_request_id = wr.id AND s_t.is_deleted = 0 AND s_ta.user_id IN (:people))
+            OR EXISTS (SELECT 1 FROM tasks s_t JOIN issue_assignments s_ia ON s_ia.task_id = s_t.id AND s_ia.is_deleted = 0
+                JOIN issue_user_assignments s_iua ON s_iua.issue_assignment_id = s_ia.id WHERE s_t.work_request_id = wr.id AND s_iua.user_id IN (:people)))` : '';
+        const taskScope = people ? ` AND ${taskScopeCond}` : '';
+        const issueScope = people ? ` AND (EXISTS (SELECT 1 FROM issue_user_assignments s_iua WHERE s_iua.issue_assignment_id = ia.id AND s_iua.user_id IN (:people))
+            OR ia.requested_by_user_id IN (:people)
+            OR EXISTS (SELECT 1 FROM tasks t WHERE t.id = ia.task_id AND ${taskScopeCond}))` : '';
+        const feedbackScope = people ? ` AND (f.user_id IN (:people) OR EXISTS (SELECT 1 FROM tasks t WHERE t.id = f.task_id AND ${taskScopeCond}))` : '';
+
         const openTask = "t.status NOT IN ('completed', 'cancelled', 'rejected', 'draft')";
-        const [wrRow, taskRow, issueRow, clientRow, feedbackRow, monthly, byVertical, byTaskType, workload, topClients] = await Promise.all([
+        const openIssue = "ia.status NOT IN ('completed', 'cancelled', 'rejected')";
+        const [wrRow, taskRow, issueRow, clientRow, feedbackRow, monthly, byVertical, byTaskType, workload, topClients, peopleRows] = await Promise.all([
             select(`SELECT COUNT(*) AS total, ${counts('wr.status', WORK_REQUEST_STATUSES)}
-                FROM work_requests wr WHERE wr.is_deleted = 0${range('wr.created_at')}`),
+                FROM work_requests wr WHERE wr.is_deleted = 0${range('wr.created_at')}${wrScope}`),
             select(`SELECT COUNT(*) AS total, ${counts('t.status', TASK_STATUSES)},
                     SUM(CASE WHEN ${openTask} AND DATE(t.deadline) < CURDATE() THEN 1 ELSE 0 END) AS overdue,
                     SUM(CASE WHEN ${openTask} AND DATE(t.deadline) BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) AS due_7_days,
-                    SUM(CASE WHEN t.status = 'completed' AND t.review_stage = 'final_approved' THEN 1 ELSE 0 END) AS final_approved
-                FROM tasks t WHERE t.is_deleted = 0${range('t.created_at')}`),
-            select(`SELECT COUNT(*) AS total, ${counts('ia.status', ISSUE_STATUSES)}, COUNT(DISTINCT ia.task_id) AS tasks_with_changes
-                FROM issue_assignments ia WHERE ia.is_deleted = 0${range('ia.created_at')}`),
+                    SUM(CASE WHEN t.status = 'completed' AND t.review_stage = 'final_approved' THEN 1 ELSE 0 END) AS final_approved,
+                    SUM(COALESCE(t.task_count, 0)) AS work_pages,
+                    SUM(CASE WHEN t.status = 'completed' THEN COALESCE(t.task_count, 0) ELSE 0 END) AS completed_work_pages
+                FROM tasks t WHERE t.is_deleted = 0${range('t.created_at')}${taskScope}`),
+            select(`SELECT COUNT(*) AS total, ${counts('ia.status', ISSUE_STATUSES)}, COUNT(DISTINCT ia.task_id) AS tasks_with_changes,
+                    SUM(COALESCE(ia.task_count, 0)) AS change_pages,
+                    SUM(CASE WHEN ia.status = 'completed' THEN COALESCE(ia.task_count, 0) ELSE 0 END) AS completed_change_pages
+                FROM issue_assignments ia WHERE ia.is_deleted = 0${range('ia.created_at')}${issueScope}`),
             select(`SELECT COUNT(DISTINCT wr.user_id) AS clients, COUNT(DISTINCT wr.request_type_id) AS verticals
-                FROM work_requests wr WHERE wr.is_deleted = 0${range('wr.created_at')}`),
+                FROM work_requests wr WHERE wr.is_deleted = 0${range('wr.created_at')}${wrScope}`),
             select(`SELECT COUNT(*) AS total, AVG(f.rating_functionality) AS functionality, AVG(f.rating_timeliness) AS timeliness,
                     AVG(f.rating_communication) AS communication,
                     SUM(CASE WHEN f.recommendation_score >= 9 THEN 1 ELSE 0 END) AS promoters,
                     SUM(CASE WHEN f.recommendation_score <= 6 THEN 1 ELSE 0 END) AS detractors,
                     COUNT(f.recommendation_score) AS scored
-                FROM feedbacks f WHERE f.is_deleted = 0${range('f.created_at')}`),
+                FROM feedbacks f WHERE f.is_deleted = 0${range('f.created_at')}${feedbackScope}`),
             select(`SELECT m.month,
-                    (SELECT COUNT(*) FROM work_requests wr WHERE wr.is_deleted = 0 AND DATE_FORMAT(wr.created_at, '%Y-%m') = m.month) AS requests,
-                    (SELECT COUNT(*) FROM tasks t WHERE t.is_deleted = 0 AND DATE_FORMAT(t.created_at, '%Y-%m') = m.month) AS tasks_created,
-                    (SELECT COUNT(*) FROM tasks t WHERE t.is_deleted = 0 AND t.status = 'completed' AND DATE_FORMAT(t.end_date, '%Y-%m') = m.month) AS tasks_completed,
-                    (SELECT COUNT(*) FROM issue_assignments ia WHERE ia.is_deleted = 0 AND DATE_FORMAT(ia.created_at, '%Y-%m') = m.month) AS changes
+                    (SELECT COUNT(*) FROM work_requests wr WHERE wr.is_deleted = 0 AND DATE_FORMAT(wr.created_at, '%Y-%m') = m.month${wrScope}) AS requests,
+                    (SELECT COUNT(*) FROM tasks t WHERE t.is_deleted = 0 AND DATE_FORMAT(t.created_at, '%Y-%m') = m.month${taskScope}) AS tasks_created,
+                    (SELECT COUNT(*) FROM tasks t WHERE t.is_deleted = 0 AND t.status = 'completed' AND DATE_FORMAT(t.end_date, '%Y-%m') = m.month${taskScope}) AS tasks_completed,
+                    (SELECT COUNT(*) FROM issue_assignments ia WHERE ia.is_deleted = 0 AND DATE_FORMAT(ia.created_at, '%Y-%m') = m.month${issueScope}) AS changes
                 FROM (
                     SELECT DATE_FORMAT(DATE_SUB(${to ? ':to' : 'CURDATE()'}, INTERVAL n MONTH), '%Y-%m') AS month
                     FROM (SELECT 0 n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5
@@ -7316,12 +7384,12 @@ const getOverviewData = async (req, res) => {
                     SUM(CASE WHEN wr.status IN ('accepted', 'assigned', 'in_progress') THEN 1 ELSE 0 END) AS active,
                     SUM(CASE WHEN wr.status = 'pending' THEN 1 ELSE 0 END) AS pending
                 FROM work_requests wr LEFT JOIN request_type rt ON rt.id = wr.request_type_id
-                WHERE wr.is_deleted = 0${range('wr.created_at')}
+                WHERE wr.is_deleted = 0${range('wr.created_at')}${wrScope}
                 GROUP BY name ORDER BY requests DESC LIMIT 12`),
             select(`SELECT COALESCE(tt.task_type, 'Unassigned') AS name, COUNT(*) AS tasks,
                     SUM(CASE WHEN t.status = 'completed' THEN 1 ELSE 0 END) AS completed
                 FROM tasks t LEFT JOIN task_type tt ON tt.id = t.task_type_id
-                WHERE t.is_deleted = 0${range('t.created_at')}
+                WHERE t.is_deleted = 0${range('t.created_at')}${taskScope}
                 GROUP BY name ORDER BY tasks DESC LIMIT 10`),
             select(`SELECT u.name, jr.role_title AS role,
                     SUM(CASE WHEN ${openTask} THEN 1 ELSE 0 END) AS open_tasks,
@@ -7331,7 +7399,7 @@ const getOverviewData = async (req, res) => {
                 JOIN tasks t ON t.id = ta.task_id AND t.is_deleted = 0
                 JOIN users u ON u.id = ta.user_id
                 LEFT JOIN job_role jr ON jr.id = u.job_role_id
-                WHERE 1 = 1${range('t.created_at')}
+                WHERE 1 = 1${range('t.created_at')}${people ? ' AND ta.user_id IN (:people)' : ''}
                 GROUP BY u.id, u.name, jr.role_title
                 ORDER BY open_tasks DESC, completed DESC LIMIT 10`),
             select(`SELECT u.name,
@@ -7339,8 +7407,62 @@ const getOverviewData = async (req, res) => {
                     COUNT(*) AS requests,
                     SUM(CASE WHEN wr.status = 'completed' THEN 1 ELSE 0 END) AS completed
                 FROM work_requests wr JOIN users u ON u.id = wr.user_id
-                WHERE wr.is_deleted = 0${range('wr.created_at')}
-                GROUP BY u.id, u.name ORDER BY requests DESC LIMIT 10`)
+                WHERE wr.is_deleted = 0${range('wr.created_at')}${wrScope}
+                GROUP BY u.id, u.name ORDER BY requests DESC LIMIT 10`),
+            // One row per person: what they raised, managed and were assigned (each item by its own
+            // created_at). DISTINCT on the assignment tables so a duplicate row never double counts.
+            select(`SELECT u.id, u.name, jr.role_title AS role, u.job_role_id, u.account_status,
+                    (SELECT GROUP_CONCAT(d.title ORDER BY d.title SEPARATOR ', ') FROM user_divisions ud JOIN division d ON d.id = ud.division_id WHERE ud.user_id = u.id) AS divisions,
+                    COALESCE(p.projects, 0) AS projects, COALESCE(rq.requested, 0) AS requested, COALESCE(mg.managed, 0) AS managed,
+                    COALESCE(tk.tasks, 0) AS tasks, COALESCE(tk.completed, 0) AS tasks_completed, COALESCE(tk.open_tasks, 0) AS open_tasks,
+                    COALESCE(tk.overdue, 0) AS overdue, COALESCE(tk.work_pages, 0) AS work_pages,
+                    COALESCE(ch.changes, 0) AS changes, COALESCE(ch.completed, 0) AS changes_completed, COALESCE(ch.open_changes, 0) AS open_changes,
+                    COALESCE(ch.change_pages, 0) AS change_pages
+                FROM users u
+                LEFT JOIN job_role jr ON jr.id = u.job_role_id
+                LEFT JOIN (
+                    SELECT x.user_id, COUNT(DISTINCT x.wr_id) AS projects FROM (
+                        SELECT wr.user_id, wr.id AS wr_id FROM work_requests wr WHERE wr.is_deleted = 0${range('wr.created_at')}
+                        UNION SELECT wrm.manager_id, wr.id FROM work_request_managers wrm
+                            JOIN work_requests wr ON wr.id = wrm.work_request_id AND wr.is_deleted = 0 WHERE 1 = 1${range('wr.created_at')}
+                        UNION SELECT ta.user_id, wr.id FROM task_assignments ta
+                            JOIN tasks t ON t.id = ta.task_id AND t.is_deleted = 0
+                            JOIN work_requests wr ON wr.id = t.work_request_id AND wr.is_deleted = 0 WHERE 1 = 1${range('wr.created_at')}
+                        UNION SELECT iua.user_id, wr.id FROM issue_user_assignments iua
+                            JOIN issue_assignments ia ON ia.id = iua.issue_assignment_id AND ia.is_deleted = 0
+                            JOIN tasks t ON t.id = ia.task_id
+                            JOIN work_requests wr ON wr.id = t.work_request_id AND wr.is_deleted = 0 WHERE 1 = 1${range('wr.created_at')}
+                    ) x GROUP BY x.user_id
+                ) p ON p.user_id = u.id
+                LEFT JOIN (
+                    SELECT wr.user_id, COUNT(*) AS requested FROM work_requests wr WHERE wr.is_deleted = 0${range('wr.created_at')} GROUP BY wr.user_id
+                ) rq ON rq.user_id = u.id
+                LEFT JOIN (
+                    SELECT wrm.manager_id AS user_id, COUNT(DISTINCT wr.id) AS managed FROM work_request_managers wrm
+                    JOIN work_requests wr ON wr.id = wrm.work_request_id AND wr.is_deleted = 0 WHERE 1 = 1${range('wr.created_at')} GROUP BY wrm.manager_id
+                ) mg ON mg.user_id = u.id
+                LEFT JOIN (
+                    SELECT ta.user_id, COUNT(*) AS tasks,
+                        SUM(CASE WHEN t.status = 'completed' THEN 1 ELSE 0 END) AS completed,
+                        SUM(CASE WHEN ${openTask} THEN 1 ELSE 0 END) AS open_tasks,
+                        SUM(CASE WHEN ${openTask} AND DATE(t.deadline) < CURDATE() THEN 1 ELSE 0 END) AS overdue,
+                        SUM(COALESCE(t.task_count, 0)) AS work_pages
+                    FROM (SELECT DISTINCT task_id, user_id FROM task_assignments) ta
+                    JOIN tasks t ON t.id = ta.task_id AND t.is_deleted = 0
+                    WHERE 1 = 1${range('t.created_at')} GROUP BY ta.user_id
+                ) tk ON tk.user_id = u.id
+                LEFT JOIN (
+                    SELECT iua.user_id, COUNT(*) AS changes,
+                        SUM(CASE WHEN ia.status = 'completed' THEN 1 ELSE 0 END) AS completed,
+                        SUM(CASE WHEN ${openIssue} THEN 1 ELSE 0 END) AS open_changes,
+                        SUM(COALESCE(ia.task_count, 0)) AS change_pages
+                    FROM (SELECT DISTINCT issue_assignment_id, user_id FROM issue_user_assignments) iua
+                    JOIN issue_assignments ia ON ia.id = iua.issue_assignment_id AND ia.is_deleted = 0
+                    WHERE 1 = 1${range('ia.created_at')} GROUP BY iua.user_id
+                ) ch ON ch.user_id = u.id
+                WHERE u.name IS NOT NULL AND ${people ? 'u.id IN (:people)' : '1 = 1'}
+                  AND (${people && !scope.isAdmin ? "u.account_status = 'active' OR " : ''}COALESCE(p.projects, 0) + COALESCE(tk.tasks, 0) + COALESCE(ch.changes, 0) > 0)
+                ORDER BY projects DESC, tasks DESC, u.name`)
         ]);
 
         const num = value => Number(value || 0);
@@ -7350,18 +7472,30 @@ const getOverviewData = async (req, res) => {
             success: true,
             data: {
                 range: { from, to },
+                scope: {
+                    mode: scope.isAdmin ? 'all' : 'team',
+                    me: scope.me,
+                    division_id: scope.divisionId,
+                    user_id: scope.userId,
+                    divisions: scope.divisions.map(d => ({ id: d.id, title: d.title })),
+                    people: scope.roster.map(u => ({ id: u.id, name: u.name, role: u.role, job_role_id: u.job_role_id, active: u.account_status === 'active', division_ids: u.division_ids }))
+                },
                 work_requests: { total: num(wrRow[0].total), status_counts: statusCountsFrom(wrRow[0], WORK_REQUEST_STATUSES) },
                 tasks: {
                     total: num(taskRow[0].total),
                     status_counts: statusCountsFrom(taskRow[0], TASK_STATUSES),
                     overdue: num(taskRow[0].overdue),
                     due_7_days: num(taskRow[0].due_7_days),
-                    final_approved: num(taskRow[0].final_approved)
+                    final_approved: num(taskRow[0].final_approved),
+                    work_pages: num(taskRow[0].work_pages),
+                    completed_work_pages: num(taskRow[0].completed_work_pages)
                 },
                 changes: {
                     total: num(issueRow[0].total),
                     status_counts: statusCountsFrom(issueRow[0], ISSUE_STATUSES),
-                    tasks_with_changes: num(issueRow[0].tasks_with_changes)
+                    tasks_with_changes: num(issueRow[0].tasks_with_changes),
+                    change_pages: num(issueRow[0].change_pages),
+                    completed_change_pages: num(issueRow[0].completed_change_pages)
                 },
                 clients: { total: num(clientRow[0].clients), verticals: num(clientRow[0].verticals) },
                 feedback: {
@@ -7375,7 +7509,13 @@ const getOverviewData = async (req, res) => {
                 by_vertical: byVertical.map(row => ({ name: row.name, requests: num(row.requests), completed: num(row.completed), active: num(row.active), pending: num(row.pending) })),
                 by_task_type: byTaskType.map(row => ({ name: row.name, tasks: num(row.tasks), completed: num(row.completed) })),
                 workload: workload.map(row => ({ name: row.name, role: row.role, open_tasks: num(row.open_tasks), overdue: num(row.overdue), completed: num(row.completed) })),
-                top_clients: topClients.map(row => ({ name: row.name, division: row.division, requests: num(row.requests), completed: num(row.completed) }))
+                top_clients: topClients.map(row => ({ name: row.name, division: row.division, requests: num(row.requests), completed: num(row.completed) })),
+                people: peopleRows.map(row => ({
+                    id: row.id, name: row.name, role: row.role, job_role_id: row.job_role_id, active: row.account_status === 'active', divisions: row.divisions,
+                    projects: num(row.projects), requested: num(row.requested), managed: num(row.managed),
+                    tasks: num(row.tasks), tasks_completed: num(row.tasks_completed), open_tasks: num(row.open_tasks), overdue: num(row.overdue), work_pages: num(row.work_pages),
+                    changes: num(row.changes), changes_completed: num(row.changes_completed), open_changes: num(row.open_changes), change_pages: num(row.change_pages)
+                }))
             }
         });
     } catch (error) {

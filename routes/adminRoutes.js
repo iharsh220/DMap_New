@@ -3,6 +3,7 @@ const router = express.Router();
 const path = require('path');
 const paginationMiddleware = require('../middleware/paginationMiddleware');
 const { authenticateToken } = require('../middleware/jwtMiddleware');
+const { checkRole } = require('../middleware/roleMiddleware');
 const { cachedAdminData, invalidateAdminCache } = require('../services/adminCacheService');
 const { getAdminData, getAllFeedback, getClientsData,getTaskDetailsData, getTasksForWorkRequest, getIssueDetailsData, getWorkRequestTasksData, getDeletePreview, deleteProject, deleteClient, deleteTask, deleteIssue, getAllLeaves, getLeaveById, createLeave, updateLeave, deleteLeave, getLeaveKpis, getLeaveUsers, getUserDivision, uploadLeaves, exportLeavesCsv, exportLeavesExcel, getEditData, getRequestTypes, getProjectTypesByProject, getCreativeManagerByProject, updateProject, updateClient, updateTask, updateIssue, getMasterCardData, uploadMasterCard, updateMasterCard, deleteMasterCard, sseProgress, updateMasterCardField, getFinancialYears, getFilterOptions, getOverviewData } = require('../controller/adminController');
 
@@ -17,6 +18,12 @@ router.use((req, res, next) => {
     }
     return authenticateToken(req, res, next);
 });
+
+// The "Manage" pages (feedback, leaves, rate card) and Raw data are for the super admin only.
+// Their HTML stays public like the other pages (admin-app.js sends other roles to the
+// overview); every API behind them needs role 1. The upload progress streams stay
+// public (see above): only an admin can start an upload and get its job id.
+const adminOnly = checkRole([1]);
 
 // Serve shared CSS theme
 router.get('/admin/dmap-theme.css', (req, res) => {
@@ -40,8 +47,9 @@ router.get('/admin/overview', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'overview.html'));
 });
 
-// Overview KPIs / trends and the select-filter values used by every grid
-router.get('/admin/overview/data', cachedAdminData(getOverviewData));
+// Overview KPIs / trends (scoped to the caller: admin sees all, others themselves and their
+// team, so it is cached per user) and the select-filter values used by every grid
+router.get('/admin/overview/data', cachedAdminData(getOverviewData, { perUser: true }));
 router.get('/admin/filter-options', cachedAdminData(getFilterOptions));
 
 // Serve clients HTML
@@ -85,25 +93,25 @@ router.get('/admin/master-card', (req, res) => {
 });
 
 // API endpoint for master card data
-router.get('/admin/master-card/data', paginationMiddleware, cachedAdminData(getMasterCardData));
+router.get('/admin/master-card/data', adminOnly, paginationMiddleware, cachedAdminData(getMasterCardData));
 
 // Upload master card data (Excel/CSV)
-router.post('/admin/master-card/upload', uploadMasterCard);
+router.post('/admin/master-card/upload', adminOnly, uploadMasterCard);
 
 // SSE progress endpoint for master card upload
 router.get('/admin/master-card/upload/progress/:jobId', sseProgress);
 
 // Update master card rate
-router.put('/admin/master-card/:id', updateMasterCard);
+router.put('/admin/master-card/:id', adminOnly, updateMasterCard);
 
 // Get distinct financial years
-router.get('/admin/master-card/financial-years', getFinancialYears);
+router.get('/admin/master-card/financial-years', adminOnly, getFinancialYears);
 
 // Bulk update master card field across all records
-router.put('/admin/master-card/field/:field', updateMasterCardField);
+router.put('/admin/master-card/field/:field', adminOnly, updateMasterCardField);
 
 // Delete master card rate
-router.delete('/admin/master-card/:id', deleteMasterCard);
+router.delete('/admin/master-card/:id', adminOnly, deleteMasterCard);
 
  // API endpoint for project details data
 router.get('/admin/projectsdetails/data', paginationMiddleware, cachedAdminData(getAdminData));
@@ -118,7 +126,7 @@ router.get('/admin/taskdetails/data', paginationMiddleware, cachedAdminData(getT
 router.get('/admin/issuedetails/data', paginationMiddleware, cachedAdminData(getIssueDetailsData));
 
 // API endpoint for workrequest tasks raw data
-router.get('/admin/workrequesttasks/data', paginationMiddleware, cachedAdminData(getWorkRequestTasksData));
+router.get('/admin/workrequesttasks/data', adminOnly, paginationMiddleware, cachedAdminData(getWorkRequestTasksData));
 
 // API endpoint for tasks
 router.get('/admin/projectsdetails/tasks/:workRequestId', cachedAdminData(getTasksForWorkRequest));
@@ -156,20 +164,20 @@ router.get('/admin/feedback', (req, res) => {
 });
 
 // API endpoint for feedback data
-router.get('/admin/feedback/data', paginationMiddleware, getAllFeedback);
+router.get('/admin/feedback/data', adminOnly, paginationMiddleware, getAllFeedback);
 
 // API endpoint for leaves data
-router.get('/admin/leaves/data', paginationMiddleware, getAllLeaves);
-router.get('/admin/leaves/users', paginationMiddleware, getLeaveUsers);
-router.get('/admin/leaves/users/:userId/division', getUserDivision);
-router.get('/admin/leaves/kpis', getLeaveKpis);
-router.get('/admin/leaves/export/excel', exportLeavesExcel);
-router.get('/admin/leaves/export/csv', exportLeavesCsv);
-router.get('/admin/leaves/:id', getLeaveById);
-router.post('/admin/leaves', createLeave);
-router.put('/admin/leaves/:id', updateLeave);
-router.delete('/admin/leaves/:id', deleteLeave);
-router.post('/admin/leaves/upload', uploadLeaves);
+router.get('/admin/leaves/data', adminOnly, paginationMiddleware, getAllLeaves);
+router.get('/admin/leaves/users', adminOnly, paginationMiddleware, getLeaveUsers);
+router.get('/admin/leaves/users/:userId/division', adminOnly, getUserDivision);
+router.get('/admin/leaves/kpis', adminOnly, getLeaveKpis);
+router.get('/admin/leaves/export/excel', adminOnly, exportLeavesExcel);
+router.get('/admin/leaves/export/csv', adminOnly, exportLeavesCsv);
+router.get('/admin/leaves/:id', adminOnly, getLeaveById);
+router.post('/admin/leaves', adminOnly, createLeave);
+router.put('/admin/leaves/:id', adminOnly, updateLeave);
+router.delete('/admin/leaves/:id', adminOnly, deleteLeave);
+router.post('/admin/leaves/upload', adminOnly, uploadLeaves);
 router.get('/admin/leaves/upload/progress/:jobId', sseProgress);
 
 module.exports = router;
