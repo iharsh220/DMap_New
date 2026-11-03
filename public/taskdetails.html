@@ -18,8 +18,6 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const D = window.DMap;
-    const OPEN = ['draft', 'pending', 'accepted', 'assigned', 'in_progress', 'deferred'];
-    const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); return D.isoDay(d); };
     const C = (key, title, type, extra) => Object.assign({ key, title, type }, extra || {});
 
     const body = D.shell({ page: 'taskdetails', title: 'Tasks', icon: 'check2-square', subtitle: 'Every task across work requests: owners, schedule, effort, cost and turnaround' });
@@ -30,12 +28,8 @@ document.addEventListener('DOMContentLoaded', function () {
         searchPlaceholder: 'Search task, type, client, status or request ID…',
         quick: ['task_status', 'task_type_name', 'task_manager_vertical', 'assigned_creative_user', 'task_deadline'],
         kpis: [
-            { label: 'Total tasks', icon: 'check2-square', tone: 'brand', value: s => s.total, hint: s => `${D.fmt.num(s.projects)} projects` },
-            { label: 'Completed', icon: 'check-circle', tone: 'success', value: s => s.completed, share: true, filter: { key: 'task_status', values: ['completed'] } },
-            { label: 'In progress', icon: 'arrow-repeat', tone: 'info', value: s => s.in_progress, share: true, filter: { key: 'task_status', values: ['in_progress'] } },
-            { label: 'Pending', icon: 'hourglass-split', tone: 'warning', value: s => s.pending, share: true, filter: { key: 'task_status', values: ['pending'] } },
-            { label: 'Overdue', icon: 'alarm', tone: 'danger', value: s => s.overdue, hint: () => 'Open past the deadline',
-              filter: { key: 'task_deadline', type: 'range', from: '', to: yesterday(), also: { task_status: { type: 'exact', values: OPEN } } } }
+            { label: 'Total tasks', icon: 'check2-square', tone: 'brand', value: s => s.work_pages, hint: s => `${D.fmt.num(s.total)} tasks · ${D.fmt.num(s.projects)} projects` },
+            { label: 'Completed', icon: 'check-circle', tone: 'success', value: s => s.completed_work_pages, hint: s => `${D.fmt.pct(s.completed_work_pages, s.work_pages)} of ${D.fmt.num(s.work_pages)}`, filter: { key: 'task_status', values: ['completed'] } }
         ],
         statusBar: { column: 'task_status', title: 'Task status breakdown' },
         columns: [

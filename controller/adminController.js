@@ -3412,11 +3412,10 @@ const getTaskDetailsData = async (req, res) => {
                    ISSUE WORK PAGES
                    
                    IMPORTANT:
-                   Directly calculate from issue_assignments
-                   for this task only.
-                   
-                   Same logic as getAdminData:
-                   ia.is_deleted = 0
+                   SUM(issue_assignments.task_count) of every
+                   change on this task (ia.is_deleted = 0,
+                   any status, any financial year; the same
+                   changes as change_cost)
                    ========================================== */
 
                 COALESCE(
@@ -3425,18 +3424,8 @@ const getTaskDetailsData = async (req, res) => {
                             COALESCE(ia_issue.task_count, 0)
                         )
                         FROM issue_assignments ia_issue
-                        INNER JOIN tasks t_issue
-                            ON t_issue.id = ia_issue.task_id
-                           AND t_issue.is_deleted = 0
                         WHERE ia_issue.task_id = t.id
                           AND ia_issue.is_deleted = 0
-                          AND (
-                              CASE
-                                  WHEN MONTH(t_issue.end_date) >= 4
-                                  THEN CONCAT('FY ', YEAR(t_issue.end_date), '-', RIGHT(YEAR(t_issue.end_date) + 1, 2))
-                                  ELSE CONCAT('FY ', YEAR(t_issue.end_date) - 1, '-', RIGHT(YEAR(t_issue.end_date), 2))
-                              END
-                          ) = 'FY 2026-27'
                     ),
                     0
                 ) AS issue_no_of_work_pages,
@@ -4211,10 +4200,15 @@ const getTaskDetailsData = async (req, res) => {
             pending_count: `SUM(CASE WHEN ${c.status} = 'pending' THEN 1 ELSE 0 END)`,
             overdue_count: `SUM(CASE WHEN DATE(${c.deadline}) < CURDATE() AND ${c.status} NOT IN ('completed', 'cancelled', 'rejected') THEN 1 ELSE 0 END)`,
             projects_count: `COUNT(DISTINCT ${c.workRequest})`,
+            // Work pages = SUM(tasks.task_count) for the KPI cards
+            work_pages_sum: `SUM(COALESCE(${c.pages}, 0) + 0)`,
+            completed_work_pages_sum: `SUM(CASE WHEN ${c.status} = 'completed' THEN COALESCE(${c.pages}, 0) + 0 ELSE 0 END)`,
             ...statusCountSql(c.status, TASK_STATUSES)
         });
         const buildSummary = (row, total) => ({
             total: Number(total),
+            work_pages: Number(row.work_pages_sum || 0),
+            completed_work_pages: Number(row.completed_work_pages_sum || 0),
             completed: Number(row.completed_count || 0),
             in_progress: Number(row.in_progress_count || 0),
             pending: Number(row.pending_count || 0),
@@ -4232,7 +4226,7 @@ const getTaskDetailsData = async (req, res) => {
                 defaultOrder: 'x.task_id DESC',
                 limit,
                 offset,
-                summary: summarySql({ status: 'x.task_status', deadline: 'x.task_deadline', workRequest: 'x.work_request_id' })
+                summary: summarySql({ status: 'x.task_status', deadline: 'x.task_deadline', workRequest: 'x.work_request_id', pages: 'x.task_no_of_work_pages' })
             });
             return res.json({
                 data: isAdmin ? outer.rows : outer.rows.map(row => omitKeys(row, TASK_COST_KEYS)),
@@ -4247,7 +4241,7 @@ const getTaskDetailsData = async (req, res) => {
         // The select list does not change the number of rows, so count over the joins only
         // (counting the full query evaluated every per-row subquery for every task).
         // Same query also returns the status summary for the KPI cards (over all filtered rows)
-        const countSummarySql = summarySql({ status: 't.status', deadline: 't.deadline', workRequest: 't.work_request_id' });
+        const countSummarySql = summarySql({ status: 't.status', deadline: 't.deadline', workRequest: 't.work_request_id', pages: 't.task_count' });
         const countQuery = `
             SELECT
                 COUNT(*) AS total,
@@ -5248,6 +5242,8 @@ const getIssueDetailsData = async (req, res) => {
             pending: Number(row.pending_count || 0),
             overdue: Number(row.overdue_count || 0),
             tasks: Number(row.tasks_count || 0),
+            change_pages: Number(row.change_pages_sum || 0),
+            completed_change_pages: Number(row.completed_change_pages_sum || 0),
             status_counts: statusCountsFrom(row, ISSUE_STATUSES)
         });
 
@@ -5266,6 +5262,9 @@ const getIssueDetailsData = async (req, res) => {
                     pending_count: "SUM(CASE WHEN x.issue_status IN ('m_pending', 'u_pending') THEN 1 ELSE 0 END)",
                     overdue_count: "SUM(CASE WHEN DATE(x.issue_deadline) < CURDATE() AND x.issue_status NOT IN ('completed', 'cancelled', 'rejected') THEN 1 ELSE 0 END)",
                     tasks_count: 'COUNT(DISTINCT x.task_id)',
+                    // Change pages = SUM(issue_assignments.task_count); the outer rows are one per change
+                    change_pages_sum: 'SUM(COALESCE(x.issue_no_of_work_pages, 0) + 0)',
+                    completed_change_pages_sum: "SUM(CASE WHEN x.issue_status = 'completed' THEN COALESCE(x.issue_no_of_work_pages, 0) + 0 ELSE 0 END)",
                     ...statusCountSql('x.issue_status', ISSUE_STATUSES)
                 }
             });
@@ -5293,9 +5292,20 @@ const getIssueDetailsData = async (req, res) => {
                 COUNT(DISTINCT ia.id) AS total,
                 ${Object.entries(countSummarySql).map(([key, sql]) => `${sql} AS ${key}`).join(',\n                ')}
             ${fromWhereSql}`;
-        const countResult = await sequelize.query(countQuery, { replacements, type: sequelize.QueryTypes.SELECT });
+        // Change pages (SUM of issue_assignments.task_count) per distinct change: the assignee and
+        // division joins repeat each change, so it is summed over the matching ids, not the joined rows
+        const pagesQuery = `
+            SELECT
+                SUM(COALESCE(pia.task_count, 0)) AS change_pages_sum,
+                SUM(CASE WHEN pia.status = 'completed' THEN COALESCE(pia.task_count, 0) ELSE 0 END) AS completed_change_pages_sum
+            FROM issue_assignments pia
+            WHERE pia.id IN (SELECT ia.id ${fromWhereSql})`;
+        const [countResult, pagesResult] = await Promise.all([
+            sequelize.query(countQuery, { replacements, type: sequelize.QueryTypes.SELECT }),
+            sequelize.query(pagesQuery, { replacements, type: sequelize.QueryTypes.SELECT })
+        ]);
         const total = countResult[0]?.total || 0;
-        const summary = buildSummary(countResult[0] || {}, total);
+        const summary = buildSummary({ ...(countResult[0] || {}), ...(pagesResult[0] || {}) }, total);
 
         if (orderByClause === 'ia.id DESC' && limit !== -1) {
             // Default sort: find the page's issue ids first, then build the full rows for those ids only
