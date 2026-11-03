@@ -4,7 +4,7 @@ const fs = require('fs');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
 const { recordTaskHistory, recordIssueHistory, recordWorkRequestHistory, recordTaskReviewHistory } = require('../../services/historyService');
-const { parseId } = require('../../utils/validators');
+const { parseId, parseIdList } = require('../../utils/validators');
 const { viewableWorkRequestIdsSubquery } = require('../../services/accessService');
 const {
     IssueRegister,
@@ -117,6 +117,16 @@ const createIssueAssignment = async (req, res) => {
 
         if (!requested_by_user_id || !assignment_type || !version) {
             return res.status(400).json({ success: false, error: 'Missing required fields: requested_by_user_id, assignment_type, version' });
+        }
+
+        // issue_register_ids arrives as an array (JSON) or a string (multipart with files);
+        // validate before anything is written so a bad value never leaves a half-created issue
+        const issueRegisterIds = parseIdList(req.body['issue_register_ids[]'] ?? issue_register_ids);
+        if (issueRegisterIds === null) {
+            return res.status(400).json({ success: false, error: 'issue_register_ids must be a list of ids' });
+        }
+        if (issueRegisterIds.length && await IssueRegister.count({ where: { id: issueRegisterIds } }) !== issueRegisterIds.length) {
+            return res.status(400).json({ success: false, error: 'Unknown issue_register_ids' });
         }
 
         const actor = req.user || {};
@@ -285,8 +295,8 @@ const createIssueAssignment = async (req, res) => {
             }
         }
 
-        if (issue_register_ids && issue_register_ids.length > 0) {
-            const issueTypeLinks = issue_register_ids.map(registerId => ({
+        if (issueRegisterIds.length > 0) {
+            const issueTypeLinks = issueRegisterIds.map(registerId => ({
                 issue_assignment_id: issueAssignment.id,
                 issue_register_id: registerId
             }));

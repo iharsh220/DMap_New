@@ -35,7 +35,7 @@ const { renderTemplate } = require('../../services/templateService');
 const { recordWorkRequestHistory, recordTaskHistory, recordIssueHistory, getWorkRequestHistory: getWorkRequestHistoryRecords } = require('../../services/historyService');
 const { canActAsRequester, canViewWorkRequest } = require('../../services/accessService');
 const { pickModelFilters, pickModelFields } = require('../../utils/queryFilters');
-const { parseId } = require('../../utils/validators');
+const { parseId, parseIdList } = require('../../utils/validators');
 // const { queueFileUpload } = require('../../services/fileUploadService');
 const path = require('path');
 const fs = require('fs');
@@ -2185,6 +2185,16 @@ const pmRejectTask = async (req, res) => {
             return res.status(400).json({ success: false, error: 'task_id or issue_id is required' });
         }
 
+        // issue_register_ids arrives as an array (JSON) or a string (multipart with files);
+        // validate before anything is written so a bad value never leaves a half-created issue
+        const issueRegisterIds = parseIdList(req.body['issue_register_ids[]'] ?? issue_register_ids);
+        if (issueRegisterIds === null) {
+            return res.status(400).json({ success: false, error: 'issue_register_ids must be a list of ids' });
+        }
+        if (issueRegisterIds.length && await IssueRegister.count({ where: { id: issueRegisterIds } }) !== issueRegisterIds.length) {
+            return res.status(400).json({ success: false, error: 'Unknown issue_register_ids' });
+        }
+
         const createChangeRequestIssue = async (targetTaskId, parentIssueId) => {
             const versionCount = await IssueAssignments.count({
                 where: parentIssueId ? { issue_id: parentIssueId } : { task_id: targetTaskId }
@@ -2210,8 +2220,8 @@ const pmRejectTask = async (req, res) => {
                 notification_alert: 1
             });
 
-            if (issue_register_ids && issue_register_ids.length > 0) {
-                const issueTypeLinks = issue_register_ids.map(registerId => ({
+            if (issueRegisterIds.length > 0) {
+                const issueTypeLinks = issueRegisterIds.map(registerId => ({
                     issue_assignment_id: issueAssignment.id,
                     issue_register_id: registerId
                 }));

@@ -17,6 +17,28 @@ const parseIdArray = (values) => {
     return [...new Set(ids)];
 };
 
+// Optional list of ids as sent by JSON or multipart clients: an array, a JSON array string
+// ("[1,2]"), a comma-separated string ("1,2") or a single id. Missing / empty input gives [],
+// anything else that is not a list of positive integers gives null.
+const parseIdList = (value) => {
+    if (value === undefined || value === null || value === '') return [];
+    let list = value;
+    if (typeof value === 'string') {
+        const str = value.trim();
+        if (str === '' || str === '[]') return [];
+        if (str.startsWith('[')) {
+            try { list = JSON.parse(str); } catch (e) { return null; }
+        } else {
+            list = str.split(',');
+        }
+    } else if (!Array.isArray(value)) {
+        list = [value];
+    }
+    if (!Array.isArray(list)) return null;
+    if (list.length === 0) return [];
+    return parseIdArray(list);
+};
+
 // Calendar date as 'YYYY-MM-DD'. Rejects impossible dates such as 2026-02-31,
 // which `new Date()` silently rolls over into the next month.
 const parseDateOnly = (value) => {
@@ -52,6 +74,7 @@ const safePathSegment = (name, fallback = 'unnamed') => {
 module.exports = {
     parseId,
     parseIdArray,
+    parseIdList,
     parseDateOnly,
     todayDateOnly,
     safePathSegment
