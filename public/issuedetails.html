@@ -61,11 +61,8 @@ document.addEventListener('DOMContentLoaded', function () {
             C('issue_no_of_options_provided', 'No. of Options', 'number'),
             C('issue_concept_work', 'No. of Concept Created', 'bool'),
             C('issue_no_of_concepts', 'No. of Concepts', 'number'),
-            C('concept_work_cost', 'Concept Work Cost', 'money', { adminOnly: true }),
             C('issue_no_of_resize', 'No. of Resize Pages', 'number'),
-            C('resize_work_cost', 'Resize Work Cost', 'money', { adminOnly: true }),
             C('issue_no_of_ai_page', 'No. of AI Pages', 'number'),
-            C('ai_charges_cost', 'AI Charges Cost', 'money', { adminOnly: true }),
             C('issue_video_duration', 'Video Duration', 'number'),
             C('issue_no_of_products_shot', 'No. of Products Used', 'number'),
             C('issue_no_of_words_written', 'No. of Words Written', 'number'),
@@ -94,6 +91,9 @@ document.addEventListener('DOMContentLoaded', function () {
             C('fy', 'Financial Year', 'text'),
             // costs last: the change's pages, and its full cost (pages + concepts + resize + AI)
             C('issue_cost', 'Change Cost', 'money', { adminOnly: true }),
+            C('concept_work_cost', 'Concept Work Cost', 'money', { adminOnly: true }),
+            C('ai_charges_cost', 'AI Charges Cost', 'money', { adminOnly: true }),
+            C('resize_work_cost', 'Resize Work Cost', 'money', { adminOnly: true }),
             C('total_cost', 'Total Cost', 'money', { adminOnly: true }),
             C('issue_created_at', 'Created', 'date', { filterOnly: true })
         ],
