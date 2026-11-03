@@ -33,6 +33,7 @@ const {
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
 const { recordWorkRequestHistory, recordTaskHistory, recordIssueHistory, getWorkRequestHistory: getWorkRequestHistoryRecords } = require('../../services/historyService');
+const { completeWorkRequestIfFinished } = require('../../services/workRequestCompletionService');
 const { canActAsRequester, canViewWorkRequest } = require('../../services/accessService');
 const { pickModelFilters, pickModelFields } = require('../../utils/queryFilters');
 const { parseId, parseIdList } = require('../../utils/validators');
@@ -1755,34 +1756,6 @@ const canReviewAsRequester = async (user, workRequestId) => {
     return !!workRequest && canActAsRequester(user.id, workRequest.user_id);
 };
 
-const checkAndCompleteWorkRequest = async (workRequestId) => {
-    const tasks = await Tasks.findAll({ where: { work_request_id: workRequestId, is_deleted: 0 } });
-    if (tasks.length === 0) {
-        await WorkRequests.update({ status: 'completed' }, { where: { id: workRequestId } });
-        return;
-    }
-    const allTasksCompleted = tasks.every(t => 
-        t.status === 'completed' && 
-        t.review === 'approved' && 
-        t.review_stage === 'final_approved'
-    );
-    if (!allTasksCompleted) return;
-    const taskIds = tasks.map(t => t.id);
-    const issues = await IssueAssignments.findAll({ where: { task_id: { [Op.in]: taskIds }, is_deleted: 0 } });
-    if (issues.length === 0) {
-        await WorkRequests.update({ status: 'completed' }, { where: { id: workRequestId } });
-        return;
-    }
-    const allIssuesCompleted = issues.every(i => 
-        i.status === 'completed' && 
-        i.review === 'approved' && 
-        i.review_stage === 'final_approved'
-    );
-    if (allIssuesCompleted) {
-        await WorkRequests.update({ status: 'completed' }, { where: { id: workRequestId } });
-    }
-};
-
 const pmApproveTask = async (req, res) => {
     try {
         const { task_id, issue_id } = req.body;
@@ -1883,7 +1856,8 @@ const pmApproveTask = async (req, res) => {
             comments: 'PM approved task'
         });
 
-        await checkAndCompleteWorkRequest(task.work_request_id);
+        // Was this the last open item? Then the work request is completed (with history)
+        const workRequestCompleted = await completeWorkRequestIfFinished(task.work_request_id, { req, relatedTaskId: task.id });
 
         // Fetch updated task
         const updatedTask = await Tasks.findByPk(task_id, {
@@ -1906,6 +1880,7 @@ const pmApproveTask = async (req, res) => {
         res.json({
             success: true,
             data: updatedTask,
+            work_request_completed: workRequestCompleted,
             message: 'Task and associated documents (intimate_client=1) approved successfully by PM'
         });
 
@@ -1994,10 +1969,13 @@ const handleIssuePmApproval = async (req, res, issueId) => {
                 { where: { task_id: taskId } }
             );
 
-            // Update the task to status='accepted', review='approved', review_stage='final_approved'
+            // Approving the change request finally approves its task too. The task's work is done, so it
+            // is (or stays) 'completed'; it used to be moved back to 'accepted', which kept the work
+            // request open for good and let the daily scheduler reopen the task as in_progress.
             const linkedTask = await Tasks.findByPk(taskId);
 
             if (linkedTask) {
+                const linkedTaskStatus = ['cancelled', 'rejected'].includes(linkedTask.status) ? linkedTask.status : 'completed';
                 await recordTaskHistory({
                     req,
                     taskId: linkedTask.id,
@@ -2005,12 +1983,12 @@ const handleIssuePmApproval = async (req, res, issueId) => {
                     action: 'pm_approved_issue_linked_task',
                     previousData: linkedTask,
                     nextData: {
-                        status: 'accepted',
+                        status: linkedTaskStatus,
                         review: 'approved',
                         review_stage: 'final_approved'
                     },
                     previousStatus: linkedTask.status,
-                    newStatus: 'accepted',
+                    newStatus: linkedTaskStatus,
                     previousReview: linkedTask.review,
                     newReview: 'approved',
                     previousReviewStage: linkedTask.review_stage,
@@ -2019,7 +1997,7 @@ const handleIssuePmApproval = async (req, res, issueId) => {
                 });
 
                 await linkedTask.update({
-                    status: 'accepted',
+                    status: linkedTaskStatus,
                     review: 'approved',
                     review_stage: 'final_approved'
                 });
@@ -2113,9 +2091,7 @@ const handleIssuePmApproval = async (req, res, issueId) => {
             comments: 'PM approved issue'
         });
 
-        if (issueAssignment.task?.WorkRequest?.id) {
-            await checkAndCompleteWorkRequest(issueAssignment.task.WorkRequest.id);
-        }
+        const workRequestCompleted = await completeWorkRequestIfFinished(issueAssignment.task?.WorkRequest?.id, { req, relatedTaskId: issueAssignment.task_id, relatedIssueId: issueAssignment.id });
 
         // Fetch updated issue
         const updatedIssue = await IssueAssignments.findByPk(issueId, {
@@ -2154,6 +2130,7 @@ const handleIssuePmApproval = async (req, res, issueId) => {
                 issue: updatedIssue,
                 allIssuesUpdated: allUpdatedIssues,
                 linkedTaskUpdated: issueAssignment.task_id ? true : false,
+                workRequestCompleted,
                 reviewAction: {
                     action: 'approved',
                     previousStage,

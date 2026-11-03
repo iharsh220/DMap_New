@@ -5,6 +5,7 @@ const { Tasks, WorkRequests, IssueAssignments, User } = require('../models');
 const { sendMail } = require('./mailService');
 const { renderTemplate } = require('./templateService');
 const { recordPmReviewReminderHistory } = require('./historyService');
+const { completeAllFinishedWorkRequests } = require('./workRequestCompletionService');
 
 // Create task scheduler queue
 const taskSchedulerQueue = new Queue('task-scheduler-queue', {
@@ -29,6 +30,10 @@ const taskSchedulerWorker = new Worker('task-scheduler-queue', async (job) => {
 
   if (type === 'pm_review_reminders') {
     return await sendPmReviewPendingReminders();
+  }
+
+  if (type === 'complete_work_requests') {
+    return await completeAllFinishedWorkRequests();
   }
 
   throw new Error(`Unknown job type: ${type}`);
@@ -65,7 +70,9 @@ const progressTasksWithTodayStartDate = async () => {
       where: {
         status: 'accepted',
         is_deleted: 0,
-        start_date: { [Op.lt]: tomorrow }
+        start_date: { [Op.lt]: tomorrow },
+        // a task the PM already finally approved is finished, never restart it
+        [Op.not]: { review: 'approved', review_stage: 'final_approved' }
       },
       attributes: ['id', 'work_request_id'],
       raw: true
@@ -300,6 +307,10 @@ const scheduleTaskProgression = () => {
       // Progress issues with today's start date
       await taskSchedulerQueue.add('progress-issues', { type: 'progress_issues' });
       console.log('Issue progression job queued successfully');
+
+      // Complete work requests whose tasks and change requests are all completed and approved
+      await taskSchedulerQueue.add('complete-work-requests', { type: 'complete_work_requests' });
+      console.log('Work request completion job queued successfully');
     } catch (error) {
       console.error('Failed to queue task/issue progression job:', error);
     }
@@ -321,7 +332,7 @@ const scheduleTaskProgression = () => {
   //   timezone: 'Asia/Kolkata'
   // });
 
-  console.log('Task and Issue progression scheduler initialized - runs daily at 12:01 AM IST (checks start_date)');
+  console.log('Task and Issue progression + work request completion scheduler initialized - runs daily at 12:01 AM IST');
   console.log('PM review reminder scheduler initialized - runs on weekdays at 9:00 AM and 5:00 PM IST');
 };
 
@@ -344,6 +355,17 @@ const triggerIssueProgression = async () => {
     return result;
   } catch (error) {
     console.error('Failed to trigger issue progression:', error);
+    throw error;
+  }
+};
+
+// Function to manually trigger the work request completion check (for testing)
+const triggerWorkRequestCompletion = async () => {
+  try {
+    const result = await taskSchedulerQueue.add('complete-work-requests', { type: 'complete_work_requests' });
+    return result;
+  } catch (error) {
+    console.error('Failed to trigger work request completion:', error);
     throw error;
   }
 };
@@ -372,7 +394,9 @@ module.exports = {
   triggerTaskProgression,
   triggerIssueProgression,
   triggerPmReviewPendingReminders,
+  triggerWorkRequestCompletion,
   progressTasksWithTodayStartDate,
   progressIssuesWithTodayStartDate,
-  sendPmReviewPendingReminders
+  sendPmReviewPendingReminders,
+  completeAllFinishedWorkRequests
 };
