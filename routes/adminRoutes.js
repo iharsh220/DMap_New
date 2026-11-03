@@ -4,13 +4,14 @@ const path = require('path');
 const paginationMiddleware = require('../middleware/paginationMiddleware');
 const { authenticateToken } = require('../middleware/jwtMiddleware');
 const { checkRole } = require('../middleware/roleMiddleware');
+const { reportAccess, getReportData, postReportAction, uploadHighlight, generateReport, downloadReport, highlightImage } = require('../controller/weeklyReportController');
 const { cachedAdminData, invalidateAdminCache } = require('../services/adminCacheService');
 const { getAdminData, getAllFeedback, getClientsData,getTaskDetailsData, getTasksForWorkRequest, getIssueDetailsData, getWorkRequestTasksData, getDeletePreview, deleteProject, deleteClient, deleteTask, deleteIssue, getAllLeaves, getLeaveById, createLeave, updateLeave, deleteLeave, getLeaveKpis, getLeaveUsers, getUserDivision, uploadLeaves, exportLeavesCsv, exportLeavesExcel, getEditData, getRequestTypes, getProjectTypesByProject, getCreativeManagerByProject, updateProject, updateClient, updateTask, updateIssue, getMasterCardData, uploadMasterCard, updateMasterCard, deleteMasterCard, sseProgress, updateMasterCardField, getFinancialYears, getFilterOptions, getOverviewData } = require('../controller/adminController');
 
 // Every admin API call needs a valid access token. Only the HTML pages, their shared
 // CSS/JS and the upload progress streams (EventSource cannot send headers; they are
 // keyed by a random job id) are served without one.
-const PUBLIC_ADMIN_GET_PATHS = /^\/admin\/(login|overview|clients|projectsdetails|taskdetails|issuedetails|workrequesttasks|powerbi|leaves|master-card|feedback|dmap-theme\.css|admin-app\.js)$|^\/admin\/(leaves|master-card)\/upload\/progress\/[^/]+$/;
+const PUBLIC_ADMIN_GET_PATHS = /^\/admin\/(login|overview|clients|projectsdetails|taskdetails|issuedetails|workrequesttasks|powerbi|leaves|master-card|feedback|reports|dmap-theme\.css|admin-app\.js)$|^\/admin\/(leaves|master-card)\/upload\/progress\/[^/]+$/;
 
 router.use((req, res, next) => {
     if (req.method === 'GET' && PUBLIC_ADMIN_GET_PATHS.test(req.path)) {
@@ -157,6 +158,17 @@ router.put('/admin/edit/project/:id', invalidateAdminCache, updateProject);
 router.put('/admin/edit/client/:id', invalidateAdminCache, updateClient);
 router.put('/admin/edit/task/:id', invalidateAdminCache, updateTask);
 router.put('/admin/edit/issue/:id', invalidateAdminCache, updateIssue);
+
+// Weekly report (Digilabs managers for their own division, Super Admin for any Digilabs division)
+router.get('/admin/reports', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'reports.html'));
+});
+router.get('/admin/reports/data', reportAccess, getReportData);
+router.post('/admin/reports/action/:action', reportAccess, postReportAction);
+router.post('/admin/reports/highlight/upload', reportAccess, uploadHighlight);
+router.post('/admin/reports/generate', reportAccess, generateReport);
+router.get('/admin/reports/download', reportAccess, downloadReport);
+router.get('/admin/reports/img', reportAccess, highlightImage);
 
 // Serve feedback HTML
 router.get('/admin/feedback', (req, res) => {

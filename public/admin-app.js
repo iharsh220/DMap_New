@@ -211,6 +211,14 @@
             { page: 'issuedetails', label: 'Changes', icon: 'arrow-repeat' },
             { page: 'workrequesttasks', label: 'Raw data', icon: 'table', adminOnly: true }
         ] },
+        // Weekly report (one page, its tabs as nav items): Super Admin and the Digilabs department's
+        // Creative Managers (the API checks it too)
+        { section: 'Report', items: [
+            { page: 'reports', hash: 'client', label: 'Client work', icon: 'briefcase', reportsOnly: true },
+            { page: 'reports', hash: 'init', label: 'Initiatives', icon: 'lightbulb', reportsOnly: true },
+            { page: 'reports', hash: 'extra', label: 'Highlight & notes', icon: 'stars', reportsOnly: true },
+            { page: 'reports', hash: 'settings', label: 'History & settings', icon: 'clock-history', reportsOnly: true }
+        ] },
         // Manage pages (and Raw data above) are for the super admin only (their APIs are role-checked too)
         { section: 'Manage', adminOnly: true, items: [
             { page: 'feedback', label: 'Feedback', icon: 'chat-square-heart' },
@@ -220,12 +228,22 @@
     ];
 
     const ADMIN_ONLY_PAGES = NAV.flatMap(g => g.items.filter(i => g.adminOnly || i.adminOnly).map(i => i.page));
-    D.canOpenPage = page => D.isAdmin() || !ADMIN_ONLY_PAGES.includes(page);
+    const REPORT_PAGES = NAV.flatMap(g => g.items.filter(i => i.reportsOnly).map(i => i.page));
+    D.isDigilabsManager = () => {
+        const u = user();
+        return !!(u && u.jobRole && u.jobRole.id === 2 && u.department && u.department.department_name === 'Digilabs');
+    };
+    D.canOpenPage = page => D.isAdmin()
+        || (REPORT_PAGES.includes(page) ? D.isDigilabsManager() : !ADMIN_ONLY_PAGES.includes(page));
 
     D.shell = function (opts) {
         if (!token()) { toLogin(); throw new Error('Not signed in'); }
         if (!D.canOpenPage(opts.page)) { window.location.replace(ADMIN + 'overview'); throw new Error('Admins only'); }
-        const nav = NAV.filter(g => !g.adminOnly || D.isAdmin()).map(g => Object.assign({}, g, { items: g.items.filter(i => D.canOpenPage(i.page)) }));
+        const nav = NAV.filter(g => !g.adminOnly || D.isAdmin())
+            .map(g => Object.assign({}, g, { items: g.items.filter(i => D.canOpenPage(i.page)) }))
+            .filter(g => g.items.length);
+        // items with a hash are tabs of one page (the weekly report): active when that tab is open
+        const navActive = item => item.page === opts.page && (!item.hash || item.hash === opts.tab);
         const u = user() || {};
         const name = u.name || u.email || 'Admin';
         const initials = name.split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase();
@@ -244,7 +262,7 @@
       ${nav.map(group => `
         <div class="dm-nav-section">${esc(group.section)}</div>
         ${group.items.map(item => `
-          <a class="dm-nav-item${item.page === opts.page ? ' is-active' : ''}" href="${esc(ADMIN + item.page)}" title="${esc(item.label)}"${item.page === opts.page ? ' aria-current="page"' : ''}>
+          <a class="dm-nav-item${navActive(item) ? ' is-active' : ''}" href="${esc(ADMIN + item.page + (item.hash ? '#' + item.hash : ''))}" data-nav-hash="${esc(item.hash || '')}" title="${esc(item.label)}"${navActive(item) ? ' aria-current="page"' : ''}>
             <i class="bi bi-${item.icon}"></i><span class="dm-nav-label">${esc(item.label)}</span>
           </a>`).join('')}`).join('')}
     </nav>
@@ -298,6 +316,17 @@
         const actions = document.querySelector('[data-page-actions]');
         (opts.actions || []).forEach(a => actions.appendChild(D.button(a)));
         return document.querySelector('[data-page-body]');
+    };
+
+    // Marks the nav item of the open tab (pages whose tabs are nav items, see NAV hash)
+    D.setNavTab = function (tab) {
+        document.querySelectorAll('.dm-nav-item[data-nav-hash]').forEach(el => {
+            if (!el.dataset.navHash) return;
+            const on = el.dataset.navHash === tab;
+            el.classList.toggle('is-active', on);
+            if (on) el.setAttribute('aria-current', 'page'); else el.removeAttribute('aria-current');
+        });
+        document.body.classList.remove('dm-nav-open');
     };
 
     D.button = function (a) {
@@ -1443,14 +1472,18 @@ ${share !== null ? `<div class="dm-kpi-meter fg-${esc(k.tone || 'brand')}"><span
     };
 
     // ---- export
+    // Exports every column of the grid (also ones hidden with "Columns"; filter-only keys are not
+    // columns), with numbers, amounts and ids as real numbers in Excel
     Grid.prototype.export = async function (type) {
-        const cols = this.visibleColumns();
+        const cols = this.columns.filter(c => !c.filterOnly);
         D.toast(`Preparing ${type === 'csv' ? 'CSV' : 'Excel'} export of ${fmt.num(this.total)} rows…`, 'info', 2500);
         try {
             const res = await api(this.cfg.endpoint + '?' + this.params(true).toString());
             const rows = (this.cfg.rowsFrom ? this.cfg.rowsFrom(res) : res.data || []).map(row => cols.map(c => {
                 const v = c.exportValue ? c.exportValue(row) : this.value(c, row);
-                return v === null || v === undefined ? '' : v;
+                if (v === null || v === undefined) return '';
+                if (NUMERIC_TYPES.includes(c.type) && typeof v === 'string' && /^-?\d+(\.\d+)?$/.test(v.trim())) return Number(v);
+                return v;
             }));
             await D.download(`${this.cfg.exportName || this.cfg.id}_${isoDay(new Date())}`, cols.map(c => c.title), rows, type);
             D.toast(`Exported ${fmt.num(rows.length)} rows`);

@@ -58,7 +58,6 @@ document.addEventListener('DOMContentLoaded', function () {
             C('issue_deadline', 'Change Deadline', 'date'),
             C('task_no_of_work_pages', 'No. of Work Pages', 'number'),
             C('issue_no_of_work_pages', 'No. of Change Pages', 'number'),
-            C('issue_cost', 'Issue Cost', 'money', { adminOnly: true }),
             C('issue_no_of_options_provided', 'No. of Options', 'number'),
             C('issue_concept_work', 'No. of Concept Created', 'bool'),
             C('issue_no_of_concepts', 'No. of Concepts', 'number'),
@@ -93,6 +92,9 @@ document.addEventListener('DOMContentLoaded', function () {
             C('change_version', 'Change Version', 'text'),
             C('month', 'Month', 'text'),
             C('fy', 'Financial Year', 'text'),
+            // costs last: the change's pages, and its full cost (pages + concepts + resize + AI)
+            C('issue_cost', 'Change Cost', 'money', { adminOnly: true }),
+            C('total_cost', 'Total Cost', 'money', { adminOnly: true }),
             C('issue_created_at', 'Created', 'date', { filterOnly: true })
         ],
         detailTitle: row => `${row.task_name || 'Change'} · ${row.change_version || ''}`.replace(/ · $/, ''),

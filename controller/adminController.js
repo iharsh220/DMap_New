@@ -8,8 +8,18 @@ const TASK_STATUSES = ['draft', 'pending', 'accepted', 'assigned', 'in_progress'
 const ISSUE_STATUSES = ['m_pending', 'm_accepted', 'u_pending', 'u_accepted', 'in_progress', 'completed', 'rejected', 'on_hold', 'cancelled'];
 
 // Cost columns are only returned (and only filterable / sortable) for Super Admin
-const TASK_COST_KEYS = ['task_cost', 'concept_work_cost', 'ai_charges_cost', 'resize_work_cost'];
-const ISSUE_COST_KEYS = ['issue_cost', 'concept_work_cost', 'ai_charges_cost', 'resize_work_cost'];
+const TASK_COST_KEYS = ['task_cost', 'concept_work_cost', 'ai_charges_cost', 'resize_work_cost', 'change_cost', 'total_cost'];
+const ISSUE_COST_KEYS = ['issue_cost', 'concept_work_cost', 'ai_charges_cost', 'resize_work_cost', 'total_cost'];
+
+// Full cost of one change request (alias ia_c) at rate card `mc`: change pages, concepts,
+// resize and AI work. The Changes page shows it per change as total_cost; the Tasks page adds
+// it up over the task's changes as change_cost.
+const changeCostSql = (ia, mc) => `(
+                    COALESCE(${ia}.task_count * ${mc}.changes_rate, 0)
+                    + COALESCE(${ia}.concept_work * ${ia}.no_of_concepts * ${mc}.concept_charge, 0)
+                    + COALESCE(${ia}.resize_work * ${mc}.changes_rate * (1 + ${mc}.no_of_resize_pages / 100) * ${ia}.no_of_resize, 0)
+                    + COALESCE(${ia}.no_of_images_videos_audio * ${mc}.ai_charges, 0)
+                )`;
 
 async function isAdminRequest(req) {
     if (req.user && req.user.jobRole) return req.user.jobRole.id === 1;
@@ -3506,6 +3516,45 @@ const getTaskDetailsData = async (req, res) => {
                     0
                 ) AS resize_work_cost,
 
+
+                /* ==========================================
+                   CHANGE COST: every change request of this task
+                   (not deleted), same rates as the Changes page
+                   ========================================== */
+
+                ROUND(COALESCE(
+                    (
+                        SELECT SUM(${changeCostSql('ia_c', 'mc')})
+                        FROM issue_assignments ia_c
+                        WHERE ia_c.task_id = t.id
+                          AND ia_c.is_deleted = 0
+                    ),
+                    0
+                ), 2) AS change_cost,
+
+
+                /* ==========================================
+                   TOTAL COST = task work (pages, concepts,
+                   AI, resize) + all its changes
+                   ========================================== */
+
+                ROUND(
+                    COALESCE(t.task_count * mc.new_work_rate, 0)
+                    + COALESCE(t.concept_work * t.no_of_concepts * mc.concept_charge, 0)
+                    + COALESCE(t.no_of_images_videos_audio * mc.ai_charges, 0)
+                    + COALESCE(t.resize_work * mc.new_work_rate * (1 + mc.no_of_resize_pages / 100) * t.no_of_resize, 0)
+                    + COALESCE(
+                        (
+                            SELECT SUM(${changeCostSql('ia_c2', 'mc')})
+                            FROM issue_assignments ia_c2
+                            WHERE ia_c2.task_id = t.id
+                              AND ia_c2.is_deleted = 0
+                        ),
+                        0
+                    ),
+                    2
+                ) AS total_cost,
+
                 COALESCE(
                     t.no_of_images_videos_audio,
                     0
@@ -4596,6 +4645,9 @@ const getIssueDetailsData = async (req, res) => {
                     ia.no_of_images_videos_audio * mc.ai_charges,
                     0
                 ) AS ai_charges_cost,
+
+                /* Total cost of this change: pages + concepts + resize + AI */
+                ROUND(${changeCostSql('ia', 'mc')}, 2) AS total_cost,
 
                 COALESCE(
                     ia.duration_minutes * 60 + ia.duration_seconds,

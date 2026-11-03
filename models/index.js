@@ -38,6 +38,7 @@ const TaskReviewHistory = require('./TaskReviewHistory/TaskReviewHistory');
 const TaskHistory = require('./TaskHistory/TaskHistory');
 const IssueHistory = require('./IssueHistory/IssueHistory');
 const PmReviewReminderHistory = require('./PmReviewReminderHistory/PmReviewReminderHistory');
+const WeeklyReportState = require('./WeeklyReportState/WeeklyReportState');
 const Feedbacks = require('./Feedbacks/Feedbacks');
 const Leave = require('./Leave/Leave');
 
@@ -249,5 +250,6 @@ module.exports = {
   IssueHistory,
   PmReviewReminderHistory,
   Feedbacks,
-  Leave
+  Leave,
+  WeeklyReportState
 };

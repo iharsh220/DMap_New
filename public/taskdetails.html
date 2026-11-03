@@ -57,7 +57,6 @@ document.addEventListener('DOMContentLoaded', function () {
             C('task_end_date', 'Task End Date', 'date'),
             C('task_deadline', 'Task Deadline', 'date'),
             C('task_no_of_work_pages', 'No. of Work Pages', 'number'),
-            C('task_cost', 'Task Cost', 'money', { adminOnly: true }),
             C('issue_no_of_work_pages', 'No. of Change Pages', 'number'),
             C('task_no_of_options_provided', 'No. of Options', 'number'),
             C('task_concept_work', 'No. of Concept Created', 'bool'),
@@ -93,6 +92,10 @@ document.addEventListener('DOMContentLoaded', function () {
             C('change_version', 'Change Version', 'text'),
             C('month', 'Month', 'text'),
             C('fy', 'Financial Year', 'text'),
+            // costs last: task work, all its changes, and the two together
+            C('task_cost', 'Task Cost', 'money', { adminOnly: true }),
+            C('change_cost', 'Change Cost', 'money', { adminOnly: true }),
+            C('total_cost', 'Total Cost', 'money', { adminOnly: true }),
             C('task_created_at', 'Created', 'date', { filterOnly: true })
         ],
         detailTitle: row => row.task_name || `Task #${row.task_id}`,
@@ -102,7 +105,7 @@ document.addEventListener('DOMContentLoaded', function () {
             { title: 'People', keys: ['task_requester_name', 'client_division', 'project_manager', 'project_manager_vertical', 'task_manager', 'task_manager_vertical', 'assigned_creative_user', 'cu_vertical'] },
             { title: 'Schedule', keys: ['task_start_date', 'task_end_date', 'task_deadline', 'task_request_timestamp', 'task_request_response_timestamp', 'task_output_shared_with_cm_timestamp', 'task_output_response_by_cm_timestamp', 'task_output_shared_with_client_timestamp', 'task_output_response_by_client_timestamp'] },
             { title: 'Turnaround', keys: ['task_request_to_response_tat', 'task_acceptance_to_completion_tat_by_cu', 'task_output_shared_to_response_by_cm_tat', 'task_internal_tat', 'task_whole_tat'] },
-            { title: 'Effort & cost', keys: ['task_no_of_work_pages', 'task_cost', 'issue_no_of_work_pages', 'task_no_of_options_provided', 'task_concept_work', 'task_no_of_concepts', 'concept_work_cost', 'task_no_of_resize', 'task_resize_work', 'resize_work_cost', 'task_no_of_ai_page', 'task_ai', 'ai_charges_cost', 'video_duration', 'task_no_of_products_shot', 'task_no_of_words_written', 'task_no_of_responsive_screen', 'task_shoot_setup'] }
+            { title: 'Effort & cost', keys: ['task_cost', 'change_cost', 'total_cost', 'task_no_of_work_pages', 'issue_no_of_work_pages', 'task_no_of_options_provided', 'task_concept_work', 'task_no_of_concepts', 'concept_work_cost', 'task_no_of_resize', 'task_resize_work', 'resize_work_cost', 'task_no_of_ai_page', 'task_ai', 'ai_charges_cost', 'video_duration', 'task_no_of_products_shot', 'task_no_of_words_written', 'task_no_of_responsive_screen', 'task_shoot_setup'] }
         ],
         rowActions: [
             { icon: 'pencil', label: 'Edit task', onClick: row => editTask(row) },

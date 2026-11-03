@@ -121,3 +121,6 @@ ecosystem.config.js
 .kilo/
 # Ignore all SQL files in migrations folder
 migrations/*.sql
+
+# Weekly report files (generated .pptx and highlight images)
+storage/
