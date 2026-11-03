@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', function () {
         id: 'tasks', version: 4, title: 'Tasks', icon: 'check2-square',
         endpoint: 'taskdetails/data', exportName: 'tasks', pinned: 3,
         searchPlaceholder: 'Search task, type, client, status or request ID…',
-        quick: ['task_status', 'task_type_name', 'assigned_creative_user', 'task_deadline'],
+        quick: ['task_status', 'task_type_name', 'task_manager_vertical', 'assigned_creative_user', 'task_deadline'],
         kpis: [
             { label: 'Total tasks', icon: 'check2-square', tone: 'brand', value: s => s.total, hint: s => `${D.fmt.num(s.projects)} projects` },
             { label: 'Completed', icon: 'check-circle', tone: 'success', value: s => s.completed, share: true, filter: { key: 'task_status', values: ['completed'] } },
@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', function () {
             C('project_manager', 'Project Manager', 'text', { filter: 'select', options: 'managers', match: 'contains' }),
             C('project_manager_vertical', 'Project Manager Vertical', 'text', { filter: 'select', options: 'divisions', match: 'contains' }),
             C('task_manager', 'Task Manager', 'text', { filter: 'select', options: 'managers', match: 'contains' }),
-            C('task_manager_vertical', 'Task Manager Vertical', 'text', { filter: 'select', options: 'divisions', match: 'contains' }),
+            C('task_manager_vertical', 'Task Manager Vertical', 'text', { filter: 'select', options: 'digilabs_verticals', match: 'contains' }),
             C('assigned_creative_user', 'Assigned Creative User', 'text', { filter: 'select', options: 'creative_team', match: 'contains' }),
             C('cu_vertical', 'CU Vertical', 'text', { filter: 'select', options: 'divisions', match: 'contains' }),
             C('task_start_date', 'Task Start Date', 'date'),

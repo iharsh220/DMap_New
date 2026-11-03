@@ -7233,11 +7233,13 @@ const deleteMasterCard = async (req, res) => {
 const getFilterOptions = async (req, res) => {
     try {
         const list = (sql) => sequelize.query(sql, { type: sequelize.QueryTypes.SELECT }).then(rows => rows.map(row => row.v));
-        const [requestTypes, projectTypes, taskTypes, divisions, financialYears, creativeTeam, managers, clients] = await Promise.all([
+        const [requestTypes, projectTypes, taskTypes, divisions, digilabsVerticals, financialYears, creativeTeam, managers, clients] = await Promise.all([
             list("SELECT DISTINCT request_type AS v FROM request_type WHERE request_type IS NOT NULL AND request_type <> '' ORDER BY v"),
             list("SELECT DISTINCT project_type AS v FROM project_type WHERE project_type IS NOT NULL AND project_type <> '' ORDER BY v"),
             list("SELECT DISTINCT task_type AS v FROM task_type WHERE task_type IS NOT NULL AND task_type <> '' ORDER BY v"),
             list("SELECT DISTINCT title AS v FROM division WHERE title IS NOT NULL AND title <> '' ORDER BY v"),
+            // Digilabs' own verticals (Graphic, Video, …), for the task-manager vertical filters
+            list("SELECT DISTINCT d.title AS v FROM division d JOIN department dep ON dep.id = d.department_id WHERE dep.department_name = 'Digilabs' AND d.title IS NOT NULL AND d.title <> '' ORDER BY v"),
             list("SELECT DISTINCT financial_year AS v FROM master_card WHERE financial_year IS NOT NULL AND financial_year <> '' ORDER BY v"),
             list("SELECT DISTINCT name AS v FROM users WHERE job_role_id IN (2, 3, 4) AND name IS NOT NULL ORDER BY v"),
             list("SELECT DISTINCT name AS v FROM users WHERE job_role_id IN (1, 2, 3) AND name IS NOT NULL ORDER BY v"),
@@ -7250,6 +7252,7 @@ const getFilterOptions = async (req, res) => {
                 project_types: projectTypes,
                 task_types: taskTypes,
                 divisions,
+                digilabs_verticals: digilabsVerticals,
                 financial_years: financialYears,
                 creative_team: creativeTeam,
                 managers,
