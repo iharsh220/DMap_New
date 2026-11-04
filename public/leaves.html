@@ -3,539 +3,205 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>D-Map | Leaves</title>
+    <title>Leaves · D-Map Admin</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%235b2be0'/%3E%3Ctext x='16' y='22' font-family='Arial' font-size='16' font-weight='700' fill='white' text-anchor='middle'%3ED%3C/text%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet">
-    <link href="https://cdn.datatables.net/buttons/2.3.6/css/buttons.dataTables.min.css" rel="stylesheet">
-    <link href="https://cdn.datatables.net/fixedcolumns/4.3.0/css/fixedColumns.dataTables.min.css" rel="stylesheet">
     <link href="../admin/dmap-theme.css" rel="stylesheet">
-    <style>
-        .user-info { display: flex; align-items: center; gap: 10px; padding: 6px 12px; border-radius: 8px; background: #f8fafc; border: 1px solid var(--card-border); }
-        .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #3b82f6); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
-        .user-details { display: flex; flex-direction: column; }
-        .user-name { font-size: 12px; font-weight: 600; color: var(--text-1); }
-        .user-role { font-size: 10px; color: var(--text-3); }
-        .btn-logout { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; font-size: 12px; font-weight: 500; font-family: var(--font); color: var(--text-2); background: #fff; border: 1px solid var(--card-border); border-radius: 6px; cursor: pointer; transition: all .12s; }
-        .btn-logout:hover { background: #fff1f2; border-color: #fecdd3; color: #be123c; }
-    </style>
+    <script>try{document.documentElement.setAttribute('data-theme',localStorage.getItem('themePreference')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'))}catch(e){}</script>
+    <script src="../admin/admin-app.js" defer></script>
 </head>
 <body>
-<div class="app-layout">
-    <aside class="sidebar">
-        <div class="sidebar-brand">
-            <div class="brand-icon"><i class="bi bi-diagram-3" style="font-size:15px;"></i></div>
-            <div><div class="brand-name">D-Map</div><div class="brand-sub">Analytics Dashboard</div></div>
-        </div>
-        <div class="sidebar-section">Reports</div>
-        <nav class="sidebar-nav">
-            <a href="./powerbi" class="nav-item"><i class="bi bi-pie-chart nav-icon"></i><span class="nav-label">Dashboard</span></a>
-        </nav>
-        <div class="sidebar-section">Projects</div>
-        <nav class="sidebar-nav">
-            <a href="./projectsdetails" class="nav-item"><i class="bi bi-folder2-open nav-icon"></i><span class="nav-label">Projects</span></a>
-            <a href="./clients" class="nav-item"><i class="bi bi-people nav-icon"></i><span class="nav-label">Clients</span></a>
-            <a href="./taskdetails" class="nav-item"><i class="bi bi-check2-square nav-icon"></i><span class="nav-label">Tasks</span></a>
-            <a href="./issuedetails" class="nav-item"><i class="bi bi-exclamation-circle nav-icon"></i><span class="nav-label">Changes</span></a>
-            <a href="./workrequesttasks" class="nav-item"><i class="bi bi-table nav-icon"></i><span class="nav-label">Raw Data</span></a>
-        </nav>
-        <div class="sidebar-section">Leaves</div>
-        <nav class="sidebar-nav">
-            <a href="./leaves" class="nav-item active"><i class="bi bi-calendar-x nav-icon"></i><span class="nav-label">Leaves</span></a>
-        </nav>
-        <div class="sidebar-section">Tokens</div>
-        <nav class="sidebar-nav">
-            <a href="./token-projects" class="nav-item"><i class="bi bi-folder2-open nav-icon"></i><span class="nav-label">Project</span></a>
-            <a href="./token-tasks" class="nav-item"><i class="bi bi-check2-square nav-icon"></i><span class="nav-label">Task</span></a>
-            <a href="./token-changes" class="nav-item"><i class="bi bi-exclamation-circle nav-icon"></i><span class="nav-label">Changes</span></a>
-        </nav>
-        <div class="sidebar-footer"><i class="bi bi-circle-fill" style="color:#22c55e;font-size:8px;"></i><span class="footer-text"> System Online</span></div>
-    </aside>
-
-    <div class="main-area">
-        <div class="topbar">
-            <div style="display:flex;align-items:center;gap:12px;">
-                <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-chevron-left"></i></button>
-                <div>
-                    <div class="topbar-title"><i class="bi bi-calendar-x" style="color:var(--accent)"></i> Leaves</div>
-                    <div class="topbar-subtitle">Leave management and tracking</div>
-                </div>
-            </div>
-            <div class="topbar-right">
-                <button class="btn-action primary" id="btnAddLeave"><i class="bi bi-plus-lg"></i> Add Leave</button>
-                <button class="btn-action excel" id="btnExcel"><i class="bi bi-file-earmark-excel"></i> Excel</button>
-                <button class="btn-action csv" id="btnCsv"><i class="bi bi-filetype-csv"></i> CSV</button>
-                <div class="user-info">
-                    <div class="user-avatar" id="userAvatar">U</div>
-                    <div class="user-details">
-                        <span class="user-name" id="userName">Admin</span>
-                        <span class="user-role" id="userRole">Administrator</span>
-                    </div>
-                </div>
-                <button class="btn-logout" id="btnLogout"><i class="bi bi-box-arrow-right"></i> Logout</button>
-            </div>
-        </div>
-
-        <div class="content-area">
-            <div class="stats-row">
-                <div class="stat-card"><div class="stat-icon blue"><i class="bi bi-calendar-check"></i></div><div><div class="stat-value" id="s1">—</div><div class="stat-label">Total Leaves</div></div></div>
-                <div class="stat-card"><div class="stat-icon green"><i class="bi bi-sun"></i></div><div><div class="stat-value" id="s2">—</div><div class="stat-label">Full Day</div></div></div>
-                <div class="stat-card"><div class="stat-icon orange"><i class="bi bi-sunset"></i></div><div><div class="stat-value" id="s3">—</div><div class="stat-label">Half Day</div></div></div>
-                <div class="stat-card"><div class="stat-icon purple"><i class="bi bi-clock"></i></div><div><div class="stat-value" id="s4">—</div><div class="stat-label">Short Leave</div></div></div>
-                <div class="stat-card"><div class="stat-icon pink"><i class="bi bi-calendar-plus"></i></div><div><div class="stat-value" id="s5">—</div><div class="stat-label">Planned</div></div></div>
-                <div class="stat-card"><div class="stat-icon red"><i class="bi bi-calendar-x"></i></div><div><div class="stat-value" id="s6">—</div><div class="stat-label">Unplanned</div></div></div>
-            </div>
-
-            <div class="table-card">
-                <div class="loading-overlay" id="loader"><div class="spinner"></div><div class="loading-text">Loading leaves...</div></div>
-                <div class="table-card-header">
-                    <div class="table-card-title"><span class="dot"></span>Leave Records</div>
-                </div>
-                <div class="table-card-body">
-                    <div class="dt-container">
-                        <table id="mainTable" class="display" style="width:100%"><thead></thead><tbody></tbody></table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Add/Edit Leave Modal -->
-<div id="leaveModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;">
-    <div style="background:#1e2433;border:1px solid #2d3548;border-radius:12px;width:600px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,0.5);">
-        <div style="padding:20px 24px 16px;border-bottom:1px solid #2d3548;display:flex;align-items:center;gap:10px;">
-            <span style="background:#6366f122;border-radius:8px;padding:6px 10px;"><i class="bi bi-calendar-plus" style="color:#6366f1;font-size:18px;"></i></span>
-            <div>
-                <div class="modal-title" id="modalTitle" style="color:#f1f5f9;font-weight:600;font-size:15px;">Add Leave</div>
-                <div style="color:#94a3b8;font-size:12px;">Fill in the leave details</div>
-            </div>
-            <button onclick="closeLeaveModal()" style="margin-left:auto;background:none;border:none;color:#64748b;font-size:20px;cursor:pointer;line-height:1;">&times;</button>
-        </div>
-        <div style="padding:16px 24px;overflow-y:auto;flex:1;">
-            <form id="leaveForm">
-                <input type="hidden" id="leaveId">
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                    <div class="form-group">
-                        <label style="color:#cbd5e1;font-size:13px;margin-bottom:6px;display:block;">User <span style="color:#f43f5e;">*</span></label>
-                        <select id="leaveUserId" required style="width:100%;padding:8px 12px;border-radius:7px;border:1px solid #2d3548;background:#131c2e;color:#f1f5f9;font-size:13px;"></select>
-                    </div>
-                    <div class="form-group">
-                        <label style="color:#cbd5e1;font-size:13px;margin-bottom:6px;display:block;">User ID</label>
-                        <input type="text" id="leaveUserIdReadonly" readonly style="width:100%;padding:8px 12px;border-radius:7px;border:1px solid #2d3548;background:#1e293b;color:#94a3b8;font-size:13px;">
-                    </div>
-                    <div class="form-group" style="grid-column:span 2;">
-                        <label style="color:#cbd5e1;font-size:13px;margin-bottom:6px;display:block;">Username</label>
-                        <input type="text" id="leaveUserNameReadonly" readonly style="width:100%;padding:8px 12px;border-radius:7px;border:1px solid #2d3548;background:#1e293b;color:#94a3b8;font-size:13px;">
-                    </div>
-                    <div class="form-group">
-                        <label style="color:#cbd5e1;font-size:13px;margin-bottom:6px;display:block;">Date <span style="color:#f43f5e;">*</span></label>
-                        <input type="date" id="leaveDate" required style="width:100%;padding:8px 12px;border-radius:7px;border:1px solid #2d3548;background:#131c2e;color:#f1f5f9;font-size:13px;">
-                    </div>
-                    <div class="form-group">
-                        <label style="color:#cbd5e1;font-size:13px;margin-bottom:6px;display:block;">Leave Day Type <span style="color:#f43f5e;">*</span></label>
-                        <select id="leaveDayType" required style="width:100%;padding:8px 12px;border-radius:7px;border:1px solid #2d3548;background:#131c2e;color:#f1f5f9;font-size:13px;">
-                            <option value="Full day">Full day</option>
-                            <option value="Half day">Half day</option>
-                            <option value="Short Leave">Short Leave</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label style="color:#cbd5e1;font-size:13px;margin-bottom:6px;display:block;">Leave Type <span style="color:#f43f5e;">*</span></label>
-                        <select id="leaveType" required style="width:100%;padding:8px 12px;border-radius:7px;border:1px solid #2d3548;background:#131c2e;color:#f1f5f9;font-size:13px;">
-                            <option value="Unplanned">Unplanned</option>
-                            <option value="Planned">Planned</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label style="color:#cbd5e1;font-size:13px;margin-bottom:6px;display:block;">Status <span style="color:#f43f5e;">*</span></label>
-                        <select id="leaveStatus" required style="width:100%;padding:8px 12px;border-radius:7px;border:1px solid #2d3548;background:#131c2e;color:#f1f5f9;font-size:13px;">
-                            <option value="Inform">Inform</option>
-                            <option value="Not Inform">Not Inform</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label style="color:#cbd5e1;font-size:13px;margin-bottom:6px;display:block;">Leave Reason <span style="color:#f43f5e;">*</span></label>
-                        <select id="leaveReason" required style="width:100%;padding:8px 12px;border-radius:7px;border:1px solid #2d3548;background:#131c2e;color:#f1f5f9;font-size:13px;">
-                            <option value="Feeling not well">Feeling not well</option>
-                            <option value="Emergency">Emergency</option>
-                            <option value="Medical">Medical</option>
-                            <option value="Family Emergency">Family Emergency</option>
-                            <option value="Go Early">Go Early</option>
-                            <option value="Personal">Personal</option>
-                            <option value="Hospitalized">Hospitalized</option>
-                        </select>
-                    </div>
-                    <div class="form-group" style="grid-column:span 2;">
-                        <label style="color:#cbd5e1;font-size:13px;margin-bottom:6px;display:block;">Division</label>
-                        <input type="text" id="leaveVertical" readonly style="width:100%;padding:8px 12px;border-radius:7px;border:1px solid #2d3548;background:#1e293b;color:#94a3b8;font-size:13px;">
-                    </div>
-                    <div class="form-group">
-                        <label style="color:#cbd5e1;font-size:13px;margin-bottom:6px;display:block;">Days Count</label>
-                        <input type="number" id="leaveDaysCount" step="0.5" min="0.5" value="1" style="width:100%;padding:8px 12px;border-radius:7px;border:1px solid #2d3548;background:#131c2e;color:#f1f5f9;font-size:13px;">
-                    </div>
-                    <div class="form-group" style="grid-column:span 2;">
-                        <label style="color:#cbd5e1;font-size:13px;margin-bottom:6px;display:block;">Reason</label>
-                        <select id="leaveReasonText" style="width:100%;padding:8px 12px;border-radius:7px;border:1px solid #2d3548;background:#131c2e;color:#f1f5f9;font-size:13px;">
-                            <option value="">Select Reason</option>
-                            <option value="Due to heavy rain">Due to heavy rain</option>
-                            <option value="Family Emergency">Family Emergency</option>
-                            <option value="Feeling not well">Feeling not well</option>
-                            <option value="Go Early">Go Early</option>
-                            <option value="Goinng on vacation">Goinng on vacation</option>
-                            <option value="Medical appointment">Medical appointment</option>
-                            <option value="Medical Appointmet">Medical Appointmet</option>
-                            <option value="Medical emergency">Medical emergency</option>
-                            <option value="Not feeling well">Not feeling well</option>
-                            <option value="Personal reason">Personal reason</option>
-                            <option value="Personal work">Personal work</option>
-                            <option value="Reached late">Reached late</option>
-                            <option value="Vacation">Vacation</option>
-                        </select>
-                    </div>
-                    <div class="form-group" style="grid-column:span 2;">
-                        <label style="color:#cbd5e1;font-size:13px;margin-bottom:6px;display:block;">Remark</label>
-                        <textarea id="leaveRemark" rows="2" style="width:100%;padding:8px 12px;border-radius:7px;border:1px solid #2d3548;background:#131c2e;color:#f1f5f9;font-size:13px;resize:vertical;"></textarea>
-                    </div>
-                </div>
-            </form>
-        </div>
-        <div style="padding:16px 24px;border-top:1px solid #2d3548;display:flex;gap:10px;justify-content:flex-end;">
-            <button onclick="closeLeaveModal()" style="padding:8px 20px;border-radius:7px;border:1px solid #2d3548;background:#2d3548;color:#94a3b8;font-size:13px;cursor:pointer;">Cancel</button>
-            <button id="confirmLeaveBtn" style="padding:8px 20px;border-radius:7px;border:none;background:#6366f1;color:#fff;font-size:13px;font-weight:600;cursor:pointer;"><i class="bi bi-check-lg"></i> Save Leave</button>
-        </div>
-    </div>
-</div>
-
-<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
-<script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.html5.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdn.datatables.net/fixedcolumns/4.3.0/js/dataTables.fixedColumns.min.js"></script>
+<noscript>The D-Map admin panel needs JavaScript.</noscript>
 <script>
-function getApiBase(){
-    var p=window.location.pathname;
-    if(p.indexOf('/digilabs/uat/')!==-1) return '/digilabs/uat/dmap/api/';
-    return '/digilabs/dmap/api/';
-}
-const HEADERS = {
-    id: 'ID',
-    user_id: 'User ID',
-    name: 'Username',
-    date: 'Date',
-    day: 'Day',
-    leave_day_type: 'Leave Day Type',
-    leave_type: 'Leave Type',
-    status: 'Status',
-    leave_reason: 'Leave Reason',
-    vertical: 'Division',
-    days_count: 'Days Count',
-    reason: 'Reason',
-    remark: 'Remark',
-    month: 'Month',
-    year: 'Year'
-};
-const BADGES = {
-    leave_type: {Planned:'status-planned', Unplanned:'status-unplanned'},
-    status: {Inform:'status-inform', 'Not Inform':'status-not-inform'}
-};
-
-let dt;
-$(function(){
-    // Check session
-    if(!localStorage.getItem('accessToken')){
-        window.location.href = getApiBase() + 'datatable/admin/login';
-        return;
-    }
-
-    // Load user info
-    var userData = localStorage.getItem('userData');
-    if(userData){
-        try {
-            var user = JSON.parse(userData);
-            var name = user.name || user.email || 'Admin';
-            var initials = name.split(' ').map(function(n){return n[0];}).join('').substring(0,2).toUpperCase();
-            $('#userName').text(name);
-            $('#userAvatar').text(initials);
-            if(user.jobRole && user.jobRole.role_title){
-                $('#userRole').text(user.jobRole.role_title);
-            }
-        } catch(e){}
-    }
-
-    $('#btnLogout').on('click', function(){
-        if(confirm('Are you sure you want to logout?')){
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('refreshToken');
-            localStorage.removeItem('userData');
-            window.location.href = getApiBase() + 'datatable/admin/login';
-        }
-    });
-
-    $('#sidebarToggle').on('click', function(){
-        $('body').toggleClass('sidebar-collapsed');
-        var isCollapsed = $('body').hasClass('sidebar-collapsed');
-        $(this).find('i').toggleClass('bi-chevron-left bi-chevron-right');
-        localStorage.setItem('sidebarCollapsed', isCollapsed);
-    });
-    if(localStorage.getItem('sidebarCollapsed') === 'true'){
-        $('body').addClass('sidebar-collapsed');
-        $('#sidebarToggle').find('i').removeClass('bi-chevron-left').addClass('bi-chevron-right');
-    }
-
-    loadLeaveUsers();
-
-    $('#leaveUserId').on('change', function(){
-        var userId = $(this).val();
-        var selectedOption = $(this).find('option:selected');
-        var userName = selectedOption.text() || '';
-        $('#leaveUserIdReadonly').val(userId);
-        $('#leaveUserNameReadonly').val(userName);
-        
-        if(userId){
-            $.getJSON(getApiBase()+'datatable/admin/leaves/users/'+userId+'/division', function(res){
-                if(res.success && res.data && res.data.division_name){
-                    $('#leaveVertical').val(res.data.division_name);
-                } else {
-                    $('#leaveVertical').val('');
-                }
-            });
-        } else {
-            $('#leaveVertical').val('');
-        }
-    });
-
-    $('#btnAddLeave').on('click', function(){
-        openLeaveModal();
-    });
-
-    $('#confirmLeaveBtn').on('click', function(){
-        saveLeave();
-    });
-
-    $.getJSON(getApiBase()+'datatable/admin/leaves/data', function(res){
-        $('#loader').hide();
-        var data = res.data||[];
-        $('#recordCount').text(data.length+' Records');
-        updateLeaveStats(data);
-
-        var cols=[];
-        cols.push({
-            data:null, title:'Action', orderable:false, searchable:false, width:'80px',
-            render:function(v,type,row){
-                if(type!=='display') return '';
-                return '<button class="edit-btn" onclick="editLeave('+(row?row.id:'')+')" title="Edit" style="background:#6366f122;border:1px solid #6366f144;color:#818cf8;border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;margin-right:4px;"><i class="bi bi-pencil"></i></button>'
-                       +'<button class="del-btn" onclick="deleteLeave('+(row?row.id:'')+')" title="Delete" style="background:#be123c22;border:1px solid #be123c44;color:#f43f5e;border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;"><i class="bi bi-trash3"></i></button>';
-            }
-        });
-        var keyOrder=['id','user_id','name','date','day','leave_day_type','leave_type','status','leave_reason','vertical','days_count','reason','remark','month','year'];
-        keyOrder.forEach(function(k){
-            if(k==='name'){
-                cols.push({
-                    data:null, title:HEADERS[k]||k, defaultContent:'N/A',
-                    render:function(v,type,row){
-                        if(type!=='display') return row && row.user ? row.user.name : 'N/A';
-                        return row && row.user ? row.user.name : 'N/A';
-                    }
-                });
-                } else {
-                    cols.push({
-                        data:k, title:HEADERS[k]||k, defaultContent:'N/A',
-                        render:function(v,type){
-                            if(type!=='display') return v;
-                            var val=v!=null?v:'N/A';
-                            if(BADGES[k]&&val&&val!=='N/A'){var c=BADGES[k][val]||'';return '<span class="status-badge '+c+'">'+val+'</span>';}
-                            return val;
-                        }
-                    });
-                }
-        });
-
-        dt=$('#mainTable').DataTable({
-            data:data,columns:cols,
-            pageLength:25,lengthMenu:[[25,50,100,200,-1],[25,50,100,200,'All']],
-            dom:'<"dt-top-row"lf>rt<"dt-bottom-row"ip>',
-            scrollX:true,scrollY:'calc(100vh - 360px)',scrollCollapse:false,autoWidth:false,fixedColumns:{left:4},
-            language:{search:'',searchPlaceholder:'Search all columns...',lengthMenu:'Show _MENU_ rows'},
-            initComplete:function(){
-                var api=this.api();
-                var colKeys=['Action'].concat(keyOrder);
-                api.columns().every(function(){
-                    var col=this,idx=col.index();
-                    var th=$(col.header());
-                    var labelText=HEADERS[colKeys[idx]]||colKeys[idx];
-                    th.empty();
-                    var wrap=$('<div class="th-wrap"></div>');
-                    wrap.append('<div class="th-label"><span title="'+labelText+'">'+labelText+'</span><span class="th-sort"></span></div>');
-                    if(idx>0){
-                        var key=colKeys[idx];
-                        if(BADGES[key]){
-                            var sel=$('<select class="col-filter"><option value="">All</option></select>');
-                            Object.keys(BADGES[key]).forEach(function(o){sel.append('<option value="'+o+'">'+o+'</option>');});
-                            sel.on('change click mousedown',function(e){e.stopPropagation();});
-                            sel.on('change',function(){col.search(this.value).draw();});
-                            wrap.append(sel);
-                        } else {
-                            var inp=$('<input class="col-filter" type="text" placeholder="Filter...">');
-                            inp.on('click mousedown focus',function(e){e.stopPropagation();});
-                            inp.on('keyup change clear',function(){if(col.search()!==this.value)col.search(this.value).draw();});
-                            wrap.append(inp);
-                        }
-                    }
-                    th.append(wrap);
-                    th.off('click').on('click',function(e){
-                        if($(e.target).closest('.col-filter').length===0){
-                            var currentOrder = api.order();
-                            if(currentOrder.length && currentOrder[0][0]===idx){
-                                api.order([idx, currentOrder[0][1]==='asc'?'desc':'asc']).draw();
-                            } else {
-                                api.order([idx,'asc']).draw();
-                            }
-                        }
-                    });
-                });
-            }
-        });
-        var colTitles=cols.map(function(c){return c.title;});
-        new $.fn.dataTable.Buttons(dt,[
-            {extend:'excel',className:'buttons-excel',filename:'leaves_'+new Date().toISOString().slice(0,10),exportOptions:{columns:':gt(0):visible',modifier:{page:'all'},orthogonal:'export',format:{header:function(data,col){return colTitles[col]||data;},body:function(data){return data == null ? '' : data;}}}},
-            {extend:'csv',className:'buttons-csv',filename:'leaves_'+new Date().toISOString().slice(0,10),exportOptions:{columns:':gt(0):visible',modifier:{page:'all'},orthogonal:'export',format:{header:function(data,col){return colTitles[col]||data;},body:function(data){return data == null ? '' : data;}}}}
-        ]);
-        $('#btnExcel').on('click',function(){dt.button('.buttons-excel').trigger();});
-        $('#btnCsv').on('click',function(){dt.button('.buttons-csv').trigger();});
-        dt.on('draw',function(){
-            var rows=dt.rows({ filter:'applied' }).data();
-            var arr=rows.toArray ? rows.toArray() : rows;
-            updateLeaveStats(arr);
-            $('#recordCount').text(arr.length+' Records');
-        });
-    }).fail(function(){$('#loader').html('<div style="color:#be123c;font-size:13px"><i class="bi bi-exclamation-triangle"></i> Failed to load data</div>');});
-});
-
-function loadLeaveUsers(){
-    $.getJSON(getApiBase()+'datatable/admin/leaves/users', function(res){
-        if(res.success && res.data){
-            var options = '<option value="">Select User</option>';
-            res.data.forEach(function(u){
-                options += '<option value="'+u.id+'">'+u.name+' ('+u.email+')</option>';
-            });
-            $('#leaveUserId').html(options);
-        }
-    });
-}
-
-function updateLeaveStats(data){
-    $('#s1').text(data.length);
-    $('#s2').text(data.filter(function(r){ return r.leave_day_type === 'Full day'; }).length);
-    $('#s3').text(data.filter(function(r){ return r.leave_day_type === 'Half day'; }).length);
-    $('#s4').text(data.filter(function(r){ return r.leave_day_type === 'Short Leave'; }).length);
-    $('#s5').text(data.filter(function(r){ return r.leave_type === 'Planned'; }).length);
-    $('#s6').text(data.filter(function(r){ return r.leave_type === 'Unplanned'; }).length);
-}
-
-function openLeaveModal(leave){
-    $('#leaveForm')[0].reset();
-    $('#leaveId').val('');
-    $('#leaveUserIdReadonly').val('');
-    $('#leaveUserNameReadonly').val('');
-    $('#modalTitle').text('Add Leave');
-    $('#leaveUserId').prop('disabled', false);
-
-    if(leave){
-        $('#modalTitle').text('Edit Leave');
-        $('#leaveId').val(leave.id);
-        $('#leaveUserId').val(leave.user_id);
-        $('#leaveUserIdReadonly').val(leave.user_id);
-        $('#leaveUserNameReadonly').val(leave.user ? leave.user.name : '');
-        $('#leaveUserId').prop('disabled', true);
-        $('#leaveVertical').val(leave.vertical || '');
-        $('#leaveDate').val(leave.date);
-        $('#leaveDayType').val(leave.leave_day_type);
-        $('#leaveType').val(leave.leave_type);
-        $('#leaveStatus').val(leave.status);
-        $('#leaveReason').val(leave.leave_reason);
-        $('#leaveDaysCount').val(leave.days_count || 1);
-        $('#leaveReasonText').val(leave.reason || '');
-        $('#leaveRemark').val(leave.remark || '');
-    }
-
-    $('#leaveModal').css('display', 'flex');
-}
-
-function closeLeaveModal(){
-    $('#leaveModal').hide();
-}
-
-function editLeave(id){
-    $.getJSON(getApiBase()+'datatable/admin/leaves/'+id, function(res){
-        if(res.success && res.data){
-            openLeaveModal(res.data);
-        } else {
-            alert('Leave not found');
-        }
-    });
-}
-
-function saveLeave(){
-    var id = $('#leaveId').val();
-    var data = {
-        date: $('#leaveDate').val(),
-        user_id: parseInt($('#leaveUserId').val()),
-        leave_day_type: $('#leaveDayType').val(),
-        leave_type: $('#leaveType').val(),
-        status: $('#leaveStatus').val(),
-        leave_reason: $('#leaveReason').val(),
-        vertical: $('#leaveVertical').val() || null,
-        days_count: parseFloat($('#leaveDaysCount').val()) || 1,
-        reason: $('#leaveReasonText').val() || null,
-        remark: $('#leaveRemark').val() || null
+document.addEventListener('DOMContentLoaded', function () {
+    const D = window.DMap;
+    const C = (key, title, type, extra) => Object.assign({ key, title, type }, extra || {});
+    const DAY_TYPES = ['Full day', 'Half day', 'Short Hours', 'WFH'];
+    // Allowed leave reasons per day type
+    const REASONS = {
+        'Full day': ['Emergency', 'Medical', 'Optional', 'Personal', 'Sick Leave'],
+        'Half day': ['Emergency', 'Medical', 'Personal', 'Sick Leave', 'Going Early'],
+        'Short Hours': ['Personal', 'Reached late', 'Going Early'],
+        'WFH': ['FWFH', 'Medical', 'RWFH']
     };
+    const REASON_TEXTS = ['Due to heavy rain', 'Family Emergency', 'Feeling not well', 'Go Early', 'Goinng on vacation', 'Medical appointment', 'Medical Appointmet', 'Medical emergency', 'Not feeling well', 'Personal reason', 'Personal work', 'Reached late', 'Vacation', 'WFH'];
 
-    if(!data.date || !data.user_id){
-        alert('Please fill in all required fields');
-        return;
+    const body = D.shell({
+        page: 'leaves', title: 'Leaves', icon: 'calendar2-week', subtitle: 'Team leave register: planned vs unplanned, informed vs not, by day type',
+        actions: [
+            { label: 'Upload', icon: 'cloud-arrow-up', onClick: () => D.uploadWithProgress({ title: 'Importing leaves', endpoint: 'leaves/upload', progress: id => 'leaves/upload/progress/' + id, onDone: () => grid.reload() }) },
+            { label: 'Add leave', icon: 'plus-lg', variant: 'primary', onClick: () => openLeave() }
+        ]
+    });
+
+    const grid = D.grid(body, {
+        id: 'leaves', version: 4, title: 'Leaves', icon: 'calendar2-week',
+        endpoint: 'leaves/data', exportName: 'leaves', pinned: 3,
+        searchPlaceholder: 'Search name, reason, vertical, remark…',
+        quick: ['leave_day_type', 'leave_type', 'status', 'from_date'],
+        kpis: [
+            { label: 'Leaves', icon: 'calendar2-week', tone: 'brand', value: s => s.total, hint: s => `${D.fmt.num(s.days)} days in total` },
+            { label: 'Full day', icon: 'sun', tone: 'info', value: s => s.full_day, share: true, filter: { key: 'leave_day_type', values: ['Full day'] } },
+            { label: 'Half day', icon: 'brightness-alt-high', tone: 'accent', value: s => s.half_day, share: true, filter: { key: 'leave_day_type', values: ['Half day'] } },
+            { label: 'Short hours', icon: 'clock', tone: 'neutral', value: s => s.short_hours, share: true, filter: { key: 'leave_day_type', values: ['Short Hours'] } },
+            { label: 'Work from home', icon: 'house-door', tone: 'success', value: s => s.wfh, share: true, filter: { key: 'leave_day_type', values: ['WFH'] } },
+            { label: 'Unplanned', icon: 'lightning', tone: 'warning', value: s => s.unplanned, share: true, filter: { key: 'leave_type', values: ['Unplanned'] } },
+            { label: 'Not informed', icon: 'bell-slash', tone: 'danger', value: s => s.not_informed, share: true, filter: { key: 'status', values: ['Not Inform'] } }
+        ],
+        columns: [
+            C('id', 'ID', 'id'),
+            C('user_id', 'User ID', 'id', { filter: 'text' }),
+            C('name', 'Username', 'name', { get: r => r.user && r.user.name }),
+            C('from_date', 'From Date', 'date'),
+            C('to_date', 'To Date', 'date'),
+            C('day', 'Day', 'text'),
+            C('leave_day_type', 'Leave Day Type', 'text', { filter: 'select', options: DAY_TYPES }),
+            C('leave_type', 'Leave Type', 'enum', { options: ['Planned', 'Unplanned'] }),
+            C('status', 'Status', 'enum', { options: ['Inform', 'Not Inform'] }),
+            C('leave_reason', 'Leave Reason', 'text', { filter: 'select', options: [...new Set([].concat(...Object.values(REASONS)))].sort() }),
+            C('vertical', 'Division', 'text', { filter: 'select', options: 'divisions' }),
+            C('days_count', 'Days Count', 'number'),
+            C('reason', 'Reason', 'longtext'),
+            C('remark', 'Remark', 'longtext'),
+            C('checker_remark', 'Checker Remark', 'longtext'),
+            C('month', 'Month', 'text'),
+            C('year', 'Year', 'text')
+        ],
+        detailTitle: row => `${(row.user && row.user.name) || 'Leave'} · ${row.leave_day_type || ''}`,
+        detailSubtitle: row => `${D.fmt.date(row.from_date) || ''}${row.to_date && row.to_date !== row.from_date ? ' – ' + D.fmt.date(row.to_date) : ''}`,
+        rowActions: [
+            { icon: 'pencil', label: 'Edit leave', onClick: row => editLeave(row.id) },
+            { icon: 'trash3', label: 'Delete leave', tone: 'danger', onClick: row => deleteLeave(row) }
+        ]
+    });
+
+    // ---------------- add / edit ----------------
+    let usersPromise = null;
+    const loadUsers = () => usersPromise || (usersPromise = D.api('leaves/users?limit=-1').then(r => r.data || []).catch(() => { usersPromise = null; return []; }));
+    const today = () => D.isoDay(new Date());
+
+    async function editLeave(id) {
+        try {
+            const res = await D.api('leaves/' + encodeURIComponent(id));
+            openLeave(res.data);
+        } catch (err) {
+            D.toast('Could not load the leave: ' + err.message, 'danger');
+        }
     }
 
-    var url = id ? getApiBase()+'datatable/admin/leaves/'+id : getApiBase()+'datatable/admin/leaves';
-    var method = id ? 'PUT' : 'POST';
+    async function openLeave(leave) {
+        const users = await loadUsers();
+        const me = D.user() || {};
+        const isEdit = !!leave;
+        const from0 = isEdit ? String(leave.from_date || '').split('T')[0] : today();
+        const to0 = isEdit ? String(leave.to_date || '').split('T')[0] : from0;
+        const dayType0 = isEdit ? leave.leave_day_type : 'Full day';
+        const form = D.form([
+            { name: 'user_id', label: 'Employee', type: 'select', required: true, span: 2, disabled: isEdit,
+              value: isEdit ? leave.user_id : (users.some(u => String(u.id) === String(me.id)) ? me.id : ''),
+              options: [{ value: '', label: 'Select employee' }].concat(users.map(u => ({ value: u.id, label: `${u.name} (${u.email})` }))) },
+            { name: 'leave_day_type', label: 'Day type', type: 'select', required: true, value: dayType0, options: DAY_TYPES },
+            { name: 'vertical', label: 'Vertical', type: 'readonly', value: isEdit ? leave.vertical || '' : '', help: 'Taken from the employee’s division' },
+            { name: 'from_date', label: 'From', type: 'date', required: true, value: from0 },
+            { name: 'to_date', label: 'To', type: 'date', required: true, value: to0 },
+            { name: 'leave_type', label: 'Leave type', type: 'select', value: isEdit ? leave.leave_type : 'Planned', options: ['Planned', 'Unplanned'], disabled: true, help: 'Planned when booked 24 h ahead' },
+            { name: 'status', label: 'Informed', type: 'select', value: isEdit ? leave.status : 'Inform', options: [{ value: 'Inform', label: 'Informed' }, { value: 'Not Inform', label: 'Not informed' }], disabled: true, help: 'Not informed when entered after the day' },
+            { name: 'leave_reason', label: 'Leave reason', type: 'select', required: true, value: isEdit ? leave.leave_reason : '', options: REASONS[dayType0] || [] },
+            { name: 'days_count', label: 'Days', type: 'number', readonly: true, value: isEdit ? leave.days_count : 1, step: 0.5 },
+            { name: 'reason', label: 'Reason', type: 'select', span: 2, value: isEdit ? leave.reason || '' : '', options: [{ value: '', label: 'Select a reason (optional)' }].concat(REASON_TEXTS) },
+            { name: 'remark', label: 'Remark', type: 'textarea', value: isEdit ? leave.remark || '' : '' },
+            { name: 'checker_remark', label: 'Checker remark', type: 'textarea', value: isEdit ? leave.checker_remark || '' : '', hidden: !D.isAdmin() }
+        ]);
+        const f = form.inputs;
 
-    $.ajax({
-        url: url,
-        method: method,
-        contentType: 'application/json',
-        data: JSON.stringify(data),
-        success: function(res){
-            if(res.success){
-                closeLeaveModal();
-                location.reload();
-            } else {
-                alert(res.error || 'Failed to save leave');
+        const setReasons = (dayType, selected) => {
+            f.leave_reason.innerHTML = '';
+            (REASONS[dayType] || []).forEach(r => { const o = document.createElement('option'); o.value = r; o.textContent = r; f.leave_reason.appendChild(o); });
+            if (selected && (REASONS[dayType] || []).includes(selected)) f.leave_reason.value = selected;
+        };
+        const setDerived = () => {
+            const dayType = f.leave_day_type.value;
+            const from = f.from_date.value;
+            if (from) {
+                // Planned when the leave starts at least 24 hours from now; "Not informed" when entered after the day
+                f.leave_type.value = (new Date(from) - new Date()) / 36e5 >= 24 ? 'Planned' : 'Unplanned';
+                f.status.value = from >= today() ? 'Inform' : 'Not Inform';
             }
-        },
-        error: function(xhr){
-            alert(xhr.responseJSON?.error || 'Failed to save leave');
-        }
-    });
-}
-
-function deleteLeave(id){
-    if(!confirm('Are you sure you want to delete this leave?')) return;
-
-    $.ajax({
-        url: getApiBase()+'datatable/admin/leaves/'+id,
-        method: 'DELETE',
-        success: function(res){
-            if(res.success){
-                location.reload();
+            if (dayType === 'WFH') {
+                const max = new Date(from); max.setDate(max.getDate() + 1);
+                f.to_date.disabled = false; f.to_date.min = from; f.to_date.max = from ? D.isoDay(max) : '';
+                if (!f.to_date.value || f.to_date.value < from || f.to_date.value > f.to_date.max) f.to_date.value = from;
+            } else if (dayType === 'Full day') {
+                f.to_date.disabled = false; f.to_date.min = from; f.to_date.removeAttribute('max');
+                if (f.to_date.value < from) f.to_date.value = from;
             } else {
-                alert(res.error || 'Failed to delete leave');
+                f.to_date.value = from; f.to_date.disabled = true;
             }
-        },
-        error: function(xhr){
-            alert(xhr.responseJSON?.error || 'Failed to delete leave');
+            let days = 1;
+            if (from && f.to_date.value) {
+                const span = Math.max(1, Math.round((new Date(f.to_date.value) - new Date(from)) / 864e5) + 1);
+                days = dayType === 'WFH' || dayType === 'Short Hours' ? 0 : dayType === 'Half day' ? span * 0.5 : span;
+            }
+            f.days_count.value = days;
+        };
+        const loadVertical = async () => {
+            if (!f.user_id.value) { f.vertical.value = ''; return; }
+            try {
+                const res = await D.api(`leaves/users/${encodeURIComponent(f.user_id.value)}/division`);
+                f.vertical.value = (res.data && res.data.division_name) || '';
+            } catch (e) { f.vertical.value = ''; }
+        };
+        setReasons(dayType0, isEdit ? leave.leave_reason : null);
+        setDerived();
+        if (!isEdit) loadVertical();
+        f.leave_day_type.addEventListener('change', () => { setReasons(f.leave_day_type.value); setDerived(); });
+        f.from_date.addEventListener('change', setDerived);
+        f.to_date.addEventListener('change', setDerived);
+        f.user_id.addEventListener('change', loadVertical);
+
+        D.modal({
+            title: isEdit ? 'Edit leave' : 'Add leave', subtitle: isEdit ? `${(leave.user && leave.user.name) || ''}` : 'Leave type, informed status and days are filled in automatically',
+            icon: 'calendar-plus', size: 'lg', body: form.el,
+            actions: [{ label: 'Cancel' }, { label: isEdit ? 'Save changes' : 'Add leave', icon: 'check2', variant: 'primary', onClick: async (dlg, btn) => {
+                const v = form.values();
+                const data = {
+                    from_date: v.from_date, to_date: f.to_date.value, user_id: parseInt(f.user_id.value, 10),
+                    leave_day_type: v.leave_day_type.trim(), leave_type: f.leave_type.value.trim(), status: f.status.value.trim(),
+                    leave_reason: v.leave_reason.trim(), vertical: v.vertical.trim() || null, days_count: parseFloat(v.days_count) || 1,
+                    reason: v.reason.trim() || null, remark: v.remark.trim() || null, checker_remark: v.checker_remark.trim() || null
+                };
+                if (!data.from_date || !data.to_date || !data.user_id) { D.toast('Please choose the employee and the dates', 'warning'); return; }
+                if (data.leave_day_type !== 'Full day' && data.leave_day_type !== 'WFH' && data.from_date !== data.to_date) { D.toast(`${data.leave_day_type} leave must be a single day`, 'warning'); return; }
+                if (data.leave_day_type === 'WFH' && Math.round((new Date(data.to_date) - new Date(data.from_date)) / 864e5) + 1 > 2) { D.toast('WFH is allowed for at most 2 days', 'warning'); return; }
+                D.setBusy(btn, true, 'Saving…');
+                try {
+                    await D.api(isEdit ? 'leaves/' + encodeURIComponent(leave.id) : 'leaves', { method: isEdit ? 'PUT' : 'POST', body: data });
+                    dlg.close();
+                    D.toast(isEdit ? 'Leave updated' : 'Leave added');
+                    grid.reload();
+                } catch (err) {
+                    D.setBusy(btn, false);
+                    D.toast(err.message || 'Failed to save leave', 'danger', 6000);
+                }
+            } }]
+        });
+    }
+
+    async function deleteLeave(row) {
+        const who = (row.user && row.user.name) || 'this employee';
+        if (!(await D.confirm({ title: 'Delete this leave?', message: `${row.leave_day_type || 'Leave'} for ${who} on ${D.fmt.date(row.from_date) || row.from_date} will be removed.`, confirmLabel: 'Delete', tone: 'danger', icon: 'trash3' }))) return;
+        try {
+            await D.api('leaves/' + encodeURIComponent(row.id), { method: 'DELETE' });
+            D.toast('Leave deleted');
+            grid.reload();
+        } catch (err) {
+            D.toast(err.message || 'Failed to delete leave', 'danger', 6000);
         }
-    });
-}
+    }
+});
 </script>
 </body>
 </html>

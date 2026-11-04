@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D-Map | Raw Data</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/buttons/2.3.6/css/buttons.dataTables.min.css" rel="stylesheet">
+    <link href="../admin/dmap-theme.css" rel="stylesheet">
+</head>
+<body>
+<div class="app-layout">
+
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-icon">D</div>
+            <div><div class="brand-name">D-Map</div><div class="brand-sub">Analytics Dashboard</div></div>
+        </div>
+        <div class="sidebar-section">Reports</div>
+        <nav class="sidebar-nav">
+            <a href="./powerbi" class="nav-item"><i class="bi bi-pie-chart nav-icon"></i><span class="nav-label">Dashboard</span></a>
+            <a href="./clients" class="nav-item"><i class="bi bi-people nav-icon"></i><span class="nav-label">Clients</span></a>
+            <a href="./projectsdetails" class="nav-item"><i class="bi bi-folder2-open nav-icon"></i><span class="nav-label">Projects</span></a>
+            <a href="./taskdetails" class="nav-item"><i class="bi bi-check2-square nav-icon"></i><span class="nav-label">Tasks</span></a>
+            <a href="./issuedetails" class="nav-item"><i class="bi bi-exclamation-circle nav-icon"></i><span class="nav-label">Changes</span></a>
+            <a href="./workrequesttasks" class="nav-item active"><i class="bi bi-table nav-icon"></i><span class="nav-label">Raw Data</span></a>
+            <a href="./leaves" class="nav-item"><i class="bi bi-calendar-x nav-icon"></i><span class="nav-label">Leaves</span></a>
+        </nav>
+        <div class="sidebar-footer"><i class="bi bi-circle-fill" style="color:#22c55e;font-size:8px;"></i><span class="footer-text"> System Online</span></div>
+    </aside>
+
+    <div class="main-area">
+        <div class="topbar">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-chevron-left"></i></button>
+                <div>
+                    <div class="topbar-title"><i class="bi bi-table" style="color:var(--accent)"></i> Raw Data</div>
+                    <div class="topbar-subtitle">Complete work request + task + issue flat table</div>
+                </div>
+            </div>
+            <div class="topbar-right"><span class="topbar-badge" id="recordCount">Loading...</span></div>
+        </div>
+
+        <div class="content-area">
+            <div class="stats-row">
+                <div class="stat-card"><div class="stat-icon blue"><i class="bi bi-database"></i></div><div><div class="stat-value" id="s1">—</div><div class="stat-label">Total Records</div></div></div>
+                <div class="stat-card"><div class="stat-icon green"><i class="bi bi-folder2-open"></i></div><div><div class="stat-value" id="s2">—</div><div class="stat-label">Work Requests</div></div></div>
+                <div class="stat-card"><div class="stat-icon orange"><i class="bi bi-check2-square"></i></div><div><div class="stat-value" id="s3">—</div><div class="stat-label">Tasks</div></div></div>
+                <div class="stat-card"><div class="stat-icon purple"><i class="bi bi-exclamation-circle"></i></div><div><div class="stat-value" id="s4">—</div><div class="stat-label">Changes</div></div></div>
+            </div>
+
+            <div class="table-card">
+                <div class="loading-overlay" id="loader"><div class="spinner"></div><div class="loading-text">Loading raw data...</div></div>
+                <div class="table-card-header">
+                    <div class="table-card-title"><span class="dot"></span>Raw Records</div>
+                    <div class="header-actions">
+                        <button class="btn-action excel" id="btnExcel"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+                        <button class="btn-action csv"   id="btnCsv"><i class="bi bi-filetype-csv"></i> CSV</button>
+                    </div>
+                </div>
+                <div class="table-card-body">
+                    <div class="dt-container">
+                        <table id="mainTable" class="display" style="width:100%"><thead></thead><tbody></tbody></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.html5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+// Column order matches the required spec exactly
+const COL_ORDER=[
+    'work_request_id','work_request_user_id','project_name','brand',
+    'request_type_name','request_type_description','manager_names',
+    'request_creator_id','request_creator_name','request_creator_division','request_creator_email',
+    'request_creator_phone','request_creator_department','request_creator_designation',
+    'request_creator_job_role','request_creator_location','project_type_name','project_type_description',
+    'priority','task_count','issue_task_count','issue_work_pages',
+    'requested_at','project_requested_accept_at_cm','project_start_date','project_end_date',
+    'project_deadline','project_review','project_stage','work_request_status',
+    'work_request_created_at','work_request_updated_at','work_request_digi_comments',
+    'work_request_description','about_project','remarks',
+    'request_type_id','project_type_id','request_creator_job_role',
+    'work_request_type_id','work_request_project_id','manager_ids',
+    // Task fields
+    'task_id','task_name','task_request_type_name','task_type_name',
+    'task_assignment_type','assigned_user_name','task_version','task_no_of_work_pages',
+    'task_no_of_options_provided','task_no_of_words_written','task_options_submitted',
+    'task_concept_work','task_no_of_concepts','task_resize_work','task_no_of_resize',
+    'task_ai','task_no_of_ai_page','task_responsive_screen','task_no_of_responsive_screen',
+    'task_duration_minutes','task_duration_seconds','task_video_duration','task_product_shoot',
+    'task_no_of_products_shot','task_shoot_setup','task_created_at','task_updated_at',
+    'task_digi_comments','task_requester_description','task_link','task_start_date','task_end_date',
+    'task_deadline','task_review','task_review_stage','task_status',
+    'task_assignment_id','task_request_type_id','task_type_id','task_work_request_id',
+    'task_intimate_team','task_intimate_client','task_shared_with_client_at',
+    'task_requested_at_assign_intimate_cu','task_requested_accept_at_cu','task_shared_with_cm_at',
+    'task_respond_on_output_cm','task_output_client_responded_approved',
+    'assigned_user_id','assigned_user_email','assigned_user_phone',
+    'assigned_user_department','assigned_user_designation','assigned_user_job_role','assigned_user_location',
+    // Issue fields
+    'issue_id','issue_parent_id','issue_task_id','issue_requested_by_user_id',
+    'issue_request_type_name','issue_requester_name','issue_requester_department',
+    'issue_requester_designation','issue_requester_job_role','issue_requester_location',
+    'issue_assignment_type','issue_version','issue_task_count_pages','issue_no_of_work_pages',
+    'issue_no_of_options_provided','issue_no_of_words_written','issue_options_submitted',
+    'issue_concept_work','issue_no_of_concepts','issue_resize_work','issue_no_of_resize',
+    'issue_ai','issue_no_of_ai_page','issue_duration_minutes','issue_duration_seconds',
+    'issue_video_duration','issue_product_shoot','issue_no_of_products_shot','issue_shoot_setup',
+    'issue_no_of_responsive_screen','issue_responsive_screen',
+    'issue_requested_at_client','issue_requested_accept_at_cm',
+    'issue_requested_at_assign_intimate_cu','issue_requested_accept_at_cu',
+    'issue_shared_with_cm_at','issue_respond_on_output_cm',
+    'issue_shared_with_client_at','issue_output_client_responded_approve',
+    'issue_start_date','issue_end_date','issue_deadline','issue_review',
+    'issue_review_stage','issue_status','issue_created_at','issue_updated_at',
+    'issue_types','issue_register_ids','issue_types_with_description','issue_comments','issue_description','issue_link',
+    'month','fy'
+];
+const HEADERS={
+    work_request_id:'Project Request ID',
+    work_request_user_id:'Project Request User ID',
+    project_name:'Project Name',
+    brand:'Brand',
+    request_type_name:'Project Requested To',
+    request_type_description:'Project Requested To Description',
+    manager_names:'Request Accepted By',
+    request_creator_id:'Client ID',
+    request_creator_name:'Client Name',
+    request_creator_division:'Client Division',
+    request_creator_email:'Client Email',
+    request_creator_phone:'Client Phone',
+    request_creator_department:'Client Department',
+    request_creator_designation:'Client Designation',
+    request_creator_job_role:'Client Job Role',
+    request_creator_location:'Client Location',
+    project_type_name:'Project Type',
+    project_type_description:'Project Type Description',
+    priority:'Project Priority',
+    task_count:'No. of Project',
+    issue_task_count:'Project Issue Count',
+    issue_work_pages:'Project Change Pages',
+    requested_at:'Project Request Timestamp',
+    project_requested_accept_at_cm:'Project Acceptance Timestamp',
+    project_start_date:'Project Start Date',
+    project_end_date:'Project End Date',
+    project_deadline:'Project Deadline',
+    project_review:'Project Review',
+    project_stage:'Project Stage',
+    work_request_status:'Project Request Status',
+    work_request_created_at:'Project Request Created At',
+    work_request_updated_at:'Project Updated At',
+    work_request_digi_comments:'Project Digi Comments',
+    work_request_description:'Work Request Description',
+    about_project:'About Project',
+    remarks:'Remarks',
+    request_type_id:'Request Type ID',
+    project_type_id:'Project Type ID',
+    work_request_type_id:'Work Request Type ID',
+    work_request_project_id:'Work Request Project ID',
+    manager_ids:'Manager IDs',
+    task_id:'Task ID',
+    task_name:'Task Name',
+    task_request_type_name:'Task Requested To',
+    task_type_name:'Task Type',
+    task_assignment_type:'Task Assignment Type',
+    assigned_user_name:'Assigned Creative User',
+    task_version:'Task Version',
+    task_no_of_work_pages:'No. of Work Pages',
+    task_no_of_options_provided:'No. of Options',
+    task_no_of_words_written:'No. of Words Written',
+    task_options_submitted:'Task Options Submitted',
+    task_concept_work:'No. of Concept Created',
+    task_no_of_concepts:'No. of Concepts',
+    task_resize_work:'Includes Resize Work',
+    task_no_of_resize:'No. of Resize Pages',
+    task_ai:'Includes AI Work',
+    task_no_of_ai_page:'No. of AI Pages',
+    task_responsive_screen:'Task Responsive Screen',
+    task_no_of_responsive_screen:'No. of Responsive UI Created',
+    task_duration_minutes:'Task Duration Minutes',
+    task_duration_seconds:'Task Duration Seconds',
+    task_video_duration:'Video Duration',
+    task_product_shoot:'Task Product Shoot',
+    task_no_of_products_shot:'No. of Products Used',
+    task_shoot_setup:'Includes Shoot Setup',
+    task_created_at:'Task Created At',
+    task_updated_at:'Task Updated At',
+    task_digi_comments:'Task Digi Comments',
+    task_requester_description:'Task Requester Description',
+    task_link:'Task Link',
+    task_start_date:'Task Start Date',
+    task_end_date:'Task End Date',
+    task_deadline:'Task Deadline',
+    task_review:'Task Review',
+    task_review_stage:'Task Review Stage',
+    task_status:'Task Status',
+    task_assignment_id:'Task Assignment ID',
+    task_request_type_id:'Task Request Type ID',
+    task_type_id:'Task Type ID',
+    task_work_request_id:'Task Work Request ID',
+    task_intimate_team:'Task Intimate Team',
+    task_intimate_client:'Task Intimate Client',
+    task_shared_with_client_at:'Task Shared With Client At',
+    task_requested_at_assign_intimate_cu:'Task Request Timestamp',
+    task_requested_accept_at_cu:'Task Request Response Timestamp',
+    task_shared_with_cm_at:'Task Output Shared with CM Timestamp',
+    task_respond_on_output_cm:'Task Output Response by CM Timestamp',
+    task_output_client_responded_approved:'Task Output Client Responded Approved',
+    assigned_user_id:'Assigned User ID',
+    assigned_user_email:'Assigned User Email',
+    assigned_user_phone:'Assigned User Phone',
+    assigned_user_department:'Assigned User Department',
+    assigned_user_designation:'Assigned User Designation',
+    assigned_user_job_role:'Assigned User Job Role',
+    assigned_user_location:'Assigned User Location',
+    issue_id:'Change ID',
+    issue_parent_id:'Change Parent ID',
+    issue_task_id:'Change Task ID',
+    issue_requested_by_user_id:'Change Requested By User ID',
+    issue_request_type_name:'Change Requested To',
+    issue_requester_name:'Client Name',
+    issue_requester_department:'Change Requester Department',
+    issue_requester_designation:'Change Requester Designation',
+    issue_requester_job_role:'Change Requester Job Role',
+    issue_requester_location:'Change Requester Location',
+    issue_assignment_type:'Change Assignment Type',
+    issue_version:'Change Version',
+    issue_task_count_pages:'Change Task Count Pages',
+    issue_no_of_work_pages:'No. of Change Pages',
+    issue_no_of_options_provided:'No. of Options',
+    issue_no_of_words_written:'No. of Words Written',
+    issue_options_submitted:'Change Options Submitted',
+    issue_concept_work:'No. of Concept Created',
+    issue_no_of_concepts:'No. of Concepts',
+    issue_resize_work:'Includes Resize Work',
+    issue_no_of_resize:'No. of Resize Pages',
+    issue_ai:'Includes AI Work',
+    issue_no_of_ai_page:'No. of AI Pages',
+    issue_duration_minutes:'Change Duration Minutes',
+    issue_duration_seconds:'Change Duration Seconds',
+    issue_video_duration:'Video Duration',
+    issue_product_shoot:'Change Product Shoot',
+    issue_no_of_products_shot:'No. of Products Used',
+    issue_shoot_setup:'Includes Shoot Setup',
+    issue_no_of_responsive_screen:'No. of Responsive UI Created',
+    issue_responsive_screen:'Change Responsive Screen',
+    issue_requested_at_client:'Project Request Timestamp',
+    issue_requested_accept_at_cm:'Project Acceptance Timestamp',
+    issue_requested_at_assign_intimate_cu:'Change Request Timestamp',
+    issue_requested_accept_at_cu:'Change Request Response Timestamp',
+    issue_shared_with_cm_at:'Change Output Shared with CM Timestamp',
+    issue_respond_on_output_cm:'Change Output Response by CM Timestamp',
+    issue_shared_with_client_at:'Change Output Shared with Client Timestamp',
+    issue_output_client_responded_approve:'Change Output Client Responded Approved',
+    issue_start_date:'Change Start Date',
+    issue_end_date:'Change End Date',
+    issue_deadline:'Change Deadline',
+    issue_review:'Change Review',
+    issue_review_stage:'Change Review Stage',
+    issue_status:'Change Status',
+    issue_created_at:'Change Created At',
+    issue_updated_at:'Change Updated At',
+    issue_types:'Change Types',
+    issue_register_ids:'Change Register IDs',
+    issue_types_with_description:'Change Types With Description',
+    issue_comments:'Change Comments',
+    issue_description:'Change Description',
+    issue_link:'Change Link',
+    month:'Month',
+    fy:'FY'
+};
+const STATUS_KEYS=['work_request_status','task_status','issue_status'];
+const STATUS_MAP={
+    draft:'status-draft',pending:'status-pending',accepted:'status-accepted',
+    assigned:'status-assigned',in_progress:'status-in_progress',completed:'status-completed',
+    rejected:'status-rejected',deferred:'status-deferred',
+    m_pending:'status-m_pending',u_pending:'status-u_pending',
+    m_accepted:'status-m_accepted',u_accepted:'status-u_accepted',
+    on_hold:'status-on_hold',cancelled:'status-cancelled'
+};
+
+$(function(){
+    $('#sidebarToggle').on('click', function(){
+        $('body').toggleClass('sidebar-collapsed');
+        var isCollapsed = $('body').hasClass('sidebar-collapsed');
+        $(this).find('i').toggleClass('bi-chevron-left bi-chevron-right');
+        localStorage.setItem('sidebarCollapsed', isCollapsed);
+    });
+    if(localStorage.getItem('sidebarCollapsed') === 'true'){
+        $('body').addClass('sidebar-collapsed');
+        $('#sidebarToggle').find('i').removeClass('bi-chevron-left').addClass('bi-chevron-right');
+    }
+    $.getJSON('./workrequesttasks/data',function(res){
+        $('#loader').hide();
+        var data=res.data||[];
+        $('#recordCount').text(data.length+' Records');
+        $('#s1').text(data.length);
+        var wrIds=new Set(),tIds=new Set(),iIds=new Set();
+        data.forEach(function(r){
+            if(r.work_request_id)wrIds.add(r.work_request_id);
+            if(r.task_id)tIds.add(r.task_id);
+            if(r.issue_id)iIds.add(r.issue_id);
+        });
+        $('#s2').text(wrIds.size);
+        $('#s3').text(tIds.size);
+        $('#s4').text(iIds.size);
+
+        var cols=[];
+        var orderedKeys=[];
+        if(data.length){
+            var availableKeys=new Set(Object.keys(data[0]));
+            // Use COL_ORDER for display order, fall back to remaining keys
+            orderedKeys=COL_ORDER.filter(function(k){return availableKeys.has(k);});
+            // Add any keys not in COL_ORDER at the end
+            Object.keys(data[0]).forEach(function(k){if(!orderedKeys.includes(k))orderedKeys.push(k);});
+            orderedKeys.forEach(function(k){
+                cols.push({
+                    data:k,title:HEADERS[k]||k,defaultContent:'N/A',
+                    render:function(v,type){
+                        if(type!=='display')return v;
+                        var val=v!=null?v:'N/A';
+                        if(STATUS_KEYS.indexOf(k)!==-1&&val&&val!=='N/A'){
+                            var c=STATUS_MAP[val]||'';
+                            return '<span class="status-badge '+c+'">'+val+'</span>';
+                        }
+                        return val;
+                    }
+                });
+            });
+        }
+
+        var dt=$('#mainTable').DataTable({
+            data:data,columns:cols,
+            pageLength:25,lengthMenu:[[25,50,100,200,-1],[25,50,100,200,'All']],
+            dom:'<"dt-top-row"lf>rt<"dt-bottom-row"ip>',
+            scrollX:true,scrollY:'calc(100vh - 360px)',scrollCollapse:false,autoWidth:false,
+            language:{search:'',searchPlaceholder:'Search all columns...',lengthMenu:'Show _MENU_ rows'},
+            initComplete:function(){
+                var api=this.api();
+                api.columns().every(function(){
+                    var col=this,idx=col.index(),key=orderedKeys[idx];
+                    var th=$(col.header());
+                    var labelText=HEADERS[key]||key;
+                    th.empty();
+                    var wrap=$('<div class="th-wrap"></div>');
+                    wrap.append('<div class="th-label"><span title="'+labelText+'">'+labelText+'</span><span class="th-sort"></span></div>');
+                    if(STATUS_KEYS.indexOf(key)!==-1){
+                        var sel=$('<select class="col-filter"><option value="">All</option></select>');
+                        Object.keys(STATUS_MAP).forEach(function(o){sel.append('<option value="'+o+'">'+o+'</option>');});
+                        sel.on('change',function(e){e.stopPropagation();col.search(this.value).draw();});
+                        wrap.append(sel);
+                    } else {
+                        var inp=$('<input class="col-filter" type="text" placeholder="Filter...">');
+                        inp.on('keyup change clear',function(e){e.stopPropagation();if(col.search()!==this.value)col.search(this.value).draw();});
+                        wrap.append(inp);
+                    }
+                    th.append(wrap);
+                });
+            }
+        });
+        $('#mainTable').on('click','.col-filter',function(e){e.stopPropagation();});
+        var colTitles=cols.map(function(c){return c.title;});
+        new $.fn.dataTable.Buttons(dt,[
+            {extend:'excel',className:'buttons-excel',filename:'rawdata_'+new Date().toISOString().slice(0,10),exportOptions:{columns:':gt(0):visible',modifier:{page:'all'},orthogonal:'export',format:{header:function(data,col){return colTitles[col]||data;},body:function(data){return data == null ? '' : data;}}}},
+            {extend:'csv',className:'buttons-csv',filename:'rawdata_'+new Date().toISOString().slice(0,10),exportOptions:{columns:':gt(0):visible',modifier:{page:'all'},orthogonal:'export',format:{header:function(data,col){return colTitles[col]||data;},body:function(data){return data == null ? '' : data;}}}}
+        ]);
+        $('#btnExcel').on('click',function(){dt.button('.buttons-excel').trigger();});
+        $('#btnCsv').on('click',function(){dt.button('.buttons-csv').trigger();});
+    }).fail(function(){$('#loader').html('<div style="color:#be123c;font-size:13px"><i class="bi bi-exclamation-triangle"></i> Failed to load data</div>');});
+});
+</script>
+</body>
+</html>

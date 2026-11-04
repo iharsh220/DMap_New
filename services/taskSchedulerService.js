@@ -5,12 +5,14 @@ const { Tasks, WorkRequests, IssueAssignments, User } = require('../models');
 const { sendMail } = require('./mailService');
 const { renderTemplate } = require('./templateService');
 const { recordPmReviewReminderHistory } = require('./historyService');
+const { completeAllFinishedWorkRequests } = require('./workRequestCompletionService');
 
 // Create task scheduler queue
 const taskSchedulerQueue = new Queue('task-scheduler-queue', {
   connection: {
     host: process.env.REDIS_HOST || 'localhost',
     port: process.env.REDIS_PORT || 6379,
+    password: process.env.REDIS_PASSWORD || undefined,
   },
 });
 
@@ -30,60 +32,64 @@ const taskSchedulerWorker = new Worker('task-scheduler-queue', async (job) => {
     return await sendPmReviewPendingReminders();
   }
 
+  if (type === 'complete_work_requests') {
+    return await completeAllFinishedWorkRequests();
+  }
+
   throw new Error(`Unknown job type: ${type}`);
 }, {
   connection: {
     host: process.env.REDIS_HOST || 'localhost',
     port: process.env.REDIS_PORT || 6379,
+    password: process.env.REDIS_PASSWORD || undefined,
   },
 });
 
-// Function to progress tasks with today's start date
+// Work requests in these statuses move to in_progress once one of their tasks/issues starts.
+// Completed/cancelled/rejected requests are never pulled back.
+const WORK_REQUEST_STATUSES_TO_PROGRESS = ['pending', 'accepted', 'assigned'];
+
+const progressWorkRequests = async (workRequestIds) => {
+  if (workRequestIds.length === 0) return 0;
+  const [count] = await WorkRequests.update(
+    { status: 'in_progress' },
+    { where: { id: { [Op.in]: workRequestIds }, status: { [Op.in]: WORK_REQUEST_STATUSES_TO_PROGRESS } } }
+  );
+  return count;
+};
+
+// Function to progress tasks whose start date has arrived.
+// Uses start_date <= today (not only == today) so tasks accepted after the
+// 00:01 run, or missed while the server was down, are still picked up.
 const progressTasksWithTodayStartDate = async () => {
   try {
     const today = new Date();
-    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
 
-    // Find all tasks with start_date today and status 'accepted'
-    const tasksWithTodayStartDate = await Tasks.findAll({
+    const tasksToStart = await Tasks.findAll({
       where: {
         status: 'accepted',
         is_deleted: 0,
-        start_date: {
-          [Op.gte]: todayDate,
-          [Op.lt]: new Date(todayDate.getTime() + 24 * 60 * 60 * 1000) // Next day
-        }
+        start_date: { [Op.lt]: tomorrow },
+        // a task the PM already finally approved is finished, never restart it
+        [Op.not]: { review: 'approved', review_stage: 'final_approved' }
       },
-      include: [{
-        model: WorkRequests,
-        attributes: ['id', 'status']
-      }]
+      attributes: ['id', 'work_request_id'],
+      raw: true
     });
 
     let updatedTasks = 0;
-    let updatedWorkRequests = 0;
-
-    for (const task of tasksWithTodayStartDate) {
-      // Update task status to 'in_progress'
-      await Tasks.update(
+    if (tasksToStart.length > 0) {
+      [updatedTasks] = await Tasks.update(
         { status: 'in_progress' },
-        { where: { id: task.id } }
+        { where: { id: { [Op.in]: tasksToStart.map(t => t.id) }, status: 'accepted' } }
       );
-      updatedTasks++;
-
-      // Update work request status to 'in_progress' if it's not already
-      if (task.WorkRequest && task.WorkRequest.status !== 'in_progress') {
-        await WorkRequests.update(
-          { status: 'in_progress' },
-          { where: { id: task.work_request_id } }
-        );
-        updatedWorkRequests++;
-      }
     }
+    const updatedWorkRequests = await progressWorkRequests([...new Set(tasksToStart.map(t => t.work_request_id))]);
 
     return {
       success: true,
-      message: `Processed ${tasksWithTodayStartDate.length} tasks with today's start date`,
+      message: `Processed ${tasksToStart.length} tasks whose start date has arrived`,
       updatedTasks,
       updatedWorkRequests
     };
@@ -93,56 +99,39 @@ const progressTasksWithTodayStartDate = async () => {
   }
 };
 
-// Function to progress issues with today's start date
+// Function to progress issues whose start date has arrived (see tasks above)
 const progressIssuesWithTodayStartDate = async () => {
   try {
     const today = new Date();
-    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
 
-    // Find all issues with start_date today and status 'u_accepted'
-    const issuesWithTodayStartDate = await IssueAssignments.findAll({
+    const issuesToStart = await IssueAssignments.findAll({
       where: {
         status: 'u_accepted',
-        start_date: {
-          [Op.gte]: todayDate,
-          [Op.lt]: new Date(todayDate.getTime() + 24 * 60 * 60 * 1000) // Next day
-        }
+        is_deleted: 0,
+        start_date: { [Op.lt]: tomorrow }
       },
+      attributes: ['id'],
       include: [{
         model: Tasks,
         as: 'task',
-        attributes: ['id', 'work_request_id'],
-        include: [{
-          model: WorkRequests,
-          attributes: ['id', 'status']
-        }]
+        attributes: ['work_request_id']
       }]
     });
 
     let updatedIssues = 0;
-    let updatedWorkRequests = 0;
-
-    for (const issue of issuesWithTodayStartDate) {
-      // Update issue status to 'in_progress'
-      await IssueAssignments.update(
+    if (issuesToStart.length > 0) {
+      [updatedIssues] = await IssueAssignments.update(
         { status: 'in_progress' },
-        { where: { id: issue.id } }
+        { where: { id: { [Op.in]: issuesToStart.map(i => i.id) }, status: 'u_accepted' } }
       );
-      updatedIssues++;
-
-      // Update work request status to 'in_progress' if it's not already
-      if (issue.task && issue.task.WorkRequest && issue.task.WorkRequest.status !== 'in_progress') {
-        await WorkRequests.update(
-          { status: 'in_progress' },
-          { where: { id: issue.task.work_request_id } }
-        );
-        updatedWorkRequests++;
-      }
     }
+    const workRequestIds = [...new Set(issuesToStart.map(i => i.task && i.task.work_request_id).filter(Boolean))];
+    const updatedWorkRequests = await progressWorkRequests(workRequestIds);
 
     return {
       success: true,
-      message: `Processed ${issuesWithTodayStartDate.length} issues with today's start date`,
+      message: `Processed ${issuesToStart.length} issues whose start date has arrived`,
       updatedIssues,
       updatedWorkRequests
     };
@@ -318,6 +307,10 @@ const scheduleTaskProgression = () => {
       // Progress issues with today's start date
       await taskSchedulerQueue.add('progress-issues', { type: 'progress_issues' });
       console.log('Issue progression job queued successfully');
+
+      // Complete work requests whose tasks and change requests are all completed and approved
+      await taskSchedulerQueue.add('complete-work-requests', { type: 'complete_work_requests' });
+      console.log('Work request completion job queued successfully');
     } catch (error) {
       console.error('Failed to queue task/issue progression job:', error);
     }
@@ -339,7 +332,7 @@ const scheduleTaskProgression = () => {
   //   timezone: 'Asia/Kolkata'
   // });
 
-  console.log('Task and Issue progression scheduler initialized - runs daily at 12:01 AM IST (checks start_date)');
+  console.log('Task and Issue progression + work request completion scheduler initialized - runs daily at 12:01 AM IST');
   console.log('PM review reminder scheduler initialized - runs on weekdays at 9:00 AM and 5:00 PM IST');
 };
 
@@ -362,6 +355,17 @@ const triggerIssueProgression = async () => {
     return result;
   } catch (error) {
     console.error('Failed to trigger issue progression:', error);
+    throw error;
+  }
+};
+
+// Function to manually trigger the work request completion check (for testing)
+const triggerWorkRequestCompletion = async () => {
+  try {
+    const result = await taskSchedulerQueue.add('complete-work-requests', { type: 'complete_work_requests' });
+    return result;
+  } catch (error) {
+    console.error('Failed to trigger work request completion:', error);
     throw error;
   }
 };
@@ -390,7 +394,9 @@ module.exports = {
   triggerTaskProgression,
   triggerIssueProgression,
   triggerPmReviewPendingReminders,
+  triggerWorkRequestCompletion,
   progressTasksWithTodayStartDate,
   progressIssuesWithTodayStartDate,
-  sendPmReviewPendingReminders
+  sendPmReviewPendingReminders,
+  completeAllFinishedWorkRequests
 };

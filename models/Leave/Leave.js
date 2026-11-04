@@ -8,7 +8,11 @@ const Leave = sequelize.define('Leave', {
     primaryKey: true,
     autoIncrement: true,
   },
-  date: {
+  from_date: {
+    type: DataTypes.DATE,
+    allowNull: false,
+  },
+  to_date: {
     type: DataTypes.DATE,
     allowNull: false,
   },
@@ -17,7 +21,7 @@ const Leave = sequelize.define('Leave', {
     allowNull: false,
   },
   leave_day_type: {
-    type: DataTypes.ENUM('Full day', 'Half day', 'Short Leave'),
+    type: DataTypes.ENUM('Full day', 'Half day', 'Short Hours', 'WFH'),
     allowNull: false,
     defaultValue: 'Full day',
   },
@@ -32,11 +36,15 @@ const Leave = sequelize.define('Leave', {
     defaultValue: 'Inform',
   },
   leave_reason: {
-    type: DataTypes.ENUM('Emergency', 'Medical', 'Family Emergency', 'Feeling not well', 'Go Early', 'Personal', 'Hospitalized'),
+    type: DataTypes.ENUM('Emergency', 'Medical', 'Family Emergency', 'Feeling not well', 'Go Early', 'Personal', 'Hospitalized', 'WFH', 'Short Leave', 'Optional', 'Sick Leave', 'Going Early', 'Reached late', 'FWFH', 'RWFH'),
     allowNull: false,
     defaultValue: 'Feeling not well',
   },
   remark: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  checker_remark: {
     type: DataTypes.TEXT,
     allowNull: true,
   },

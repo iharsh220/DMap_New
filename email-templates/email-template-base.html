@@ -1,63 +1,88 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="x-apple-disable-message-reformatting">
+    <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+    <title>{{title}}</title>
     <!--[if mso]>
+    <noscript>
+        <xml>
+            <o:OfficeDocumentSettings>
+                <o:AllowPNG/>
+                <o:PixelsPerInch>96</o:PixelsPerInch>
+            </o:OfficeDocumentSettings>
+        </xml>
+    </noscript>
     <style type="text/css">
-        body, table, td {font-family: Arial, Helvetica, sans-serif !important;}
+        body, table, td, p, a, h1, h2, h3, li { font-family: Arial, Helvetica, sans-serif !important; }
     </style>
     <![endif]-->
-    <title>{{title}}</title>
+    <style type="text/css">
+        body { margin: 0; padding: 0; width: 100% !important; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { border: 0; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }
+        a { color: #5b2be0; }
+        @media only screen and (max-width: 620px) {
+            .dm-container { width: 100% !important; }
+            .dm-px { padding-left: 20px !important; padding-right: 20px !important; }
+        }
+    </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
-    <!-- Preheader (hidden text) -->
-    <div style="display: none; font-size: 1px; color: #fefefe; line-height: 1px; font-family: Arial, sans-serif; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;">
-        {{preheader}}
-    </div>
-    
-    <!-- Main Email Container -->
-    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f4f4f4; padding: 20px 0;">
+<body style="margin: 0; padding: 0; background-color: #eef1f6;">
+    <div style="display: none; font-size: 1px; color: #eef1f6; line-height: 1px; max-height: 0; max-width: 0; opacity: 0; overflow: hidden; mso-hide: all;">{{preheader}}</div>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#eef1f6" style="background-color: #eef1f6;">
         <tr>
-            <td align="center">
-                <!-- Email Container -->
-                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="background-color: #ffffff; max-width: 600px;">
-                    
+            <td align="center" style="padding: 24px 12px;">
+                <!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" align="center"><tr><td><![endif]-->
+                <table role="presentation" class="dm-container" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="width: 600px; max-width: 600px; background-color: #ffffff; border: 1px solid #e3e7ef; border-radius: 10px;">
+
+                    <!-- Logo -->
+                    <tr>
+                        <td class="dm-px" style="padding: 20px 32px 16px 32px;">
+                            <a href="{{frontend_url}}" target="_blank"><img src="{{logo_base64}}" width="170" height="71" alt="Alembic" style="display: block; width: 170px; height: auto;"></a>
+                        </td>
+                    </tr>
+
                     <!-- Header -->
                     <tr>
-                        <td style="background-color: #007bff; padding: 25px 20px; text-align: center;">
-                            <h1 style="color: #ffffff; font-size: 22px; font-weight: 600; margin: 0; font-family: Arial, Helvetica, sans-serif;">{{header_title}}</h1>
+                        <td class="dm-px" bgcolor="#291467" style="background-color: #291467; padding: 22px 32px;">
+                            <h1 style="margin: 0; color: #ffffff; font-family: Arial, Helvetica, sans-serif; font-size: 22px; line-height: 28px; font-weight: bold;">{{header_title}}</h1>
                         </td>
                     </tr>
-                    
+
                     <!-- Content -->
                     <tr>
-                        <td style="padding: 30px 25px;">
+                        <td class="dm-px" style="padding: 30px 32px; font-family: Arial, Helvetica, sans-serif; font-size: 15px; line-height: 23px; color: #1f2937;">
                             {{content}}
+                            
                         </td>
                     </tr>
-                    
-                    <!-- Banner Image at Bottom -->
+
+                    <!-- Banner -->
                     <tr>
                         <td style="padding: 0;">
-                            <a href="{{frontend_url}}">
-                                <img src="{{banner_base64}}" alt="D-Map Banner" width="600" style="display: block; width: 100%; max-width: 600px; height: auto; border: 0;">
-                            </a>
+                            <a href="{{frontend_url}}" target="_blank"><img src="{{banner_base64}}" width="600" alt="D-Map Banner" style="display: block; width: 100%; max-width: 600px; height: auto;"></a>
                         </td>
                     </tr>
-                    
+
                     <!-- Footer -->
                     <tr>
-                        <td style="background-color: #f8f9fa; padding: 25px 20px; text-align: center; border-top: 1px solid #e9ecef;">
-                            <p style="margin: 5px 0; font-size: 12px; color: #6c757d;">This is an automated message from D-Map. Please do not reply to this email.</p>
-                            <p style="margin: 5px 0; font-size: 12px; color: #6c757d;">&copy; 2026 Alembic Digital Labs. All rights reserved.</p>
-                            <p style="margin: 10px 0 0 0; font-size: 12px;">
-                                <a href="{{frontend_url}}" style="color: #007bff; text-decoration: none;">Visit D-Map</a> | 
-                                <a href="mailto:support@alembicdigilabs.com" style="color: #007bff; text-decoration: none;">Support</a>
+                        <td class="dm-px" bgcolor="#f6f7fb" style="background-color: #f6f7fb; padding: 22px 32px; text-align: center; border-top: 1px solid #e3e7ef; border-radius: 0 0 10px 10px; font-family: Arial, Helvetica, sans-serif;">
+                            <p style="margin: 4px 0; font-size: 12px; line-height: 18px; color: #6b7280;">This is an automated message from D-Map. Please do not reply to this email.</p>
+                            <p style="margin: 4px 0; font-size: 12px; line-height: 18px; color: #6b7280;">&copy; 2026 Alembic Digital Labs. All rights reserved.</p>
+                            <p style="margin: 10px 0 0 0; font-size: 12px; line-height: 18px;">
+                            <a href="{{frontend_url}}" style="color: #5b2be0; text-decoration: none;">Visit D-Map</a> |
+                            <a href="mailto:support@alembicdigilabs.com" style="color: #5b2be0; text-decoration: none;">Support</a>
                             </p>
+                            
                         </td>
                     </tr>
                 </table>
+                <!--[if mso]></td></tr></table><![endif]-->
             </td>
         </tr>
     </table>

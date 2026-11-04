@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weekly report · D-Map Admin</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%235b2be0'/%3E%3Ctext x='16' y='22' font-family='Arial' font-size='16' font-weight='700' fill='white' text-anchor='middle'%3ED%3C/text%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="../admin/dmap-theme.css" rel="stylesheet">
+    <script>try{document.documentElement.setAttribute('data-theme',localStorage.getItem('themePreference')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'))}catch(e){}</script>
+    <script src="../admin/admin-app.js" defer></script>
+    <style>
+        .wr-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; margin-bottom: 14px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-sm); }
+        .wr-week { display: inline-flex; align-items: center; gap: 4px; }
+        .wr-week .dm-dd-btn { white-space: nowrap; }
+        .wr-week .dm-dd-btn .v { max-width: none; }
+        .wr-live { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-3); margin-left: auto; }
+        .wr-tab-title { font-size: 16px; font-weight: 650; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+        .wr-tab-title .wr-count { font-size: 12px; }
+        .wr-count { display: inline-block; background: var(--surface-3); color: var(--text-2); border-radius: 10px; padding: 0 7px; font-size: 11.5px; margin-left: 6px; }
+        .wr-toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+        .wr-note { font-size: 12.5px; color: var(--text-3); margin: 0 0 10px; }
+        .wr-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); }
+        .wr-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 1080px; table-layout: fixed; }
+        .wr-table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-3); font-weight: 650; padding: 10px 8px; border-bottom: 1px solid var(--border); background: var(--surface-2); white-space: nowrap; }
+        .wr-table td { padding: 8px 5px; border-bottom: 1px solid var(--border); vertical-align: top; }
+        .wr-table tr:last-child td { border-bottom: 0; }
+        .wr-table tr.is-out td { background: var(--surface-2); color: var(--text-3); }
+        .wr-table .dm-input, .wr-table .dm-select, .wr-table .dm-textarea { height: 32px; font-size: 12.5px; padding: 0 6px; border-radius: 7px; }
+        .wr-table .dm-textarea { height: auto; min-height: 52px; padding: 6px 8px; }
+        .wr-sub { font-size: 11.5px; color: var(--text-3); margin-top: 4px; line-height: 1.45; }
+        .wr-flag { color: var(--warning); font-weight: 600; }
+        .wr-link { border: 0; background: none; color: var(--brand); padding: 0; font: inherit; font-size: 12px; cursor: pointer; }
+        .wr-link:hover { text-decoration: underline; }
+        .wr-reset { border: 0; background: none; color: var(--brand); cursor: pointer; font-size: 12px; padding: 2px 0 0; }
+        .s-Completed { color: var(--success); background: var(--success-bg); border-color: var(--success-border); }
+        .s-Ongoing { color: var(--info); background: var(--info-bg); border-color: var(--info-border); }
+        .s-Upcoming { color: var(--warning); background: var(--warning-bg); border-color: var(--warning-border); }
+        .s-Cancelled { color: var(--danger); background: var(--danger-bg); border-color: var(--danger-border); }
+        .wr-cards { display: grid; gap: 12px; }
+        .wr-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; box-shadow: var(--shadow-sm); }
+        .wr-card.is-off { opacity: .6; }
+        .wr-card-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+        .wr-card-head .t { font-weight: 650; }
+        .wr-grid8 { display: grid; grid-template-columns: 2.2fr .7fr 1.2fr 1.2fr .6fr 1fr 1fr 1fr; gap: 8px; }
+        .wr-grid8 label, .wr-lbl { font-size: 11.5px; color: var(--text-3); display: block; margin-bottom: 3px; font-weight: 600; }
+        .wr-grid8 .dm-input, .wr-grid8 .dm-select { height: 34px; font-size: 13px; }
+        .wr-row2 { display: grid; grid-template-columns: 1.4fr 1fr; gap: 12px; margin-top: 10px; }
+        .wr-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+        .wr-chip { background: var(--surface-3); border-radius: 7px; padding: 4px 8px; font-size: 12px; display: inline-flex; align-items: center; gap: 4px; }
+        .wr-chip button { border: 0; background: none; cursor: pointer; color: var(--text-3); padding: 0 0 0 2px; }
+        .wr-two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .wr-imgs { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0; }
+        .wr-imgs figure { margin: 0; position: relative; border: 1px solid var(--border); border-radius: 9px; overflow: hidden; width: 190px; height: 124px; background: var(--surface-2); }
+        .wr-imgs img { width: 100%; height: 100%; object-fit: contain; }
+        .wr-imgs .acts { position: absolute; top: 4px; right: 4px; display: flex; gap: 3px; }
+        .wr-drop { border: 2px dashed var(--border-strong); border-radius: 10px; padding: 18px; text-align: center; color: var(--text-3); cursor: pointer; background: var(--surface); font-size: 13px; }
+        .wr-drop.is-hover { border-color: var(--brand); background: var(--brand-soft); }
+        .wr-warn { background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border); border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; font-size: 13px; }
+        .wr-checks { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+        .wr-checks label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+        body.wr-busy [data-view] { opacity: .6; pointer-events: none; }
+        @media (max-width: 1100px) { .wr-grid8 { grid-template-columns: 1fr 1fr; } .wr-row2, .wr-two { grid-template-columns: 1fr; } }
+        @media (max-width: 640px) { .wr-live { margin-left: 0; } }
+    </style>
+</head>
+<body>
+<noscript>The D-Map admin panel needs JavaScript.</noscript>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const D = window.DMap;
+    const esc = D.esc, fmt = D.fmt;
+    const STATUSES = ['Completed', 'Ongoing', 'Upcoming', 'Cancelled'];
+    const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    let genBtn = null;
+    const body = D.shell({
+        page: 'reports', tab: (location.hash.slice(1) in { client: 1, init: 1, extra: 1, settings: 1 }) ? location.hash.slice(1) : 'client', title: 'Weekly report', icon: 'file-earmark-slides',
+        subtitle: 'Your team’s weekly report, built from live D-Map data: check the rows, add remarks, then generate the PowerPoint',
+        actions: [{ label: 'Generate report', icon: 'filetype-pptx', variant: 'primary', onClick: (e, b) => { genBtn = b; generate(); } }]
+    });
+    body.innerHTML = `
+<div class="wr-bar">
+  <span data-division></span>
+  <div class="wr-week"><button class="dm-icon-btn" data-week="-1" title="Previous period" aria-label="Previous period"><i class="bi bi-chevron-left"></i></button>
+    <span data-range></span><button class="dm-icon-btn" data-week="1" title="Next period" aria-label="Next period"><i class="bi bi-chevron-right"></i></button>
+    <button class="dm-btn dm-btn-sm dm-btn-ghost" data-week-reset hidden><i class="bi bi-arrow-counterclockwise"></i><span>Report week</span></button></div>
+  <span class="wr-live"><span class="dm-dot-live"></span><span data-live>Live D-Map data</span></span>
+  <button class="dm-btn dm-btn-sm" data-refresh><i class="bi bi-arrow-clockwise"></i><span>Refresh</span></button>
+</div>
+<h2 class="wr-tab-title" data-tab-title></h2>
+<section data-view></section>`;
+
+    const q = s => body.querySelector(s);
+    const TABS = { client: 'Client work', init: 'Initiatives', extra: 'Highlight & notes', settings: 'History & settings' };
+    const tabFromHash = () => (TABS[location.hash.slice(1)] ? location.hash.slice(1) : 'client');
+    let data = null, tab = tabFromHash(), filter = 'in', search = '';
+    const divisionKey = 'dmReportDivision:' + ((D.user() || {}).id || '');
+    let divisionId = D.store.get(divisionKey, null), weekStart = null, weekEnd = null;
+
+    // ---- api helpers (every call carries the division and the week)
+    const qs = () => '?' + new URLSearchParams(Object.assign({}, divisionId ? { division_id: divisionId } : {}, weekEnd ? { week_start: weekStart, week_end: weekEnd } : {})).toString();
+    async function call(path, body) {
+        const res = await D.api('reports/' + path + qs(), body === undefined ? {} : { method: 'POST', body });
+        if (res.data) { data = res.data; weekStart = data.week.start; weekEnd = data.week.end; divisionId = data.division.id; D.store.set(divisionKey, divisionId); render(); }
+        return res;
+    }
+    async function load(path = 'data', payload) {
+        document.body.classList.add('wr-busy');
+        try { return await call(path, payload); }
+        catch (e) {
+            // a remembered division the user can no longer open: fall back to the default
+            if (e.status === 403 && divisionId && path === 'data') { divisionId = null; D.store.set(divisionKey, null); return load(); }
+            D.toast(e.message, 'danger', 6000);
+            if (!data) showError(e);
+        } finally { document.body.classList.remove('wr-busy'); }
+    }
+    const quiet = payload => D.api('reports/action/project' + qs(), { method: 'POST', body: payload }).then(r => { data = r.data; }).catch(e => D.toast(e.message, 'danger', 6000));
+    async function fetchBlob(path) {
+        const res = await fetch(D.adminBase + 'reports/' + path, { headers: { Authorization: 'Bearer ' + D.store.raw('accessToken') } });
+        if (!res.ok) throw new Error(res.status === 404 ? 'File not found' : 'Download failed');
+        return res.blob();
+    }
+    async function download(file) {
+        try {
+            const blob = await fetchBlob('download' + qs() + '&f=' + encodeURIComponent(file));
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = file;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+        } catch (e) { D.toast(e.message, 'danger'); }
+    }
+
+    function showError(e) {
+        q('[data-view]').innerHTML = '<div class="dm-card dm-state"><i class="bi bi-cloud-slash"></i><h4>Couldn’t load the weekly report</h4><p></p><button class="dm-btn" type="button">Try again</button></div>';
+        q('[data-view] p').textContent = e.message;
+        q('[data-view] button').addEventListener('click', () => load());
+    }
+
+    // ---- top bar
+    q('[data-refresh]').addEventListener('click', () => load('action/refresh', {}).then(r => r && D.toast('Refreshed from D-Map')));
+    // period: the latest Tuesday-to-Monday week by default; any range from the date picker; the arrows
+    // move the period back / forward by its own length
+    const shiftDay = (d, n) => { const x = new Date(d + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+    const span = () => Math.round((new Date(weekEnd + 'T00:00:00Z') - new Date(weekStart + 'T00:00:00Z')) / 864e5) + 1;
+    body.querySelectorAll('[data-week]').forEach(b => b.addEventListener('click', () => {
+        const n = span() * Number(b.dataset.week);
+        weekStart = shiftDay(weekStart, n);
+        weekEnd = shiftDay(weekEnd, n);
+        load();
+    }));
+    q('[data-week-reset]').addEventListener('click', () => { weekStart = weekEnd = null; load(); });
+    const range = D.rangeInput({ kind: 'date', button: true, placeholder: 'Period', onChange: v => {
+        if (!v.from && !v.to) { weekStart = weekEnd = null; load(); return; }
+        weekStart = v.from || shiftDay(v.to, -6);
+        weekEnd = v.to || shiftDay(v.from, 6);
+        if (weekStart > weekEnd) [weekStart, weekEnd] = [weekEnd, weekStart];
+        load();
+    } });
+    q('[data-range]').appendChild(range.el);
+    window.addEventListener('hashchange', () => { tab = tabFromHash(); D.setNavTab(tab); if (data) render(); window.scrollTo({ top: 0 }); });
+
+    function render() {
+        range.set({ from: data.week.start, to: data.week.end });
+        q('[data-week-reset]').hidden = data.week.start === data.default_week[0] && data.week.end === data.default_week[1];
+        const t = new Date(data.refreshed_at);
+        q('[data-live]').textContent = `Live D-Map data · ${t.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`;
+        const dh = q('[data-division]');
+        dh.innerHTML = '';
+        if (data.divisions.length > 1) {
+            const sel = D.multiSelect({
+                single: true, placeholder: 'Division', icon: 'diagram-3', values: [data.division.id],
+                options: data.divisions.map(d => ({ value: d.id, label: d.title })),
+                onChange: v => { if (v[0]) { divisionId = Number(v[0]); load(); } }
+            });
+            dh.appendChild(sel.el);
+        } else {
+            dh.innerHTML = `<span class="dm-pill tone-accent"><i class="bi bi-diagram-3"></i> ${esc(data.division.title)}</span>`;
+        }
+        const counts = { client: data.client_rows.filter(r => r.included).length, init: data.initiatives.filter(i => i.include !== false).length };
+        q('[data-tab-title]').innerHTML = `${esc(TABS[tab])}${counts[tab] !== undefined ? `<span class="wr-count">${counts[tab]} in report</span>` : ''}`;
+        document.title = `${TABS[tab]} · Weekly report · D-Map Admin`;
+        ({ client: renderClient, init: renderInit, extra: renderExtra, settings: renderSettings })[tab]();
+    }
+
+    // ------------------------------------------------------------------ client work
+    const unitWord = () => (data.settings.unit === 'task' ? 'task' : 'project');
+    const statusPill = s => `<span class="dm-pill no-dot s-${esc(s)}">${esc(s)}</span>`;
+    function renderClient() {
+        const rows = data.client_rows;
+        const inc = rows.filter(r => r.included);
+        const c = s => inc.filter(r => r.status_out === s).length;
+        let list = rows.filter(r => filter === 'all' || (filter === 'in' ? r.included : !r.included));
+        if (search) { const s = search.toLowerCase(); list = list.filter(r => [r.name_out, r.id, r.division, r.client, r.project].join(' ').toLowerCase().includes(s)); }
+        const word = unitWord();
+        const view = q('[data-view]');
+        view.innerHTML = `
+<div class="wr-toolbar">
+  ${STATUSES.map(s => (s !== 'Cancelled' || c(s)) ? `<span class="dm-pill no-dot s-${s}">${s} ${c(s)}</span>` : '').join('')}
+  <span style="flex:1"></span>
+  <div class="dm-seg" role="group" aria-label="Which rows">${[['in', 'In report', inc.length], ['out', 'Not in report', rows.length - inc.length], ['all', `All ${word}s`, rows.length]].map(([k, l, n]) => `<button class="${filter === k ? 'is-active' : ''}" data-filter="${k}">${l} (${n})</button>`).join('')}</div>
+  <label class="dm-search" style="flex:0 1 240px"><i class="bi bi-search"></i><input type="search" placeholder="Search name, ID, division…" aria-label="Search" data-search></label>
+</div>
+<p class="wr-note">Status and dates come from D-Map ${word === 'task' ? 'tasks and their change requests' : 'tasks'}. Anything you type is remembered for future weeks; clear a field to go back to the D-Map value. Completed = finished between ${esc(data.week.label)}.</p>
+<div class="wr-table-wrap"><table class="wr-table"><thead><tr><th style="width:40px">In</th><th style="width:130px">Status</th><th style="width:22%">${word === 'task' ? 'Task' : 'Project'}</th><th style="width:108px">Division</th><th style="width:120px">${word === 'task' ? 'Task type' : 'Project type'}</th><th style="width:58px">${word === 'task' ? 'Pages' : 'Count'}</th><th style="width:110px">Start</th><th style="width:110px">End</th><th>Remark</th></tr></thead>
+<tbody>${list.map(rowHtml).join('') || '<tr><td colspan="9" class="muted" style="text-align:center;padding:22px">Nothing here.</td></tr>'}</tbody></table></div>`;
+        const s = view.querySelector('[data-search]');
+        s.value = search;
+        s.addEventListener('input', D.debounce(() => { search = s.value; renderClient(); view.querySelector('[data-search]').focus(); }, 250));
+        view.querySelectorAll('[data-filter]').forEach(b => b.addEventListener('click', () => { filter = b.dataset.filter; renderClient(); }));
+        view.querySelectorAll('tr[data-id]').forEach(tr => {
+            const id = tr.dataset.id;
+            const row = data.client_rows.find(r => r.id === id);
+            tr.querySelector('[data-inc]').addEventListener('change', e => load('action/project', { id, field: 'include', value: e.target.checked === row.auto_include ? null : e.target.checked }));
+            const reset = tr.querySelector('[data-inc-reset]');
+            if (reset) reset.addEventListener('click', () => load('action/project', { id, field: 'include', value: null }));
+            tr.querySelector('[data-status]').addEventListener('change', e => load('action/project', { id, field: 'status', value: e.target.value }));
+            tr.querySelectorAll('[data-field]').forEach(inp => inp.addEventListener('change', () => {
+                const v = inp.value.trim();
+                quiet({ id, field: inp.dataset.field, value: v === inp.dataset.auto ? '' : v });
+            }));
+            tr.querySelector('[data-remark]').addEventListener('change', e => quiet({ id, field: 'remark', value: e.target.value }));
+            tr.querySelector('[data-to-init]').addEventListener('click', () => toInitiative(id));
+        });
+    }
+    function rowHtml(r) {
+        const inp = (f, v, auto) => `<input class="dm-input" type="text" value="${esc(v)}" data-field="${f}" data-auto="${esc(auto)}" aria-label="${f}">`;
+        const meta = r.kind === 'task'
+            ? [`Task #${esc(r.task_id)}`, `Project #${esc(r.project_id)} ${esc(r.project)}`, esc(r.client), `changes ${r.tasks_done}/${r.tasks_total}`]
+            : [`#${esc(r.id)}`, esc(r.client), `tasks ${r.tasks_done}/${r.tasks_total}`];
+        if (r.last_activity) meta.push(`last activity ${esc(r.last_activity)}`);
+        meta.push(`D-Map: ${esc(r.dmap_status)}`);
+        return `<tr class="${r.included ? '' : 'is-out'}" data-id="${esc(r.id)}">
+  <td><input type="checkbox" data-inc ${r.included ? 'checked' : ''} title="${r.include_override === null ? 'Selected automatically' : 'You changed this'}" aria-label="In report">${r.include_override !== null ? '<div><button class="wr-reset" data-inc-reset title="Back to automatic">↺</button></div>' : ''}</td>
+  <td><select class="dm-select" data-status aria-label="Status"><option value="">Auto: ${esc(r.status)}</option>${STATUSES.map(s => `<option ${s === r.status_out && r.status_out !== r.status ? 'selected' : ''}>${s}</option>`).join('')}</select>
+      <div style="margin-top:5px">${statusPill(r.status_out)}</div></td>
+  <td>${inp('name', r.name_out, r.name)}<div class="wr-sub">${meta.join(' · ')}${r.hint ? ` · <span class="wr-flag">${esc(r.hint)}</span>` : ''}${r.was_in_last_report ? ' · in last report' : ''}</div>
+      <button class="wr-link" data-to-init>Move to initiatives →</button></td>
+  <td>${inp('division', r.division_out, r.division_auto)}</td>
+  <td>${inp('type', r.type_out, r.type_auto)}</td>
+  <td>${inp('count', r.count, r.count_auto)}</td>
+  <td>${inp('start', r.start_out, r.start)}</td><td>${inp('end', r.end_out, r.end)}</td>
+  <td><textarea class="dm-textarea" rows="2" data-remark placeholder="${esc(r.suggested_remark)}" aria-label="Remark">${esc(r.remark)}</textarea></td></tr>`;
+    }
+    function toInitiative(id) {
+        const r = data.client_rows.find(x => x.id === id);
+        const list = strip(data.initiatives);
+        list.push({ id: 'i' + Date.now(), name: r.name, lead: data.settings.initiative_lead || '', contributors: r.contributors, vertical: data.division.title, count: '01', start: r.start, end: 'TBD', status: r.status === 'Completed' ? 'Completed' : 'Ongoing', remark: 'Updates:\n1. ', project_ids: [id], include: true });
+        load('action/initiatives', { initiatives: list }).then(res => res && D.toast(`Moved “${r.name}” to Initiatives`));
+    }
+
+    // ------------------------------------------------------------------ initiatives
+    const strip = l => l.map(i => ({ id: i.id, name: i.name, lead: i.lead, contributors: i.contributors, vertical: i.vertical, count: i.count, start: i.start, end: i.end, status: i.status, remark: i.remark, project_ids: i.project_ids || [], include: i.include !== false }));
+    let saveTimer = null;
+    function saveInits(now) {
+        clearTimeout(saveTimer);
+        if (now) return load('action/initiatives', { initiatives: strip(data.initiatives) });
+        saveTimer = setTimeout(() => D.api('reports/action/initiatives' + qs(), { method: 'POST', body: { initiatives: strip(data.initiatives) } }).catch(e => D.toast(e.message, 'danger', 6000)), 600);
+    }
+    const newInit = (o) => Object.assign({ id: 'i' + Date.now(), name: '', lead: data.settings.initiative_lead || '', contributors: '', vertical: data.division.title, count: '01', start: 'TBD', end: 'TBD', status: 'Ongoing', remark: 'Updates:\n1. ', project_ids: [], include: true }, o);
+    function renderInit() {
+        const u = data.unlinked;
+        const view = q('[data-view]');
+        view.innerHTML = `
+${u.length ? `<div class="wr-warn"><b>New work under ${esc(data.settings.initiative_clients.join(', '))}</b> that isn’t linked to an initiative yet:${u.map(p => `<div style="margin-top:6px" data-unlinked="${esc(p.id)}">#${esc(p.id)} <b>${esc(p.name)}</b> (${esc(p.status)}) <button class="dm-btn dm-btn-sm" data-new-from>Add as new initiative</button>
+   <select class="dm-select" style="width:auto;height:30px;display:inline-block" data-link-to><option value="">Link to existing…</option>${data.initiatives.map((x, i) => `<option value="${i}">${esc(x.name)}</option>`).join('')}</select></div>`).join('')}</div>` : ''}
+<div class="wr-toolbar"><span class="wr-note" style="margin:0">Initiatives keep their text from week to week. Update the status and remarks, and link D-Map ${unitWord()}s so they stay out of the client list.</span><span style="flex:1"></span><button class="dm-btn dm-btn-primary" data-add><i class="bi bi-plus-lg"></i><span>Add initiative</span></button></div>
+<datalist id="wr-plist">${data.all_projects.map(p => `<option value="${esc(p.id)} · ${esc(p.name)}">`).join('')}</datalist>
+<div class="wr-cards">${data.initiatives.map(initCard).join('') || '<div class="dm-card dm-state"><i class="bi bi-lightbulb"></i><h4>No initiatives yet</h4><p>Add your team’s internal / operational work here.</p></div>'}</div>`;
+        view.querySelector('[data-add]').addEventListener('click', () => { data.initiatives.push(newInit({})); saveInits(1); });
+        view.querySelectorAll('[data-unlinked]').forEach(el => {
+            const p = data.unlinked.find(x => x.id === el.dataset.unlinked);
+            el.querySelector('[data-new-from]').addEventListener('click', () => { data.initiatives.push(newInit({ name: p.name, contributors: p.contributors, start: p.start, project_ids: [p.id] })); saveInits(1); });
+            el.querySelector('[data-link-to]').addEventListener('change', e => { if (e.target.value !== '') addLink(+e.target.value, p.id); });
+        });
+        view.querySelectorAll('[data-init]').forEach(card => {
+            const i = +card.dataset.init;
+            const it = data.initiatives[i];
+            card.querySelectorAll('[data-f]').forEach(inp => inp.addEventListener(inp.tagName === 'SELECT' ? 'change' : 'input', () => { it[inp.dataset.f] = inp.value; saveInits(); }));
+            card.querySelector('[data-include]').addEventListener('change', e => { it.include = e.target.checked; saveInits(1); });
+            card.querySelector('[data-up]').addEventListener('click', () => move(i, -1));
+            card.querySelector('[data-down]').addEventListener('click', () => move(i, 1));
+            card.querySelector('[data-del]').addEventListener('click', async () => {
+                if (await D.confirm({ title: 'Delete initiative?', message: `“${it.name || 'This initiative'}” will be removed from the report.`, confirmLabel: 'Delete', tone: 'danger', icon: 'trash' })) { data.initiatives.splice(i, 1); saveInits(1); }
+            });
+            card.querySelectorAll('[data-unlink]').forEach(b => b.addEventListener('click', () => { it.project_ids = (it.project_ids || []).filter(x => x !== b.dataset.unlink); saveInits(1); }));
+            card.querySelector('[data-add-link]').addEventListener('change', e => addLink(i, e.target.value));
+            const use = card.querySelector('[data-use-contrib]');
+            if (use) use.addEventListener('click', () => { it.contributors = use.dataset.useContrib; saveInits(1); });
+        });
+    }
+    function initCard(it, i) {
+        const f = (k, l) => `<div><label>${l}</label><input class="dm-input" type="text" value="${esc(it[k])}" data-f="${k}"></div>`;
+        const dm = it.linked || [];
+        const contrib = [...new Set(dm.flatMap(p => (p.contributors || '').split('/')).filter(Boolean))].join('/');
+        return `<div class="wr-card ${it.include === false ? 'is-off' : ''}" data-init="${i}">
+ <div class="wr-card-head"><div class="t">${String(i + 1).padStart(2, '0')}. ${esc(it.name) || 'New initiative'}</div>
+  <div style="display:flex;gap:6px;align-items:center"><label style="font-size:13px;margin-right:6px"><input type="checkbox" data-include ${it.include !== false ? 'checked' : ''}> In report</label>
+   <button class="dm-btn dm-btn-sm" data-up ${i === 0 ? 'disabled' : ''} aria-label="Move up"><i class="bi bi-arrow-up"></i></button><button class="dm-btn dm-btn-sm" data-down ${i === data.initiatives.length - 1 ? 'disabled' : ''} aria-label="Move down"><i class="bi bi-arrow-down"></i></button>
+   <button class="dm-btn dm-btn-sm" data-del><i class="bi bi-trash"></i><span>Delete</span></button></div></div>
+ <div class="wr-grid8">${f('name', 'Name')}${f('lead', 'Lead')}${f('contributors', 'Contributors')}${f('vertical', 'Vertical')}${f('count', 'Count')}${f('start', 'Initiation date')}${f('end', 'Completion date')}
+  <div><label>Status</label><select class="dm-select" data-f="status">${STATUSES.map(s => `<option ${s === it.status ? 'selected' : ''}>${s}</option>`).join('')}</select></div></div>
+ <div class="wr-row2"><div><span class="wr-lbl">Remark / comments (a line ending with “:” becomes bold; number your points 1. 2. 3.)</span>
+   <textarea class="dm-textarea" rows="${Math.min(10, Math.max(3, (it.remark || '').split('\n').length + 1))}" data-f="remark">${esc(it.remark)}</textarea></div>
+  <div><span class="wr-lbl">Linked D-Map ${unitWord()}s</span>
+   <div class="wr-chips">${dm.map(p => `<span class="wr-chip">#${esc(p.id)} ${esc(p.name)} · ${esc(p.status)} · ${esc(p.tasks)}${p.last_activity ? ' · ' + esc(p.last_activity) : ''}<button title="Unlink" aria-label="Unlink" data-unlink="${esc(p.id)}">✕</button></span>`).join('') || '<span class="muted" style="font-size:12px">None (not tracked in D-Map)</span>'}</div>
+   <input class="dm-input" type="text" list="wr-plist" placeholder="Link: type an ID or name…" data-add-link>
+   ${contrib && contrib !== it.contributors ? `<div class="wr-sub">D-Map contributors: <b>${esc(contrib)}</b> <button class="wr-link" data-use-contrib="${esc(contrib)}">use</button></div>` : ''}
+  </div></div></div>`;
+    }
+    function move(i, d) { const a = data.initiatives; [a[i], a[i + d]] = [a[i + d], a[i]]; saveInits(1); }
+    function addLink(i, v) {
+        const id = (String(v).match(/^\s*(T?\d+)/) || [])[1];
+        if (!id) return;
+        const l = data.initiatives[i].project_ids || [];
+        if (!l.includes(id)) l.push(id);
+        data.initiatives[i].project_ids = l;
+        saveInits(1);
+    }
+
+    // ------------------------------------------------------------------ highlight & notes
+    const imgUrls = {};
+    function renderExtra() {
+        const h = data.highlight, n = data.notes;
+        const view = q('[data-view]');
+        view.innerHTML = `<div class="wr-two">
+<div class="wr-card"><h3 class="dm-card-title" style="margin-bottom:10px">Highlighted work slide</h3>
+  <label style="font-size:13px"><input type="checkbox" data-hl-on ${h.enabled ? 'checked' : ''}> Include this slide</label>
+  <div style="margin-top:10px"><span class="wr-lbl">Title, e.g. “Enteron – Automatic Activity Emailer”</span><input class="dm-input" type="text" data-hl-title value="${esc(h.title)}"></div>
+  <div class="wr-imgs">${h.images.map((x, i) => `<figure data-img="${esc(x)}"><img alt=""><div class="acts">${i ? '<button class="dm-btn dm-btn-sm" data-left aria-label="Move left"><i class="bi bi-arrow-left"></i></button>' : ''}<button class="dm-btn dm-btn-sm" data-rm aria-label="Remove image"><i class="bi bi-x-lg"></i></button></div></figure>`).join('')}</div>
+  ${h.images.length < 6 ? '<div class="wr-drop" data-drop tabindex="0">Drop up to 6 screenshots here, or click to choose (PNG, JPG, GIF)</div>' : '<p class="wr-note">6 images is the maximum for the slide.</p>'}
+  <input type="file" accept="image/png,image/jpeg,image/gif" multiple hidden data-file>
+</div>
+<div class="wr-card"><h3 class="dm-card-title" style="margin-bottom:6px">Notable points &amp; challenges</h3>
+  <p class="wr-note">One point per line. Leave both empty to skip this slide.</p>
+  <span class="wr-lbl">Notable points</span><textarea class="dm-textarea" rows="6" data-notable>${esc(n.notable)}</textarea>
+  <span class="wr-lbl" style="margin-top:10px">Challenges</span><textarea class="dm-textarea" rows="6" data-challenges>${esc(n.challenges)}</textarea>
+  <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><button class="dm-btn dm-btn-primary" data-save-notes><i class="bi bi-check2"></i><span>Save notes</span></button>
+  <button class="dm-btn" data-new-week><i class="bi bi-eraser"></i><span>Clear both for a new week</span></button></div>
+</div></div>`;
+        view.querySelectorAll('[data-img]').forEach(fig => {
+            const name = fig.dataset.img;
+            const img = fig.querySelector('img');
+            if (imgUrls[name]) img.src = imgUrls[name];
+            else fetchBlob('img' + qs() + '&f=' + encodeURIComponent(name)).then(b => { imgUrls[name] = URL.createObjectURL(b); img.src = imgUrls[name]; }).catch(() => {});
+            fig.querySelector('[data-rm]').addEventListener('click', () => load('action/highlight-remove', { name }));
+            const left = fig.querySelector('[data-left]');
+            if (left) left.addEventListener('click', () => {
+                const a = data.highlight.images.slice(), i = a.indexOf(name);
+                [a[i - 1], a[i]] = [a[i], a[i - 1]];
+                load('action/highlight-order', { images: a });
+            });
+        });
+        const saveH = o => load('action/highlight', Object.assign({ title: data.highlight.title, enabled: data.highlight.enabled }, o));
+        view.querySelector('[data-hl-on]').addEventListener('change', e => saveH({ enabled: e.target.checked }));
+        view.querySelector('[data-hl-title]').addEventListener('change', e => saveH({ title: e.target.value }));
+        const file = view.querySelector('[data-file]');
+        const drop = view.querySelector('[data-drop]');
+        if (drop) {
+            drop.addEventListener('click', () => file.click());
+            drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); file.click(); } });
+            ['dragover', 'dragenter'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('is-hover'); }));
+            ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('is-hover'); }));
+            drop.addEventListener('drop', e => uploadImgs(e.dataTransfer.files));
+        }
+        file.addEventListener('change', () => { uploadImgs(file.files); file.value = ''; });
+        view.querySelector('[data-save-notes]').addEventListener('click', () => saveNotes().then(r => r && D.toast('Notes saved')));
+        view.querySelector('[data-new-week]').addEventListener('click', async () => {
+            if (await D.confirm({ title: 'Clear for a new week?', message: 'The highlight slide (title and images) and both notes will be cleared.', confirmLabel: 'Clear', icon: 'eraser' })) load('action/new-week', {});
+        });
+    }
+    const saveNotes = () => load('action/notes', { notable: q('[data-notable]').value, challenges: q('[data-challenges]').value });
+    async function uploadImgs(files) {
+        const list = [...files].filter(f => /^image\//.test(f.type)).slice(0, 6 - data.highlight.images.length);
+        if (!list.length) return;
+        if (q('[data-notable]')) await D.api('reports/action/notes' + qs(), { method: 'POST', body: { notable: q('[data-notable]').value, challenges: q('[data-challenges]').value } }).catch(() => {});
+        const fd = new FormData();
+        list.forEach(f => fd.append('files', f));
+        await load('highlight/upload', fd);
+    }
+
+    // ------------------------------------------------------------------ history & settings
+    function renderSettings() {
+        const s = data.settings;
+        const kv = o => Object.entries(o || {}).map(([a, b]) => `${a} = ${b}`).join('\n');
+        const view = q('[data-view]');
+        view.innerHTML = `<div class="wr-two">
+<div class="wr-card"><h3 class="dm-card-title" style="margin-bottom:10px">Generated reports</h3>
+ ${data.history.length ? `<div class="wr-table-wrap"><table class="wr-table" style="min-width:0"><thead><tr><th>#</th><th>Week</th><th>Client work</th><th>Generated</th><th></th></tr></thead><tbody>${data.history.slice().reverse().map(h => `<tr><td>${esc(h.report_no)}</td><td>${esc(h.week_start)} → ${esc(h.week_end)}</td><td style="font-size:12px">${Object.entries(h.counts || {}).filter(([, v]) => v).map(([k, v]) => `${esc(k)} ${esc(v)}`).join(' · ')}</td><td style="font-size:12px">${esc(h.generated_at)}${h.generated_by ? '<br><span class="muted">' + esc(h.generated_by) + '</span>' : ''}</td><td><button class="dm-btn dm-btn-sm" data-dl="${esc(h.file)}"><i class="bi bi-download"></i><span>Download</span></button></td></tr>`).join('')}</tbody></table></div>` : '<p class="wr-note">No reports generated yet.</p>'}
+</div>
+<div class="wr-card"><h3 class="dm-card-title" style="margin-bottom:10px">Settings · ${esc(data.division.title)}</h3>
+ <div class="dm-form-grid">
+  <div class="dm-field"><label>Team name (cover slide)</label><input class="dm-input" type="text" data-s="team_name" value="${esc(s.team_name)}"></div>
+  <div class="dm-field"><label>Name in the file name</label><input class="dm-input" type="text" data-s="report_label" value="${esc(s.report_label)}"></div>
+  <div class="dm-field"><label>One report row per</label><select class="dm-select" data-s="unit"><option value="project" ${s.unit === 'project' ? 'selected' : ''}>Project (work request)</option><option value="task" ${s.unit === 'task' ? 'selected' : ''}>Task</option></select></div>
+  <div class="dm-field"><label>Next report number</label><input class="dm-input" type="number" min="1" data-s="next_report_no" value="${esc(s.next_report_no)}"></div>
+  <div class="dm-field"><label>Initiative client names (comma separated)</label><input class="dm-input" type="text" data-s="initiative_clients" value="${esc((s.initiative_clients || []).join(', '))}"></div>
+  <div class="dm-field"><label>Default initiative lead (initials)</label><input class="dm-input" type="text" data-s="initiative_lead" value="${esc(s.initiative_lead)}"></div>
+  <div class="dm-field"><label>Show ongoing / upcoming work active in the last N days</label><input class="dm-input" type="number" min="1" max="365" data-s="active_days" value="${esc(s.active_days)}"></div>
+  <div class="dm-field span-2"><label>Requested verticals that belong to this team</label><div class="wr-checks">${data.request_types.map(t => `<label><input type="checkbox" data-rv value="${esc(t)}" ${(s.requested_verticals || []).includes(t) ? 'checked' : ''}> ${esc(t)}</label>`).join('')}</div>
+   <span class="dm-help">Work of these request types is in the report, plus every ${unitWord()} assigned to someone in ${esc(data.division.title)}.</span></div>
+  <div class="dm-field span-2"><label>Short names for divisions (Full name = Short)</label><textarea class="dm-textarea" rows="3" data-s="division_alias">${esc(kv(s.division_alias))}</textarea></div>
+  <div class="dm-field span-2"><label>Short names for ${unitWord() === 'task' ? 'task' : 'project'} types (Full name = Short)</label><textarea class="dm-textarea" rows="3" data-s="type_alias">${esc(kv(s.type_alias))}</textarea></div>
+  <div class="dm-field span-2"><label>Initials overrides (Full name = XX), used for contributors</label><textarea class="dm-textarea" rows="2" data-s="initials_overrides">${esc(kv(s.initials_overrides))}</textarea></div>
+ </div>
+ <div style="margin-top:12px"><button class="dm-btn dm-btn-primary" data-save-settings><i class="bi bi-check2"></i><span>Save settings</span></button></div>
+</div></div>`;
+        view.querySelectorAll('[data-dl]').forEach(b => b.addEventListener('click', () => download(b.dataset.dl)));
+        const v = k => view.querySelector(`[data-s="${k}"]`).value;
+        const parseKV = t => { const o = {}; t.split('\n').forEach(l => { const i = l.indexOf('='); if (i > 0) o[l.slice(0, i).trim()] = l.slice(i + 1).trim(); }); return o; };
+        view.querySelector('[data-save-settings]').addEventListener('click', () => load('action/settings', {
+            team_name: v('team_name'), report_label: v('report_label'), unit: v('unit'), next_report_no: +v('next_report_no'),
+            initiative_clients: v('initiative_clients').split(',').map(x => x.trim()).filter(Boolean), initiative_lead: v('initiative_lead'),
+            active_days: +v('active_days'), requested_verticals: [...view.querySelectorAll('[data-rv]:checked')].map(c => c.value),
+            division_alias: parseKV(v('division_alias')), type_alias: parseKV(v('type_alias')), initials_overrides: parseKV(v('initials_overrides'))
+        }).then(r => r && D.toast('Settings saved')));
+    }
+
+    // ------------------------------------------------------------------ generate
+    async function generate() {
+        if (!data) return;
+        D.setBusy(genBtn, true, 'Generating…');
+        try {
+            if (tab === 'extra' && q('[data-notable]')) await D.api('reports/action/notes' + qs(), { method: 'POST', body: { notable: q('[data-notable]').value, challenges: q('[data-challenges]').value } });
+            clearTimeout(saveTimer);
+            await D.api('reports/action/initiatives' + qs(), { method: 'POST', body: { initiatives: strip(data.initiatives) } });
+            const res = await call('generate', {});
+            D.toast(`Saved “${res.file}”. Downloading…`, 'success', 6000);
+            download(res.file);
+        } catch (e) {
+            D.toast(e.message, 'danger', 6000);
+        } finally {
+            D.setBusy(genBtn, false);
+        }
+    }
+
+    window.addEventListener('dm:theme', () => { if (data) render(); });
+    load();
+});
+</script>
+</body>
+</html>

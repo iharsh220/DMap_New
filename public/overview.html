@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overview · D-Map Admin</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%235b2be0'/%3E%3Ctext x='16' y='22' font-family='Arial' font-size='16' font-weight='700' fill='white' text-anchor='middle'%3ED%3C/text%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="../admin/dmap-theme.css" rel="stylesheet">
+    <script>try{document.documentElement.setAttribute('data-theme',localStorage.getItem('themePreference')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'))}catch(e){}</script>
+    <script src="../admin/admin-app.js" defer></script>
+</head>
+<body>
+<noscript>The D-Map admin panel needs JavaScript.</noscript>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const D = window.DMap;
+    const esc = D.esc, fmt = D.fmt;
+    const OPEN_TASK = ['draft', 'pending', 'accepted', 'assigned', 'in_progress', 'deferred'];
+    const isAdmin = D.isAdmin();
+    const me = (D.user() || {}).id;
+
+    const body = D.shell({ page: 'overview', title: 'Overview', icon: 'grid-1x2', subtitle: isAdmin
+        ? 'How Digilabs is doing: demand, delivery, workload and client satisfaction. Pick a division or a person to drill in.'
+        : 'Your work and your team’s: projects, tasks, changes and pages delivered' });
+    body.innerHTML = `
+<div class="dm-filters-row">
+  <div class="dm-seg" role="group" aria-label="Period" data-presets></div>
+  <span data-custom></span>
+  <span class="muted" style="font-size:12.5px;margin-left:auto" data-range-label></span>
+</div>
+<div class="dm-scope" data-scope></div>
+<div class="dm-kpis is-overview" data-kpis></div>
+<section class="dm-card" data-person-card hidden style="margin-bottom:16px"><div class="dm-card-body"><div class="dm-person" data-person></div></div></section>
+<div class="dm-grid-2" data-charts style="transition:opacity .15s">
+  <section class="dm-card dm-col-8"><div class="dm-card-head"><div><h3 class="dm-card-title">Monthly activity</h3><p class="dm-card-sub">Last 12 months up to the end of the period</p></div><div data-trend-legend></div></div><div class="dm-card-body"><div data-trend></div></div></section>
+  <section class="dm-card dm-col-4"><div class="dm-card-head"><div><h3 class="dm-card-title">Project pipeline</h3><p class="dm-card-sub">Work requests by status · click to open</p></div></div><div class="dm-card-body"><div data-pipeline></div></div></section>
+  <section class="dm-card dm-col-12" data-people-card>
+    <div class="dm-card-head"><div><h3 class="dm-card-title" data-people-title>People</h3><p class="dm-card-sub">Projects, tasks, changes and pages per person · click a row for their individual view</p></div>
+      <div class="dm-ptable-tools"><label class="dm-search"><i class="bi bi-search"></i><input type="search" placeholder="Search people…" aria-label="Search people" data-people-search></label><span data-people-export></span></div></div>
+    <div class="dm-card-body"><div class="dm-ptable-wrap"><table class="dm-mini-table dm-ptable" data-people></table></div></div>
+  </section>
+  <section class="dm-card dm-col-7" data-output-card><div class="dm-card-head"><div><h3 class="dm-card-title">Work output by person</h3><p class="dm-card-sub">Task pages and change pages · top 12 · click a name to drill in</p></div><div data-output-legend></div></div><div class="dm-card-body"><div data-output></div></div></section>
+  <section class="dm-card dm-col-5" data-flex-col><div class="dm-card-head"><div><h3 class="dm-card-title">Top task types</h3><p class="dm-card-sub">Tasks created in the period</p></div></div><div class="dm-card-body"><div data-tasktypes></div></div></section>
+  <section class="dm-card dm-col-7" data-flex-col><div class="dm-card-head"><div><h3 class="dm-card-title">Demand by vertical</h3><p class="dm-card-sub">Work requests per requested vertical</p></div><div data-vertical-legend></div></div><div class="dm-card-body"><div data-verticals></div></div></section>
+  <section class="dm-card dm-col-5" data-flex-col><div class="dm-card-head"><div><h3 class="dm-card-title">Top clients</h3><p class="dm-card-sub">Most work requests in the period</p></div></div><div class="dm-card-body" style="overflow-x:auto"><table class="dm-mini-table" data-clients></table></div></section>
+</div>`;
+
+    const q = s => body.querySelector(s);
+    const presets = [{ id: 'all', label: 'All time' }].concat(D.datePresets().filter(p => ['This FY', 'Last 90 days', 'Last 30 days', 'Last FY'].includes(p.label)).map(p => Object.assign({ id: p.label }, p)));
+    let period = D.store.get('dmOverviewPeriod', { id: 'all' });
+    // who the page is about: { division_id, user_id }, remembered per signed-in user
+    const scopeKey = 'dmOverviewScope:' + me;
+    let scope = D.store.get(scopeKey, {});
+
+    const custom = D.rangeInput({ kind: 'date', button: true, placeholder: 'Custom range', value: period.id === 'custom' ? period : null, onChange: v => {
+        if (!v.from && !v.to) { setPeriod({ id: 'all' }); return; }
+        setPeriod({ id: 'custom', from: v.from, to: v.to });
+    } });
+    q('[data-custom]').appendChild(custom.el);
+
+    function renderPresets() {
+        const host = q('[data-presets]');
+        host.innerHTML = '';
+        presets.forEach(p => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.textContent = p.label;
+            b.className = period.id === p.id ? 'is-active' : '';
+            b.setAttribute('aria-pressed', period.id === p.id ? 'true' : 'false');
+            b.addEventListener('click', () => { custom.set(null); setPeriod(p.id === 'all' ? { id: 'all' } : { id: p.id, from: p.from, to: p.to }); });
+            host.appendChild(b);
+        });
+    }
+    function setPeriod(p) {
+        // preset dates are recomputed on reload so "Last 30 days" stays relative
+        const fresh = presets.find(x => x.id === p.id);
+        period = fresh && fresh.from ? { id: p.id, from: fresh.from, to: fresh.to } : p;
+        D.store.set('dmOverviewPeriod', period);
+        renderPresets();
+        load();
+    }
+    function setScope(next) {
+        scope = Object.assign({}, next);
+        Object.keys(scope).forEach(k => { if (!scope[k]) delete scope[k]; });
+        D.store.set(scopeKey, scope);
+        load();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Links into the grids with the same period (and the selected person) applied
+    const rangeFilter = key => (period.from || period.to ? { [key]: { type: 'range', from: period.from || '', to: period.to || '' } } : {});
+    // ...and the same team / division / person scope, so the grid lists exactly what a card counted
+    let linkScope = null;
+    const link = (page, dateKey, filters) => D.gridLink(page, Object.assign({ f: Object.assign({}, rangeFilter(dateKey), filters || {}) }, linkScope && page !== 'clients' && page !== 'feedback' ? { sc: linkScope } : {}));
+    function scopeForLinks(s) {
+        const person = s.user_id ? s.people.find(p => p.id === s.user_id) : null;
+        const divTitle = s.division_id ? (s.divisions.find(x => x.id === s.division_id) || {}).title : null;
+        if (person) return { user_id: person.id, division_id: s.division_id || undefined, label: person.name };
+        if (divTitle) return { division_id: s.division_id, label: divTitle };
+        if (s.mode !== 'all') return { team: 1, label: 'Your team (' + (s.divisions.map(x => x.title).join(', ') || 'no division') + ')' };
+        return null;
+    }
+    const initials = name => String(name || '?').split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase();
+
+    let current = null;
+    let retried = false;
+    async function load() {
+        const charts = q('[data-charts]');
+        charts.style.opacity = current ? '.55' : '1';
+        const params = new URLSearchParams();
+        if (period.from) params.set('from', period.from);
+        if (period.to) params.set('to', period.to);
+        if (scope.division_id) params.set('division_id', scope.division_id);
+        if (scope.user_id) params.set('user_id', scope.user_id);
+        q('[data-range-label]').textContent = period.from || period.to
+            ? `Showing ${fmt.date(period.from) || 'the start'} – ${fmt.date(period.to) || 'today'}`
+            : 'Showing all time';
+        if (!current) q('[data-kpis]').innerHTML = Array.from({ length: 8 }, () => '<div class="dm-kpi"><span class="dm-skel" style="width:50%"></span><span class="dm-skel" style="height:24px;width:60%"></span><span class="dm-skel" style="width:40%"></span></div>').join('');
+        try {
+            const res = await D.api('overview/data?' + params.toString());
+            retried = false;
+            current = res.data;
+            render(current);
+        } catch (err) {
+            // a remembered division / person the user can no longer see: fall back to the default view
+            if ((err.status === 403 || err.status === 400) && (scope.division_id || scope.user_id) && !retried) {
+                retried = true;
+                scope = {};
+                D.store.set(scopeKey, scope);
+                return load();
+            }
+            q('[data-kpis]').innerHTML = '';
+            const box = document.createElement('div');
+            box.className = 'dm-card dm-state';
+            box.style.gridColumn = '1 / -1';
+            box.innerHTML = '<i class="bi bi-cloud-slash"></i><h4>Couldn’t load the overview</h4><p></p><button class="dm-btn" type="button">Try again</button>';
+            box.querySelector('p').textContent = err.message;
+            box.querySelector('button').addEventListener('click', load);
+            q('[data-kpis]').appendChild(box);
+        } finally {
+            charts.style.opacity = '1';
+        }
+    }
+
+    function kpi(host, k) {
+        const el = document.createElement(k.href ? 'a' : 'div');
+        el.className = 'dm-kpi';
+        if (k.href) { el.href = k.href; el.style.textDecoration = 'none'; el.style.color = 'inherit'; }
+        el.innerHTML = `<div class="dm-kpi-top"><span class="dm-kpi-label"></span><span class="dm-kpi-icon tone-${esc(k.tone)}"><i class="bi bi-${esc(k.icon)}"></i></span></div><div class="dm-kpi-value"></div>${k.meter !== undefined ? `<div class="dm-kpi-meter fg-${esc(k.tone)}"><span style="width:${Math.min(100, k.meter * 100)}%"></span></div>` : ''}<div class="dm-kpi-hint"></div>`;
+        el.querySelector('.dm-kpi-label').textContent = k.label;
+        el.querySelector('.dm-kpi-value').textContent = k.value;
+        el.querySelector('.dm-kpi-hint').textContent = k.hint || '';
+        if (k.title) el.title = k.title;
+        host.appendChild(el);
+    }
+
+    // ---- scope bar: team / me, division, person
+    function renderScope(d) {
+        const s = d.scope;
+        const host = q('[data-scope]');
+        host.innerHTML = '';
+        const roster = s.people;
+        const person = s.user_id ? roster.find(p => p.id === s.user_id) : null;
+
+        if (!isAdmin) {
+            const seg = document.createElement('div');
+            seg.className = 'dm-seg';
+            seg.setAttribute('role', 'group');
+            seg.setAttribute('aria-label', 'Whose work');
+            [{ label: 'My team', icon: 'people', active: s.user_id !== s.me, next: {} }, { label: 'Only me', icon: 'person', active: s.user_id === s.me, next: { user_id: s.me } }].forEach(o => {
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.className = o.active ? 'is-active' : '';
+                b.setAttribute('aria-pressed', o.active ? 'true' : 'false');
+                b.innerHTML = `<i class="bi bi-${o.icon}"></i> ${esc(o.label)}`;
+                b.addEventListener('click', () => setScope(o.next));
+                seg.appendChild(b);
+            });
+            host.appendChild(seg);
+        }
+
+        if (s.divisions.length > 1) {
+            const division = D.multiSelect({
+                single: true, placeholder: 'Division', icon: 'diagram-3',
+                values: s.division_id ? [s.division_id] : [],
+                options: s.divisions.map(x => ({ value: x.id, label: x.title, count: roster.filter(p => p.division_ids.includes(x.id)).length })),
+                onChange: v => setScope({ division_id: v[0] ? Number(v[0]) : null })
+            });
+            host.appendChild(division.el);
+        }
+
+        const pool = s.division_id ? roster.filter(p => p.division_ids.includes(s.division_id)) : roster;
+        const personSelect = D.multiSelect({
+            single: true, placeholder: 'Person', icon: 'person-badge',
+            values: s.user_id ? [s.user_id] : [],
+            options: pool.map(p => ({ value: p.id, label: `${p.name}${p.id === s.me ? ' (you)' : ''}${p.role ? ' · ' + p.role : ''}${p.active ? '' : ' · inactive'}` })),
+            onChange: v => setScope({ division_id: s.division_id, user_id: v[0] ? Number(v[0]) : null })
+        });
+        host.appendChild(personSelect.el);
+
+        if (s.division_id || (s.user_id && (isAdmin || s.user_id !== s.me))) {
+            host.appendChild(D.button({ label: 'Reset', icon: 'x-lg', variant: 'ghost', small: true, onClick: () => setScope({}) }));
+        }
+
+        const label = document.createElement('div');
+        label.className = 'dm-scope-label';
+        const divTitle = s.division_id ? (s.divisions.find(x => x.id === s.division_id) || {}).title : null;
+        let text;
+        if (person) text = `<i class="bi bi-person-check"></i>Viewing <b>${esc(person.name)}</b>${person.role ? ' · ' + esc(person.role) : ''}`;
+        else if (divTitle) text = `<i class="bi bi-diagram-3"></i>Viewing <b>${esc(divTitle)}</b> · ${fmt.num(pool.length)} people`;
+        else if (s.mode === 'all') text = '<i class="bi bi-globe2"></i>Viewing <b>all of Digilabs</b>';
+        else text = `<i class="bi bi-people"></i>Viewing <b>your team</b> · ${esc(s.divisions.map(x => x.title).join(', ') || 'no division')} · ${fmt.num(roster.length)} people`;
+        label.innerHTML = text;
+        host.appendChild(label);
+    }
+
+    // ---- individual view
+    function renderPerson(d) {
+        const s = d.scope;
+        const card = q('[data-person-card]');
+        const info = s.user_id ? s.people.find(p => p.id === s.user_id) : null;
+        card.hidden = !info;
+        if (!info) return;
+        const zero = { projects: 0, requested: 0, managed: 0, tasks: 0, tasks_completed: 0, open_tasks: 0, overdue: 0, work_pages: 0, changes: 0, changes_completed: 0, open_changes: 0, change_pages: 0 };
+        const r = Object.assign({}, zero, d.people.find(p => p.id === s.user_id) || {});
+        const divisions = s.divisions.filter(x => info.division_ids.includes(x.id)).map(x => x.title).join(', ') || r.divisions || '';
+        const items = r.tasks + r.changes;
+        const done = r.tasks_completed + r.changes_completed;
+        const share = items ? done / items : 0;
+        const C = 2 * Math.PI * 26;
+
+        const host = q('[data-person]');
+        host.innerHTML = `
+<div class="dm-person-id">
+  <div class="dm-person-head"><div class="dm-person-avatar">${esc(initials(info.name))}</div>
+    <div style="min-width:0"><div class="dm-person-name"></div><div class="dm-person-meta" data-meta></div></div></div>
+  <div class="dm-person-meta" data-divs></div>
+  <div class="dm-person-ring">
+    <svg viewBox="0 0 64 64" role="img" aria-label="Completion ${esc(fmt.pct(done, items))}"><circle class="track" cx="32" cy="32" r="26" fill="none" stroke-width="7"/><circle class="bar" cx="32" cy="32" r="26" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="${share * C} ${C}" transform="rotate(-90 32 32)"/><text x="32" y="36.5" text-anchor="middle">${items ? Math.round(share * 100) + '%' : '—'}</text></svg>
+    <div><div style="font-weight:650;font-size:13px">Completion</div><div class="dm-person-meta">${fmt.num(done)} of ${fmt.num(items)} tasks and changes done</div></div>
+  </div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap" data-links></div>
+</div>
+<div class="dm-person-stats" data-stats></div>`;
+        host.querySelector('.dm-person-name').textContent = info.name + (info.id === s.me ? ' (you)' : '');
+        host.querySelector('[data-meta]').textContent = info.role || '';
+        if (!info.active) host.querySelector('.dm-person-name').insertAdjacentHTML('beforeend', '<span class="dm-tag is-inactive" title="This user account is inactive">Inactive</span>');
+        host.querySelector('[data-divs]').innerHTML = divisions ? `<i class="bi bi-diagram-3"></i> ${esc(divisions)}` : '';
+
+        const links = host.querySelector('[data-links]');
+        if (d.tasks.total) links.appendChild(D.button({ label: 'Their tasks', icon: 'check2-square', small: true, onClick: () => { window.location.href = link('taskdetails', 'task_created_at'); } }));
+        if (d.changes.total) links.appendChild(D.button({ label: 'Their changes', icon: 'arrow-repeat', small: true, onClick: () => { window.location.href = link('issuedetails', 'issue_created_at'); } }));
+
+        const stats = [
+            { icon: 'folder2-open', label: 'Projects', value: r.projects, sub: [r.requested ? `${fmt.num(r.requested)} raised` : null, r.managed ? `${fmt.num(r.managed)} managed` : null].filter(Boolean).join(' · ') || 'worked on' },
+            { icon: 'check2-square', label: 'Tasks received', value: r.tasks, sub: `${fmt.num(r.tasks_completed)} done · ${fmt.num(r.open_tasks)} open` },
+            { icon: 'file-earmark-richtext', label: 'Task pages', value: r.work_pages, sub: r.tasks ? `${(r.work_pages / r.tasks).toFixed(1)} per task` : 'on assigned tasks' },
+            { icon: 'arrow-repeat', label: 'Changes done', value: r.changes, sub: `${fmt.num(r.changes_completed)} done · ${fmt.num(r.open_changes)} open` },
+            { icon: 'files', label: 'Change pages', value: r.change_pages, sub: r.changes ? `${(r.change_pages / r.changes).toFixed(1)} per change` : 'on assigned changes' },
+            { icon: 'alarm', label: 'Overdue', value: r.overdue, sub: 'open tasks past deadline', tone: r.overdue ? 'danger' : null }
+        ];
+        const sh = host.querySelector('[data-stats]');
+        stats.forEach(x => {
+            const el = document.createElement('div');
+            el.className = 'dm-pstat';
+            el.innerHTML = `<div class="dm-pstat-label"><i class="bi bi-${x.icon}"></i><span></span></div><div class="dm-pstat-value${x.tone ? ' fg-' + x.tone : ''}">${esc(fmt.num(x.value))}</div><div class="dm-pstat-sub"></div>`;
+            el.querySelector('.dm-pstat-label span').textContent = x.label;
+            el.querySelector('.dm-pstat-sub').textContent = x.sub;
+            sh.appendChild(el);
+        });
+    }
+
+    // ---- people table (client-side sort + search)
+    const PEOPLE_COLS = [
+        { key: 'name', label: 'Person', text: true },
+        { key: 'projects', label: 'Projects', title: 'Projects raised, managed or worked on' },
+        { key: 'tasks', label: 'Tasks', title: 'Tasks assigned' },
+        { key: 'tasks_completed', label: 'Done' },
+        { key: 'open_tasks', label: 'Open' },
+        { key: 'overdue', label: 'Overdue' },
+        { key: 'work_pages', label: 'Task pages' },
+        { key: 'changes', label: 'Changes', title: 'Changes assigned' },
+        { key: 'change_pages', label: 'Change pages' },
+        { key: 'requested', label: 'Raised', title: 'Work requests raised' },
+        { key: 'managed', label: 'Managed', title: 'Work requests managed' }
+    ];
+    let peopleSort = D.store.get('dmOverviewPeopleSort', { key: 'work_pages', dir: 'desc' });
+    let peopleSearch = '';
+    q('[data-people-search]').addEventListener('input', D.debounce(e => { peopleSearch = e.target.value.trim().toLowerCase(); if (current) renderPeople(current); }, 150));
+    q('[data-people-export]').appendChild(D.button({ label: 'Export', icon: 'download', small: true, onClick: () => {
+        if (!current) return;
+        const cols = [{ key: 'name', label: 'Person' }, { key: 'role', label: 'Role' }, { key: 'divisions', label: 'Division' }].concat(PEOPLE_COLS.slice(1));
+        D.download('dmap-people-' + D.isoDay(new Date()), cols.map(c => c.label), peopleRows(current).map(r => cols.map(c => r[c.key] ?? '')), 'csv');
+    } }));
+
+    function peopleRows(d) {
+        const rows = d.people.filter(p => !peopleSearch || [p.name, p.role, p.divisions].some(v => String(v || '').toLowerCase().includes(peopleSearch)));
+        const { key, dir } = peopleSort;
+        const sign = dir === 'asc' ? 1 : -1;
+        return rows.sort((a, b) => (key === 'name' ? String(a.name).localeCompare(String(b.name)) : (a[key] - b[key])) * sign || String(a.name).localeCompare(String(b.name)));
+    }
+
+    function renderPeople(d) {
+        const s = d.scope;
+        const card = q('[data-people-card]');
+        card.hidden = !!s.user_id;
+        q('[data-output-card]').hidden = !!s.user_id;
+        // without the output card the last three cards share one row (4 + 4 + 4)
+        body.querySelectorAll('[data-flex-col]').forEach((el, i) => { el.className = 'dm-card ' + (s.user_id ? 'dm-col-4' : ['dm-col-5', 'dm-col-7', 'dm-col-5'][i]); });
+        if (s.user_id) return;
+        q('[data-people-title]').textContent = s.mode === 'all' && !s.division_id ? 'People' : 'Team members';
+        const rows = peopleRows(d);
+        const table = q('[data-people]');
+        table.innerHTML = `<thead><tr>${PEOPLE_COLS.map(c => `<th data-sort="${c.key}" class="${c.text ? '' : 't-num'}${peopleSort.key === c.key ? ' is-sorted' : ''}"${c.title ? ` title="${esc(c.title)}"` : ''} aria-sort="${peopleSort.key === c.key ? (peopleSort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}">${esc(c.label)}${peopleSort.key === c.key ? `<i class="bi bi-arrow-${peopleSort.dir === 'asc' ? 'up' : 'down'}"></i>` : ''}</th>`).join('')}</tr></thead><tbody></tbody><tfoot></tfoot>`;
+        table.querySelectorAll('th[data-sort]').forEach(th => th.addEventListener('click', () => {
+            const key = th.dataset.sort;
+            peopleSort = { key, dir: peopleSort.key === key && peopleSort.dir === 'desc' ? 'asc' : (key === 'name' ? 'asc' : 'desc') };
+            D.store.set('dmOverviewPeopleSort', peopleSort);
+            renderPeople(d);
+        }));
+        const tb = table.tBodies[0];
+        if (!rows.length) { tb.innerHTML = `<tr><td colspan="${PEOPLE_COLS.length}" class="muted">${peopleSearch ? 'No one matches the search' : 'No activity in this period'}</td></tr>`; return; }
+        const maxPages = Math.max(1, ...rows.map(r => r.work_pages));
+        rows.forEach(r => {
+            const tr = document.createElement('tr');
+            if (r.id === s.me) tr.className = 'is-me';
+            tr.tabIndex = 0;
+            tr.title = 'Open ' + r.name + '’s individual view';
+            tr.innerHTML = `<td><div class="dm-pname"><span class="dm-avatar">${esc(initials(r.name))}</span><div style="min-width:0"><b></b><small></small></div></div></td>`
+                + PEOPLE_COLS.slice(1).map(c => {
+                    const v = r[c.key];
+                    if (c.key === 'overdue') return `<td class="t-num">${v ? `<span class="dm-pill no-dot tone-danger">${fmt.num(v)}</span>` : '<span class="muted">0</span>'}</td>`;
+                    if (c.key === 'work_pages') return `<td class="t-num"><span class="dm-inline-meter"><span style="width:${(v / maxPages) * 100}%;background:var(--series-1)"></span></span><b>${fmt.num(v)}</b></td>`;
+                    return `<td class="t-num">${v ? fmt.num(v) : '<span class="muted">0</span>'}</td>`;
+                }).join('');
+            tr.querySelector('b').textContent = r.name;
+            if (r.id === s.me) tr.querySelector('b').insertAdjacentHTML('beforeend', '<span class="dm-tag">you</span>');
+            if (!r.active) { tr.classList.add('is-inactive'); tr.querySelector('b').insertAdjacentHTML('beforeend', '<span class="dm-tag is-inactive" title="This user account is inactive">Inactive</span>'); }
+            tr.querySelector('small').textContent = [r.role, r.divisions].filter(Boolean).join(' · ');
+            const open = () => setScope({ division_id: s.division_id, user_id: r.id });
+            tr.addEventListener('click', open);
+            tr.addEventListener('keydown', e => { if (e.key === 'Enter') open(); });
+            tb.appendChild(tr);
+        });
+        const sum = key => rows.reduce((t, r) => t + r[key], 0);
+        table.tFoot.innerHTML = `<tr><td>${fmt.num(rows.length)} people</td>${PEOPLE_COLS.slice(1).map(c => `<td class="t-num">${c.key === 'projects' ? '<span class="muted" title="A project can involve several people">—</span>' : fmt.num(sum(c.key))}</td>`).join('')}</tr>`;
+    }
+
+    function render(d) {
+        const wr = d.work_requests, t = d.tasks, ch = d.changes;
+        const s = d.scope;
+        linkScope = scopeForLinks(s);
+        const done = (wr.status_counts.completed || 0);
+        const tDone = t.status_counts.completed || 0;
+        const chDone = ch.status_counts.completed || 0;
+        renderScope(d);
+        renderPerson(d);
+
+        const kpis = q('[data-kpis]');
+        kpis.innerHTML = '';
+        kpi(kpis, { label: 'Projects', icon: 'folder2-open', tone: 'brand', value: fmt.num(wr.total), meter: wr.total ? done / wr.total : 0, hint: `${fmt.pct(done, wr.total)} completed`, href: link('projectsdetails', 'work_request_created_at') });
+        kpi(kpis, { label: 'Overdue tasks', icon: 'alarm', tone: 'danger', value: fmt.num(t.overdue), hint: 'Open past the deadline', href: D.gridLink('taskdetails', Object.assign(linkScope ? { sc: linkScope } : {}, { f: Object.assign(rangeFilter('task_created_at'), { task_deadline: { type: 'range', from: '', to: D.isoDay(new Date(Date.now() - 864e5)) }, task_status: { type: 'exact', values: OPEN_TASK } }) })) });
+        kpi(kpis, { label: 'Due in 7 days', icon: 'calendar-week', tone: 'warning', value: fmt.num(t.due_7_days), hint: 'Open tasks with a deadline this week', href: D.gridLink('taskdetails', Object.assign(linkScope ? { sc: linkScope } : {}, { f: Object.assign(rangeFilter('task_created_at'), { task_deadline: { type: 'range', from: D.isoDay(new Date()), to: D.isoDay(new Date(Date.now() + 7 * 864e5)) }, task_status: { type: 'exact', values: OPEN_TASK } }) })) });
+        kpi(kpis, { label: 'Client NPS', icon: 'emoji-smile', tone: 'success', value: d.feedback.nps === null ? '—' : (d.feedback.nps > 0 ? '+' : '') + d.feedback.nps, hint: `${fmt.num(d.feedback.total)} responses · ${d.feedback.timeliness ?? '—'}/5 timeliness`, href: D.canOpenPage('feedback') ? link('feedback', 'created_at') : undefined });
+        kpi(kpis, { label: 'Tasks', icon: 'check2-square', tone: 'info', value: fmt.num(t.total), meter: t.total ? tDone / t.total : 0, hint: `${fmt.pct(tDone, t.total)} completed`, href: link('taskdetails', 'task_created_at') });
+        kpi(kpis, { label: 'Task pages', icon: 'file-earmark-richtext', tone: 'success', value: fmt.num(t.work_pages), meter: t.work_pages ? t.completed_work_pages / t.work_pages : 0, hint: `${fmt.num(t.completed_work_pages)} on completed tasks`, title: 'Sum of task pages (task count) on the tasks in view' });
+        kpi(kpis, { label: 'Changes', icon: 'arrow-repeat', tone: 'accent', value: fmt.num(ch.total), meter: ch.total ? chDone / ch.total : 0, hint: t.total ? `${(ch.total / Math.max(1, t.total)).toFixed(2)} per task · on ${fmt.num(ch.tasks_with_changes)} tasks` : '', title: 'Changes on the work in view', href: link('issuedetails', 'issue_created_at') });
+        kpi(kpis, { label: 'Change pages', icon: 'files', tone: 'warning', value: fmt.num(ch.change_pages), meter: ch.change_pages ? ch.completed_change_pages / ch.change_pages : 0, hint: `${fmt.num(ch.completed_change_pages)} on completed changes`, title: 'Sum of change pages on the changes in view' });
+
+        // monthly trend: three counts on one axis
+        const series = [
+            { name: 'New requests', slot: 1, values: d.monthly.map(m => m.requests) },
+            { name: 'Tasks completed', slot: 3, values: d.monthly.map(m => m.tasks_completed) },
+            { name: 'Changes raised', slot: 2, values: d.monthly.map(m => m.changes) }
+        ];
+        const monthLabel = m => { const [y, mo] = m.split('-'); return new Date(+y, +mo - 1, 1).toLocaleDateString('en-IN', { month: 'short' }); };
+        const monthFull = m => { const [y, mo] = m.split('-'); return new Date(+y, +mo - 1, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }); };
+        D.legend(q('[data-trend-legend]'), series, 'line');
+        D.lineChart(q('[data-trend]'), { labels: d.monthly.map(m => monthLabel(m.month)), fullLabels: d.monthly.map(m => monthFull(m.month)), series }, { height: 270, label: 'Monthly requests, completed tasks and changes' });
+
+        // pipeline: one bar per status (label carries identity)
+        const pipeline = Object.keys(wr.status_counts).filter(k => wr.status_counts[k] > 0)
+            .map(k => ({ label: D.statusLabel(k), value: wr.status_counts[k], parts: [{ name: D.statusLabel(k), value: wr.status_counts[k], slot: D.statusSlot(k) }], href: link('projectsdetails', 'work_request_created_at', { project_request_status: { type: 'exact', values: [k] } }), slot: D.statusSlot(k) }))
+            .sort((a, b) => a.slot - b.slot);
+        D.barList(q('[data-pipeline]'), pipeline);
+
+        renderPeople(d);
+
+        // work output: task pages + change pages per person
+        if (!s.user_id) {
+            const oSeries = [{ name: 'Task pages', slot: 1 }, { name: 'Change pages', slot: 2 }];
+            D.legend(q('[data-output-legend]'), oSeries, 'bar');
+            D.barList(q('[data-output]'), d.people
+                .filter(p => p.work_pages + p.change_pages > 0)
+                .sort((a, b) => (b.work_pages + b.change_pages) - (a.work_pages + a.change_pages))
+                .slice(0, 12)
+                .map(p => ({
+                    label: p.name, value: p.work_pages + p.change_pages,
+                    parts: [{ name: 'Task pages', value: p.work_pages, slot: 1 }, { name: 'Change pages', value: p.change_pages, slot: 2 }],
+                    onClick: () => setScope({ division_id: s.division_id, user_id: p.id })
+                })));
+        }
+
+        // verticals: stacked active / pending / completed
+        const vSeries = [{ name: 'Active', slot: 1 }, { name: 'Pending', slot: 2 }, { name: 'Completed', slot: 3 }];
+        D.legend(q('[data-vertical-legend]'), vSeries, 'bar');
+        D.barList(q('[data-verticals]'), d.by_vertical.map(v => ({
+            label: v.name, value: v.requests,
+            parts: [{ name: 'Active', value: v.active, slot: 1 }, { name: 'Pending', value: v.pending, slot: 2 }, { name: 'Completed', value: v.completed, slot: 3 }, { name: 'Other', value: Math.max(0, v.requests - v.active - v.pending - v.completed), slot: 7 }],
+            href: link('projectsdetails', 'work_request_created_at', { request_type_name: { type: 'exact', values: [v.name] } })
+        })));
+
+        D.barList(q('[data-tasktypes]'), d.by_task_type.map(x => ({
+            label: x.name, value: x.tasks, parts: [{ name: 'Tasks', value: x.tasks, slot: 1 }],
+            href: link('taskdetails', 'task_created_at', { task_type_name: { type: 'exact', values: [x.name] } })
+        })));
+
+        const cl = q('[data-clients]');
+        cl.innerHTML = '<thead><tr><th>Client</th><th>Division</th><th class="t-num">Requests</th><th class="t-num">Done</th></tr></thead><tbody></tbody>';
+        if (!d.top_clients.length) cl.tBodies[0].innerHTML = '<tr><td colspan="4" class="muted">No requests in this period</td></tr>';
+        d.top_clients.forEach(c => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td><a></a></td><td class="muted"></td><td class="t-num"><b>${fmt.num(c.requests)}</b></td><td class="t-num">${fmt.pct(c.completed, c.requests)}</td>`;
+            tr.querySelector('a').textContent = c.name;
+            tr.querySelector('a').href = link('clients', 'work_request_created_at', { project_requester_name: { type: 'exact', values: [c.name] } });
+            tr.children[1].textContent = c.division || '—';
+            cl.tBodies[0].appendChild(tr);
+        });
+    }
+
+    window.addEventListener('dm:theme', () => { if (current) render(current); });
+    renderPresets();
+    load();
+});
+</script>
+</body>
+</html>

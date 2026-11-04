@@ -3,291 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>D-Map | Projects</title>
+    <title>Projects · D-Map Admin</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%235b2be0'/%3E%3Ctext x='16' y='22' font-family='Arial' font-size='16' font-weight='700' fill='white' text-anchor='middle'%3ED%3C/text%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet">
-    <link href="https://cdn.datatables.net/buttons/2.3.6/css/buttons.dataTables.min.css" rel="stylesheet">
-    <link href="https://cdn.datatables.net/fixedcolumns/4.3.0/css/fixedColumns.dataTables.min.css" rel="stylesheet">
     <link href="../admin/dmap-theme.css" rel="stylesheet">
-    <style>
-        /* User info in topbar */
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 6px 12px;
-            border-radius: 8px;
-            background: #f8fafc;
-            border: 1px solid var(--card-border);
-        }
-        .user-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--accent), #3b82f6);
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 13px;
-            font-weight: 600;
-        }
-        .user-details {
-            display: flex;
-            flex-direction: column;
-        }
-        .user-name {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-1);
-        }
-        .user-role {
-            font-size: 10px;
-            color: var(--text-3);
-        }
-        .btn-logout {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 7px 14px;
-            font-size: 12px;
-            font-weight: 500;
-            font-family: var(--font);
-            color: var(--text-2);
-            background: #fff;
-            border: 1px solid var(--card-border);
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all .12s;
-        }
-        .btn-logout:hover {
-            background: #fff1f2;
-            border-color: #fecdd3;
-            color: #be123c;
-        }
-    </style>
+    <script>try{document.documentElement.setAttribute('data-theme',localStorage.getItem('themePreference')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'))}catch(e){}</script>
+    <script src="../admin/admin-app.js" defer></script>
 </head>
 <body>
-<div class="app-layout">
-    <aside class="sidebar">
-        <div class="sidebar-brand">
-            <div class="brand-icon"><i class="bi bi-diagram-3" style="font-size:15px;"></i></div>
-            <div><div class="brand-name">D-Map</div><div class="brand-sub">Analytics Dashboard</div></div>
-        </div>
-        <div class="sidebar-section">Reports</div>
-        <nav class="sidebar-nav">
-            <a href="./powerbi" class="nav-item"><i class="bi bi-pie-chart nav-icon"></i><span class="nav-label">Dashboard</span></a>
-        </nav>
-        <div class="sidebar-section">Projects</div>
-        <nav class="sidebar-nav">
-            <a href="./projectsdetails" class="nav-item active"><i class="bi bi-folder2-open nav-icon"></i><span class="nav-label">Projects</span></a>
-            <a href="./clients" class="nav-item"><i class="bi bi-people nav-icon"></i><span class="nav-label">Clients</span></a>
-            <a href="./taskdetails" class="nav-item"><i class="bi bi-check2-square nav-icon"></i><span class="nav-label">Tasks</span></a>
-            <a href="./issuedetails" class="nav-item"><i class="bi bi-exclamation-circle nav-icon"></i><span class="nav-label">Changes</span></a>
-            <a href="./workrequesttasks" class="nav-item"><i class="bi bi-table nav-icon"></i><span class="nav-label">Raw Data</span></a>
-        </nav>
-        <div class="sidebar-section">Leaves</div>
-        <nav class="sidebar-nav">
-            <a href="./leaves" class="nav-item"><i class="bi bi-calendar-x nav-icon"></i><span class="nav-label">Leaves</span></a>
-        </nav>
-        <div class="sidebar-section">Tokens</div>
-        <nav class="sidebar-nav">
-            <a href="./token-projects" class="nav-item"><i class="bi bi-folder2-open nav-icon"></i><span class="nav-label">Project</span></a>
-            <a href="./token-tasks" class="nav-item"><i class="bi bi-check2-square nav-icon"></i><span class="nav-label">Task</span></a>
-            <a href="./token-changes" class="nav-item"><i class="bi bi-exclamation-circle nav-icon"></i><span class="nav-label">Changes</span></a>
-        </nav>
-        <div class="sidebar-footer"><i class="bi bi-circle-fill" style="color:#22c55e;font-size:8px;"></i><span class="footer-text"> System Online</span></div>
-    </aside>
-
-    <div class="main-area">
-        <div class="topbar">
-            <div style="display:flex;align-items:center;gap:12px;">
-                <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-chevron-left"></i></button>
-                <div>
-                    <div class="topbar-title"><i class="bi bi-folder2-open" style="color:var(--accent)"></i> Projects</div>
-                    <div class="topbar-subtitle">Work request level overview</div>
-                </div>
-            </div>
-            <div class="topbar-right">
-                <div class="user-info">
-                    <div class="user-avatar" id="userAvatar">U</div>
-                    <div class="user-details">
-                        <span class="user-name" id="userName">Admin</span>
-                        <span class="user-role" id="userRole">Administrator</span>
-                    </div>
-                </div>
-                <button class="btn-logout" id="btnLogout"><i class="bi bi-box-arrow-right"></i> Logout</button>
-                <span class="topbar-badge" id="recordCount">Loading...</span>
-            </div>
-        </div>
-
-        <div class="content-area">
-            <div class="stats-row">
-                <div class="stat-card"><div class="stat-icon blue"><i class="bi bi-folder2-open"></i></div><div><div class="stat-value" id="s1">—</div><div class="stat-label">Total Projects</div></div></div>
-                <div class="stat-card"><div class="stat-icon green"><i class="bi bi-check-circle"></i></div><div><div class="stat-value" id="s2">—</div><div class="stat-label">Completed</div></div></div>
-                <div class="stat-card"><div class="stat-icon orange"><i class="bi bi-arrow-repeat"></i></div><div><div class="stat-value" id="s3">—</div><div class="stat-label">In Progress</div></div></div>
-                <div class="stat-card"><div class="stat-icon purple"><i class="bi bi-clock-history"></i></div><div><div class="stat-value" id="s4">—</div><div class="stat-label">Pending</div></div></div>
-            </div>
-
-            <div class="table-card">
-                <div class="loading-overlay" id="loader"><div class="spinner"></div><div class="loading-text">Loading projects...</div></div>
-                <div class="table-card-header">
-                    <div class="table-card-title"><span class="dot"></span>Project Records</div>
-                    <div class="header-actions">
-                        <button class="btn-action excel" id="btnExcel"><i class="bi bi-file-earmark-excel"></i> Excel</button>
-                        <button class="btn-action csv"   id="btnCsv"><i class="bi bi-filetype-csv"></i> CSV</button>
-                    </div>
-                </div>
-                <div class="table-card-body">
-                    <div class="dt-container">
-                        <table id="mainTable" class="display" style="width:100%"><thead></thead><tbody></tbody></table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
-<script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.html5.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdn.datatables.net/fixedcolumns/4.3.0/js/dataTables.fixedColumns.min.js"></script>
+<noscript>The D-Map admin panel needs JavaScript.</noscript>
 <script>
-function getApiBase(){
-    var p=window.location.pathname;
-    if(p.indexOf('/digilabs/uat/')!==-1) return '/digilabs/uat/dmap/api/';
-    return '/digilabs/dmap/api/';
-}
+document.addEventListener('DOMContentLoaded', function () {
+    const D = window.DMap;
+    const C = (key, title, type, extra) => Object.assign({ key, title, type }, extra || {});
+    const sc = (s, k) => Number((s.status_counts || {})[k] || 0);
+    // the old page's names for the request stages
+    const STAGE = { pending: 'Pending Response', accepted: 'Awaiting Assignment', assigned: 'Upcoming', in_progress: 'Ongoing', completed: 'Completed', deferred: 'Deferred', cancelled: 'Cancelled' };
 
-// Load user info
-function loadUserInfo(){
-    var userData = localStorage.getItem('userData');
-    if(userData){
-        try {
-            var user = JSON.parse(userData);
-            var name = user.name || user.email || 'Admin';
-            var initials = name.split(' ').map(function(n){return n[0];}).join('').substring(0,2).toUpperCase();
-            $('#userName').text(name);
-            $('#userAvatar').text(initials);
-            if(user.jobRole && user.jobRole.role_title){
-                $('#userRole').text(user.jobRole.role_title);
-            }
-        } catch(e){
-            console.error('Error parsing user data:', e);
-        }
-    }
-}
+    const body = D.shell({ page: 'projectsdetails', title: 'Projects', icon: 'folder2-open', subtitle: 'One row per work request: status, owners, volume of work, turnaround and reminders' });
 
-// Logout
-function logout(){
-    if(confirm('Are you sure you want to logout?')){
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('userData');
-        window.location.href = getApiBase() + 'datatable/admin/login';
-    }
-}
-
-$(function(){
-    // Check session
-    if(!localStorage.getItem('accessToken')){
-        window.location.href = getApiBase() + 'datatable/admin/login';
-        return;
-    }
-
-    loadUserInfo();
-
-    $('#sidebarToggle').on('click', function(){
-        $('body').toggleClass('sidebar-collapsed');
-        var isCollapsed = $('body').hasClass('sidebar-collapsed');
-        $(this).find('i').toggleClass('bi-chevron-left bi-chevron-right');
-        localStorage.setItem('sidebarCollapsed', isCollapsed);
-    });
-    if(localStorage.getItem('sidebarCollapsed') === 'true'){
-        $('body').addClass('sidebar-collapsed');
-        $('#sidebarToggle').find('i').removeClass('bi-chevron-left').addClass('bi-chevron-right');
-    }
-
-    $('#btnLogout').on('click', logout);
-
-    $.getJSON('./projectsdetails/data', function(res){
-        $('#loader').hide();
-        var data = res.data||[];
-        $('#recordCount').text(data.length+' Records');
-        $('#s1').text(data.length);
-        $('#s2').text(data.filter(function(r){return r.project_request_status==='completed';}).length);
-        $('#s3').text(data.filter(function(r){return r.project_request_status==='in_progress';}).length);
-        $('#s4').text(data.filter(function(r){return r.project_request_status==='pending';}).length);
-
-        function updateStats(arr){
-            $('#s1').text(arr.length);
-            $('#s2').text(arr.filter(function(r){return r.project_request_status==='completed';}).length);
-            $('#s3').text(arr.filter(function(r){return r.project_request_status==='in_progress';}).length);
-            $('#s4').text(arr.filter(function(r){return r.project_request_status==='pending';}).length);
-        }
-
-        var cols = [
-            {data:'project_request_status', title:'Status', defaultContent:'N/A'},
-            {data:'work_request_id', title:'Project ID', defaultContent:'N/A'},
-            {data:'project_name', title:'Project Name', defaultContent:'N/A'},
-            {data:'request_type_name', title:'Vertical', defaultContent:'N/A'},
-            {data:'project_type_name', title:'Type', defaultContent:'N/A'},
-            {data:'project_priority', title:'Priority', defaultContent:'N/A'},
-            {data:'project_requester_name', title:'Client', defaultContent:'N/A'},
-            {data:'task_count', title:'Tasks', defaultContent:'0'},
-            {data:'change_count', title:'Changes', defaultContent:'0'},
-            {data:'project_start_date', title:'Start', defaultContent:'N/A'},
-            {data:'project_end_date', title:'End', defaultContent:'N/A'}
-        ];
-
-        var dt = $('#mainTable').DataTable({
-            data:data, columns:cols,
-            pageLength:25, lengthMenu:[[25,50,100,200,-1],[25,50,100,200,'All']],
-            dom:'<"dt-top-row"lf>rt<"dt-bottom-row"ip>',
-            scrollX:true, scrollY:'calc(100vh - 360px)', scrollCollapse:false, autoWidth:false, fixedColumns:{left:2},
-            language:{ search:'', searchPlaceholder:'Search all columns...', lengthMenu:'Show _MENU_ rows' },
-            initComplete:function(){
-                var api = this.api();
-                api.columns().every(function(){
-                    var col = this, idx = col.index();
-                    var th = $(col.header());
-                    var labelText = cols[idx].title;
-                    th.empty();
-                    var wrap = $('<div class="th-wrap"></div>');
-                    var label = $('<div class="th-label"><span title="'+labelText+'">'+labelText+'</span><span class="th-sort"></span></div>');
-                    wrap.append(label);
-                    var inp = $('<input class="col-filter" type="text" placeholder="Filter...">');
-                    inp.on('click mousedown focus',function(e){e.stopPropagation();});
-                    inp.on('keyup change clear',function(){if(col.search()!==this.value)col.search(this.value).draw();});
-                    wrap.append(inp);
-                    th.append(wrap);
-                    th.off('click').on('click',function(e){
-                        if($(e.target).closest('.col-filter').length===0){
-                            var currentOrder = api.order();
-                            if(currentOrder.length && currentOrder[0][0]===idx){
-                                api.order([idx, currentOrder[0][1]==='asc'?'desc':'asc']).draw();
-                            } else {
-                                api.order([idx,'asc']).draw();
-                            }
-                        }
-                    });
-                });
-            }
-        });
-
-        $('#btnExcel').on('click',function(){ dt.button('.buttons-excel').trigger(); });
-        $('#btnCsv').on('click',function(){ dt.button('.buttons-csv').trigger(); });
-
-        dt.on('draw',function(){
-            var rows = dt.rows({ filter:'applied' }).data();
-            var arr = rows.toArray ? rows.toArray() : rows;
-            updateStats(arr);
-            $('#recordCount').text(arr.length+' Records');
-        });
-    }).fail(function(){
-        $('#loader').html('<div style="color:#be123c;font-size:13px;"><i class="bi bi-exclamation-triangle"></i> Failed to load data</div>');
+    D.grid(body, {
+        id: 'projects', version: 4, title: 'Projects', icon: 'folder2-open',
+        endpoint: 'projectsdetails/data', exportName: 'projects', pinned: 2, scopeable: true,
+        searchPlaceholder: 'Search project, vertical, type, client, brand or ID…',
+        quick: ['project_request_status', 'request_type_name', 'project_priority', 'project_request_timestamp'],
+        kpis: [
+            { label: 'Total projects', icon: 'folder2-open', tone: 'brand', value: s => s.total },
+            { label: 'Completed', icon: 'check-circle', tone: 'success', value: s => Number(s.completed), share: true, filter: { key: 'project_request_status', values: ['completed'] } },
+            { label: 'In progress', icon: 'arrow-repeat', tone: 'info', value: s => Number(s.in_progress), share: true, filter: { key: 'project_request_status', values: ['in_progress'] } },
+            { label: 'Accepted / assigned', icon: 'person-check', tone: 'accent', value: s => sc(s, 'accepted') + sc(s, 'assigned'), share: true, hint: () => 'Accepted, waiting for work to start', filter: { key: 'project_request_status', values: ['accepted', 'assigned'] } },
+            { label: 'Pending response', icon: 'hourglass-split', tone: 'warning', value: s => Number(s.pending), share: true, filter: { key: 'project_request_status', values: ['pending'] } }
+        ],
+        statusBar: { column: 'project_request_status', title: 'Project status breakdown' },
+        columns: [
+            C('project_request_status', 'Project Status', 'status', { options: 'work_request_statuses', labels: STAGE }),
+            C('work_request_id', 'Project Request ID', 'id'),
+            C('project_name', 'Project Name', 'name'),
+            C('request_type_name', 'Requested Vertical', 'text', { filter: 'select', options: 'request_types' }),
+            C('project_type_name', 'Project Type', 'text', { filter: 'select', options: 'project_types' }),
+            C('project_priority', 'Project Priority', 'enum', { options: 'priorities' }),
+            C('project_requester_name', 'Client Name', 'text', { filter: 'select', options: 'clients' }),
+            C('client_division', 'Client Division', 'text', { filter: 'select', options: 'divisions', match: 'contains' }),
+            C('request_accepted_by', 'Request Accepted By / Project Manager', 'text', { filter: 'select', options: 'managers', match: 'contains' }),
+            C('project_count', 'No. of Project', 'number'),
+            C('task_count', 'Task Count', 'number'),
+            C('change_count', 'Change Count', 'number'),
+            C('project_start_date', 'Project Start Date', 'date'),
+            C('project_end_date', 'Project End Date', 'date'),
+            C('client_change_requested_counter', 'Client Change Requested Counter', 'number'),
+            C('cm_change_requested_counter', 'CM Change Requested Counter', 'number'),
+            C('task_no_of_work_pages', 'No. of Work Pages', 'number'),
+            C('issue_no_of_work_pages', 'No. of Change Pages', 'number'),
+            C('task_no_of_options_provided', 'No. of Options', 'number'),
+            C('task_concept_work', 'No. of Concept Created', 'number'),
+            C('task_no_of_resize', 'No. of Resize Pages', 'number'),
+            C('task_no_of_ai_page', 'No. of AI Pages', 'number'),
+            C('video_duration', 'Video Duration', 'number'),
+            C('task_no_of_products_shot', 'No. of Products Used', 'number'),
+            C('task_no_of_words_written', 'No. of Words Written', 'number'),
+            C('task_no_of_responsive_screen', 'No. of Responsive UI Created', 'number'),
+            C('task_resize_work', 'Includes Resize Work', 'number'),
+            C('task_ai', 'Includes AI Work', 'number'),
+            C('task_shoot_setup', 'Includes Shoot Setup', 'number'),
+            C('project_request_timestamp', 'Project Request Timestamp', 'datetime'),
+            C('project_acceptance_timestamp', 'Project Acceptance Timestamp', 'datetime'),
+            C('project_completion_timestamp', 'Project Completion Timestamp', 'datetime'),
+            C('project_marked_completed_timestamp', 'Project Marked Completed Timestamp', 'datetime'),
+            C('project_marked_completed_by', 'Project Marked Completed by', 'text'),
+            C('internal_project_tat', 'Internal Project TAT', 'tat'),
+            C('project_tat', 'Project TAT', 'tat'),
+            C('project_request_to_response_tat', 'Project Request to Response TAT', 'tat'),
+            C('task_request_to_response_tat_avg', 'Task Request to Response TAT AVG', 'tat'),
+            C('task_acceptance_to_completion_tat_by_cu_avg', 'Task Acceptance to Completion TAT by CU AVG', 'tat'),
+            C('task_output_shared_to_response_by_cm_tat_avg', 'Task Output Shared to Response by CM TAT AVG', 'tat'),
+            C('task_internal_tat_avg', 'Task Internal TAT AVG', 'tat'),
+            C('task_whole_tat_avg', 'Task Whole TAT AVG', 'tat'),
+            C('change_request_to_response_tat_avg', 'Change Request to Response TAT AVG', 'tat'),
+            C('change_acceptance_to_completion_tat_by_cu_avg', 'Change Acceptance to Completion TAT by CU AVG', 'tat'),
+            C('change_output_shared_to_response_by_cm_tat_avg', 'Change Output Shared to Response by CM TAT AVG', 'tat'),
+            C('change_internal_tat_avg', 'Change Internal TAT AVG', 'tat'),
+            C('change_whole_tat_avg', 'Change Whole TAT AVG', 'tat'),
+            C('project_request_response_reminder_counter_to_cm', 'Project Request Response Reminder Counter To CM', 'number'),
+            C('task_request_response_reminder_counter_to_cu', 'Task Request Response Reminder Counter To CU', 'number'),
+            C('task_output_response_reminder_counter_to_cm', 'Task Output Response Reminder Counter To CM', 'number'),
+            C('task_output_response_reminder_counter_to_client', 'Task Output Response Reminder Counter To Client', 'number'),
+            C('change_request_response_reminder_counter_to_cu', 'Change Request Response Reminder Counter To CU', 'number'),
+            C('chnage_output_response_reminder_counter_to_cm', 'Chnage Output Response Reminder Counter To CM', 'number'),
+            C('change_output_response_reminder_counter_to_client', 'Change Output Response Reminder Counter To Client', 'number'),
+            C('project_closure_reminder_counter_to_client', 'Project Closure Reminder Counter To Client', 'number'),
+            C('month', 'Month', 'text'),
+            C('fy', 'Financial Year', 'text'),
+            C('work_request_created_at', 'Created', 'date', { filterOnly: true })
+        ],
+        detailTitle: row => row.project_name || `Request #${row.work_request_id}`,
+        detailSubtitle: row => `Request #${row.work_request_id} · ${row.request_type_name || ''}`,
+        detailGroups: [
+            { title: 'Project', keys: ['project_request_status', 'work_request_id', 'project_name', 'request_type_name', 'project_type_name', 'project_priority', 'month', 'fy'] },
+            { title: 'People', keys: ['project_requester_name', 'client_division', 'request_accepted_by', 'project_marked_completed_by'] },
+            { title: 'Volume', keys: ['project_count', 'task_count', 'change_count', 'client_change_requested_counter', 'cm_change_requested_counter', 'task_no_of_work_pages', 'issue_no_of_work_pages', 'task_no_of_options_provided', 'task_concept_work', 'task_no_of_resize', 'task_no_of_ai_page', 'video_duration', 'task_no_of_products_shot', 'task_no_of_words_written', 'task_no_of_responsive_screen', 'task_resize_work', 'task_ai', 'task_shoot_setup'] },
+            { title: 'Timeline', keys: ['project_start_date', 'project_end_date', 'project_request_timestamp', 'project_acceptance_timestamp', 'project_completion_timestamp', 'project_marked_completed_timestamp'] },
+            { title: 'Turnaround', keys: ['internal_project_tat', 'project_tat', 'project_request_to_response_tat', 'task_request_to_response_tat_avg', 'task_acceptance_to_completion_tat_by_cu_avg', 'task_output_shared_to_response_by_cm_tat_avg', 'task_internal_tat_avg', 'task_whole_tat_avg', 'change_request_to_response_tat_avg', 'change_acceptance_to_completion_tat_by_cu_avg', 'change_output_shared_to_response_by_cm_tat_avg', 'change_internal_tat_avg', 'change_whole_tat_avg'] }
+        ]
     });
 });
 </script>

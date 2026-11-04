@@ -100,6 +100,7 @@ Desktop.ini
 *.sqlite
 *.sqlite3
 *.db
+*.sql
 
 # Upload directories
 uploads/
@@ -118,3 +119,8 @@ ecosystem.config.js
 
 #Killo code
 .kilo/
+# Ignore all SQL files in migrations folder
+migrations/*.sql
+
+# Weekly report files (generated .pptx and highlight images)
+storage/

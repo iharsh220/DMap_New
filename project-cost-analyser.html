@@ -1,0 +1,1204 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Project Cost Analyser</title>
+  <style>
+    :root {
+      --bg: #f5f6f8;
+      --card: #fff;
+      --ink: #1b1f29;
+      --muted: #667085;
+      --line: #e3e6ec;
+      --accent: #3a5bd9;
+      --accent-ink: #fff;
+      --head: #f0f2f6;
+      --hover: #f7f8fb;
+      --danger: #c0392b;
+      --ok: #1c7c54;
+      --c-work: #3a5bd9;
+      --c-change: #e08a1e;
+      --c-concept: #8a4fd1;
+      --c-ai: #0f9aa8;
+      --c-rush: #d64545;
+      --c-special: #6b7280;
+    }
+
+    @media (prefers-color-scheme:dark) {
+      :root {
+        --bg: #12141a;
+        --card: #1b1e27;
+        --ink: #e8eaf0;
+        --muted: #98a0b3;
+        --line: #2c303c;
+        --accent: #7b95ff;
+        --accent-ink: #0d1020;
+        --head: #232734;
+        --hover: #222633;
+        --danger: #ff7b6b;
+        --ok: #4cc38a;
+        --c-work: #7b95ff;
+        --c-change: #f0a548;
+        --c-concept: #b58cf0;
+        --c-ai: #3fc7d6;
+        --c-rush: #ff7b7b;
+        --c-special: #9aa3b2;
+      }
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif
+    }
+
+    .app {
+      display: flex;
+      min-height: 100vh;
+      background: var(--bg)
+    }
+
+    .sidebar {
+      width: 240px;
+      flex-shrink: 0;
+      border-right: 1px solid var(--line);
+      background: var(--card);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto
+    }
+
+    .sidebar .brand {
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--line)
+    }
+
+    .sidebar .brand h1 {
+      font-size: 17px;
+      margin: 0
+    }
+
+    .sidebar .brand .sub {
+      font-size: 11px
+    }
+
+    .tabs {
+      display: flex;
+      flex-direction: column;
+      padding: 8px
+    }
+
+    .tab {
+      border: 0;
+      background: none;
+      color: var(--muted);
+      padding: 10px 16px;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      border-radius: 0 8px 8px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    .tab.on {
+      color: var(--accent);
+      border-color: var(--accent);
+      background: var(--hover)
+    }
+
+    .tab-ic {
+      font-size: 16px
+    }
+
+    .main-wrap {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column
+    }
+
+    header {
+      padding: 18px 24px 0
+    }
+
+    h1 {
+      font-size: 20px;
+      margin: 0 0 2px
+    }
+
+    .sub {
+      color: var(--muted);
+      font-size: 13px
+    }
+
+    main {
+      padding: 16px 24px 40px;
+      flex: 1;
+      min-width: 0
+    }
+
+    .bar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 14px
+    }
+
+    .chips {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap
+    }
+
+    .chip {
+      border: 1px solid var(--line);
+      background: var(--card);
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 5px 13px;
+      cursor: pointer;
+      font: inherit;
+      font-size: 13px
+    }
+
+    .chip.on {
+      background: var(--accent);
+      color: var(--accent-ink);
+      border-color: var(--accent)
+    }
+
+    select,
+    input[type=text],
+    input[type=number],
+    input[type=search] {
+      border: 1px solid var(--line);
+      background: var(--card);
+      color: var(--ink);
+      border-radius: 8px;
+      padding: 7px 10px;
+      font: inherit;
+      font-size: 13px;
+      min-width: 0
+    }
+
+    input:focus,
+    select:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: -1px
+    }
+
+    .btn {
+      border: 1px solid var(--line);
+      background: var(--card);
+      color: var(--ink);
+      border-radius: 8px;
+      padding: 7px 13px;
+      font: inherit;
+      font-size: 13px;
+      cursor: pointer
+    }
+
+    .btn:hover {
+      background: var(--hover)
+    }
+
+    .btn.pri {
+      background: var(--accent);
+      color: var(--accent-ink);
+      border-color: var(--accent);
+      font-weight: 600
+    }
+
+    .btn.sm {
+      padding: 3px 9px;
+      font-size: 12px
+    }
+
+    .btn.dng {
+      color: var(--danger)
+    }
+
+    .spacer {
+      flex: 1
+    }
+
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 12px;
+      margin-bottom: 14px
+    }
+
+    .kpi {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px 14px
+    }
+
+    .kpi .l {
+      color: var(--muted);
+      font-size: 12px
+    }
+
+    .kpi .v {
+      font-size: 22px;
+      font-weight: 700;
+      margin-top: 2px;
+      font-variant-numeric: tabular-nums
+    }
+
+    .split {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 14px
+    }
+
+    .split .stack {
+      display: flex;
+      height: 14px;
+      border-radius: 7px;
+      overflow: hidden;
+      background: var(--head);
+      margin: 8px 0 10px
+    }
+
+    .split .stack i {
+      display: block;
+      height: 100%
+    }
+
+    .legend {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      font-size: 12px
+    }
+
+    .legend span {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted)
+    }
+
+    .legend b {
+      color: var(--ink);
+      font-variant-numeric: tabular-nums
+    }
+
+    .legend em {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      display: inline-block
+    }
+
+    .tw {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: auto;
+      max-height: 68vh
+    }
+
+    table {
+      border-collapse: separate;
+      border-spacing: 0;
+      width: max-content;
+      min-width: 100%
+    }
+
+    th,
+    td {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--line);
+      white-space: nowrap;
+      text-align: left
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      background: var(--head);
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+      z-index: 2
+    }
+
+    th.num,
+    td.num {
+      text-align: right;
+      font-variant-numeric: tabular-nums
+    }
+
+    tbody tr:hover td {
+      background: var(--hover)
+    }
+
+    td.s1,
+    th.s1 {
+      position: sticky;
+      left: 0;
+      z-index: 1;
+      background: var(--card);
+      min-width: 92px
+    }
+
+    td.s2,
+    th.s2 {
+      position: sticky;
+      left: 92px;
+      z-index: 1;
+      background: var(--card);
+      min-width: 230px;
+      max-width: 280px;
+      overflow: hidden;
+      text-overflow: ellipsis
+    }
+
+    th.s1,
+    th.s2 {
+      background: var(--head);
+      z-index: 3
+    }
+
+    tbody tr:hover td.s1,
+    tbody tr:hover td.s2 {
+      background: var(--hover)
+    }
+
+    tfoot td {
+      position: sticky;
+      bottom: 0;
+      background: var(--head);
+      font-weight: 700;
+      z-index: 2;
+      border-top: 2px solid var(--line)
+    }
+
+    tfoot td.s1,
+    tfoot td.s2 {
+      z-index: 3;
+      background: var(--head)
+    }
+
+    td.tot {
+      font-weight: 700
+    }
+
+    .badge {
+      display: inline-block;
+      border-radius: 6px;
+      padding: 1px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      background: var(--head);
+      color: var(--muted)
+    }
+
+    .badge.v-Artwork {
+      background: #e4eaff;
+      color: #2a45b5
+    }
+
+    .badge.v-Video {
+      background: #fde9d0;
+      color: #9a5a0a
+    }
+
+    .badge.v-Content\ Writing {
+      background: #ece3fa;
+      color: #5b2fa0
+    }
+
+    .badge.v-Shoot {
+      background: #d8f1f4;
+      color: #0b6c76
+    }
+
+    .badge.v-Web {
+      background: #dcf2e6;
+      color: #1c6b47
+    }
+
+    @media (prefers-color-scheme:dark) {
+      .badge.v-Artwork {
+        background: #27316b;
+        color: #c6d1ff
+      }
+
+      .badge.v-Video {
+        background: #5a3a0e;
+        color: #ffd9a3
+      }
+
+      .badge.v-Content\ Writing {
+        background: #40296b;
+        color: #e0d0ff
+      }
+
+      .badge.v-Shoot {
+        background: #0f4a52;
+        color: #bdeff4
+      }
+
+      .badge.v-Web {
+        background: #17503a;
+        color: #bdeed6
+      }
+    }
+
+    .flag {
+      display: inline-block;
+      border-radius: 6px;
+      padding: 1px 7px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-right: 4px
+    }
+
+    .flag.r {
+      background: #fde4e4;
+      color: #a12b2b
+    }
+
+    .flag.s {
+      background: #e8eaee;
+      color: #444
+    }
+
+    .flag.w {
+      background: #fff0c9;
+      color: #8a5a00
+    }
+
+    @media (prefers-color-scheme:dark) {
+      .flag.r {
+        background: #5b2020;
+        color: #ffc4c4
+      }
+
+      .flag.s {
+        background: #33384a;
+        color: #d0d5e2
+      }
+
+      .flag.w {
+        background: #574314;
+        color: #ffe2a0
+      }
+    }
+
+    .muted {
+      color: var(--muted)
+    }
+
+    .empty {
+      padding: 40px;
+      text-align: center;
+      color: var(--muted)
+    }
+
+    .settings {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 14px
+    }
+
+    .settings label {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 14px;
+      display: block;
+      font-size: 12px;
+      color: var(--muted)
+    }
+
+    .settings input {
+      display: block;
+      width: 100%;
+      margin-top: 4px;
+      font-size: 16px;
+      font-weight: 700
+    }
+
+    .note {
+      font-size: 12px;
+      color: var(--muted);
+      margin: 0 0 12px
+    }
+
+    /* modal */
+    .ov {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 12, 20, .55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 50
+    }
+
+    .modal {
+      background: var(--card);
+      color: var(--ink);
+      border-radius: 14px;
+      width: min(520px, 100%);
+      max-height: 92vh;
+      overflow: auto;
+      padding: 20px;
+      border: 1px solid var(--line)
+    }
+
+    .modal h2 {
+      margin: 0 0 12px;
+      font-size: 17px
+    }
+
+    .fld {
+      margin-bottom: 11px
+    }
+
+    .fld label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 3px
+    }
+
+    .fld input[type=text],
+    .fld input[type=number],
+    .fld select {
+      width: 100%
+    }
+
+    .fld.ck label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--ink);
+      font-size: 13px
+    }
+
+    .row2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px
+    }
+
+    .prev {
+      background: var(--head);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 13px;
+      margin: 6px 0 14px
+    }
+
+    .prev b {
+      font-size: 16px
+    }
+
+    .acts {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 6px
+    }
+
+    .err {
+      color: var(--danger);
+      font-size: 12px;
+      margin: 4px 0
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--ink);
+      color: var(--bg);
+      padding: 10px 16px;
+      border-radius: 10px;
+      z-index: 99;
+      font-size: 13px;
+      max-width: 90vw
+    }
+
+    @media (max-width:640px) {
+
+      main,
+      header {
+        padding-left: 14px;
+        padding-right: 14px
+      }
+
+      .sidebar {
+        width: 64px
+      }
+
+      .sidebar .tab {
+        padding: 10px 12px
+      }
+
+      .sidebar .brand {
+        display: none
+      }
+
+      .row2 {
+        grid-template-columns: 1fr
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <h1>Project Cost Analyser</h1>
+        <div class="sub">Rate-card driven costing &middot; FY 26-27</div>
+      </div>
+      <nav class="tabs" id="tabs"></nav>
+    </aside>
+  <div class="main-wrap">
+  <main>
+        <div id="filters" class="bar"></div>
+        <div id="kpis"></div>
+        <div id="body"></div>
+      </main>
+      <div id="modalRoot"></div>
+    </div>
+  </div>
+
+  <script>
+    /* ============ Minimal XLSX reader / writer (no external library) ============ */
+    const XL = (() => {
+      const td = new TextDecoder();
+      async function inflateRaw(u8) {
+        const ds = new DecompressionStream('deflate-raw');
+        const stream = new Blob([u8]).stream().pipeThrough(ds);
+        return new Uint8Array(await new Response(stream).arrayBuffer());
+      }
+      async function unzip(buf) {
+        const u8 = new Uint8Array(buf), dv = new DataView(buf);
+        let e = u8.length - 22;
+        while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
+        if (e < 0) throw new Error('Not a valid .xlsx file');
+        const n = dv.getUint16(e + 10, true); let p = dv.getUint32(e + 16, true); const files = {};
+        for (let i = 0; i < n; i++) {
+          const method = dv.getUint16(p + 10, true), csize = dv.getUint32(p + 20, true);
+          const nl = dv.getUint16(p + 28, true), el = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true), lo = dv.getUint32(p + 42, true);
+          const name = td.decode(u8.subarray(p + 46, p + 46 + nl));
+          const lnl = dv.getUint16(lo + 26, true), lel = dv.getUint16(lo + 28, true);
+          const start = lo + 30 + lnl + lel; const data = u8.subarray(start, start + csize);
+          files[name] = { method, data };
+          p += 46 + nl + el + cl;
+        }
+        return files;
+      }
+      async function text(files, name) {
+        const f = files[name]; if (!f) return null;
+        const d = f.method === 0 ? f.data : await inflateRaw(f.data); return td.decode(d);
+      }
+      const colIdx = ref => { let s = ref.match(/[A-Z]+/)[0], n = 0; for (const ch of s) n = n * 26 + ch.charCodeAt(0) - 64; return n - 1 };
+      async function read(buf) {
+        const files = await unzip(buf); const P = new DOMParser();
+        const xml = async n => { const t = await text(files, n); return t ? P.parseFromString(t, 'application/xml') : null };
+        const wb = await xml('xl/workbook.xml'); if (!wb) throw new Error('Workbook not found');
+        const rels = await xml('xl/_rels/workbook.xml.rels'); const relMap = {};
+        rels.querySelectorAll('Relationship').forEach(r => relMap[r.getAttribute('Id')] = r.getAttribute('Target'));
+        const sst = []; const ss = await xml('xl/sharedStrings.xml');
+        if (ss) ss.querySelectorAll('si').forEach(si => sst.push([...si.querySelectorAll('t')].map(t => t.textContent).join('')));
+        const sheets = {};
+        for (const s of wb.querySelectorAll('sheet')) {
+          const rid = s.getAttribute('r:id') || s.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id');
+          let t = relMap[rid]; t = t.startsWith('/') ? t.slice(1) : 'xl/' + t;
+          const doc = await xml(t); const rows = [];
+          doc.querySelectorAll('sheetData > row').forEach(r => {
+            const arr = []; r.querySelectorAll(':scope > c').forEach(c => {
+              const ty = c.getAttribute('t'); const v = c.querySelector(':scope > v'); let val = null;
+              if (ty === 'inlineStr') val = [...c.querySelectorAll('t')].map(x => x.textContent).join('');
+              else if (v) { val = v.textContent; if (ty === 's') val = sst[+val]; else if (ty === 'str' || ty === 'e' || ty === 'b') { } else { const nn = Number(val); val = isNaN(nn) ? val : nn; } }
+              arr[colIdx(c.getAttribute('r'))] = val;
+            });
+            rows[(+r.getAttribute('r')) - 1] = arr;
+          });
+          for (let i = 0; i < rows.length; i++) if (!rows[i]) rows[i] = [];
+          sheets[s.getAttribute('name')] = rows;
+        }
+        return sheets;
+      }
+      // ---- writer ----
+      const crcT = (() => { const t = []; for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++)c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0 } return t })();
+      const crc = u8 => { let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++)c = crcT[(c ^ u8[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0 };
+      const esc = s => String(s).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
+      const colName = i => { let s = ''; i++; while (i > 0) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26) } return s };
+      function sheetXml(rows) {
+        let x = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>';
+        rows.forEach((r, ri) => {
+          x += `<row r="${ri + 1}">`; r.forEach((v, ci) => {
+            if (v === null || v === undefined || v === '') return; const ref = colName(ci) + (ri + 1);
+            x += typeof v === 'number' && isFinite(v) ? `<c r="${ref}"><v>${v}</v></c>` : `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${esc(v)}</t></is></c>`;
+          }); x += '</row>'
+        });
+        return x + '</sheetData></worksheet>';
+      }
+      function zip(entries) {
+        const te = new TextEncoder(); const parts = [], cd = []; let off = 0;
+        for (const [name, str] of entries) {
+          const nb = te.encode(name), d = te.encode(str), c = crc(d);
+          const lh = new DataView(new ArrayBuffer(30)); lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint32(14, c, true); lh.setUint32(18, d.length, true); lh.setUint32(22, d.length, true); lh.setUint16(26, nb.length, true);
+          parts.push(new Uint8Array(lh.buffer), nb, d);
+          const ch = new DataView(new ArrayBuffer(46)); ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint32(16, c, true); ch.setUint32(20, d.length, true); ch.setUint32(24, d.length, true); ch.setUint16(28, nb.length, true); ch.setUint32(42, off, true);
+          cd.push(new Uint8Array(ch.buffer), nb); off += 30 + nb.length + d.length;
+        }
+        const cdLen = cd.reduce((a, b) => a + b.length, 0);
+        const end = new DataView(new ArrayBuffer(22)); end.setUint32(0, 0x06054b50, true); end.setUint16(8, entries.length, true); end.setUint16(10, entries.length, true); end.setUint32(12, cdLen, true); end.setUint32(16, off, true);
+        return new Blob([...parts, ...cd, new Uint8Array(end.buffer)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      }
+      function write(sheets) { // sheets: {name: rows[][]}
+        const names = Object.keys(sheets);
+        const e = [['[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' + names.map((n, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('') + '</Types>'],
+        ['_rels/.rels', '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'],
+        ['xl/workbook.xml', '<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>' + names.map((n, i) => `<sheet name="${esc(n.slice(0, 31))}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('') + '</sheets></workbook>'],
+        ['xl/_rels/workbook.xml.rels', '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + names.map((n, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('') + '</Relationships>']];
+        names.forEach((n, i) => e.push([`xl/worksheets/sheet${i + 1}.xml`, sheetXml(sheets[n])]));
+        return zip(e);
+      }
+      return { read, write };
+    })();
+
+    /* ============ Data ============ */
+    const SEED_RATES = [["Artwork", "Visual Aid", "Per artwork", 8000.0, 4000.0], ["Artwork", "Cretive Concept charges", "Per concept", 100000.0, 50000.0], ["Artwork", "Logo", "Per logo", 7000.0, 3500.0], ["Artwork", "Teaser", "Per artwork", 6000.0, 3000.0], ["Artwork", "Poster", "Per artwork", 7000.0, 3500.0], ["Artwork", "LBL", "Per label", 4000.0, 2000.0], ["Artwork", "Banner", "Per banner", 4000.0, 2000.0], ["Artwork", "Packaging", "Per SKU", 10000.0, 5000.0], ["Artwork", "Jacket Folder", "Per artwork", 6000.0, 3000.0], ["Artwork", "Gimmick", "Per artwork", 10000.0, 5000.0], ["Artwork", "Illustrations", "Per illustration", 5000.0, 2500.0], ["Artwork", "Mascot", "Per character", 5000.0, 2500.0], ["Artwork", "Calendar Design", "Per Page", 3000.0, 1500.0], ["Artwork", "Invitation Card", "Per artwork", 4000.0, 2000.0], ["Artwork", "Certificate", "Per artwork", 3000.0, 1500.0], ["Artwork", "Detailer", "Per artwork", 5000.0, 2500.0], ["Artwork", "Mailer", "Per artwork", 5500.0, 2750.0], ["Artwork", "Stall Panel", "Per panel", 4000.0, 2000.0], ["Artwork", "Standee", "Per artwork", 4000.0, 2000.0], ["Artwork", "Whatsapp Creative", "Per creative", 3500.0, 1750.0], ["Artwork", "Dangler", "Per artwork", 4000.0, 2000.0], ["Artwork", "Table Top", "Per artwork", 4000.0, 2000.0], ["Artwork", "Bookmark", "Per artwork", 2500.0, 1250.0], ["Artwork", "Prescription Pad", "Per artwork", 2500.0, 1250.0], ["Artwork", "Sketches", "Per sketch", 2500.0, 1250.0], ["Artwork", "Booklet", "Per booklet", 2000.0, 1000.0], ["Artwork", "Card", "Per artwork", 2000.0, 1000.0], ["Artwork", "Comicbook", "Per page", 2000.0, 1000.0], ["Artwork", "Flyer", "Per artwork", 2000.0, 1000.0], ["Artwork", "RCPA Card", "Per artwork", 2000.0, 1000.0], ["Artwork", "Reminder Card", "Per artwork", 1000.0, 500.0], ["Artwork", "Chit Pad", "Per artwork", 1500.0, 750.0], ["Artwork", "Leaflet", "Per artwork", 3500.0, 1750.0], ["Artwork", "Badge", "Per artwork", 1000.0, 500.0], ["Artwork", "Visiting Card", "Per artwork", 1000.0, 500.0], ["Artwork", "Sticker", "Per artwork", 1000.0, 500.0], ["Artwork", "Diary", "Per diary", 4000.0, 2000.0], ["Artwork", "Magazine Ad", "Per ad", 6000.0, 3000.0], ["Artwork", "Momento", "Per artwork", 1500.0, 750.0], ["Artwork", "Photo Manipulation", "Per image", 1000.0, 500.0], ["Artwork", "Questionnaire Design", "Per questionnaire", 1000.0, 500.0], ["Artwork", "Festival Greetings", "Per artwork", 2500.0, 1250.0], ["Artwork", "Template", "Per template", 2000.0, 1000.0], ["Artwork", "Wallpaper", "Per artwork", 2000.0, 1000.0], ["Artwork", "Cover page", "Per page", 5000.0, 2500.0], ["Artwork", "Photo Frame", "Per artwork", 500.0, 250.0], ["Content Writing", "Proofreading", "Per 1,000 words", 100.0, 50.0], ["Content Writing", "Artwork Content", "Per artwork", 2500.0, 1250.0], ["Content Writing", "Video Script", "Per script", 5000.0, 2500.0], ["Content Writing", "Festival Content", "Per artwork", 1500.0, 750.0], ["Content Writing", "Website Content", "Per page", 2500.0, 1250.0], ["Content Writing", "Write-up", "Per write-up", 1000.0, 500.0], ["Content Writing", "Story Telling", "Per story", 3000.0, 1500.0], ["Content Writing", "Social Media Content", "Per post", 5000.0, 2500.0], ["Content Writing", "Transcription Check", "Per Page", 1000.0, 500.0], ["Content Writing", "Speech Write-up", "Per speech", 3000.0, 1500.0], ["Content Writing", "Slogan/Pay-off Line", "Per slogan", 1000.0, 500.0], ["Content Writing", "Questionnaire", "Per questionnaire", 2500.0, 1250.0], ["Content Writing", "Email Template", "Per template", 1000.0, 500.0], ["Shoot", "Product Photography", "Per product", 1000.0, 0.0], ["Shoot", "Product Video Shoot", "Per product", 3000.0, 0.0], ["Shoot", "Event Photography", "Per day", 10000.0, 0.0], ["Shoot", "Detailing Shoot", "Per shoot", 10000.0, 0.0], ["Shoot", "Portrait Photography", "Per person", 5000.0, 0.0], ["Shoot", "Cinematic Video Shoot", "Per day", 100000.0, 0.0], ["Shoot", "Event Shoot", "Per day", 20000.0, 0.0], ["Shoot", "Concept Shoot", "Per shoot", 40000.0, 0.0], ["Shoot", "Testimonial Video Shoot", "Per shoot", 8000.0, 0.0], ["Video", "Gif", "Per GIF 10 sec", 7000.0, 3500.0], ["Video", "Motion Graphics", "Per 30 sec", 30000.0, 15000.0], ["Video", "VA Animation", "Per 30 sec", 3000.0, 1500.0], ["Video", "2D Animation", "Per 30 sec", 40000.0, 20000.0], ["Video", "Video Editing", "Per video 30 Sec", 15000.0, 7500.0], ["Video", "Animated Stickers", "Per sticker", 3000.0, 1500.0], ["Video", "Audio Editing", "Per audio 30 Sec", 1500.0, 750.0], ["Video", "Voice Over", "Per VO", 2500.0, 1250.0], ["Video", "Festival Video", "Per video", 10000.0, 5000.0], ["Video", "Photo Editing", "Per image", 1000.0, 500.0], ["Video", "3D Modelling", "Per model", 35000.0, 17500.0], ["Video", "3D Modelling - Static", "Per model", 10000.0, 5000.0], ["Video", "3D animation", "Per video 30 Sec", 70000.0, 35000.0], ["Web", "Custom Web Application", "Per project", 500000.0, 0.0], ["Web", "CLM HTMLization", "Per page", 6250.0, 0.0], ["Web", "Custom Game", "Per project", 200000.0, 0.0], ["Web", "Poster Maker", "Per tool", 80000.0, 0.0], ["Web", "Photo Framer", "Per tool", 40000.0, 0.0], ["Web", "Static Website", "Per website", 80000.0, 0.0], ["Web", "E- Flipbook", "Per flipbook", 10000.0, 0.0], ["Web", "Custom Form", "Per form", 25000.0, 0.0], ["Web", "QR Code", "Per QR (Dynamic Setup)", 5000.0, 0.0], ["Web", "Quiz Application", "Per quiz", 30000.0, 0.0], ["Web", "Video Framer", "Per tool", 100000.0, 0.0], ["Web", "Dynamic Website", "Per website", 250000.0, 0.0]];
+    const VERTS = ['Artwork', 'Video', 'Content Writing', 'Shoot', 'Web'];
+    let nextRate = 1;
+    let rates = SEED_RATES.map(r => ({ id: nextRate++, vertical: r[0], task: r[1], unit: r[2], newRate: r[3], chgRate: r[4] }));
+    const S = { concept: 2000, ai: 500, rushPct: 25, specialPct: 20 };
+    const rid = (v, t) => rates.find(r => r.vertical === v && r.task.toLowerCase() === t.toLowerCase()).id;
+
+    let projects = [], tasks = [], changes = [];
+    (function seed() {
+      const P = (name, type, client, div) => { const id = 'PRJ-' + String(projects.length + 1).padStart(3, '0'); projects.push({ id, name, type, client, division: div }); return id };
+      const T = (p, name, v, t, qty, k = 0, a = 0, r = 0, s = 0) => { const id = 'TSK-' + String(tasks.length + 1).padStart(3, '0'); tasks.push({ id, projectId: p, name, rateId: rid(v, t), qty, concepts: k, ai: a, rush: !!r, special: !!s }); return id };
+      const C = (tk, name, qty, k = 0, a = 0, r = 0, s = 0) => { const id = 'CHG-' + String(changes.length + 1).padStart(3, '0'); changes.push({ id, taskId: tk, name, qty, concepts: k, ai: a, rush: !!r, special: !!s }) };
+      const p1 = P('Cardivex Launch Campaign', 'Product Launch', 'Medora Pharma', 'Cardiology');
+      const t1 = T(p1, 'Launch posters (regional)', 'Artwork', 'Poster', 6, 1, 2);
+      const t2 = T(p1, 'Detailer for field force', 'Artwork', 'Detailer', 2, 0, 0, 0, 1);
+      const t3 = T(p1, 'Launch teaser GIFs', 'Video', 'Gif', 4, 0, 3, 1);
+      const t4 = T(p1, 'Mechanism-of-action animation', 'Video', '2D Animation', 2, 1, 0, 0, 1);
+      const t5 = T(p1, 'Product shoot - hero packshots', 'Shoot', 'Product Photography', 12);
+      T(p1, 'Doctor email template', 'Content Writing', 'Email Template', 3);
+      C(t1, 'Revised brand colours on posters', 4); C(t2, 'Updated safety statement', 2, 0, 0, 1); C(t3, 'New caption copy', 3); C(t4, 'Voice-over sync fixes', 2);
+      const p2 = P('National Diabetes Day Activation', 'Awareness', 'Medora Pharma', 'Diabetes');
+      const t6 = T(p2, 'WhatsApp creatives', 'Artwork', 'Whatsapp Creative', 14, 0, 6);
+      const t7 = T(p2, 'Festival greetings pack', 'Artwork', 'Festival Greetings', 5);
+      T(p2, 'Social media posts', 'Content Writing', 'Social Media Content', 20);
+      const t8 = T(p2, 'Awareness video script', 'Content Writing', 'Video Script', 1);
+      const t9 = T(p2, 'Testimonial shoot', 'Shoot', 'Testimonial Video Shoot', 2);
+      T(p2, 'Quiz microsite', 'Web', 'Quiz Application', 1, 1, 0, 0, 1);
+      C(t6, 'Language variants - copy update', 9); C(t7, 'Logo placement tweak', 3); C(t8, 'Tone revision', 1);
+      const p3 = P('Respira Doctor Engagement Kit', 'Field Force', 'Zenith Healthcare', 'Respiratory');
+      const t10 = T(p3, 'Prescription pads', 'Artwork', 'Prescription Pad', 3);
+      T(p3, 'Leaflets', 'Artwork', 'Leaflet', 4, 0, 0, 1);
+      const t11 = T(p3, 'Stall panels - congress', 'Artwork', 'Stall Panel', 6, 1);
+      T(p3, 'Standees', 'Artwork', 'Standee', 4);
+      T(p3, 'E-Flipbook', 'Web', 'E- Flipbook', 1);
+      C(t10, 'New helpline number', 3); C(t11, 'Panel size change', 6, 0, 0, 1, 1);
+      const p4 = P('Derma Care Digital Hub', 'Digital', 'Zenith Healthcare', 'Dermatology');
+      T(p4, 'Dynamic website', 'Web', 'Dynamic Website', 1, 1, 0, 0, 1);
+      const t12 = T(p4, 'CLM HTMLization', 'Web', 'CLM HTMLization', 12, 0, 0, 1);
+      T(p4, 'Website content', 'Content Writing', 'Website Content', 8);
+      T(p4, 'Photo framer tool', 'Web', 'Photo Framer', 1);
+      T(p4, 'Illustrations', 'Artwork', 'Illustrations', 8, 0, 5);
+      C(t12, 'Navigation rework', 5, 0, 0, 0, 1);
+      const p5 = P('Annual Conference 2026', 'Event', 'Aurora Life Sciences', 'Corporate');
+      T(p5, 'Event photography', 'Shoot', 'Event Photography', 3);
+      T(p5, 'Event shoot (stage + sessions)', 'Shoot', 'Event Shoot', 2);
+      const t13 = T(p5, 'Invitation cards', 'Artwork', 'Invitation Card', 4, 1, 0, 1);
+      T(p5, 'Certificates', 'Artwork', 'Certificate', 60);
+      T(p5, 'Event highlights video', 'Video', 'Video Editing', 6, 0, 0, 1);
+      T(p5, 'Speech write-ups', 'Content Writing', 'Speech Write-up', 3);
+      C(t13, 'Venue and date change', 4, 0, 0, 1);
+      const p6 = P('Vitalis Brand Refresh', 'Branding', 'Aurora Life Sciences', 'OTC');
+      const t14 = T(p6, 'Logo', 'Artwork', 'Logo', 1, 2, 3);
+      T(p6, 'Packaging (SKUs)', 'Artwork', 'Packaging', 5, 1, 0, 0, 1);
+      T(p6, 'Mascot', 'Artwork', 'Mascot', 1, 1, 2);
+      T(p6, '3D modelling - pack render', 'Video', '3D Modelling - Static', 3);
+      T(p6, 'Slogan', 'Content Writing', 'Slogan/Pay-off Line', 4);
+      C(t14, 'Colour palette variants', 1, 1); C(t14, 'Lock-up revisions', 1);
+      const p7 = P('Festive Greetings Pack', 'Retainer', 'Medora Pharma', 'Corporate');
+      T(p7, 'Festival greetings', 'Artwork', 'Festival Greetings', 12);
+      T(p7, 'Festival video', 'Video', 'Festival Video', 2, 0, 0, 1);
+      T(p7, 'Festival content', 'Content Writing', 'Festival Content', 12);
+      const p8 = P('Ortho Awareness Film Series', 'Video', 'Zenith Healthcare', 'Orthopaedics');
+      const t15 = T(p8, 'Motion graphics episodes', 'Video', 'Motion Graphics', 6, 1, 0, 0, 1);
+      T(p8, '3D animation explainer', 'Video', '3D animation', 2, 1, 0, 1, 1);
+      T(p8, 'Voice-over', 'Video', 'Voice Over', 6);
+      T(p8, 'Cinematic shoot', 'Shoot', 'Cinematic Video Shoot', 2);
+      T(p8, 'Episode scripts', 'Content Writing', 'Video Script', 6);
+      C(t15, 'Re-cut episode 3', 2); C(t15, 'Subtitle styling', 6);
+    })();
+    const counters = { PRJ: projects.length, TSK: tasks.length, CHG: changes.length };
+    const newId = p => p + '-' + String(++counters[p]).padStart(3, '0');
+
+    /* ============ Calculations ============ */
+    const rateOf = id => rates.find(r => r.id === id);
+    const Z = () => ({ wQ: 0, wC: 0, cQ: 0, cC: 0, kQ: 0, kC: 0, aQ: 0, aC: 0, rush: 0, sp: 0, total: 0 });
+    const add = (a, b) => { for (const k in a) a[k] += b[k]; return a };
+    function calcRec(rec, rateId, isChange) {
+      const r = rateOf(rateId), rate = r ? (isChange ? r.chgRate : r.newRate) : 0, base = (rec.qty || 0) * rate;
+      const o = Z(); o[isChange ? 'cQ' : 'wQ'] = rec.qty || 0; o[isChange ? 'cC' : 'wC'] = base;
+      o.kQ = rec.concepts || 0; o.kC = o.kQ * S.concept; o.aQ = rec.ai || 0; o.aC = o.aQ * S.ai;
+      o.rush = rec.rush ? base * S.rushPct / 100 : 0; o.sp = rec.special ? base * S.specialPct / 100 : 0;
+      o.total = base + o.kC + o.aC + o.rush + o.sp; return o;
+    }
+    const changesOf = t => changes.filter(c => c.taskId === t.id);
+    function taskAgg(t) { const o = calcRec(t, t.rateId, false); changesOf(t).forEach(c => add(o, calcRec(c, t.rateId, true))); return o }
+    const taskById = id => tasks.find(t => t.id === id), projById = id => projects.find(p => p.id === id);
+    const vertOf = t => rateOf(t.rateId)?.vertical || '—';
+
+    /* ============ UI state ============ */
+    const ui = { tab: 'projects', vert: 'All', client: 'All', project: 'All', q: '', sort: {}, rcVert: 'All', rcq: '' };
+    const fmtN = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
+    const inr = v => '₹' + fmtN.format(Math.round(v));
+    const H = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const $ = s => document.querySelector(s);
+
+    function costCols() {
+      return [
+        ['total', 'Total cost', 'm'], ['wQ', 'No. of work pages', 'n'], ['wC', 'Work pages cost', 'm'], ['cQ', 'No. of change pages', 'n'], ['cC', 'Change pages cost', 'm'],
+        ['kQ', 'No. of concepts used', 'n'], ['kC', 'Concepts cost', 'm'], ['aQ', 'No. of AI images used', 'n'], ['aC', 'AI images cost', 'm'],
+        ['rush', 'Rush charge (+' + S.rushPct + '%)', 'm'], ['sp', 'Special / complex (+' + S.specialPct + '%)', 'm']];
+    }
+
+    const clientsList = () => [...new Set(projects.map(p => p.client))].sort();
+    const clientOf = t => projById(t.projectId) || {};
+    const vOk = t => ui.vert === 'All' || vertOf(t) === ui.vert;
+    const qOk = (...s) => !ui.q || s.join(' ').toLowerCase().includes(ui.q.toLowerCase());
+
+    function buildRows() {
+      if (ui.tab === 'projects') {
+        return projects.filter(p => (ui.client === 'All' || p.client === ui.client)).map(p => {
+          const ts = tasks.filter(t => t.projectId === p.id && vOk(t)); if (ui.vert !== 'All' && !ts.length) return null;
+          const a = Z(); ts.forEach(t => add(a, taskAgg(t)));
+          if (!qOk(p.id, p.name, p.type, p.client, p.division)) return null;
+          return { id: p.id, name: p.name, type: p.type, client: p.client, division: p.division, verts: [...new Set(ts.map(vertOf))], extra: ts.length + ' tasks', a };
+        }).filter(Boolean);
+      }
+      if (ui.tab === 'tasks') {
+        return tasks.filter(t => { const p = clientOf(t); return vOk(t) && (ui.client === 'All' || p.client === ui.client) && (ui.project === 'All' || t.projectId === ui.project) })
+          .filter(t => qOk(t.id, t.name, rateOf(t.rateId)?.task, clientOf(t).name)).map(t => {
+            const p = clientOf(t), r = rateOf(t.rateId);
+            return { id: t.id, name: t.name, type: r ? r.task : '(rate removed)', client: p.client, division: p.division, verts: [vertOf(t)], extra: p.name, flags: t, missing: !r, a: taskAgg(t) }
+          });
+      }
+      return changes.filter(c => { const t = taskById(c.taskId); if (!t) return false; const p = clientOf(t); return vOk(t) && (ui.client === 'All' || p.client === ui.client) && (ui.project === 'All' || t.projectId === ui.project) })
+        .filter(c => qOk(c.id, c.name, taskById(c.taskId).name)).map(c => {
+          const t = taskById(c.taskId), p = clientOf(t), r = rateOf(t.rateId);
+          return { id: c.id, name: c.name, type: r ? r.task : '(rate removed)', client: p.client, division: p.division, verts: [vertOf(t)], extra: t.id + ' · ' + t.name, flags: c, missing: !r, a: calcRec(c, t.rateId, true) }
+        });
+    }
+
+    /* ============ Rendering ============ */
+    function renderTabs() {
+      const T = [['projects', 'Projects', '📁'], ['tasks', 'Tasks', '📋'], ['changes', 'Changes', '🔧'], ['rates', 'Rate Card', '💰']];
+      $('#tabs').innerHTML = T.map(([k, l, ic]) => `<button class="tab ${ui.tab === k ? 'on' : ''}" data-tab="${k}"><span class="tab-ic">${ic}</span>${l}</button>`).join('');
+    }
+    function renderFilters() {
+      const el = $('#filters');
+      if (ui.tab === 'rates') {
+        el.innerHTML = `<div class="chips">${['All', ...VERTS].map(v => `<button class="chip ${ui.rcVert === v ? 'on' : ''}" data-rcv="${H(v)}">${H(v)}</button>`).join('')}</div>
+      <input type="search" id="rcq" placeholder="Search task type…" value="${H(ui.rcq)}">
+      <span class="spacer"></span>
+      <button class="btn" data-act="tpl">Download Excel template</button>
+      <button class="btn" data-act="exportRates">Export rate card</button>
+      <button class="btn" data-act="upload">Upload Excel…</button>
+      <button class="btn pri" data-act="addRate">+ Add task type</button>
+      <input type="file" id="file" accept=".xlsx,.csv" hidden>`; return;
+      }
+      const projOpts = `<option value="All">All projects</option>` + projects.map(p => `<option value="${p.id}" ${ui.project === p.id ? 'selected' : ''}>${H(p.id + ' · ' + p.name)}</option>`).join('');
+      el.innerHTML = `<div class="chips">${['All', ...VERTS].map(v => `<button class="chip ${ui.vert === v ? 'on' : ''}" data-v="${H(v)}">${H(v)}</button>`).join('')}</div>
+    <select id="fclient"><option value="All">All clients</option>${clientsList().map(c => `<option ${ui.client === c ? 'selected' : ''}>${H(c)}</option>`).join('')}</select>
+    ${ui.tab !== 'projects' ? `<select id="fproj">${projOpts}</select>` : ''}
+    <input type="search" id="fq" placeholder="Search…" value="${H(ui.q)}">
+    <span class="spacer"></span>
+    <button class="btn" data-act="exportAll">Export to Excel</button>
+    <button class="btn pri" data-act="add">+ New ${ui.tab === 'projects' ? 'project' : ui.tab === 'tasks' ? 'task' : 'change'}</button>`;
+    }
+    function renderBody() {
+      if (ui.tab === 'rates') { renderRates(); return }
+      let rows = buildRows();
+      const so = ui.sort[ui.tab];
+      const val = (r, k) => ['id', 'name', 'type', 'client', 'division'].includes(k) ? String(r[k]).toLowerCase() : r.a[k];
+      if (so) rows.sort((x, y) => { const a = val(x, so.k), b = val(y, so.k); return (a > b ? 1 : a < b ? -1 : 0) * so.d });
+      const tot = Z(); rows.forEach(r => add(tot, r.a));
+      // KPIs
+      const segs = [['Work pages', tot.wC, '--c-work'], ['Change pages', tot.cC, '--c-change'], ['Concepts', tot.kC, '--c-concept'], ['AI images', tot.aC, '--c-ai'], ['Rush', tot.rush, '--c-rush'], ['Special / complex', tot.sp, '--c-special']];
+      const label = { projects: 'projects', tasks: 'tasks', changes: 'changes' }[ui.tab];
+      $('#kpis').innerHTML = `<div class="kpis">
+    <div class="kpi"><div class="l">Total cost</div><div class="v">${inr(tot.total)}</div></div>
+    <div class="kpi"><div class="l">No. of ${label}</div><div class="v">${rows.length}</div></div>
+    <div class="kpi"><div class="l">Average per ${label.slice(0, -1)}</div><div class="v">${rows.length ? inr(tot.total / rows.length) : '—'}</div></div>
+    <div class="kpi"><div class="l">Change-page share</div><div class="v">${tot.total ? Math.round(tot.cC / tot.total * 100) : 0}%</div></div></div>
+    <div class="split"><div class="l muted">Where the cost comes from</div>
+    <div class="stack">${segs.map(s => `<i title="${s[0]}" style="width:${tot.total ? s[1] / tot.total * 100 : 0}%;background:var(${s[2]})"></i>`).join('')}</div>
+    <div class="legend">${segs.map(s => `<span><em style="background:var(${s[2]})"></em>${s[0]} <b>${inr(s[1])}</b></span>`).join('')}</div></div>`;
+      const idLbl = { projects: ['Project ID', 'Project name', 'Project type'], tasks: ['Task ID', 'Task name', 'Task type'], changes: ['Change ID', 'Change name', 'Task type'] }[ui.tab];
+      const ex = { projects: 'Verticals / tasks', tasks: 'Project', changes: 'Linked task' }[ui.tab];
+      const cc = costCols();
+      const th = (k, l, cls = '') => `<th class="${cls}" data-sort="${k}">${l}${so && so.k === k ? (so.d > 0 ? ' ▲' : ' ▼') : ''}</th>`;
+      const head = th('id', idLbl[0], 's1') + th('name', idLbl[1], 's2') + th('type', idLbl[2]) + th('client', 'Client name') + th('division', 'Client division') +
+        cc.map(c => th(c[0], c[1], 'num')).join('') + `<th>Vertical</th>${ui.tab !== 'changes' || 1 ? `<th>${ex}</th>` : ''}${ui.tab !== 'projects' ? '<th>Flags</th>' : ''}<th></th>`;
+      const body = rows.map(r => {
+        const fl = r.flags ? `<td>${r.missing ? '<span class="flag w">rate missing</span>' : ''}${r.flags.rush ? '<span class="flag r">Rush</span>' : ''}${r.flags.special ? '<span class="flag s">Special</span>' : ''}</td>` : (ui.tab !== 'projects' ? '<td></td>' : '');
+        return `<tr><td class="s1">${r.id}</td><td class="s2" title="${H(r.name)}">${H(r.name)}</td><td>${H(r.type)}</td><td>${H(r.client)}</td><td>${H(r.division)}</td>` +
+          cc.map(c => `<td class="num ${c[0] === 'total' ? 'tot' : ''}">${c[2] === 'm' ? inr(r.a[c[0]]) : fmtN.format(r.a[c[0]])}</td>`).join('') +
+          `<td>${r.verts.map(v => `<span class="badge v-${H(v)}">${H(v)}</span>`).join(' ')}</td><td class="muted">${H(r.extra)}</td>${fl}
+     <td>${ui.tab === 'projects' ? `<button class="btn sm" data-act="drill" data-id="${r.id}">Tasks →</button> ` : ''}<button class="btn sm" data-act="edit" data-id="${r.id}">Edit</button> <button class="btn sm dng" data-act="del" data-id="${r.id}">Delete</button></td></tr>`
+      }).join('');
+      const foot = `<tr><td class="s1">Total</td><td class="s2">${rows.length} ${label}</td><td></td><td></td><td></td>` + cc.map(c => `<td class="num">${c[2] === 'm' ? inr(tot[c[0]]) : fmtN.format(tot[c[0]])}</td>`).join('') + `<td></td><td></td>${ui.tab !== 'projects' ? '<td></td>' : ''}<td></td></tr>`;
+      $('#body').innerHTML = rows.length ? `<div class="tw"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody><tfoot>${foot}</tfoot></table></div>` : `<div class="tw"><div class="empty">Nothing matches these filters.</div></div>`;
+    }
+    function renderRates() {
+      $('#kpis').innerHTML = `<p class="note">Costs everywhere are recalculated from this rate card instantly. <b>Final cost = Base cost + Concept charge + AI image charge + Rush charge + Special / complex charge</b>, where Base cost = units × New-work rate (or × Changes rate for change work).</p>
+   <div class="settings">
+    <label>Concept charge (₹ per output)<input type="number" min="0" data-set="concept" value="${S.concept}"></label>
+    <label>AI charge (₹ per AI image)<input type="number" min="0" data-set="ai" value="${S.ai}"></label>
+    <label>Rush / last-moment (% of Base cost)<input type="number" min="0" data-set="rushPct" value="${S.rushPct}"></label>
+    <label>Special / complex (% of Base cost)<input type="number" min="0" data-set="specialPct" value="${S.specialPct}"></label></div>`;
+      const rows = rates.filter(r => (ui.rcVert === 'All' || r.vertical === ui.rcVert) && (!ui.rcq || (r.task + ' ' + r.unit).toLowerCase().includes(ui.rcq.toLowerCase())))
+        .sort((a, b) => VERTS.indexOf(a.vertical) - VERTS.indexOf(b.vertical) || 0);
+      $('#body').innerHTML = `<div class="tw"><table><thead><tr><th>Vertical</th><th>Task type</th><th>Unit basis</th><th class="num">FY 26-27 New work rate</th><th class="num">FY 26-27 Changes work rate</th><th class="num">Used in</th><th></th></tr></thead><tbody>` +
+        rows.map(r => {
+          const u = tasks.filter(t => t.rateId === r.id).length; return `<tr><td><span class="badge v-${H(r.vertical)}">${H(r.vertical)}</span></td><td>${H(r.task)}</td><td class="muted">${H(r.unit)}</td><td class="num">${inr(r.newRate)}</td><td class="num">${inr(r.chgRate)}</td><td class="num muted">${u} task${u === 1 ? '' : 's'}</td>
+   <td><button class="btn sm" data-act="editRate" data-id="${r.id}">Edit</button> <button class="btn sm dng" data-act="delRate" data-id="${r.id}">Delete</button></td></tr>`
+        }).join('') +
+        `</tbody></table></div><p class="note" style="margin-top:8px">${rows.length} of ${rates.length} task types shown.</p>`;
+    }
+    function renderAll() { renderTabs(); renderFilters(); renderBody() }
+
+    /* ============ Modal forms ============ */
+    function modal(title, fields, vals, save, preview) {
+      const root = $('#modalRoot');
+      const f = fields.map(f => {
+        const v = vals[f.k];
+        if (f.t === 'check') return `<div class="fld ck"><label><input type="checkbox" data-k="${f.k}" ${v ? 'checked' : ''}> ${f.l}</label></div>`;
+        if (f.t === 'select') return `<div class="fld"><label>${f.l}</label><select data-k="${f.k}">${f.opts(v)}</select></div>`;
+        return `<div class="fld" ${f.half ? '' : ''}><label>${f.l}</label><input type="${f.t || 'text'}" data-k="${f.k}" value="${H(v ?? '')}" ${f.t === 'number' ? 'min="0" step="any"' : ''} ${f.list ? `list="${f.list}"` : ''}></div>`
+      }).join('');
+      root.innerHTML = `<div class="ov"><div class="modal"><h2>${title}</h2>${f}<div class="prev" id="prev" ${preview ? '' : 'hidden'}></div><div class="err" id="err"></div><div class="acts"><button class="btn" data-m="x">Cancel</button><button class="btn pri" data-m="ok">Save</button></div></div></div>`;
+      const get = () => { const o = {}; root.querySelectorAll('[data-k]').forEach(i => { const k = i.dataset.k; o[k] = i.type === 'checkbox' ? i.checked : i.type === 'number' ? Number(i.value || 0) : i.value }); return o };
+      const upd = () => { if (preview) $('#prev').innerHTML = preview(get()) };
+      root.oninput = root.onchange = upd; upd();
+      root.onclick = e => {
+        const m = e.target.dataset.m; if (m === 'x' || e.target.classList.contains('ov')) root.innerHTML = '';
+        if (m === 'ok') { const err = save(get()); if (err) $('#err').textContent = err; else { root.innerHTML = ''; renderAll() } }
+      };
+    }
+    const closeModal = () => $('#modalRoot').innerHTML = '';
+    function toast(m) { const d = document.createElement('div'); d.className = 'toast'; d.textContent = m; document.body.appendChild(d); setTimeout(() => d.remove(), 3500) }
+
+    function previewHTML(o, rateId, isChange) {
+      const c = calcRec(o, rateId, isChange), r = rateOf(rateId); if (!r) return 'Pick a task type.';
+      const base = isChange ? c.cC : c.wC;
+      return `Base ${inr(base)} <span class="muted">(${o.qty || 0} × ${inr(isChange ? r.chgRate : r.newRate)} per ${H(r.unit.replace(/^per /i, ''))})</span><br>
+   + Concept ${inr(c.kC)} + AI ${inr(c.aC)} + Rush ${inr(c.rush)} + Special ${inr(c.sp)}<br>Final cost: <b>${inr(c.total)}</b>`;
+    }
+    const rateOpts = sel => VERTS.concat([...new Set(rates.map(r => r.vertical))].filter(v => !VERTS.includes(v))).map(v => `<optgroup label="${H(v)}">` + rates.filter(r => r.vertical === v).map(r => `<option value="${r.id}" ${+sel === r.id ? 'selected' : ''}>${H(r.task)} — ${H(r.unit)}</option>`).join('') + '</optgroup>').join('');
+
+    function projectForm(p) {
+      const isNew = !p; p = p || { name: '', type: '', client: '', division: '' };
+      modal(isNew ? 'New project' : 'Edit project', [{ k: 'name', l: 'Project name' }, { k: 'type', l: 'Project type', list: 'ptypes' }, { k: 'client', l: 'Client name', list: 'clist' }, { k: 'division', l: 'Client division' }], p, o => {
+        if (!o.name.trim() || !o.client.trim()) return 'Project name and client are required.';
+        if (isNew) projects.push({ id: newId('PRJ'), name: o.name.trim(), type: o.type.trim(), client: o.client.trim(), division: o.division.trim() });
+        else Object.assign(p, { name: o.name.trim(), type: o.type.trim(), client: o.client.trim(), division: o.division.trim() });
+      });
+      $('#modalRoot .modal').insertAdjacentHTML('beforeend', `<datalist id="ptypes">${[...new Set(projects.map(x => x.type))].map(x => `<option value="${H(x)}">`).join('')}</datalist><datalist id="clist">${clientsList().map(x => `<option value="${H(x)}">`).join('')}</datalist>`);
+    }
+    function taskForm(t) {
+      const isNew = !t; t = t || { projectId: ui.project !== 'All' ? ui.project : projects[0]?.id, name: '', rateId: rates[0]?.id, qty: 1, concepts: 0, ai: 0, rush: false, special: false };
+      if (!projects.length) return toast('Create a project first.');
+      modal(isNew ? 'New task' : 'Edit task ' + t.id, [
+        { k: 'projectId', l: 'Project', t: 'select', opts: v => projects.map(p => `<option value="${p.id}" ${p.id === v ? 'selected' : ''}>${H(p.id + ' · ' + p.name)}</option>`).join('') },
+        { k: 'name', l: 'Task name' }, { k: 'rateId', l: 'Task type (from rate card)', t: 'select', opts: rateOpts },
+        { k: 'qty', l: 'No. of work units (pages / artworks / seconds-blocks…)', t: 'number' }, { k: 'concepts', l: 'No. of concepts used (₹' + fmtN.format(S.concept) + ' each)', t: 'number' },
+        { k: 'ai', l: 'No. of AI images (₹' + fmtN.format(S.ai) + ' each)', t: 'number' },
+        { k: 'rush', l: 'Rush / last-moment (+' + S.rushPct + '% of base)', t: 'check' }, { k: 'special', l: 'Special / complex work (+' + S.specialPct + '% of base)', t: 'check' }], t, o => {
+          if (!o.name.trim()) return 'Task name is required.'; o.rateId = +o.rateId;
+          if (isNew) tasks.push({ id: newId('TSK'), ...o, name: o.name.trim() }); else Object.assign(t, o, { name: o.name.trim() });
+        }, o => previewHTML(o, +o.rateId, false));
+    }
+    function changeForm(c) {
+      const isNew = !c; if (!tasks.length) return toast('Create a task first.');
+      c = c || { taskId: tasks.find(t => ui.project === 'All' || t.projectId === ui.project)?.id || tasks[0].id, name: '', qty: 1, concepts: 0, ai: 0, rush: false, special: false };
+      modal(isNew ? 'New change' : 'Edit change ' + c.id, [
+        { k: 'taskId', l: 'Linked task', t: 'select', opts: v => tasks.map(t => `<option value="${t.id}" ${t.id === v ? 'selected' : ''}>${H(t.id + ' · ' + t.name + ' (' + (rateOf(t.rateId)?.task || '?') + ')')}</option>`).join('') },
+        { k: 'name', l: 'Change name' }, { k: 'qty', l: 'No. of change pages / units (charged at Changes rate)', t: 'number' },
+        { k: 'concepts', l: 'No. of concepts used', t: 'number' }, { k: 'ai', l: 'No. of AI images', t: 'number' },
+        { k: 'rush', l: 'Rush / last-moment (+' + S.rushPct + '% of base)', t: 'check' }, { k: 'special', l: 'Special / complex work (+' + S.specialPct + '% of base)', t: 'check' }], c, o => {
+          if (!o.name.trim()) return 'Change name is required.';
+          if (isNew) changes.push({ id: newId('CHG'), ...o, name: o.name.trim() }); else Object.assign(c, o, { name: o.name.trim() });
+        }, o => { const t = taskById(o.taskId); return t ? previewHTML(o, t.rateId, true) : '' });
+    }
+    function rateForm(r) {
+      const isNew = !r; const old = r; r = r || { vertical: ui.rcVert !== 'All' ? ui.rcVert : 'Artwork', task: '', unit: 'Per artwork', newRate: 0, chgRate: 0 };
+      modal(isNew ? 'Add task type' : 'Edit ' + r.task, [
+        { k: 'vertical', l: 'Vertical', t: 'text', list: 'vlist' }, { k: 'task', l: 'Task type' }, { k: 'unit', l: 'Unit basis (e.g. Per artwork, Per 30 sec)' },
+        { k: 'newRate', l: 'FY 26-27 New work rate (₹)', t: 'number' }, { k: 'chgRate', l: 'FY 26-27 Changes work rate (₹)', t: 'number' }], r, o => {
+          o.vertical = o.vertical.trim(); o.task = o.task.trim(); o.unit = o.unit.trim();
+          if (!o.vertical || !o.task) return 'Vertical and task type are required.';
+          if (rates.some(x => x !== old && x.vertical.toLowerCase() === o.vertical.toLowerCase() && x.task.toLowerCase() === o.task.toLowerCase())) return 'This task type already exists in that vertical.';
+          if (isNew) rates.push({ id: nextRate++, ...o }); else Object.assign(old, o);
+          toast(isNew ? 'Task type added' : 'Rate updated — all costs recalculated');
+        }, o => `Change rate suggestion: half of new rate = <b>${inr((o.newRate || 0) / 2)}</b>`);
+      $('#modalRoot .modal').insertAdjacentHTML('beforeend', `<datalist id="vlist">${VERTS.map(v => `<option value="${v}">`).join('')}</datalist>`);
+    }
+
+    /* ============ Excel upload / export ============ */
+    function parseRateSheet(rows) {
+      const out = []; let ix = null;
+      for (const r of rows) {
+        if (!r || !r.length) continue;
+        const c0 = String(r[0] ?? '').trim().toLowerCase();
+        if (c0 === 'vertical') {
+          const h = r.map(x => String(x ?? '').replace(/\s+/g, ' ').toLowerCase());
+          const find = re => h.findIndex(x => re.test(x));
+          ix = { task: find(/task/), unit: find(/unit/), nw: find(/new work rate|^new rate|new work/), ch: find(/chang\w* work rate|mod work rate|^change rate|changes? rate/) };
+          if (ix.nw < 0) ix = null; continue;
+        }
+        if (!ix || !r[0]) continue;
+        const task = String(r[ix.task] ?? '').trim(); if (!task) continue;
+        const num = v => { const n = Number(v); return isFinite(n) && v !== null && v !== '' ? n : 0 };
+        const nw = num(r[ix.nw]); const ch = ix.ch >= 0 && r[ix.ch] != null && r[ix.ch] !== '' ? num(r[ix.ch]) : nw / 2;
+        out.push({ vertical: String(r[0]).trim(), task, unit: String(r[ix.unit] ?? '').trim(), newRate: nw, chgRate: ch });
+      }
+      return out;
+    }
+    async function handleUpload(file) {
+      try {
+        let sheets;
+        if (/\.csv$/i.test(file.name)) {
+          const rows = (await file.text()).split(/\r?\n/).filter(Boolean).map(l => l.split(',').map(x => { x = x.replace(/^"|"$/g, ''); return x !== '' && !isNaN(x) ? Number(x) : x }));
+          sheets = { 'CSV': rows };
+        } else sheets = await XL.read(await file.arrayBuffer());
+        const parsed = {}; for (const n in sheets) { const p = parseRateSheet(sheets[n]); if (p.length) parsed[n] = p }
+        const names = Object.keys(parsed);
+        if (!names.length) return toast('No rate rows found. Expected columns: Vertical, Task Type, Unit Basis, New Work Rate, Changes Work Rate.');
+        const pref = names.find(n => /26.?27/.test(n)) || names[0];
+        const root = $('#modalRoot');
+        root.innerHTML = `<div class="ov"><div class="modal"><h2>Import rate card</h2>
+      <div class="fld"><label>Sheet to import</label><select id="shSel">${names.map(n => `<option ${n === pref ? 'selected' : ''}>${H(n)}</option>`).join('')}</select></div>
+      <div class="prev" id="imp"></div>
+      <div class="fld ck"><label><input type="radio" name="mode" value="merge" checked> Update existing &amp; add new (keeps task types not in the file)</label></div>
+      <div class="fld ck"><label><input type="radio" name="mode" value="replace"> Replace the whole rate card with this file</label></div>
+      <div class="acts"><button class="btn" data-m="x">Cancel</button><button class="btn pri" id="doImp">Import</button></div></div></div>`;
+        const stat = () => {
+          const p = parsed[$('#shSel').value]; const keys = new Set(rates.map(r => r.vertical.toLowerCase() + '|' + r.task.toLowerCase()));
+          const upd = p.filter(x => keys.has(x.vertical.toLowerCase() + '|' + x.task.toLowerCase())).length;
+          $('#imp').innerHTML = `<b>${p.length}</b> task types found &middot; <b>${upd}</b> will update existing, <b>${p.length - upd}</b> are new.`
+        };
+        stat(); $('#shSel').onchange = stat;
+        root.onclick = e => {
+          if (e.target.dataset.m === 'x' || e.target.classList.contains('ov')) closeModal();
+          if (e.target.id === 'doImp') {
+            const p = parsed[$('#shSel').value], mode = document.querySelector('input[name=mode]:checked').value;
+            const key = x => x.vertical.toLowerCase() + '|' + x.task.toLowerCase();
+            if (mode === 'replace') {
+              const old = new Map(rates.map(r => [key(r), r.id])); rates = p.map(x => ({ id: old.get(key(x)) || nextRate++, ...x }));
+            } else p.forEach(x => { const ex = rates.find(r => key(r) === key(x)); if (ex) Object.assign(ex, x); else rates.push({ id: nextRate++, ...x }) });
+            closeModal(); renderAll(); toast('Imported ' + p.length + ' task types — costs recalculated');
+          }
+        };
+      } catch (err) { toast('Could not read file: ' + err.message) }
+    }
+    function download(blob, name) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove() }, 500) }
+    const rateRows = () => [['Vertical', 'Task Type', 'Unit Basis', 'FY 26-27 New Work Rate', 'FY 26-27 Changes Work Rate'], ...rates.map(r => [r.vertical, r.task, r.unit, r.newRate, r.chgRate])];
+    function exportAll() {
+      const cc = costCols().map(c => c[1]);
+      const mk = (h, rows) => [h.concat(cc), ...rows];
+      const save = tab => { const t = ui.tab; ui.tab = tab; const v = ui.vert, c = ui.client, p = ui.project, q = ui.q; ui.vert = 'All'; ui.client = 'All'; ui.project = 'All'; ui.q = ''; const rows = buildRows(); ui.tab = t; ui.vert = v; ui.client = c; ui.project = p; ui.q = q; return rows };
+      const toRows = rows => rows.map(r => [r.id, r.name, r.type, r.client, r.division, ...costCols().map(c => Math.round(r.a[c[0]] * 100) / 100)]);
+      download(XL.write({
+        Projects: mk(['Project ID', 'Project name', 'Project type', 'Client name', 'Client division'], toRows(save('projects'))),
+        Tasks: mk(['Task ID', 'Task name', 'Task type', 'Client name', 'Client division'], toRows(save('tasks'))),
+        Changes: mk(['Change ID', 'Change name', 'Task type', 'Client name', 'Client division'], toRows(save('changes'))),
+        'Rate Card': rateRows()
+      }), 'project-cost-analysis.xlsx');
+    }
+
+    /* ============ Events ============ */
+    document.addEventListener('click', e => {
+      const t = e.target.closest('[data-tab],[data-v],[data-rcv],[data-act],[data-sort]'); if (!t) return;
+      const d = t.dataset;
+      if (d.tab) { ui.tab = d.tab; renderAll(); return }
+      if (d.v) { ui.vert = d.v; renderFilters(); renderBody(); return }
+      if (d.rcv) { ui.rcVert = d.rcv; renderFilters(); renderBody(); return }
+      if (d.sort) { const s = ui.sort[ui.tab]; ui.sort[ui.tab] = s && s.k === d.sort ? { k: d.sort, d: -s.d } : { k: d.sort, d: 1 }; renderBody(); return }
+      const id = d.id;
+      switch (d.act) {
+        case 'add': ui.tab === 'projects' ? projectForm() : ui.tab === 'tasks' ? taskForm() : changeForm(); break;
+        case 'edit': ui.tab === 'projects' ? projectForm(projById(id)) : ui.tab === 'tasks' ? taskForm(taskById(id)) : changeForm(changes.find(c => c.id === id)); break;
+        case 'del':
+          if (ui.tab === 'projects') {
+            const n = tasks.filter(t => t.projectId === id).length;
+            ask(`Delete ${id} and its ${n} task(s) with their changes?`, () => { const ids = new Set(tasks.filter(t => t.projectId === id).map(t => t.id)); tasks = tasks.filter(t => t.projectId !== id); changes = changes.filter(c => !ids.has(c.taskId)); projects = projects.filter(p => p.id !== id); if (ui.project === id) ui.project = 'All' })
+          }
+          else if (ui.tab === 'tasks') ask(`Delete ${id} and its changes?`, () => { tasks = tasks.filter(t => t.id !== id); changes = changes.filter(c => c.taskId !== id) });
+          else ask(`Delete ${id}?`, () => { changes = changes.filter(c => c.id !== id) });
+          break;
+        case 'drill': ui.tab = 'tasks'; ui.project = id; renderAll(); break;
+        case 'addRate': rateForm(); break;
+        case 'editRate': rateForm(rateOf(+id)); break;
+        case 'delRate': {
+          const r = rateOf(+id), u = tasks.filter(t => t.rateId === r.id).length;
+          ask(u ? `"${r.task}" is used by ${u} task(s). Deleting it makes those tasks cost ₹0 until re-assigned. Delete anyway?` : `Delete "${r.task}"?`, () => { rates = rates.filter(x => x !== r) }); break
+        }
+        case 'upload': $('#file').click(); break;
+        case 'tpl': download(XL.write({ 'Rate Card': rateRows() }), 'rate-card-template.xlsx'); break;
+        case 'exportRates': download(XL.write({ 'Rate Card FY 26-27': rateRows() }), 'rate-card-fy26-27.xlsx'); break;
+        case 'exportAll': exportAll(); break;
+      }
+    });
+    /* in-page confirm (native confirm() is unreliable in sandboxed previews) */
+    function ask(msg, fn) {
+      const root = $('#modalRoot');
+      root.innerHTML = `<div class="ov"><div class="modal"><h2>Please confirm</h2><p>${H(msg)}</p><div class="acts"><button class="btn" data-m="x">Cancel</button><button class="btn pri" id="yes">Delete</button></div></div></div>`;
+      root.onclick = ev => { if (ev.target.dataset.m === 'x' || ev.target.classList.contains('ov')) closeModal(); if (ev.target.id === 'yes') { closeModal(); fn(); renderAll(); } };
+    }
+    document.addEventListener('input', e => {
+      if (e.target.id === 'fq') { ui.q = e.target.value; renderBody() }
+      if (e.target.id === 'rcq') { ui.rcq = e.target.value; renderBody() }
+    });
+    document.addEventListener('change', e => {
+      if (e.target.id === 'fclient') { ui.client = e.target.value; renderBody() }
+      if (e.target.id === 'fproj') { ui.project = e.target.value; renderBody() }
+      if (e.target.id === 'file' && e.target.files[0]) { handleUpload(e.target.files[0]); e.target.value = '' }
+      if (e.target.dataset.set) { S[e.target.dataset.set] = Math.max(0, Number(e.target.value) || 0); toast('Charge updated — all costs recalculated') }
+    });
+    renderAll();
+  </script>
+</body>
+
+</html>

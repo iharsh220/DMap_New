@@ -33,6 +33,10 @@ const {
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
 const { recordWorkRequestHistory, recordTaskHistory, recordIssueHistory, getWorkRequestHistory: getWorkRequestHistoryRecords } = require('../../services/historyService');
+const { completeWorkRequestIfFinished } = require('../../services/workRequestCompletionService');
+const { canActAsRequester, canViewWorkRequest } = require('../../services/accessService');
+const { pickModelFilters, pickModelFields } = require('../../utils/queryFilters');
+const { parseId, parseIdList } = require('../../utils/validators');
 // const { queueFileUpload } = require('../../services/fileUploadService');
 const path = require('path');
 const fs = require('fs');
@@ -766,16 +770,17 @@ const getMyWorkRequests = async (req, res) => {
 
                 // Remove status, review, review_stages, review_stage from req.filters to avoid overriding
                 const { status, review, review_stages, review_stage, ...otherFilters } = req.filters;
-                where = { ...where, ...otherFilters };
+                where = { ...where, ...pickModelFilters(WorkRequests, otherFilters) };
             } else {
                 const { review, review_stages, review_stage, ...otherFilters } = req.filters;
-                where = { ...where, ...otherFilters };
+                where = { ...where, ...pickModelFilters(WorkRequests, otherFilters) };
             }
         }
 
         // Apply search
-        if (req.search.term && req.search.fields.length > 0) {
-            where[Op.or] = req.search.fields.map(field => ({
+        const searchFields = pickModelFields(WorkRequests, req.search.fields);
+        if (req.search.term && searchFields.length > 0) {
+            where[Op.or] = searchFields.map(field => ({
                 [field]: { [Op.like]: `%${req.search.term}%` }
             }));
         }
@@ -892,11 +897,6 @@ const getMyWorkRequests = async (req, res) => {
 
 const getWorkRequestById = async (req, res) => {
     try {
-        // Define associations for TaskAssignments
-        Tasks.hasMany(TaskAssignments, { foreignKey: 'task_id' });
-        TaskAssignments.belongsTo(Tasks, { foreignKey: 'task_id' });
-        TaskAssignments.hasMany(TaskDocuments, { foreignKey: 'task_assignment_id' });
-        TaskDocuments.belongsTo(TaskAssignments, { foreignKey: 'task_assignment_id' });
 
         const id = parseInt(req.params.id, 10);
         if (isNaN(id)) {
@@ -1420,12 +1420,15 @@ const getDivisionWorkRequests = async (req, res) => {
 
         // Apply filters
         if (req.filters) {
-            where = { ...where, ...req.filters };
+            // user_id stays scoped to the caller's divisions
+            const { user_id, ...otherFilters } = pickModelFilters(WorkRequests, req.filters);
+            where = { ...where, ...otherFilters };
         }
 
         // Apply search
-        if (req.search.term && req.search.fields.length > 0) {
-            where[Op.or] = req.search.fields.map(field => ({
+        const searchFields = pickModelFields(WorkRequests, req.search.fields);
+        if (req.search.term && searchFields.length > 0) {
+            where[Op.or] = searchFields.map(field => ({
                 [field]: { [Op.like]: `%${req.search.term}%` }
             }));
         }
@@ -1746,32 +1749,11 @@ const getUserDashboardStats = async (req, res) => {
 
 // PM Approve Task - Update task status to completed and review to approved
 // Only approves tasks where intimate_client = 1 and associated documents with intimate_client = 1
-const checkAndCompleteWorkRequest = async (workRequestId) => {
-    const tasks = await Tasks.findAll({ where: { work_request_id: workRequestId, is_deleted: 0 } });
-    if (tasks.length === 0) {
-        await WorkRequests.update({ status: 'completed' }, { where: { id: workRequestId } });
-        return;
-    }
-    const allTasksCompleted = tasks.every(t => 
-        t.status === 'completed' && 
-        t.review === 'approved' && 
-        t.review_stage === 'final_approved'
-    );
-    if (!allTasksCompleted) return;
-    const taskIds = tasks.map(t => t.id);
-    const issues = await IssueAssignments.findAll({ where: { task_id: { [Op.in]: taskIds }, is_deleted: 0 } });
-    if (issues.length === 0) {
-        await WorkRequests.update({ status: 'completed' }, { where: { id: workRequestId } });
-        return;
-    }
-    const allIssuesCompleted = issues.every(i => 
-        i.status === 'completed' && 
-        i.review === 'approved' && 
-        i.review_stage === 'final_approved'
-    );
-    if (allIssuesCompleted) {
-        await WorkRequests.update({ status: 'completed' }, { where: { id: workRequestId } });
-    }
+// PM-side review actions are limited to the requester (or a colleague in the requester's division)
+const canReviewAsRequester = async (user, workRequestId) => {
+    if (!workRequestId) return false;
+    const workRequest = await WorkRequests.findByPk(workRequestId, { attributes: ['id', 'user_id'] });
+    return !!workRequest && canActAsRequester(user.id, workRequest.user_id);
 };
 
 const pmApproveTask = async (req, res) => {
@@ -1790,14 +1772,23 @@ const pmApproveTask = async (req, res) => {
             });
         }
 
-        // Find the task
-        const task = await Tasks.findByPk(task_id);
+        const taskId = parseId(task_id);
+        if (!taskId) {
+            return res.status(400).json({ success: false, error: 'Invalid task ID' });
+        }
 
-        if (!task) {
+        // Find the task
+        const task = await Tasks.findByPk(taskId);
+
+        if (!task || task.is_deleted) {
             return res.status(404).json({
                 success: false,
                 error: 'Task not found'
             });
+        }
+
+        if (!(await canReviewAsRequester(req.user, task.work_request_id))) {
+            return res.status(403).json({ success: false, error: 'Only the requester can approve this task' });
         }
 
         // Check if task has intimate_client = 1
@@ -1865,7 +1856,8 @@ const pmApproveTask = async (req, res) => {
             comments: 'PM approved task'
         });
 
-        await checkAndCompleteWorkRequest(task.work_request_id);
+        // Was this the last open item? Then the work request is completed (with history)
+        const workRequestCompleted = await completeWorkRequestIfFinished(task.work_request_id, { req, relatedTaskId: task.id });
 
         // Fetch updated task
         const updatedTask = await Tasks.findByPk(task_id, {
@@ -1888,6 +1880,7 @@ const pmApproveTask = async (req, res) => {
         res.json({
             success: true,
             data: updatedTask,
+            work_request_completed: workRequestCompleted,
             message: 'Task and associated documents (intimate_client=1) approved successfully by PM'
         });
 
@@ -1920,11 +1913,15 @@ const handleIssuePmApproval = async (req, res, issueId) => {
             ]
         });
 
-        if (!issueAssignment) {
+        if (!issueAssignment || issueAssignment.is_deleted) {
             return res.status(404).json({
                 success: false,
                 error: 'Issue not found'
             });
+        }
+
+        if (!(await canReviewAsRequester(req.user, issueAssignment.task?.work_request_id))) {
+            return res.status(403).json({ success: false, error: 'Only the requester can approve this issue' });
         }
 
         // Check if issue has intimate_client = 1
@@ -1972,10 +1969,13 @@ const handleIssuePmApproval = async (req, res, issueId) => {
                 { where: { task_id: taskId } }
             );
 
-            // Update the task to status='accepted', review='approved', review_stage='final_approved'
+            // Approving the change request finally approves its task too. The task's work is done, so it
+            // is (or stays) 'completed'; it used to be moved back to 'accepted', which kept the work
+            // request open for good and let the daily scheduler reopen the task as in_progress.
             const linkedTask = await Tasks.findByPk(taskId);
 
             if (linkedTask) {
+                const linkedTaskStatus = ['cancelled', 'rejected'].includes(linkedTask.status) ? linkedTask.status : 'completed';
                 await recordTaskHistory({
                     req,
                     taskId: linkedTask.id,
@@ -1983,12 +1983,12 @@ const handleIssuePmApproval = async (req, res, issueId) => {
                     action: 'pm_approved_issue_linked_task',
                     previousData: linkedTask,
                     nextData: {
-                        status: 'accepted',
+                        status: linkedTaskStatus,
                         review: 'approved',
                         review_stage: 'final_approved'
                     },
                     previousStatus: linkedTask.status,
-                    newStatus: 'accepted',
+                    newStatus: linkedTaskStatus,
                     previousReview: linkedTask.review,
                     newReview: 'approved',
                     previousReviewStage: linkedTask.review_stage,
@@ -1997,7 +1997,7 @@ const handleIssuePmApproval = async (req, res, issueId) => {
                 });
 
                 await linkedTask.update({
-                    status: 'accepted',
+                    status: linkedTaskStatus,
                     review: 'approved',
                     review_stage: 'final_approved'
                 });
@@ -2091,9 +2091,7 @@ const handleIssuePmApproval = async (req, res, issueId) => {
             comments: 'PM approved issue'
         });
 
-        if (issueAssignment.task?.WorkRequest?.id) {
-            await checkAndCompleteWorkRequest(issueAssignment.task.WorkRequest.id);
-        }
+        const workRequestCompleted = await completeWorkRequestIfFinished(issueAssignment.task?.WorkRequest?.id, { req, relatedTaskId: issueAssignment.task_id, relatedIssueId: issueAssignment.id });
 
         // Fetch updated issue
         const updatedIssue = await IssueAssignments.findByPk(issueId, {
@@ -2132,6 +2130,7 @@ const handleIssuePmApproval = async (req, res, issueId) => {
                 issue: updatedIssue,
                 allIssuesUpdated: allUpdatedIssues,
                 linkedTaskUpdated: issueAssignment.task_id ? true : false,
+                workRequestCompleted,
                 reviewAction: {
                     action: 'approved',
                     previousStage,
@@ -2163,13 +2162,24 @@ const pmRejectTask = async (req, res) => {
             return res.status(400).json({ success: false, error: 'task_id or issue_id is required' });
         }
 
+        // issue_register_ids arrives as an array (JSON) or a string (multipart with files);
+        // validate before anything is written so a bad value never leaves a half-created issue
+        const issueRegisterIds = parseIdList(req.body['issue_register_ids[]'] ?? issue_register_ids);
+        if (issueRegisterIds === null) {
+            return res.status(400).json({ success: false, error: 'issue_register_ids must be a list of ids' });
+        }
+        if (issueRegisterIds.length && await IssueRegister.count({ where: { id: issueRegisterIds } }) !== issueRegisterIds.length) {
+            return res.status(400).json({ success: false, error: 'Unknown issue_register_ids' });
+        }
+
         const createChangeRequestIssue = async (targetTaskId, parentIssueId) => {
             const versionCount = await IssueAssignments.count({
                 where: parentIssueId ? { issue_id: parentIssueId } : { task_id: targetTaskId }
             });
             const issueAssignment = await IssueAssignments.create({
                 issue_id: parentIssueId || null,
-                task_id: parentIssueId ? null : targetTaskId,
+                // Child issues keep the task link too; manager issue lists are scoped by task_id
+                task_id: targetTaskId,
                 requested_by_user_id: manager.id,
                 assignment_type: 'mod',
                 version: `V${versionCount + 1}`,
@@ -2187,8 +2197,8 @@ const pmRejectTask = async (req, res) => {
                 notification_alert: 1
             });
 
-            if (issue_register_ids && issue_register_ids.length > 0) {
-                const issueTypeLinks = issue_register_ids.map(registerId => ({
+            if (issueRegisterIds.length > 0) {
+                const issueTypeLinks = issueRegisterIds.map(registerId => ({
                     issue_assignment_id: issueAssignment.id,
                     issue_register_id: registerId
                 }));
@@ -2213,8 +2223,12 @@ const pmRejectTask = async (req, res) => {
                 ]
             });
 
-            if (!task) {
+            if (!task || task.is_deleted) {
                 return res.status(404).json({ success: false, error: 'Task not found' });
+            }
+
+            if (!task.WorkRequest || !(await canActAsRequester(manager.id, task.WorkRequest.user_id))) {
+                return res.status(403).json({ success: false, error: 'Only the requester can request changes on this task' });
             }
 
             if (task.intimate_client !== 1) {
@@ -2317,8 +2331,13 @@ const pmRejectTask = async (req, res) => {
             ]
         });
 
-        if (!issueAssignment) {
+        if (!issueAssignment || issueAssignment.is_deleted) {
             return res.status(404).json({ success: false, error: 'Issue not found' });
+        }
+
+        const issueWorkRequest = issueAssignment.task?.WorkRequest;
+        if (!issueWorkRequest || !(await canActAsRequester(manager.id, issueWorkRequest.user_id))) {
+            return res.status(403).json({ success: false, error: 'Only the requester can request changes on this issue' });
         }
 
         if (issueAssignment.intimate_client !== 1) {
@@ -2422,8 +2441,9 @@ const pmRejectTask = async (req, res) => {
 
 // Get my task requests - based on issue_assignments
 // This gets work requests where the manager is assigned via issue_assignments -> task -> user -> user's manager
+// Not implemented yet: respond immediately instead of leaving the request hanging.
 const getMyTaskRequests = async (req, res) => {
-
+    res.status(501).json({ success: false, error: 'my-task-requests is not implemented' });
 };
 
 const getWorkRequestHistory = async (req, res) => {
@@ -2431,6 +2451,10 @@ const getWorkRequestHistory = async (req, res) => {
         const workRequestId = parseInt(req.params.workRequestId, 10);
         if (isNaN(workRequestId)) {
             return res.status(400).json({ success: false, error: 'Invalid work request ID' });
+        }
+
+        if (!(await canViewWorkRequest(req.user, workRequestId))) {
+            return res.status(403).json({ success: false, error: 'You do not have access to this work request' });
         }
 
         const limit = parseInt(req.query.limit, 10) || 200;
@@ -2453,7 +2477,10 @@ const submitFeedback = async (req, res) => {
     try {
         const taskId = parseInt(req.params.taskId, 10);
         const user_id = req.user.id;
-        const { rating_functionality, rating_timeliness, rating_communication, recommendation_score, comments } = req.body;
+        const {
+            rating_functionality, rating_timeliness, rating_communication, recommendation_score, comments,
+            question, rating_functionality_comment, rating_timeliness_comment, rating_communication_comment
+        } = req.body;
 
         if (isNaN(taskId)) {
             return res.status(400).json({ success: false, error: 'Invalid task ID' });
@@ -2462,6 +2489,11 @@ const submitFeedback = async (req, res) => {
         // Validate required fields
         if (!rating_functionality || !rating_timeliness || !rating_communication || recommendation_score === undefined) {
             return res.status(400).json({ success: false, error: 'All ratings are required' });
+        }
+
+        // recommendation_score mandatory comment (reuse the comments field)
+        if (!comments || !comments.trim()) {
+            return res.status(400).json({ success: false, error: 'A comment is mandatory for the recommendation score' });
         }
 
         // Validate rating ranges
@@ -2476,6 +2508,17 @@ const submitFeedback = async (req, res) => {
         }
         if (recommendation_score < 0 || recommendation_score > 10) {
             return res.status(400).json({ success: false, error: 'recommendation_score must be between 0 and 10' });
+        }
+
+        // Per-rating comments are required when the rating is below 4
+        if (Number(rating_functionality) < 4 && !(rating_functionality_comment && rating_functionality_comment.trim())) {
+            return res.status(400).json({ success: false, error: 'A comment for functionality rating is required when rating is below 4' });
+        }
+        if (Number(rating_timeliness) < 4 && !(rating_timeliness_comment && rating_timeliness_comment.trim())) {
+            return res.status(400).json({ success: false, error: 'A comment for timeliness rating is required when rating is below 4' });
+        }
+        if (Number(rating_communication) < 4 && !(rating_communication_comment && rating_communication_comment.trim())) {
+            return res.status(400).json({ success: false, error: 'A comment for communication rating is required when rating is below 4' });
         }
 
         // Check if task exists
@@ -2501,7 +2544,11 @@ const submitFeedback = async (req, res) => {
             rating_timeliness,
             rating_communication,
             recommendation_score,
-            comments: comments || null
+            comments: comments || null,
+            question: question || null,
+            rating_functionality_comment: rating_functionality_comment || null,
+            rating_timeliness_comment: rating_timeliness_comment || null,
+            rating_communication_comment: rating_communication_comment || null
         });
 
         res.json({
@@ -2528,6 +2575,10 @@ const getFeedback = async (req, res) => {
         const task = await Tasks.findByPk(taskId);
         if (!task) {
             return res.status(404).json({ success: false, error: 'Task not found' });
+        }
+
+        if (!(await canViewWorkRequest(req.user, task.work_request_id))) {
+            return res.status(403).json({ success: false, error: 'You do not have access to this task' });
         }
 
         // Get all non-deleted feedbacks for this task with user details

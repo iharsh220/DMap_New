@@ -12,8 +12,16 @@ function getStableQuery(query) {
         }, {});
 }
 
-function getAdminCacheKey(req) {
-    return `${ADMIN_CACHE_PREFIX}${req.path}:${JSON.stringify(getStableQuery(req.query))}`;
+// perUser: the handler's payload depends on who is asking (e.g. the Overview's team scope),
+// so the key carries the user id as well as the role. Any request with ?scope= (a grid opened
+// from the Overview with its team scope) is per user too.
+function getAdminCacheKey(req, perUser) {
+    let userKey = '';
+    if (req.user && req.user.jobRole) {
+        userKey = `:${req.user.jobRole.id}`;
+        if (perUser || (req.query && req.query.scope)) userKey += `:u${req.user.id}`;
+    }
+    return `${ADMIN_CACHE_PREFIX}${req.path}:${JSON.stringify(getStableQuery(req.query))}${userKey}`;
 }
 
 async function clearAdminCache() {
@@ -37,13 +45,13 @@ function invalidateAdminCache(req, res, next) {
     clearAdminCache().finally(next);
 }
 
-function cachedAdminData(handler) {
+function cachedAdminData(handler, { perUser = false } = {}) {
     return async (req, res, next) => {
         if (redisClient.status !== 'ready') {
             return handler(req, res, next);
         }
 
-        const cacheKey = getAdminCacheKey(req);
+        const cacheKey = getAdminCacheKey(req, perUser);
 
         try {
             const cachedPayload = await redisClient.get(cacheKey);

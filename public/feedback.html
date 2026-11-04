@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feedback · D-Map Admin</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%235b2be0'/%3E%3Ctext x='16' y='22' font-family='Arial' font-size='16' font-weight='700' fill='white' text-anchor='middle'%3ED%3C/text%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="../admin/dmap-theme.css" rel="stylesheet">
+    <script>try{document.documentElement.setAttribute('data-theme',localStorage.getItem('themePreference')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'))}catch(e){}</script>
+    <script src="../admin/admin-app.js" defer></script>
+</head>
+<body>
+<noscript>The D-Map admin panel needs JavaScript.</noscript>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const D = window.DMap;
+    const C = (key, title, type, extra) => Object.assign({ key, title, type }, extra || {});
+    const outOf5 = v => (v === null || v === undefined ? '—' : `${v} / 5`);
+
+    const body = D.shell({ page: 'feedback', title: 'Feedback', icon: 'chat-square-heart', subtitle: 'What clients say about delivered tasks: ratings, comments and Net Promoter Score' });
+
+    D.grid(body, {
+        id: 'feedback', version: 4, title: 'Feedback', icon: 'chat-square-heart',
+        endpoint: 'feedback/data', exportName: 'feedback', pinned: 2,
+        defaultSort: { key: 'created_at', dir: 'desc' },
+        searchPlaceholder: 'Search comments, task, client or division…',
+        quick: ['user_division', 'rating_timeliness', 'recommendation_score', 'created_at'],
+        kpis: [
+            { label: 'Responses', icon: 'chat-square-text', tone: 'brand', value: s => s.total },
+            { label: 'Net Promoter Score', icon: 'speedometer2', tone: 'success', value: s => s.nps, format: v => (v > 0 ? '+' : '') + v,
+              hint: s => `${D.fmt.num(s.promoters)} promoters · ${D.fmt.num(s.detractors)} detractors` },
+            { label: 'Functionality', icon: 'gear', tone: 'info', value: s => s.avg_functionality, format: outOf5, hint: () => 'Average rating' },
+            { label: 'Timeliness', icon: 'clock-history', tone: 'accent', value: s => s.avg_timeliness, format: outOf5, hint: () => 'Average rating' },
+            { label: 'Communication', icon: 'chat-dots', tone: 'warning', value: s => s.avg_communication, format: outOf5, hint: () => 'Average rating' },
+            { label: 'Detractors', icon: 'emoji-frown', tone: 'danger', value: s => s.detractors, hint: () => 'Recommendation 0–6',
+              filter: { key: 'recommendation_score', type: 'range', from: '0', to: '6' } }
+        ],
+        rowsFrom: res => res.data || [],
+        columns: [
+            C('id', 'ID', 'id'),
+            C('question', 'Question', 'longtext'),
+            C('task_id', 'Task ID', 'id', { filter: 'text' }),
+            C('task_name', 'Task Name', 'name', { get: r => r.task && r.task.task_name }),
+            C('task_type', 'Task Type', 'text', { get: r => r.task && r.task.TaskType && r.task.TaskType.task_type, filter: 'select', options: 'task_types' }),
+            C('user_name', 'User Name', 'text', { get: r => r.user && r.user.name, filter: 'select', options: 'clients' }),
+            C('user_division', 'User Division', 'text', { get: r => (r.user && r.user.Divisions || []).map(d => d.title).join(', '), filter: 'select', options: 'divisions', match: 'contains' }),
+            C('rating_functionality', 'Functionality (1-5)', 'rating'),
+            C('functionality_comment', 'Functionality Comment', 'longtext', { get: r => r.rating_functionality_comment }),
+            C('rating_timeliness', 'Timeliness (1-5)', 'rating'),
+            C('timeliness_comment', 'Timeliness Comment', 'longtext', { get: r => r.rating_timeliness_comment }),
+            C('rating_communication', 'Communication (1-5)', 'rating'),
+            C('communication_comment', 'Communication Comment', 'longtext', { get: r => r.rating_communication_comment }),
+            C('recommendation_score', 'Recommendation (0-10)', 'score'),
+            C('comments', 'Recommendation Comment', 'longtext'),
+            C('created_at', 'Submitted At', 'datetime')
+        ],
+        detailTitle: row => (row.task && row.task.task_name) || `Feedback #${row.id}`,
+        detailSubtitle: row => `${(row.user && row.user.name) || ''} · Task #${row.task_id}`
+    });
+});
+</script>
+</body>
+</html>

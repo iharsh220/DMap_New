@@ -1,123 +1,159 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="x-apple-disable-message-reformatting">
+    <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
     <title>New Work Request - D-Map</title>
     <!--[if mso]>
+    <noscript>
+        <xml>
+            <o:OfficeDocumentSettings>
+                <o:AllowPNG/>
+                <o:PixelsPerInch>96</o:PixelsPerInch>
+            </o:OfficeDocumentSettings>
+        </xml>
+    </noscript>
     <style type="text/css">
-        body, table, td {font-family: Arial, Helvetica, sans-serif !important;}
-        table {border-collapse: collapse;}
-        td {padding: 0;}
+        body, table, td, p, a, h1, h2, h3, li { font-family: Arial, Helvetica, sans-serif !important; }
     </style>
     <![endif]-->
+    <style type="text/css">
+        body { margin: 0; padding: 0; width: 100% !important; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { border: 0; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }
+        a { color: #5b2be0; }
+        @media only screen and (max-width: 620px) {
+            .dm-container { width: 100% !important; }
+            .dm-px { padding-left: 20px !important; padding-right: 20px !important; }
+        }
+    </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
-    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f4f4f4;">
+<body style="margin: 0; padding: 0; background-color: #eef1f6;">
+    <div style="display: none; font-size: 1px; color: #eef1f6; line-height: 1px; max-height: 0; max-width: 0; opacity: 0; overflow: hidden; mso-hide: all;">New Work Request</div>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#eef1f6" style="background-color: #eef1f6;">
         <tr>
-            <td align="center" style="padding: 20px 0;">
-                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="background-color: #ffffff; max-width: 600px;">
-                    
+            <td align="center" style="padding: 24px 12px;">
+                <!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" align="center"><tr><td><![endif]-->
+                <table role="presentation" class="dm-container" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="width: 600px; max-width: 600px; background-color: #ffffff; border: 1px solid #e3e7ef; border-radius: 10px;">
+
+                    <!-- Logo -->
+                    <tr>
+                        <td class="dm-px" style="padding: 20px 32px 16px 32px;">
+                            <a href="{{frontend_url}}" target="_blank"><img src="{{logo_base64}}" width="170" height="71" alt="Alembic" style="display: block; width: 170px; height: auto;"></a>
+                        </td>
+                    </tr>
+
                     <!-- Header -->
                     <tr>
-                        <td style="background-color: #007bff; padding: 25px 20px; text-align: center;">
-                            <h1 style="color: #ffffff; font-size: 22px; font-weight: 600; margin: 0; font-family: Arial, Helvetica, sans-serif;">New Work Request</h1>
+                        <td class="dm-px" bgcolor="#291467" style="background-color: #291467; padding: 22px 32px;">
+                            <h1 style="margin: 0; color: #ffffff; font-family: Arial, Helvetica, sans-serif; font-size: 22px; line-height: 28px; font-weight: bold;">New Work Request</h1>
                         </td>
                     </tr>
-                    
+
                     <!-- Content -->
                     <tr>
-                        <td style="padding: 30px 25px;">
-                            <h2 style="color: #2c3e50; font-size: 20px; font-weight: 600; margin: 0 0 15px 0; font-family: Arial, Helvetica, sans-serif;">New Work Request Assigned to You</h2>
-                            
+                        <td class="dm-px" style="padding: 30px 32px; font-family: Arial, Helvetica, sans-serif; font-size: 15px; line-height: 23px; color: #1f2937;">
+                            <h2 style="color: #111827; font-size: 20px; font-weight: 600; margin: 0 0 15px 0; font-family: Arial, Helvetica, sans-serif;">New Work Request Assigned to You</h2>
                             <p style="margin: 0 0 15px 0; color: #333333; font-family: Arial, Helvetica, sans-serif;">Dear <strong>{{manager_name}}</strong>,</p>
-                            
                             <p style="margin: 0 0 15px 0; color: #333333; font-family: Arial, Helvetica, sans-serif;">A new work request has been assigned to you. Please find the details below:</p>
-                            
                             <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #d4edda; border-left: 4px solid #28a745; margin: 20px 0;">
-                                <tr>
-                                    <td style="padding: 15px 20px;">
-                                        <strong style="font-family: Arial, Helvetica, sans-serif;">Status:</strong> New Request<br>
-                                        <strong style="font-family: Arial, Helvetica, sans-serif;">Request ID:</strong> #{{request_id}}
-                                    </td>
-                                </tr>
+                            <tr>
+                            <td style="padding: 15px 20px;">
+                            <strong style="font-family: Arial, Helvetica, sans-serif;">Status:</strong> New Request<br>
+                            <strong style="font-family: Arial, Helvetica, sans-serif;">Request ID:</strong> #{{request_id}}
+                            </td>
+                            </tr>
                             </table>
-                            
                             <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f8f9fa; margin: 20px 0;">
-                                <tr>
-                                    <td style="padding: 20px;">
-                                        <h3 style="margin-top: 0; color: #2c3e50; font-size: 16px; font-weight: 600; font-family: Arial, Helvetica, sans-serif;">Work Request Details</h3>
-                                        <table style="width: 100%; border-collapse: collapse; font-family: Arial, Helvetica, sans-serif;">
-                                            <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057; width: 40%;">Project Name:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{project_name}}</td></tr>
-                                            <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Brand:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{brand}}</td></tr>
-                                            <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Request Type:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{request_type_type}}</td></tr>
-                                            <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Priority:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{priority}}</td></tr>
-                                            <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #495057;">Request Date:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{request_date}}</td></tr>
-                                        </table>
-                                    </td>
-                                </tr>
+                            <tr>
+                            <td style="padding: 20px;">
+                            <h3 style="margin-top: 0; color: #111827; font-size: 16px; font-weight: 600; font-family: Arial, Helvetica, sans-serif;">Work Request Details</h3>
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width: 100%; border-collapse: collapse; font-family: Arial, Helvetica, sans-serif;">
+                            <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #374151; width: 40%;">Project Name:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{project_name}}</td></tr>
+                            <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #374151;">Brand:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{brand}}</td></tr>
+                            <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #374151;">Request Type:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{request_type_type}}</td></tr>
+                            <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #374151;">Priority:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{priority}}</td></tr>
+                            <tr><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; color: #374151;">Request Date:</td><td style="padding: 10px 15px; border-bottom: 1px solid #e9ecef;">{{request_date}}</td></tr>
                             </table>
-                            
-                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f8f9fa; border-left: 4px solid #007bff; margin: 20px 0;">
-                                <tr>
-                                    <td style="padding: 15px 20px; font-family: Arial, Helvetica, sans-serif;">
-                                        <p style="margin: 0;"><strong>Requested By:</strong> {{user_name}} ({{user_email}})</p>
-                                        <p style="margin: 5px 0 0 0;"><strong>User Department:</strong> {{user_department}}</p>
-                                        <p style="margin: 5px 0 0 0;"><strong>User Division:</strong> {{user_division}}</p>
-                                        <p style="margin: 5px 0 0 0;"><strong>User Job Role:</strong> {{user_job_role}}</p>
-                                        <p style="margin: 5px 0 0 0;"><strong>User Location:</strong> {{user_location}}</p>
-                                        <p style="margin: 5px 0 0 0;"><strong>User Designation:</strong> {{user_designation}}</p>
-                                    </td>
-                                </tr>
+                            </td>
+                            </tr>
                             </table>
-                            
-                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f8f9fa; border-left: 4px solid #007bff; margin: 20px 0;">
-                                <tr>
-                                    <td style="padding: 15px 20px; font-family: Arial, Helvetica, sans-serif;">
-                                        <p style="margin: 0;"><strong>Project Details:</strong> {{project_details}}</p>
-                                    </td>
-                                </tr>
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f8f9fa; border-left: 4px solid #5b2be0; margin: 20px 0;">
+                            <tr>
+                            <td style="padding: 15px 20px; font-family: Arial, Helvetica, sans-serif;">
+                            <p style="margin: 0;"><strong>Requested By:</strong> {{user_name}} ({{user_email}})</p>
+                            <p style="margin: 5px 0 0 0;"><strong>User Department:</strong> {{user_department}}</p>
+                            <p style="margin: 5px 0 0 0;"><strong>User Division:</strong> {{user_division}}</p>
+                            <p style="margin: 5px 0 0 0;"><strong>User Job Role:</strong> {{user_job_role}}</p>
+                            <p style="margin: 5px 0 0 0;"><strong>User Location:</strong> {{user_location}}</p>
+                            <p style="margin: 5px 0 0 0;"><strong>User Designation:</strong> {{user_designation}}</p>
+                            </td>
+                            </tr>
                             </table>
-                            
-                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f8f9fa; border-left: 4px solid #007bff; margin: 20px 0;">
-                                <tr>
-                                    <td style="padding: 15px 20px; font-family: Arial, Helvetica, sans-serif;">
-                                        <p style="margin: 0;"><strong>Priority:</strong> {{priority_capitalized}}</p>
-                                    </td>
-                                </tr>
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f8f9fa; border-left: 4px solid #5b2be0; margin: 20px 0;">
+                            <tr>
+                            <td style="padding: 15px 20px; font-family: Arial, Helvetica, sans-serif;">
+                            <p style="margin: 0;"><strong>Project Details:</strong> {{project_details}}</p>
+                            </td>
+                            </tr>
                             </table>
-                            
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f8f9fa; border-left: 4px solid #5b2be0; margin: 20px 0;">
+                            <tr>
+                            <td style="padding: 15px 20px; font-family: Arial, Helvetica, sans-serif;">
+                            <p style="margin: 0;"><strong>Priority:</strong> {{priority_capitalized}}</p>
+                            </td>
+                            </tr>
+                            </table>
                             <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-                                <tr>
-                                    <td align="center" style="padding: 20px 0;">
-                                        <a href="{{frontend_url}}" style="display: inline-block; background-color: #007bff; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; font-family: Arial, Helvetica, sans-serif;">View Work Request</a>
-                                    </td>
-                                </tr>
+                            <tr>
+                            <td align="center" style="padding: 20px 0;">
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 20px auto;">
+                            <tr>
+                            <td align="center" bgcolor="#5b2be0" style="background-color: #5b2be0; border-radius: 6px;">
+                            <!--[if mso]>
+                            <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{frontend_url}}" style="height:46px; v-text-anchor:middle; width:260px;" arcsize="13%" stroke="f" fillcolor="#5b2be0">
+                            <w:anchorlock/>
+                            <center style="color:#ffffff; font-family:Arial, Helvetica, sans-serif; font-size:15px; font-weight:bold;">View Work Request</center>
+                            </v:roundrect>
+                            <![endif]-->
+                            <!--[if !mso]><!-->
+                            <a href="{{frontend_url}}" target="_blank" style="display: inline-block; background-color: #5b2be0; color: #ffffff; font-family: Arial, Helvetica, sans-serif; font-size: 15px; font-weight: bold; line-height: 46px; padding: 0 30px; border-radius: 6px; text-decoration: none; mso-hide: all;">View Work Request</a>
+                            <!--<![endif]-->
+                            </td>
+                            </tr>
                             </table>
+                            </td>
+                            </tr>
+                            </table>
+                            
                         </td>
                     </tr>
-                    
-                    <!-- Banner Image at Bottom -->
+
+                    <!-- Banner -->
                     <tr>
                         <td style="padding: 0;">
-                            <a href="{{frontend_url}}">
-                                <img src="{{banner_base64}}" alt="D-Map Banner" width="600" style="display: block; width: 100%; max-width: 600px; height: auto; border: 0;">
-                            </a>
+                            <a href="{{frontend_url}}" target="_blank"><img src="{{banner_base64}}" width="600" alt="D-Map Banner" style="display: block; width: 100%; max-width: 600px; height: auto;"></a>
                         </td>
                     </tr>
-                    
+
                     <!-- Footer -->
                     <tr>
-                        <td style="background-color: #f8f9fa; padding: 25px 20px; text-align: center; border-top: 1px solid #e9ecef;">
+                        <td class="dm-px" bgcolor="#f6f7fb" style="background-color: #f6f7fb; padding: 22px 32px; text-align: center; border-top: 1px solid #e3e7ef; border-radius: 0 0 10px 10px; font-family: Arial, Helvetica, sans-serif;">
                             <p style="margin: 5px 0; font-size: 12px; color: #6c757d; font-family: Arial, Helvetica, sans-serif;">This is an automated message from D-Map. Please do not reply to this email.</p>
                             <p style="margin: 5px 0; font-size: 12px; color: #6c757d; font-family: Arial, Helvetica, sans-serif;">&copy; 2026 Alembic Digital Labs. All rights reserved.</p>
                             <p style="margin: 10px 0 0 0; font-size: 12px; font-family: Arial, Helvetica, sans-serif;">
-                                <a href="{{frontend_url}}" style="color: #007bff; text-decoration: none;">Visit D-Map</a> | 
-                                <a href="mailto:support@alembicdigilabs.com" style="color: #007bff; text-decoration: none;">Support</a>
+                            <a href="{{frontend_url}}" style="color: #5b2be0; text-decoration: none;">Visit D-Map</a> |
+                            <a href="mailto:support@alembicdigilabs.com" style="color: #5b2be0; text-decoration: none;">Support</a>
                             </p>
+                            
                         </td>
                     </tr>
                 </table>
+                <!--[if mso]></td></tr></table><![endif]-->
             </td>
         </tr>
     </table>

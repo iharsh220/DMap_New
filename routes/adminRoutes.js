@@ -1,8 +1,30 @@
 const express = require('express');
 const router = express.Router();
 const path = require('path');
+const paginationMiddleware = require('../middleware/paginationMiddleware');
+const { authenticateToken } = require('../middleware/jwtMiddleware');
+const { checkRole } = require('../middleware/roleMiddleware');
+const { reportAccess, getReportData, postReportAction, uploadHighlight, generateReport, downloadReport, highlightImage } = require('../controller/weeklyReportController');
 const { cachedAdminData, invalidateAdminCache } = require('../services/adminCacheService');
-const { getAdminData, getClientsData, getTaskDetailsData, getTasksForWorkRequest, getIssueDetailsData, getWorkRequestTasksData, getDeletePreview, deleteProject, deleteClient, deleteTask, deleteIssue, getAllLeaves, getLeaveById, createLeave, updateLeave, deleteLeave, getLeaveKpis, getLeaveUsers, getUserDivision, exportLeavesCsv, exportLeavesExcel, getEditData, getRequestTypes, getProjectTypesByProject, getCreativeManagerByProject, updateProject, updateClient, updateTask, updateIssue } = require('../controller/adminController');
+const { getAdminData, getAllFeedback, getClientsData,getTaskDetailsData, getTasksForWorkRequest, getIssueDetailsData, getWorkRequestTasksData, getDeletePreview, deleteProject, deleteClient, deleteTask, deleteIssue, getAllLeaves, getLeaveById, createLeave, updateLeave, deleteLeave, getLeaveKpis, getLeaveUsers, getUserDivision, uploadLeaves, exportLeavesCsv, exportLeavesExcel, getEditData, getRequestTypes, getProjectTypesByProject, getCreativeManagerByProject, updateProject, updateClient, updateTask, updateIssue, getMasterCardData, uploadMasterCard, updateMasterCard, deleteMasterCard, sseProgress, updateMasterCardField, getFinancialYears, getFilterOptions, getOverviewData } = require('../controller/adminController');
+
+// Every admin API call needs a valid access token. Only the HTML pages, their shared
+// CSS/JS and the upload progress streams (EventSource cannot send headers; they are
+// keyed by a random job id) are served without one.
+const PUBLIC_ADMIN_GET_PATHS = /^\/admin\/(login|overview|clients|projectsdetails|taskdetails|issuedetails|workrequesttasks|powerbi|leaves|master-card|feedback|reports|dmap-theme\.css|admin-app\.js)$|^\/admin\/(leaves|master-card)\/upload\/progress\/[^/]+$/;
+
+router.use((req, res, next) => {
+    if (req.method === 'GET' && PUBLIC_ADMIN_GET_PATHS.test(req.path)) {
+        return next();
+    }
+    return authenticateToken(req, res, next);
+});
+
+// The "Manage" pages (feedback, leaves, rate card) and Raw data are for the super admin only.
+// Their HTML stays public like the other pages (admin-app.js sends other roles to the
+// overview); every API behind them needs role 1. The upload progress streams stay
+// public (see above): only an admin can start an upload and get its job id.
+const adminOnly = checkRole([1]);
 
 // Serve shared CSS theme
 router.get('/admin/dmap-theme.css', (req, res) => {
@@ -10,10 +32,26 @@ router.get('/admin/dmap-theme.css', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'dmap-theme.css'));
 });
 
+// Serve the shared admin UI script (layout, data grid, filters, KPIs, export, dialogs)
+router.get('/admin/admin-app.js', (req, res) => {
+    res.setHeader('Content-Type', 'application/javascript');
+    res.sendFile(path.join(__dirname, '..', 'public', 'admin-app.js'));
+});
+
 // Serve login HTML
 router.get('/admin/login', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'login.html'));
 });
+
+// Serve overview dashboard HTML
+router.get('/admin/overview', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'overview.html'));
+});
+
+// Overview KPIs / trends (scoped to the caller: admin sees all, others themselves and their
+// team, so it is cached per user) and the select-filter values used by every grid
+router.get('/admin/overview/data', cachedAdminData(getOverviewData, { perUser: true }));
+router.get('/admin/filter-options', cachedAdminData(getFilterOptions));
 
 // Serve clients HTML
 router.get('/admin/clients', (req, res) => {
@@ -48,42 +86,48 @@ router.get('/admin/powerbi', (req, res) => {
 // Serve leaves HTML
 router.get('/admin/leaves', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'leaves.html'));
+ });
+ 
+ // Serve master card HTML
+router.get('/admin/master-card', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'master-card.html'));
 });
 
-// Serve tokens HTML
-router.get('/admin/tokens', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'public', 'tokens.html'));
-});
+// API endpoint for master card data
+router.get('/admin/master-card/data', adminOnly, paginationMiddleware, cachedAdminData(getMasterCardData));
 
-// Serve token projects HTML
-router.get('/admin/token-projects', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'public', 'token-projects.html'));
-});
+// Upload master card data (Excel/CSV)
+router.post('/admin/master-card/upload', adminOnly, uploadMasterCard);
 
-// Serve token tasks HTML
-router.get('/admin/token-tasks', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'public', 'token-tasks.html'));
-});
+// SSE progress endpoint for master card upload
+router.get('/admin/master-card/upload/progress/:jobId', sseProgress);
 
-// Serve token changes HTML
-router.get('/admin/token-changes', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'public', 'token-changes.html'));
-});
+// Update master card rate
+router.put('/admin/master-card/:id', adminOnly, updateMasterCard);
 
-// API endpoint for project details data
-router.get('/admin/projectsdetails/data', cachedAdminData(getAdminData));
+// Get distinct financial years
+router.get('/admin/master-card/financial-years', adminOnly, getFinancialYears);
+
+// Bulk update master card field across all records
+router.put('/admin/master-card/field/:field', adminOnly, updateMasterCardField);
+
+// Delete master card rate
+router.delete('/admin/master-card/:id', adminOnly, deleteMasterCard);
+
+ // API endpoint for project details data
+router.get('/admin/projectsdetails/data', paginationMiddleware, cachedAdminData(getAdminData));
 
 // API endpoint for clients data
-router.get('/admin/clients/data', cachedAdminData(getClientsData));
+router.get('/admin/clients/data', paginationMiddleware, cachedAdminData(getClientsData));
 
 // API endpoint for task details data
-router.get('/admin/taskdetails/data', cachedAdminData(getTaskDetailsData));
+router.get('/admin/taskdetails/data', paginationMiddleware, cachedAdminData(getTaskDetailsData));
 
 // API endpoint for issue details data
-router.get('/admin/issuedetails/data', cachedAdminData(getIssueDetailsData));
+router.get('/admin/issuedetails/data', paginationMiddleware, cachedAdminData(getIssueDetailsData));
 
 // API endpoint for workrequest tasks raw data
-router.get('/admin/workrequesttasks/data', cachedAdminData(getWorkRequestTasksData));
+router.get('/admin/workrequesttasks/data', adminOnly, paginationMiddleware, cachedAdminData(getWorkRequestTasksData));
 
 // API endpoint for tasks
 router.get('/admin/projectsdetails/tasks/:workRequestId', cachedAdminData(getTasksForWorkRequest));
@@ -115,16 +159,37 @@ router.put('/admin/edit/client/:id', invalidateAdminCache, updateClient);
 router.put('/admin/edit/task/:id', invalidateAdminCache, updateTask);
 router.put('/admin/edit/issue/:id', invalidateAdminCache, updateIssue);
 
+// Weekly report (Digilabs managers for their own division, Super Admin for any Digilabs division)
+router.get('/admin/reports', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'reports.html'));
+});
+router.get('/admin/reports/data', reportAccess, getReportData);
+router.post('/admin/reports/action/:action', reportAccess, postReportAction);
+router.post('/admin/reports/highlight/upload', reportAccess, uploadHighlight);
+router.post('/admin/reports/generate', reportAccess, generateReport);
+router.get('/admin/reports/download', reportAccess, downloadReport);
+router.get('/admin/reports/img', reportAccess, highlightImage);
+
+// Serve feedback HTML
+router.get('/admin/feedback', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'feedback.html'));
+});
+
+// API endpoint for feedback data
+router.get('/admin/feedback/data', adminOnly, paginationMiddleware, getAllFeedback);
+
 // API endpoint for leaves data
-router.get('/admin/leaves/data', getAllLeaves);
-router.get('/admin/leaves/users', getLeaveUsers);
-router.get('/admin/leaves/users/:userId/division', getUserDivision);
-router.get('/admin/leaves/kpis', getLeaveKpis);
-router.get('/admin/leaves/export/excel', exportLeavesExcel);
-router.get('/admin/leaves/export/csv', exportLeavesCsv);
-router.get('/admin/leaves/:id', getLeaveById);
-router.post('/admin/leaves', createLeave);
-router.put('/admin/leaves/:id', updateLeave);
-router.delete('/admin/leaves/:id', deleteLeave);
+router.get('/admin/leaves/data', adminOnly, paginationMiddleware, getAllLeaves);
+router.get('/admin/leaves/users', adminOnly, paginationMiddleware, getLeaveUsers);
+router.get('/admin/leaves/users/:userId/division', adminOnly, getUserDivision);
+router.get('/admin/leaves/kpis', adminOnly, getLeaveKpis);
+router.get('/admin/leaves/export/excel', adminOnly, exportLeavesExcel);
+router.get('/admin/leaves/export/csv', adminOnly, exportLeavesCsv);
+router.get('/admin/leaves/:id', adminOnly, getLeaveById);
+router.post('/admin/leaves', adminOnly, createLeave);
+router.put('/admin/leaves/:id', adminOnly, updateLeave);
+router.delete('/admin/leaves/:id', adminOnly, deleteLeave);
+router.post('/admin/leaves/upload', adminOnly, uploadLeaves);
+router.get('/admin/leaves/upload/progress/:jobId', sseProgress);
 
 module.exports = router;

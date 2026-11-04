@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rate card · D-Map Admin</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%235b2be0'/%3E%3Ctext x='16' y='22' font-family='Arial' font-size='16' font-weight='700' fill='white' text-anchor='middle'%3ED%3C/text%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="../admin/dmap-theme.css" rel="stylesheet">
+    <script>try{document.documentElement.setAttribute('data-theme',localStorage.getItem('themePreference')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'))}catch(e){}</script>
+    <script src="../admin/admin-app.js" defer></script>
+</head>
+<body>
+<noscript>The D-Map admin panel needs JavaScript.</noscript>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const D = window.DMap;
+    const C = (key, title, type, extra) => Object.assign({ key, title, type }, extra || {});
+    const pct = v => `${parseFloat(v) || 0}%`;
+
+    const body = D.shell({
+        page: 'master-card', title: 'Rate card', icon: 'credit-card-2-front', subtitle: 'Rates per vertical and task type for each financial year, used for task and change costing',
+        actions: [
+            { label: 'Upload rate card', icon: 'cloud-arrow-up', variant: 'primary', title: 'Import an Excel or CSV file (rows are added)',
+              onClick: () => D.uploadWithProgress({ title: 'Importing rate card', endpoint: 'master-card/upload', progress: id => 'master-card/upload/progress/' + id, onDone: () => grid.reload() }) }
+        ]
+    });
+
+    const grid = D.grid(body, {
+        id: 'ratecard', version: 4, title: 'Rate card', icon: 'credit-card-2-front',
+        endpoint: 'master-card/data', exportName: 'rate_card', pinned: 2,
+        defaultSort: { key: 'id', dir: 'asc' },
+        searchPlaceholder: 'Search vertical, task type, unit or year…',
+        quick: ['division_name', 'task_type_name', 'financial_year'],
+        kpis: [
+            { label: 'Rates', icon: 'credit-card-2-front', tone: 'brand', value: s => s.total },
+            { label: 'Verticals', icon: 'diagram-3', tone: 'info', value: s => s.divisions },
+            { label: 'Task types', icon: 'tags', tone: 'accent', value: s => s.task_types },
+            { label: 'Avg new-work rate', icon: 'currency-rupee', tone: 'success', value: s => s.avg_new_work_rate, format: D.fmt.money },
+            { label: 'Avg change rate', icon: 'arrow-repeat', tone: 'warning', value: s => s.avg_changes_rate, format: D.fmt.money }
+        ],
+        columns: [
+            C('id', 'ID', 'id', { filter: 'text' }),
+            C('division_name', 'Vertical', 'text', { filter: 'select', options: 'divisions' }),
+            C('task_type_name', 'Task Type', 'name', { filter: 'select', options: 'task_types' }),
+            C('unit_basis', 'Unit Basis', 'text'),
+            C('new_work_rate', 'New Work Rate', 'money'),
+            C('changes_rate', 'Changes Work Rate', 'money'),
+            C('concept_charge', 'Concept Charge', 'money'),
+            C('ai_charges', 'AI Charges', 'money'),
+            C('no_of_resize_pages', 'No. of Resize Pages', 'number', { render: v => D.esc(pct(v)) }),
+            C('last_moment', 'Last Moment', 'number', { render: v => D.esc(pct(v)) }),
+            C('financial_year', 'Financial Year', 'text', { filter: 'select', options: 'financial_years' })
+        ],
+        detailTitle: row => `${row.task_type_name || 'Rate'} · ${row.division_name || ''}`,
+        detailSubtitle: row => `Rate #${row.id} · ${row.financial_year || ''}`,
+        rowActions: [
+            { icon: 'pencil', label: 'Edit rate', onClick: row => editRate(row) },
+            { icon: 'trash3', label: 'Delete rate', tone: 'danger', onClick: row => deleteRate(row) }
+        ]
+    });
+
+    async function editRate(row) {
+        let years = [];
+        try { years = (await D.api('master-card/financial-years')).data || []; } catch (e) { /* fall back to the row's year */ }
+        if (row.financial_year && !years.includes(row.financial_year)) years.push(row.financial_year);
+        if (!years.length) years = ['FY 25-26'];
+        const form = D.form([
+            { name: 'vertical', label: 'Vertical', type: 'readonly', value: row.division_name || 'N/A' },
+            { name: 'task_type', label: 'Task type', type: 'readonly', value: row.task_type_name || 'N/A' },
+            { name: 'unit_basis', label: 'Unit basis', value: row.unit_basis || '', placeholder: 'e.g. Per artwork' },
+            { name: 'financial_year', label: 'Financial year', type: 'select', value: row.financial_year || years[0], options: years },
+            { name: 'new_work_rate', label: 'New work rate (₹)', type: 'number', step: '0.01', required: true, value: parseFloat(row.new_work_rate) || 0 },
+            { name: 'changes_rate', label: 'Change rate (₹)', type: 'number', step: '0.01', required: true, value: parseFloat(row.changes_rate) || 0 },
+            { name: 'concept_charge', label: 'Concept charge (₹)', type: 'number', step: '0.01', required: true, value: parseFloat(row.concept_charge) || 0 },
+            { name: 'ai_charges', label: 'AI charges (₹)', type: 'number', step: '0.01', required: true, value: parseFloat(row.ai_charges) || 0 },
+            { name: 'no_of_resize_pages', label: 'Resize pages (%)', type: 'number', step: '0.01', value: parseFloat(row.no_of_resize_pages) || 0 },
+            { name: 'last_moment', label: 'Last moment (%)', value: parseFloat(row.last_moment) || 0, placeholder: 'e.g. 25' }
+        ]);
+        D.modal({
+            title: 'Edit rate', subtitle: 'Vertical and task type are fixed; update the rates', icon: 'pencil-square', size: 'lg', body: form.el,
+            actions: [{ label: 'Cancel' }, { label: 'Save changes', icon: 'check2', variant: 'primary', onClick: async (dlg, btn) => {
+                const bad = Object.values(form.inputs).find(i => !i.checkValidity());
+                if (bad) { bad.reportValidity(); return; }
+                const v = form.values();
+                D.setBusy(btn, true, 'Saving…');
+                try {
+                    await D.api('master-card/' + encodeURIComponent(row.id), { method: 'PUT', body: {
+                        unit_basis: v.unit_basis,
+                        new_work_rate: parseFloat(v.new_work_rate) || 0,
+                        changes_rate: parseFloat(v.changes_rate) || 0,
+                        concept_charge: parseFloat(v.concept_charge) || 0,
+                        ai_charges: parseFloat(v.ai_charges) || 0,
+                        no_of_resize_pages: parseFloat(v.no_of_resize_pages) || 0,
+                        last_moment: v.last_moment,
+                        financial_year: v.financial_year
+                    } });
+                    dlg.close();
+                    D.toast('Rate updated');
+                    grid.reload();
+                } catch (err) {
+                    D.setBusy(btn, false);
+                    D.toast('Update failed: ' + err.message, 'danger', 6000);
+                }
+            } }]
+        });
+    }
+
+    async function deleteRate(row) {
+        if (!(await D.confirm({ title: 'Delete this rate?', message: `${row.task_type_name || 'Rate'} for ${row.division_name || 'this vertical'} (${row.financial_year || ''}) will be removed. Costs that use it will show 0.`, confirmLabel: 'Delete', tone: 'danger', icon: 'trash3' }))) return;
+        try {
+            await D.api('master-card/' + encodeURIComponent(row.id), { method: 'DELETE' });
+            D.toast('Rate deleted');
+            grid.reload();
+        } catch (err) {
+            D.toast('Delete failed: ' + err.message, 'danger', 6000);
+        }
+    }
+});
+</script>
+</body>
+</html>

@@ -34,6 +34,9 @@ const {
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
 const { recordWorkRequestHistory, recordTaskHistory, recordIssueHistory, getTaskHistory: getTaskHistoryRecords, getIssueHistory: getIssueHistoryRecords } = require('../../services/historyService');
+const { isDivisionManagerForRequestType, canViewWorkRequest, workRequestIdForTask, workRequestIdForIssue } = require('../../services/accessService');
+const { pickModelFilters, pickModelFields } = require('../../utils/queryFilters');
+const { parseId, parseIdArray, parseDateOnly, safePathSegment } = require('../../utils/validators');
 
 const workRequestService = new CrudService(WorkRequests);
 const userService = new CrudService(User);
@@ -41,16 +44,30 @@ const userService = new CrudService(User);
 const getAssignableUsers = async (req, res) => {
     try {
         const manager_id = req.user.id;
-        let divisionIds = [];
 
-        // Check if task_id is provided in query params
+        // Divisions the calling manager belongs to (always resolved: defines "the manager's team")
+        const managerDivisions = await UserDivisions.findAll({
+            where: { user_id: manager_id },
+            attributes: ['division_id']
+        });
+        const managerDivisionIds = managerDivisions.map(md => md.division_id);
+
+        if (managerDivisionIds.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'You do not belong to any division'
+            });
+        }
+
+        let divisionIds = managerDivisionIds; // default: the manager's own team
+
+        // Optional: restrict to divisions that overlap a given task's request type
         if (req.query.task_id) {
             const taskId = parseInt(req.query.task_id, 10);
             if (isNaN(taskId)) {
                 return res.status(400).json({ success: false, error: 'Invalid task ID' });
             }
 
-            // Find the task and get its request_type_id
             const task = await Tasks.findByPk(taskId, {
                 attributes: ['id', 'request_type_id'],
                 include: [
@@ -65,50 +82,23 @@ const getAssignableUsers = async (req, res) => {
                 return res.status(404).json({ success: false, error: 'Task not found' });
             }
 
-            // Get division IDs from the task's request type
             const taskDivisionIds = task.RequestType?.Divisions?.map(d => d.id) || [];
-
-            if (taskDivisionIds.length === 0) {
-                return res.status(404).json({
-                    success: false,
-                    error: 'No divisions found for this task\'s request type'
-                });
-            }
-
-            // Get divisions that the manager belongs to
-            const managerDivisions = await UserDivisions.findAll({
-                where: { user_id: manager_id },
-                attributes: ['division_id']
-            });
-
-            const managerDivisionIds = managerDivisions.map(md => md.division_id);
-
-            // Only use divisions that are both in the task's request type AND belong to the manager
-            divisionIds = taskDivisionIds.filter(id => managerDivisionIds.includes(id));
-
-            if (divisionIds.length === 0) {
-                return res.status(404).json({
-                    success: false,
-                    error: 'No divisions found that both match the task and belong to you'
-                });
+            if (taskDivisionIds.length > 0) {
+                const overlap = taskDivisionIds.filter(id => managerDivisionIds.includes(id));
+                // Use overlapping divisions if any; otherwise keep the manager's own team
+                divisionIds = overlap.length ? overlap : managerDivisionIds;
             }
         } else {
-            // Use work_request_id from params (original functionality)
+            // work_request_id from params — narrow by the work request's request type,
+            // but never reject the manager; fall back to the manager's own team
             const workRequestId = parseInt(req.params.id, 10);
             if (isNaN(workRequestId)) {
                 return res.status(400).json({ success: false, error: 'Invalid work request ID' });
             }
 
-            // Get work request with request type to find the division
             const workRequestResult = await workRequestService.getAll({
                 where: { id: workRequestId },
                 include: [
-                    {
-                        model: WorkRequestManagers,
-                        where: { manager_id: manager_id },
-                        required: true,
-                        attributes: []
-                    },
                     {
                         model: RequestType,
                         include: [{ model: Division, through: { attributes: [] }, attributes: ['id'] }]
@@ -117,30 +107,18 @@ const getAssignableUsers = async (req, res) => {
                 limit: 1
             });
 
-            if (!workRequestResult.success || workRequestResult.data.length === 0) {
+            const workRequest = workRequestResult.success ? workRequestResult.data[0] : null;
+            if (!workRequest) {
                 return res.status(404).json({
                     success: false,
-                    error: 'Work request not found or not assigned to you'
+                    error: 'Work request not found'
                 });
             }
 
-            const workRequest = workRequestResult.data[0];
-
-            // Check if work request is accepted
-            if (workRequest.status !== 'accepted' && workRequest.status !== 'assigned' && workRequest.status !== 'in_progress' && workRequest.status !== 'completed') {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Work request must be accepted before assigning users'
-                });
-            }
-
-            divisionIds = workRequest.RequestType?.Divisions?.map(d => d.id) || [];
-
-            if (divisionIds.length === 0) {
-                return res.status(404).json({
-                    success: false,
-                    error: 'Division not found for this work request'
-                });
+            const wrDivisionIds = workRequest.RequestType?.Divisions?.map(d => d.id) || [];
+            if (wrDivisionIds.length > 0) {
+                const overlap = wrDivisionIds.filter(id => managerDivisionIds.includes(id));
+                divisionIds = overlap.length ? overlap : managerDivisionIds;
             }
         }
 
@@ -236,9 +214,6 @@ const getAssignableUsers = async (req, res) => {
 
 const getAssignedWorkRequests = async (req, res) => {
     try {
-        // Define associations for TaskAssignments
-        Tasks.hasMany(TaskAssignments, { foreignKey: 'task_id' });
-        TaskAssignments.belongsTo(Tasks, { foreignKey: 'task_id' });
 
         const manager_id = req.user.id;
         const { status, review, review_stages, review_stage, user_id, sort, sort_by } = req.query;
@@ -428,7 +403,7 @@ const getAssignedWorkRequests = async (req, res) => {
 
         if (req.filters) {
             const { user_name, username, status, review, review_stages, review_stage, ...otherFilters } = req.filters;
-            Object.entries(otherFilters).forEach(([key, value]) => {
+            Object.entries(pickModelFilters(WorkRequests, otherFilters)).forEach(([key, value]) => {
                 andConditions.push({ [key]: value });
             });
         }
@@ -436,7 +411,7 @@ const getAssignedWorkRequests = async (req, res) => {
         if (req.search.term && req.search.fields.length > 0) {
             const searchFields = req.search.fields;
             const hasUserNameSearch = searchFields.includes('user_name') || searchFields.includes('username');
-            const directSearchFields = searchFields.filter(field => field !== 'user_name' && field !== 'username');
+            const directSearchFields = pickModelFields(WorkRequests, searchFields.filter(field => field !== 'user_name' && field !== 'username'));
 
             const orConditions = [];
 
@@ -591,9 +566,6 @@ const getAssignedWorkRequests = async (req, res) => {
 
 const getAssignedWorkRequestById = async (req, res) => {
     try {
-        // Define associations for TaskAssignments
-        Tasks.hasMany(TaskAssignments, { foreignKey: 'task_id' });
-        TaskAssignments.belongsTo(Tasks, { foreignKey: 'task_id' });
 
         const id = parseInt(req.params.id, 10);
         if (isNaN(id)) {
@@ -1331,6 +1303,11 @@ const acceptWorkRequest = async (req, res) => {
         if (workRequest.status === 'accepted') {
             return res.status(400).json({ success: false, error: 'Work request is already accepted' });
         }
+        // Only a new (or deferred and resubmitted) request can be accepted; accepting an
+        // in-progress/completed/cancelled request would move its status backwards.
+        if (!['pending', 'deferred'].includes(workRequest.status)) {
+            return res.status(400).json({ success: false, error: `Work request cannot be accepted from status '${workRequest.status}'` });
+        }
 
         const updateResult = await workRequestService.updateById(id, { status: 'accepted' });
 
@@ -1464,6 +1441,9 @@ const deferWorkRequest = async (req, res) => {
 
         if (workRequest.status === 'accepted') {
             return res.status(400).json({ success: false, error: 'Work request is already accepted and cannot be deferred' });
+        }
+        if (!['pending', 'deferred'].includes(workRequest.status)) {
+            return res.status(400).json({ success: false, error: `Work request cannot be deferred from status '${workRequest.status}'` });
         }
 
         if (reason === 'insufficient_details') {
@@ -1793,29 +1773,69 @@ const getTaskTypesByWorkRequest = async (req, res) => {
 const createTask = async (req, res) => {
     try {
         const manager_id = req.user.id;
-        const { work_request_id, task_name, description, assigned_to_ids, task_type_id, request_type_id, deadline, dependencies, project_type_id } = req.body;
+        const { task_name, description, deadline, dependencies, project_type_id } = req.body;
 
         // Validate required fields
-        if (!work_request_id || !task_name || !assigned_to_ids || !task_type_id || !request_type_id) {
+        if (!req.body.work_request_id || !task_name || !req.body.assigned_to_ids || !req.body.task_type_id || !req.body.request_type_id) {
             return res.status(400).json({
                 success: false,
                 error: 'work_request_id, task_name, assigned_to_ids, task_type_id, and request_type_id are required'
             });
         }
 
-        // Validate assigned_to_ids is an array of integers
-        if (!Array.isArray(assigned_to_ids) || assigned_to_ids.length === 0) {
+        const work_request_id = parseId(req.body.work_request_id);
+        const task_type_id = parseId(req.body.task_type_id);
+        const request_type_id = parseId(req.body.request_type_id);
+        if (!work_request_id || !task_type_id || !request_type_id) {
+            return res.status(400).json({
+                success: false,
+                error: 'work_request_id, task_type_id and request_type_id must be valid IDs'
+            });
+        }
+
+        if (typeof task_name !== 'string' || !task_name.trim() || task_name.length > 255) {
+            return res.status(400).json({
+                success: false,
+                error: 'task_name must be a non-empty string of at most 255 characters'
+            });
+        }
+
+        // Validate assigned_to_ids is an array of integers (duplicates are ignored)
+        const assigned_to_ids = parseIdArray(req.body.assigned_to_ids);
+        if (!assigned_to_ids) {
             return res.status(400).json({
                 success: false,
                 error: 'assigned_to_ids must be a non-empty array of user IDs'
             });
         }
 
-        for (const id of assigned_to_ids) {
-            if (!Number.isInteger(id)) {
+        let dependencyIds = [];
+        if (Array.isArray(dependencies)) {
+            if (dependencies.length > 0) {
+                dependencyIds = parseIdArray(dependencies);
+                if (!dependencyIds) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'dependencies must be an array of task IDs'
+                    });
+                }
+            }
+        } else if (dependencies !== undefined && dependencies !== null && dependencies !== '' && dependencies !== false) {
+            // If dependencies is sent but not in expected format
+            return res.status(400).json({
+                success: false,
+                error: 'dependencies must be an array of task IDs'
+            });
+        }
+
+        // Validate deadline: must be a real calendar date in YYYY-MM-DD format
+        let formattedDeadline = null;
+        if (deadline) {
+            formattedDeadline = parseDateOnly(deadline);
+            if (!formattedDeadline) {
                 return res.status(400).json({
                     success: false,
-                    error: 'All assigned_to_ids must be integers'
+                    error: 'Deadline must be a valid date in YYYY-MM-DD format'
                 });
             }
         }
@@ -1829,6 +1849,10 @@ const createTask = async (req, res) => {
                     where: { manager_id: manager_id },
                     required: true,
                     attributes: []
+                },
+                {
+                    model: RequestType,
+                    attributes: ['request_type']
                 }
             ],
             limit: 1
@@ -1843,75 +1867,48 @@ const createTask = async (req, res) => {
 
         const workRequest = workRequestResult.data[0];
 
-        // If work request is completed, automatically change status back to accepted
-        if (workRequest.status === 'completed') {
-            await workRequestService.updateById(work_request_id, { status: 'accepted' });
-            // Refresh workRequest object after update
-            const updatedWorkRequest = await workRequestService.getById(work_request_id);
-            if (updatedWorkRequest.success) {
-                Object.assign(workRequest, updatedWorkRequest.data);
-            }
+        if (workRequest.is_deleted) {
+            return res.status(404).json({
+                success: false,
+                error: 'Work request not found or not assigned to you'
+            });
         }
 
-        // Check if work request is accepted
-        if (workRequest.status !== 'accepted' && workRequest.status !== 'assigned' && workRequest.status !== 'in_progress') {
+        // Check if work request is accepted (a completed request is re-opened by adding a task)
+        if (!['accepted', 'assigned', 'in_progress', 'completed'].includes(workRequest.status)) {
             return res.status(400).json({
                 success: false,
                 error: 'Work request must be accepted before creating tasks'
             });
         }
 
-        // Validate and format deadline date
-        let formattedDeadline = null;
-        if (deadline) {
-            // Validate date format and ensure proper YYYY-MM-DD format
-            const dateRegex = /^\d{4}-\d{1,2}-\d{1,2}$/;
-            if (!dateRegex.test(deadline)) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Deadline must be in YYYY-MM-DD format'
-                });
-            }
+        // All assignees must exist and be active
+        const assignedUsers = await User.findAll({
+            where: { id: { [Op.in]: assigned_to_ids }, account_status: 'active' },
+            attributes: ['id', 'name', 'email']
+        });
 
-            // Parse and format the date to ensure proper padding
-            const dateParts = deadline.split('-');
-            const year = parseInt(dateParts[0]);
-            const month = parseInt(dateParts[1]);
-            const day = parseInt(dateParts[2]);
-
-            // Validate date components
-            if (month < 1 || month > 12 || day < 1 || day > 31) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Invalid date components in deadline'
-                });
-            }
-
-            // Format with proper zero-padding
-            formattedDeadline = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-
-            // Additional validation: check if it's a valid date
-            const testDate = new Date(formattedDeadline);
-            if (isNaN(testDate.getTime())) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Invalid date provided for deadline'
-                });
-            }
+        if (assignedUsers.length !== assigned_to_ids.length) {
+            const foundIds = new Set(assignedUsers.map(u => u.id));
+            return res.status(400).json({
+                success: false,
+                error: `Assigned users not found or inactive: ${assigned_to_ids.filter(id => !foundIds.has(id)).join(', ')}`
+            });
         }
 
         // Validate dependencies if provided
-        if (dependencies && Array.isArray(dependencies) && dependencies.length > 0) {
+        if (dependencyIds.length > 0) {
             // Check if all dependency tasks exist and belong to the same work_request
             const dependencyTasks = await Tasks.findAll({
                 where: {
-                    id: { [Op.in]: dependencies },
-                    work_request_id: work_request_id
+                    id: { [Op.in]: dependencyIds },
+                    work_request_id: work_request_id,
+                    is_deleted: 0
                 },
                 attributes: ['id', 'deadline']
             });
 
-            if (dependencyTasks.length !== dependencies.length) {
+            if (dependencyTasks.length !== dependencyIds.length) {
                 return res.status(400).json({
                     success: false,
                     error: 'Some dependency tasks not found or do not belong to this work request'
@@ -1924,7 +1921,7 @@ const createTask = async (req, res) => {
                     return task.deadline && (!latest || task.deadline > latest) ? task.deadline : latest;
                 }, null);
 
-                if (latestDependencyDeadline && new Date(formattedDeadline) < new Date(latestDependencyDeadline)) {
+                if (latestDependencyDeadline && formattedDeadline < String(latestDependencyDeadline).slice(0, 10)) {
                     return res.status(400).json({
                         success: false,
                         error: 'Task deadline cannot be before the latest dependency deadline'
@@ -1936,7 +1933,7 @@ const createTask = async (req, res) => {
         // Create the task
         const taskData = {
             work_request_id,
-            task_name,
+            task_name: task_name.trim(),
             description,
             request_type_id,
             task_type_id,
@@ -1951,14 +1948,30 @@ const createTask = async (req, res) => {
             taskData.project_type_id = project_type_id;
         }
 
-        const taskResult = await Tasks.create(taskData);
+        // Task, assignments, dependencies and the work request re-open are saved together,
+        // so a failure part-way never leaves a task without assignees.
+        const taskResult = await sequelize.transaction(async (transaction) => {
+            // If work request is completed, automatically change status back to accepted
+            if (workRequest.status === 'completed') {
+                await WorkRequests.update({ status: 'accepted' }, { where: { id: work_request_id }, transaction });
+            }
 
-        // Create task assignments
-        const assignmentRecords = assigned_to_ids.map(userId => ({
-            task_id: taskResult.id,
-            user_id: userId
-        }));
-        await TaskAssignments.bulkCreate(assignmentRecords);
+            const task = await Tasks.create(taskData, { transaction });
+
+            await TaskAssignments.bulkCreate(
+                assigned_to_ids.map(userId => ({ task_id: task.id, user_id: userId })),
+                { transaction }
+            );
+
+            if (dependencyIds.length > 0) {
+                await TaskDependencies.bulkCreate(
+                    dependencyIds.map(depTaskId => ({ task_id: task.id, dependency_task_id: depTaskId })),
+                    { transaction }
+                );
+            }
+
+            return task;
+        });
 
         await recordTaskHistory({
             req,
@@ -1968,7 +1981,7 @@ const createTask = async (req, res) => {
             previousData: null,
             nextData: {
                 work_request_id,
-                task_name,
+                task_name: taskData.task_name,
                 description,
                 request_type_id,
                 task_type_id,
@@ -1981,82 +1994,54 @@ const createTask = async (req, res) => {
         });
 
         // Send email notification to assigned users
-        const assignedUsers = await User.findAll({
-            where: { id: { [Op.in]: assigned_to_ids } },
-            attributes: ['id', 'name', 'email']
+        const assignedAt = new Date().toLocaleDateString('en-IN', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
         });
 
-        if (assignedUsers.length > 0) {
-            const emailPromises = assignedUsers.map(user => {
-                const html = renderTemplate('taskAssignmentNotification', {
-                    project_name: workRequest.project_name,
-                    brand: workRequest.brand,
-                    request_type: workRequest.RequestType?.request_type || 'N/A',
-                    priority: workRequest.priority,
-                    request_id: workRequest.id,
-                    assigned_at: new Date().toLocaleDateString('en-IN', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    }),
-                    tasks: [{
-                        id: taskResult.id,
-                        task_name: taskResult.task_name,
-                        description: taskResult.description,
-                        deadline: taskResult.deadline
-                    }],
-                    frontend_url: process.env.FRONTEND_URL
-                });
-
-                const mailOptions = {
-                    to: user.email,
-                    subject: 'Tasks Assigned - D-Map',
-                    html
-                };
-
-                return sendMail(mailOptions);
+        await Promise.all(assignedUsers.map(user => {
+            const html = renderTemplate('taskAssignmentNotification', {
+                project_name: workRequest.project_name,
+                brand: workRequest.brand,
+                request_type: workRequest.RequestType?.request_type || 'N/A',
+                priority: workRequest.priority,
+                request_id: workRequest.id,
+                assigned_at: assignedAt,
+                tasks: [{
+                    id: taskResult.id,
+                    task_name: taskResult.task_name,
+                    description: taskResult.description,
+                    deadline: taskResult.deadline
+                }],
+                frontend_url: process.env.FRONTEND_URL
             });
 
-            await Promise.all(emailPromises);
-        }
-
-        // Create dependencies if provided
-        if (dependencies && Array.isArray(dependencies) && dependencies.length > 0) {
-            const dependencyRecords = dependencies.map(depTaskId => ({
-                task_id: taskResult.id,
-                dependency_task_id: depTaskId
-            }));
-            await TaskDependencies.bulkCreate(dependencyRecords);
-        }
+            return sendMail({
+                to: user.email,
+                subject: 'Tasks Assigned - D-Map',
+                html
+            });
+        }));
 
         // Create folder structure under existing project folder: project_name/task_name/user_folders
         try {
             const uploadDir = path.join(__dirname, '../../uploads');
             const sanitizedProjectName = workRequest.project_name.replace(/[^a-zA-Z0-9]/g, '_');
             const projectFolder = path.join(uploadDir, sanitizedProjectName);
-            const taskFolder = path.join(projectFolder, task_name);
+            const taskFolder = path.join(projectFolder, safePathSegment(taskData.task_name));
 
             // Check if project folder exists (should be created by createWorkRequest)
             if (!fs.existsSync(projectFolder)) {
                 console.error(`Project folder does not exist: ${projectFolder}`);
                 // Don't fail the task creation if folder creation fails
             } else {
-                // Create task folder under existing project folder
-                if (!fs.existsSync(taskFolder)) {
-                    fs.mkdirSync(taskFolder);
-                }
-
                 // Create user folders for each assigned user
-                for (const userId of assigned_to_ids) {
-                    // Get user details to get the name
-                    const user = await User.findByPk(userId, { attributes: ['name'] });
-                    if (user && user.name) {
-                        const userFolder = path.join(taskFolder, user.name);
-                        if (!fs.existsSync(userFolder)) {
-                            fs.mkdirSync(userFolder, { recursive: true });
-                        }
+                for (const user of assignedUsers) {
+                    if (user.name) {
+                        fs.mkdirSync(path.join(taskFolder, safePathSegment(user.name)), { recursive: true });
                     }
                 }
             }
@@ -2083,9 +2068,6 @@ const createTask = async (req, res) => {
 
 const getTasksByWorkRequestId = async (req, res) => {
     try {
-        // Define associations for TaskAssignments
-        Tasks.hasMany(TaskAssignments, { foreignKey: 'task_id' });
-        TaskAssignments.belongsTo(Tasks, { foreignKey: 'task_id' });
 
         const workRequestId = parseInt(req.params.work_request_id, 10);
         if (isNaN(workRequestId)) {
@@ -2601,7 +2583,7 @@ const getAssignedRequestsWithStatus = async (req, res) => {
         // Apply filters
         if (req.filters) {
             const { status, review, review_stages, review_stage, assigned_to, ...otherFilters } = req.filters;
-            where = { ...where, ...otherFilters };
+            where = { ...where, ...pickModelFilters(WorkRequests, otherFilters) };
         }
 
         // Handle array values for status (from comma-separated)
@@ -2610,8 +2592,9 @@ const getAssignedRequestsWithStatus = async (req, res) => {
         }
 
         // Apply search
-        if (req.search.term && req.search.fields.length > 0) {
-            where[Op.or] = req.search.fields.map(field => ({
+        const searchFields = pickModelFields(WorkRequests, req.search.fields);
+        if (req.search.term && searchFields.length > 0) {
+            where[Op.or] = searchFields.map(field => ({
                 [field]: { [Op.like]: `%${req.search.term}%` }
             }));
         }
@@ -2898,6 +2881,7 @@ const deleteTask = async (req, res) => {
             include: [
                 {
                     model: WorkRequests,
+                    required: true,
                     include: [
                         {
                             model: WorkRequestManagers,
@@ -3252,7 +3236,7 @@ const getUserTask = async (req, res) => {
             }
             // Apply other filters
             const { status: _, ...otherFilters } = req.filters;
-            taskWhereCondition = { ...taskWhereCondition, ...otherFilters };
+            taskWhereCondition = { ...taskWhereCondition, ...pickModelFilters(Tasks, otherFilters) };
         }
 
         // Only add intimate_team = 1 filter when status filter is applied
@@ -3314,6 +3298,8 @@ const getUserTask = async (req, res) => {
                 }
             ],
             attributes: ['id'],
+            // Explicit order keeps pages stable (no rows repeated or skipped between pages)
+            order: [['id', 'ASC']],
             limit: req.pagination.limit,
             offset: req.pagination.offset
         });
@@ -3454,6 +3440,7 @@ const updateTask = async (req, res) => {
             include: [
                 {
                     model: WorkRequests,
+                    required: true,
                     include: [
                         {
                             model: WorkRequestManagers,
@@ -3688,12 +3675,15 @@ const reviewTaskDocument = async (req, res) => {
             include: [
                 {
                     model: TaskAssignments,
+                    required: true,
                     include: [
                         {
                             model: Tasks,
+                            required: true,
                             include: [
                                 {
                                     model: WorkRequests,
+                                    required: true,
                                     include: [
                                         {
                                             model: WorkRequestManagers,
@@ -3777,17 +3767,21 @@ const reviewIssueDocument = async (req, res) => {
                 {
                     model: IssueUserAssignments,
                     as: 'issueUserAssignment',
+                    required: true,
                     include: [
                         {
                             model: IssueAssignments,
                             as: 'issueAssignment',
+                            required: true,
                             include: [
                                 {
                                     model: Tasks,
                                     as: 'task',
+                                    required: true,
                                     include: [
                                         {
                                             model: WorkRequests,
+                                            required: true,
                                             include: [
                                                 {
                                                     model: WorkRequestManagers,
@@ -3877,59 +3871,90 @@ const reviewTask = async (req, res) => {
                 return res.status(400).json({ success: false, error: 'Invalid task ID' });
             }
 
-            // Find the task with its work request and verify manager access
-            const task = await Tasks.findByPk(taskId, {
-                include: [
-                    {
-                        model: WorkRequests,
-                        include: [
-                            {
-                                model: WorkRequestManagers,
-                                where: { manager_id: manager_id },
-                                required: true,
-                                attributes: []
-                            },
-                            {
-                                model: User,
-                                as: 'users',
-                                attributes: ['id', 'name', 'email']
-                            }
-                        ]
-                    },
-                    {
-                        model: User,
-                        as: 'assignedUsers',
-                        attributes: ['id', 'name', 'email'],
-                        through: { attributes: [] }
-                    },
-                    {
-                        model: IssueAssignments,
-                        as: 'issueAssignments',
-                        where: { is_deleted: 0 },
-                        required: false,
-                        include: [
-                            {
-                                model: IssueAssignmentTypes,
-                                as: 'issueTypeLinks',
-                                include: [
-                                    {
-                                        model: IssueRegister,
-                                        as: 'issueRegister',
-                                        attributes: ['id', 'change_issue_type', 'description']
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                ]
-            });
-
-            if (!task) {
-                return res.status(404).json({
-                    success: false,
-                    error: 'Task not found or not assigned to you'
+                // Find the task with its work request and verify manager access
+                const task = await Tasks.findByPk(taskId, {
+                    include: [
+                        {
+                            model: WorkRequests,
+                            required: true,
+                            include: [
+                                {
+                                    model: User,
+                                    as: 'users',
+                                    attributes: ['id', 'name', 'email']
+                                }
+                            ]
+                        },
+                        {
+                            model: User,
+                            as: 'assignedUsers',
+                            attributes: ['id', 'name', 'email'],
+                            through: { attributes: [] }
+                        },
+                        {
+                            model: IssueAssignments,
+                            as: 'issueAssignments',
+                            where: { is_deleted: 0 },
+                            required: false,
+                            include: [
+                                {
+                                    model: IssueAssignmentTypes,
+                                    as: 'issueTypeLinks',
+                                    include: [
+                                        {
+                                            model: IssueRegister,
+                                            as: 'issueRegister',
+                                            attributes: ['id', 'change_issue_type', 'description']
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
                 });
-            }
+
+                if (!task) {
+                    return res.status(404).json({
+                        success: false,
+                        error: 'Task not found'
+                    });
+                }
+
+                // Verify manager access - check if manager is assigned to work request or is creative manager in same division
+                let hasManagerAccess = false;
+                const workRequestIdTask = task.work_request_id;
+
+                // Check if manager is in WorkRequestManagers
+                const managerCheckTask = await WorkRequestManagers.findOne({
+                    where: { work_request_id: workRequestIdTask, manager_id: manager_id }
+                });
+                if (managerCheckTask) {
+                    hasManagerAccess = true;
+                } else {
+                    // Check if manager is creative manager in same division as assigned users
+                    const assignedUserIdsTask = task.assignedUsers ? task.assignedUsers.map(u => u.id) : [];
+                    if (assignedUserIdsTask.length > 0) {
+                        const divisionManagerCheckTask = await sequelize.query(
+                            `SELECT COUNT(*) AS cnt
+                             FROM user_divisions ud_assignee
+                             JOIN user_divisions ud_manager ON ud_manager.division_id = ud_assignee.division_id AND ud_manager.user_id = :userId
+                             JOIN users u ON u.id = ud_manager.user_id
+                             JOIN job_role jr ON jr.id = u.job_role_id AND jr.role_title = 'creative manager'
+                             WHERE ud_assignee.user_id IN (:assignedUserIds)`,
+                            { replacements: { userId: manager_id, assignedUserIds: assignedUserIdsTask }, type: sequelize.QueryTypes.SELECT }
+                        );
+                        if (divisionManagerCheckTask[0].cnt > 0) {
+                            hasManagerAccess = true;
+                        }
+                    }
+                }
+
+                if (!hasManagerAccess) {
+                    return res.status(404).json({
+                        success: false,
+                        error: 'Task not found or not assigned to you'
+                    });
+                }
 
             // Validation: Task must be completed for manager to review
             if (task.status !== 'completed') {
@@ -4097,17 +4122,13 @@ const reviewTask = async (req, res) => {
                     {
                         model: Tasks,
                         as: 'task',
+                        required: true,
                         attributes: ['id', 'task_name', 'work_request_id', 'status', 'review_stage'],
                         include: [
                             {
                                 model: WorkRequests,
+                                required: true,
                                 include: [
-                                    {
-                                        model: WorkRequestManagers,
-                                        where: { manager_id: manager_id },
-                                        required: true,
-                                        attributes: []
-                                    },
                                     {
                                         model: User,
                                         as: 'users',
@@ -4148,6 +4169,44 @@ const reviewTask = async (req, res) => {
             });
 
             if (!issueAssignment) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Issue not found'
+                });
+            }
+
+            // Verify manager access - check if manager is assigned to work request or is creative manager in same division
+            let hasIssueManagerAccess = false;
+            const issueWorkRequestId = issueAssignment.task?.work_request_id;
+
+            if (issueWorkRequestId) {
+                // Check if manager is in WorkRequestManagers
+                const issueManagerCheck = await WorkRequestManagers.findOne({
+                    where: { work_request_id: issueWorkRequestId, manager_id: manager_id }
+                });
+                if (issueManagerCheck) {
+                    hasIssueManagerAccess = true;
+                } else {
+                    // Check if manager is creative manager in same division as assigned users
+                    const assignedIssueUserIds = issueAssignment.userAssignments ? issueAssignment.userAssignments.map(iua => iua.user_id) : [];
+                    if (assignedIssueUserIds.length > 0) {
+                        const divisionIssueManagerCheck = await sequelize.query(
+                            `SELECT COUNT(*) AS cnt
+                             FROM user_divisions ud_assignee
+                             JOIN user_divisions ud_manager ON ud_manager.division_id = ud_assignee.division_id AND ud_manager.user_id = :userId
+                             JOIN users u ON u.id = ud_manager.user_id
+                             JOIN job_role jr ON jr.id = u.job_role_id AND jr.role_title = 'creative manager'
+                             WHERE ud_assignee.user_id IN (:assignedUserIds)`,
+                            { replacements: { userId: manager_id, assignedUserIds: assignedIssueUserIds }, type: sequelize.QueryTypes.SELECT }
+                        );
+                        if (divisionIssueManagerCheck[0].cnt > 0) {
+                            hasIssueManagerAccess = true;
+                        }
+                    }
+                }
+            }
+
+            if (!hasIssueManagerAccess) {
                 return res.status(404).json({
                     success: false,
                     error: 'Issue not found or not assigned to you'
@@ -4238,7 +4297,7 @@ const reviewTask = async (req, res) => {
                 const workRequest = task ? task.WorkRequest : null;
 
                 for (const userAssignment of issueAssignment.userAssignments) {
-                    const user = userAssignment.User;
+                    const user = userAssignment.user;
                     if (user && user.email) {
                         const html = renderTemplate('taskReviewNotification', {
                             user_name: user.name,
@@ -4851,6 +4910,9 @@ const acceptIssueRequest = async (req, res) => {
         if (issueAssignment.status === 'm_accepted') {
             return res.status(400).json({ success: false, error: 'Issue request is already accepted by manager' });
         }
+        if (issueAssignment.is_deleted || issueAssignment.status !== 'm_pending') {
+            return res.status(400).json({ success: false, error: `Issue request cannot be accepted from status '${issueAssignment.status}'` });
+        }
 
         // Update status to m_accepted and reset notification_alert
         await IssueAssignments.update({ status: 'm_accepted', notification_alert: 0 }, { where: { id } });
@@ -4921,18 +4983,234 @@ const acceptIssueRequest = async (req, res) => {
     }
 };
 
+const cancelIssueRequest = async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) {
+            return res.status(400).json({ success: false, error: 'Invalid issue assignment ID' });
+        }
+        const manager_id = req.user.id;
+        const cancelReason = req.body.reason || req.body.comments || 'Cancelled by manager';
+
+        // 1. Get issue assignment with its task and requester (PMT)
+        const issueAssignment = await IssueAssignments.findByPk(id, {
+            include: [
+                {
+                    model: Tasks,
+                    as: 'task',
+                    attributes: ['id', 'task_name', 'work_request_id', 'request_type_id']
+                },
+                { model: User, as: 'requester', attributes: ['id', 'name', 'email'] }
+            ]
+        });
+
+        if (!issueAssignment) {
+            return res.status(404).json({ success: false, error: 'Issue assignment not found' });
+        }
+
+        // Child issues (issue_id set) have task_id = null; resolve the context task
+        // through the parent issue for authorization, history and email details
+        let task = issueAssignment.task;
+        if (!task && issueAssignment.issue_id) {
+            const parentIssue = await IssueAssignments.findByPk(issueAssignment.issue_id, {
+                include: [{
+                    model: Tasks,
+                    as: 'task',
+                    attributes: ['id', 'task_name', 'work_request_id', 'request_type_id']
+                }]
+            });
+            if (parentIssue && parentIssue.task) {
+                task = parentIssue.task;
+            }
+        }
+
+        if (!task) {
+            return res.status(400).json({ success: false, error: 'Issue assignment is not linked to a valid task or parent issue' });
+        }
+
+        // 2. Authorization: current manager must belong to a division of the task's request type
+        const requestType = await RequestType.findByPk(task.request_type_id, {
+            include: [{ model: Division, through: { attributes: [] }, attributes: ['id'] }]
+        });
+
+        if (!requestType) {
+            return res.status(400).json({ success: false, error: 'Invalid request type for this task' });
+        }
+
+        const divisionIds = requestType.Divisions?.map(d => d.id) || [];
+
+        const managerDivision = await UserDivisions.findOne({
+            where: {
+                user_id: manager_id,
+                division_id: { [Op.in]: divisionIds }
+            }
+        });
+
+        if (!managerDivision) {
+            return res.status(403).json({
+                success: false,
+                error: 'You are not authorized to cancel this issue request. Only division managers for this task can cancel.'
+            });
+        }
+
+        if (issueAssignment.status === 'cancelled') {
+            return res.status(400).json({ success: false, error: 'Issue request is already cancelled' });
+        }
+
+        // 3. Soft delete + cancel the issue assignment
+        const previousStatus = issueAssignment.status;
+        await IssueAssignments.update(
+            { is_deleted: 1, status: 'cancelled', notification_alert: 0 },
+            { where: { id } }
+        );
+
+        await recordIssueHistory({
+            req,
+            issueAssignmentId: id,
+            taskId: task.id,
+            workRequestId: task.work_request_id,
+            parentIssueId: issueAssignment.issue_id,
+            action: 'manager_cancelled',
+            previousData: issueAssignment,
+            nextData: { is_deleted: 1, status: 'cancelled', notification_alert: 0 },
+            previousStatus: previousStatus,
+            newStatus: 'cancelled',
+            comments: `Issue request cancelled by manager. Reason: ${cancelReason}`,
+            relatedUserId: issueAssignment.requested_by_user_id
+        });
+
+        // 4. Reset the related record (parent issue or task) back to PM review
+        let parentIssueReset = false;
+        let taskReviewReset = false;
+
+        if (issueAssignment.issue_id) {
+            // Linked to a parent issue -> reset that issue's review back to PM review
+            const parentIssue = await IssueAssignments.findByPk(issueAssignment.issue_id, {
+                include: [{ model: User, as: 'requester', attributes: ['id', 'name', 'email'] }]
+            });
+
+            if (parentIssue) {
+                await IssueAssignments.update(
+                    { review: 'pending', review_stage: 'pm_review' },
+                    { where: { id: issueAssignment.issue_id } }
+                );
+
+                await recordIssueHistory({
+                    req,
+                    issueAssignmentId: parentIssue.id,
+                    taskId: task.id,
+                    workRequestId: task.work_request_id,
+                    parentIssueId: parentIssue.issue_id,
+                    action: 'review_reset_to_pm',
+                    previousData: parentIssue,
+                    nextData: { review: 'pending', review_stage: 'pm_review' },
+                    previousReview: parentIssue.review,
+                    newReview: 'pending',
+                    previousReviewStage: parentIssue.review_stage,
+                    newReviewStage: 'pm_review',
+                    comments: `Issue review reset to PM review after linked change was cancelled. Reason: ${cancelReason}`,
+                    relatedUserId: parentIssue.requested_by_user_id
+                });
+
+                parentIssueReset = true;
+            }
+        } else if (issueAssignment.task_id) {
+            // No parent issue but linked to a task -> reset that task's review back to PM review
+            const relatedTask = await Tasks.findByPk(issueAssignment.task_id, {
+                attributes: ['id', 'task_name', 'review', 'review_stage', 'work_request_id']
+            });
+
+            if (relatedTask) {
+                await Tasks.update(
+                    { review: 'pending', review_stage: 'pm_review' },
+                    { where: { id: issueAssignment.task_id } }
+                );
+
+                await recordTaskHistory({
+                    req,
+                    taskId: issueAssignment.task_id,
+                    workRequestId: relatedTask.work_request_id,
+                    action: 'review_reset_to_pm',
+                    previousData: relatedTask,
+                    nextData: { review: 'pending', review_stage: 'pm_review' },
+                    previousReview: relatedTask.review,
+                    newReview: 'pending',
+                    previousReviewStage: relatedTask.review_stage,
+                    newReviewStage: 'pm_review',
+                    comments: `Task review reset to PM review after linked issue change was cancelled. Reason: ${cancelReason}`,
+                    relatedUserId: issueAssignment.requested_by_user_id
+                });
+
+                taskReviewReset = true;
+            }
+        }
+
+        // 5. Get work request details for email
+        let workRequest = null;
+        if (task.work_request_id) {
+            workRequest = await WorkRequests.findByPk(task.work_request_id, {
+                attributes: ['id', 'project_name', 'brand']
+            });
+        }
+
+        // 6. Send email to the PMT (requester) with the cancellation reason
+        const pmt = issueAssignment.requester;
+        let emailSentTo = null;
+        if (pmt && pmt.email) {
+            const html = renderTemplate('issueCancellationNotification', {
+                user_name: pmt.name,
+                issue_version: issueAssignment.version,
+                issue_description: issueAssignment.description,
+                task_name: task.task_name,
+                project_name: workRequest ? workRequest.project_name : 'N/A',
+                brand: workRequest ? workRequest.brand : 'N/A',
+                request_type: requestType.request_type,
+                cancel_reason: cancelReason,
+                cancelled_at: new Date().toLocaleDateString('en-IN', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }),
+                frontend_url: process.env.FRONTEND_URL
+            });
+
+            await sendMail({
+                to: pmt.email,
+                subject: 'Issue Request Cancelled',
+                html
+            });
+            emailSentTo = pmt.email;
+        }
+
+        res.json({
+            success: true,
+            message: 'Issue request cancelled successfully',
+            data: {
+                id,
+                issue_id: issueAssignment.issue_id,
+                task_id: task.id,
+                status: 'cancelled',
+                is_deleted: 1,
+                parent_review_reset: parentIssueReset,
+                task_review_reset: taskReviewReset,
+                email_sent_to: emailSentTo
+            }
+        });
+    } catch (error) {
+        console.error('Error cancelling issue request:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
 const getIssueAssignments = async (req, res) => {
     try {
-        // Define associations for TaskAssignments
-        Tasks.hasMany(TaskAssignments, { foreignKey: 'task_id' });
-        TaskAssignments.belongsTo(Tasks, { foreignKey: 'task_id' });
-        TaskAssignments.belongsTo(User, { foreignKey: 'user_id' });
 
         const manager_id = req.user.id;
         const isManager = req.user.jobRole && req.user.jobRole.id === 2;
         const { status, review_stage, review, intimate_team, sort, assigned_to } = req.query;
 
-        console.log('DEBUG getIssueAssignments assigned_to:', assigned_to, 'manager_id:', manager_id);
 
         // Define valid enum values
         const validStatuses = ['m_pending', 'u_pending', 'm_accepted', 'u_accepted', 'in_progress', 'completed', 'rejected', 'on_hold', 'cancelled', 'overdue'];
@@ -4959,7 +5237,7 @@ const getIssueAssignments = async (req, res) => {
                     userNameFields.push(field);
                 } else if (field === 'project_name' || field === 'brand') {
                     wrFields.push(field);
-                } else {
+                } else if (pickModelFields(IssueAssignments, [field]).length > 0) {
                     directFields.push(field);
                 }
             });
@@ -5088,9 +5366,15 @@ const getIssueAssignments = async (req, res) => {
                 where.status = { [Op.notIn]: ['completed', 'cancelled'] };
                 where.review = { [Op.ne]: 'approved' };
                 where.review_stage = { [Op.ne]: 'final_approved' };
-                where[Op.or] = [
-                    { review: { [Op.ne]: 'change_request' } },
-                    { review_stage: { [Op.ne]: 'pm_review' } }
+                // Op.and so this does not overwrite the search conditions in where[Op.or]
+                where[Op.and] = [
+                    ...(where[Op.and] || []),
+                    {
+                        [Op.or]: [
+                            { review: { [Op.ne]: 'change_request' } },
+                            { review_stage: { [Op.ne]: 'pm_review' } }
+                        ]
+                    }
                 ];
             }
         }
@@ -5234,20 +5518,29 @@ const getIssueAssignments = async (req, res) => {
         // Get issue assignments with filters from manager's work requests
         // Only show issues where current manager is assigned to the task's work request
         // 🔒 Security: Only manager of the task's work request can view these issues
-        console.log('DEBUG final where before IssueAssignments query:', JSON.stringify({
-            where,
-            taskIds: taskIds.length,
-            selfIssueAssignmentIds: selfIssueAssignmentIds.length,
-            assigned_to
-        }));
+
+        const issueWhere = {
+            ...where,
+            task_id: { [Op.in]: taskIds },
+            is_deleted: 0,
+            ...(assigned_to === 'self' && selfIssueAssignmentIds.length > 0 ? { id: { [Op.in]: selfIssueAssignmentIds } } : {})
+        };
+
+        // Pagination (limit=-1 returns everything, as before). The total and the
+        // notification count are computed over all matching issues, not just this page.
+        const { page, limit, offset } = req.pagination;
+        const sortDirection = String(sort || 'DESC').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+        const notificationWhere = isManager
+            ? { notification_alert: 1, review: 'pending', review_stage: 'manager_review' }
+            : { notification_alert: 1 };
+        const [total, totalNotificationAlert] = await Promise.all([
+            IssueAssignments.count({ where: issueWhere }),
+            IssueAssignments.count({ where: { [Op.and]: [issueWhere, notificationWhere] } })
+        ]);
 
         const issueAssignments = await IssueAssignments.findAll({
-            where: {
-                ...where,
-                task_id: { [Op.in]: taskIds },
-                is_deleted: 0,
-                ...(assigned_to === 'self' && selfIssueAssignmentIds.length > 0 ? { id: { [Op.in]: selfIssueAssignmentIds } } : {})
-            },
+            where: issueWhere,
+            ...(limit !== -1 ? { limit, offset } : {}),
             include: [
                 {
                     model: Tasks,
@@ -5338,7 +5631,8 @@ const getIssueAssignments = async (req, res) => {
                     ]
                 }
             ],
-            order: [['notification_alert', 'DESC'], ['created_at', sort || 'DESC']]
+            // id as a tie-breaker keeps pages stable
+            order: [['notification_alert', 'DESC'], ['created_at', sortDirection], ['id', sortDirection]]
         });
 
         // Format the response
@@ -5515,13 +5809,16 @@ const getIssueAssignments = async (req, res) => {
             });
         }
 
-        // Calculate total notification count: count of issue assignments with notification_alert = 1
-        const totalNotificationAlert = formattedData.filter(issue => issue.notification_alert == 1).length;
-
         res.json({
             success: true,
             data: formattedData,
             notification_alert_count: totalNotificationAlert,
+            pagination: {
+                page,
+                limit,
+                total,
+                total_pages: limit === -1 ? 1 : Math.ceil(total / limit)
+            },
             message: 'Issue assignments retrieved successfully'
         });
     } catch (error) {
@@ -5536,18 +5833,28 @@ const getIssueAssignments = async (req, res) => {
 
 // Assign issue assignment to a user
 const assignIssueToUser = async (req, res) => {
+    
     try {
-        const { issue_assignment_id, user_id, deadline } = req.body;
         const manager_id = req.user.id;
+        const issue_assignment_id = parseId(req.body.issue_assignment_id);
+        const user_id = parseId(req.body.user_id);
 
         if (!issue_assignment_id || !user_id) {
-            return res.status(400).json({ success: false, error: 'issue_assignment_id and user_id are required' });
+            return res.status(400).json({ success: false, error: 'issue_assignment_id and user_id are required and must be valid IDs' });
+        }
+
+        let deadline = null;
+        if (req.body.deadline) {
+            deadline = parseDateOnly(req.body.deadline);
+            if (!deadline) {
+                return res.status(400).json({ success: false, error: 'Invalid deadline. Use YYYY-MM-DD format.' });
+            }
         }
 
         // Check if issue_assignment exists with issue_type_links for issue details
         const issueAssignment = await IssueAssignments.findByPk(issue_assignment_id, {
             include: [
-                { model: Tasks, as: 'task', attributes: ['id', 'task_name', 'work_request_id'] },
+                { model: Tasks, as: 'task', attributes: ['id', 'task_name', 'work_request_id', 'request_type_id'] },
                 { model: User, as: 'requester', attributes: ['id', 'name', 'email'] },
                 {
                     model: IssueAssignmentTypes,
@@ -5563,33 +5870,49 @@ const assignIssueToUser = async (req, res) => {
             ]
         });
 
-        if (!issueAssignment) {
+        if (!issueAssignment || issueAssignment.is_deleted) {
             return res.status(404).json({ success: false, error: 'Issue assignment not found' });
+        }
+
+        // Same scoping as acceptIssueRequest: manager must belong to the task's request-type division
+        if (!issueAssignment.task || !(await isDivisionManagerForRequestType(manager_id, issueAssignment.task.request_type_id))) {
+            return res.status(403).json({ success: false, error: 'You are not authorized to assign this issue' });
+        }
+
+        if (['completed', 'cancelled', 'rejected'].includes(issueAssignment.status)) {
+            return res.status(400).json({ success: false, error: `Issue cannot be assigned from status '${issueAssignment.status}'` });
         }
 
         // Check if user exists
         const assignedUser = await User.findByPk(user_id, {
-            attributes: ['id', 'name', 'email', 'job_role_id']
+            attributes: ['id', 'name', 'email', 'job_role_id', 'account_status']
         });
 
         if (!assignedUser) {
             return res.status(404).json({ success: false, error: 'User not found' });
         }
 
-        // Check if already assigned
-        const existingAssignment = await IssueUserAssignments.findOne({
-            where: { issue_assignment_id, user_id }
+        if (assignedUser.account_status !== 'active') {
+            return res.status(400).json({ success: false, error: 'User account is not active' });
+        }
+
+        // Update existing assignment for this issue_assignment_id if exists, else create new
+        let issueUserAssignment;
+        const existingAssignmentForIssue = await IssueUserAssignments.findOne({
+            where: { issue_assignment_id }
         });
 
-        // if (existingAssignment) {
-        //     return res.status(400).json({ success: false, error: 'User is already assigned to this issue' });
-        // }
-
-        // Create the assignment in issue_user_assignments
-        const issueUserAssignment = await IssueUserAssignments.create({
-            issue_assignment_id,
-            user_id
-        });
+        if (existingAssignmentForIssue) {
+            if (existingAssignmentForIssue.user_id !== user_id) {
+                await existingAssignmentForIssue.update({ user_id });
+            }
+            issueUserAssignment = existingAssignmentForIssue;
+        } else {
+            issueUserAssignment = await IssueUserAssignments.create({
+                issue_assignment_id,
+                user_id
+            });
+        }
 
         // Update issue_assignment status to 'u_pending', intimate_team to 1, and notification_alert to 1
         await IssueAssignments.update(
@@ -5943,6 +6266,10 @@ const getTaskHistory = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Invalid task ID' });
         }
 
+        if (!(await canViewWorkRequest(req.user, await workRequestIdForTask(taskId)))) {
+            return res.status(403).json({ success: false, error: 'You do not have access to this task' });
+        }
+
         const limit = parseInt(req.query.limit, 10) || 200;
         const offset = parseInt(req.query.offset, 10) || 0;
         const history = await getTaskHistoryRecords(taskId, { limit, offset });
@@ -5965,6 +6292,10 @@ const getIssueHistory = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Invalid issue assignment ID' });
         }
 
+        if (!(await canViewWorkRequest(req.user, await workRequestIdForIssue(issueAssignmentId)))) {
+            return res.status(403).json({ success: false, error: 'You do not have access to this issue' });
+        }
+
         const limit = parseInt(req.query.limit, 10) || 200;
         const offset = parseInt(req.query.offset, 10) || 0;
         const history = await getIssueHistoryRecords(issueAssignmentId, { limit, offset });
@@ -5985,6 +6316,7 @@ module.exports = {
     getAssignedWorkRequestById,
     acceptWorkRequest,
     acceptIssueRequest,
+    cancelIssueRequest,
     deferWorkRequest,
     updateWorkRequestProject,
     deleteWorkRequest,

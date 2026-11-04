@@ -3,461 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>D-Map | Clients</title>
+    <title>Client requests · D-Map Admin</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%235b2be0'/%3E%3Ctext x='16' y='22' font-family='Arial' font-size='16' font-weight='700' fill='white' text-anchor='middle'%3ED%3C/text%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" rel="stylesheet">
-    <link href="https://cdn.datatables.net/buttons/2.3.6/css/buttons.dataTables.min.css" rel="stylesheet">
-    <link href="https://cdn.datatables.net/fixedcolumns/4.3.0/css/fixedColumns.dataTables.min.css" rel="stylesheet">
     <link href="../admin/dmap-theme.css" rel="stylesheet">
-    <style>
-        .user-info { display: flex; align-items: center; gap: 10px; padding: 6px 12px; border-radius: 8px; background: #f8fafc; border: 1px solid var(--card-border); }
-        .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #3b82f6); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
-        .user-details { display: flex; flex-direction: column; }
-        .user-name { font-size: 12px; font-weight: 600; color: var(--text-1); }
-        .user-role { font-size: 10px; color: var(--text-3); }
-        .btn-logout { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; font-size: 12px; font-weight: 500; font-family: var(--font); color: var(--text-2); background: #fff; border: 1px solid var(--card-border); border-radius: 6px; cursor: pointer; transition: all .12s; }
-        .btn-logout:hover { background: #fff1f2; border-color: #fecdd3; color: #be123c; }
-    </style>
+    <script>try{document.documentElement.setAttribute('data-theme',localStorage.getItem('themePreference')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'))}catch(e){}</script>
+    <script src="../admin/admin-app.js" defer></script>
 </head>
 <body>
-<div class="app-layout">
-    <aside class="sidebar">
-        <div class="sidebar-brand">
-            <div class="brand-icon"><i class="bi bi-diagram-3" style="font-size:15px;"></i></div>
-            <div><div class="brand-name">D-Map</div><div class="brand-sub">Analytics Dashboard</div></div>
-        </div>
-        <div class="sidebar-section">Reports</div>
-        <nav class="sidebar-nav">
-            <a href="./powerbi" class="nav-item"><i class="bi bi-pie-chart nav-icon"></i><span class="nav-label">Dashboard</span></a>
-        </nav>
-        <div class="sidebar-section">Projects</div>
-        <nav class="sidebar-nav">
-            <a href="./projectsdetails" class="nav-item"><i class="bi bi-folder2-open nav-icon"></i><span class="nav-label">Projects</span></a>
-            <a href="./clients" class="nav-item active"><i class="bi bi-people nav-icon"></i><span class="nav-label">Clients</span></a>
-            <a href="./taskdetails" class="nav-item"><i class="bi bi-check2-square nav-icon"></i><span class="nav-label">Tasks</span></a>
-            <a href="./issuedetails" class="nav-item"><i class="bi bi-exclamation-circle nav-icon"></i><span class="nav-label">Changes</span></a>
-            <a href="./workrequesttasks" class="nav-item"><i class="bi bi-table nav-icon"></i><span class="nav-label">Raw Data</span></a>
-        </nav>
-        <div class="sidebar-section">Leaves</div>
-        <nav class="sidebar-nav">
-            <a href="./leaves" class="nav-item"><i class="bi bi-calendar-x nav-icon"></i><span class="nav-label">Leaves</span></a>
-        </nav>
-        <div class="sidebar-section">Tokens</div>
-        <nav class="sidebar-nav">
-            <a href="./token-projects" class="nav-item"><i class="bi bi-folder2-open nav-icon"></i><span class="nav-label">Project</span></a>
-            <a href="./token-tasks" class="nav-item"><i class="bi bi-check2-square nav-icon"></i><span class="nav-label">Task</span></a>
-            <a href="./token-changes" class="nav-item"><i class="bi bi-exclamation-circle nav-icon"></i><span class="nav-label">Changes</span></a>
-        </nav>
-        <div class="sidebar-footer"><i class="bi bi-circle-fill" style="color:#22c55e;font-size:8px;"></i><span class="footer-text"> System Online</span></div>
-    </aside>
-
-    <div class="main-area">
-        <div class="topbar">
-            <div style="display:flex;align-items:center;gap:12px;">
-                <button class="sidebar-toggle" id="sidebarToggle"><i class="bi bi-chevron-left"></i></button>
-                <div>
-                    <div class="topbar-title"><i class="bi bi-people" style="color:var(--accent)"></i> Clients</div>
-                    <div class="topbar-subtitle">Client-wise project request summary</div>
-                </div>
-            </div>
-            <div class="topbar-right">
-                <div class="user-info">
-                    <div class="user-avatar" id="userAvatar">U</div>
-                    <div class="user-details">
-                        <span class="user-name" id="userName">Admin</span>
-                        <span class="user-role" id="userRole">Administrator</span>
-                    </div>
-                </div>
-                <button class="btn-logout" id="btnLogout"><i class="bi bi-box-arrow-right"></i> Logout</button>
-                <span class="topbar-badge" id="recordCount">Loading...</span>
-            </div>
-        </div>
-
-        <div class="content-area">
-            <div class="stats-row">
-                <div class="stat-card"><div class="stat-icon blue"><i class="bi bi-people"></i></div><div><div class="stat-value" id="s1">—</div><div class="stat-label">Total Clients</div></div></div>
-                <div class="stat-card"><div class="stat-icon green"><i class="bi bi-folder2-open"></i></div><div><div class="stat-value" id="s2">—</div><div class="stat-label">Projects</div></div></div>
-                <div class="stat-card"><div class="stat-icon orange"><i class="bi bi-clock-history"></i></div><div><div class="stat-value" id="s3">—</div><div class="stat-label">Pending Response</div></div></div>
-                <div class="stat-card"><div class="stat-icon purple"><i class="bi bi-speedometer2"></i></div><div><div class="stat-value" id="s4">—</div><div class="stat-label">Avg TAT</div></div></div>
-            </div>
-
-            <div class="table-card">
-                <div class="loading-overlay" id="loader"><div class="spinner"></div><div class="loading-text">Loading clients...</div></div>
-                <div class="table-card-header">
-                    <div class="table-card-title"><span class="dot"></span>Client Records</div>
-                    <div class="header-actions">
-                        <button class="btn-action excel" id="btnExcel"><i class="bi bi-file-earmark-excel"></i> Excel</button>
-                        <button class="btn-action csv" id="btnCsv"><i class="bi bi-filetype-csv"></i> CSV</button>
-                    </div>
-                </div>
-                <div class="table-card-body">
-                    <div class="dt-container">
-                        <table id="mainTable" class="display" style="width:100%"><thead></thead><tbody></tbody></table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Edit Modal -->
-<div id="editModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;">
-  <div style="background:#1e2433;border:1px solid #2d3548;border-radius:12px;width:620px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,0.5);">
-    <div style="padding:20px 24px 16px;border-bottom:1px solid #2d3548;display:flex;align-items:center;gap:10px;">
-      <span style="background:#6366f122;border-radius:8px;padding:6px 10px;"><i class="bi bi-pencil-square" style="color:#818cf8;font-size:18px;"></i></span>
-      <div>
-        <div style="color:#f1f5f9;font-weight:600;font-size:15px;">Edit Client</div>
-        <div style="color:#94a3b8;font-size:12px;">Update client request details</div>
-      </div>
-      <button onclick="closeEditModal()" style="margin-left:auto;background:none;border:none;color:#64748b;font-size:20px;cursor:pointer;line-height:1;">&times;</button>
-    </div>
-    <div style="padding:16px 24px;overflow-y:auto;flex:1;">
-      <div id="editModalBody" style="color:#cbd5e1;font-size:13px;"></div>
-    </div>
-    <div style="padding:16px 24px;border-top:1px solid #2d3548;display:flex;gap:10px;justify-content:flex-end;">
-      <button onclick="closeEditModal()" style="padding:8px 20px;border-radius:7px;border:1px solid #2d3548;background:#2d3548;color:#94a3b8;font-size:13px;cursor:pointer;">Cancel</button>
-      <button id="confirmEditBtn" style="padding:8px 20px;border-radius:7px;border:none;background:#6366f1;color:#fff;font-size:13px;font-weight:600;cursor:pointer;"><i class="bi bi-check-lg"></i> Save Changes</button>
-    </div>
-  </div>
-</div>
-
-<!-- Delete Confirm Modal -->
-<div id="deleteModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;">
-  <div style="background:#1e2433;border:1px solid #2d3548;border-radius:12px;width:560px;max-width:95vw;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,0.5);">
-    <div style="padding:20px 24px 16px;border-bottom:1px solid #2d3548;display:flex;align-items:center;gap:10px;">
-      <span style="background:#be123c22;border-radius:8px;padding:6px 10px;"><i class="bi bi-exclamation-triangle-fill" style="color:#f43f5e;font-size:18px;"></i></span>
-      <div>
-        <div style="color:#f1f5f9;font-weight:600;font-size:15px;">Confirm Delete</div>
-        <div style="color:#94a3b8;font-size:12px;">This action cannot be undone</div>
-      </div>
-      <button onclick="closeDeleteModal()" style="margin-left:auto;background:none;border:none;color:#64748b;font-size:20px;cursor:pointer;line-height:1;">&times;</button>
-    </div>
-    <div style="padding:16px 24px;overflow-y:auto;flex:1;">
-      <div id="deleteModalBody" style="color:#cbd5e1;font-size:13px;"></div>
-    </div>
-    <div style="padding:16px 24px;border-top:1px solid #2d3548;display:flex;gap:10px;justify-content:flex-end;">
-      <button onclick="closeDeleteModal()" style="padding:8px 20px;border-radius:7px;border:1px solid #2d3548;background:#2d3548;color:#94a3b8;font-size:13px;cursor:pointer;">Cancel</button>
-      <button id="confirmDeleteBtn" style="padding:8px 20px;border-radius:7px;border:none;background:#be123c;color:#fff;font-size:13px;font-weight:600;cursor:pointer;"><i class="bi bi-trash3"></i> Yes, Delete</button>
-    </div>
-  </div>
-</div>
-
-<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
-<script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.html5.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdn.datatables.net/fixedcolumns/4.3.0/js/dataTables.fixedColumns.min.js"></script>
+<noscript>The D-Map admin panel needs JavaScript.</noscript>
 <script>
-function getApiBase(){
-    var p=window.location.pathname;
-    if(p.indexOf('/digilabs/uat/')!==-1) return '/digilabs/uat/dmap/api/';
-    return '/digilabs/dmap/api/';
-}
-const TRUNCATE=['description'];
-const COL_ORDER=[
-    'project_status','work_request_id','project_name','request_type_name',
-    'project_type_name','project_priority','project_requester_name','client_division',
-    'digi_vertical_manager_name','project_count','description','project_requested_at_client',
-    'response_timestamp','request_to_response_tat','deferral_count','month','financial_year'
-];
-const HEADERS={
-    project_status:'Project Status',
-    work_request_id:'Project Request ID',
-    project_name:'Project Name',
-    request_type_name:'Requested Vertical',
-    project_type_name:'Project Type',
-    project_priority:'Project Priority',
-    project_requester_name:'Client Name',
-    client_division:'Client Division',
-    digi_vertical_manager_name:'Request Accepted By / Project Manager',
-    project_count:'No. of Project',
-    description:'Status Description',
-    project_requested_at_client:'Request Timestamp',
-    response_timestamp:'Response Timestamp',
-    request_to_response_tat:'Request to Response TAT',
-    deferral_count:'Deferral Count',
-    month:'Month',
-    financial_year:'Financial Year'
-};
-const BADGES={
-    project_status:{draft:'status-draft',pending:'status-pending',accepted:'status-accepted',assigned:'status-assigned',in_progress:'status-in_progress',completed:'status-completed',rejected:'status-rejected',deferred:'status-deferred',cancelled:'status-cancelled'},
-    project_priority:{low:'priority-low',medium:'priority-medium',high:'priority-high',critical:'priority-critical'}
-};
-const STATUS_LABELS={
-    pending:'Pending Response',
-    accepted:'Awaiting Assignment',
-    assigned:'Upcoming',
-    in_progress:'Ongoing',
-    completed:'Completed',
-    deferred:'Deferred',
-    cancelled:'Cancelled'
-};
+document.addEventListener('DOMContentLoaded', function () {
+    const D = window.DMap;
+    const C = (key, title, type, extra) => Object.assign({ key, title, type }, extra || {});
+    // Client-facing names for the request stages
+    const STAGE = { pending: 'Pending response', accepted: 'Awaiting assignment', assigned: 'Upcoming', in_progress: 'Ongoing', completed: 'Completed', deferred: 'Deferred', cancelled: 'Cancelled', rejected: 'Rejected', draft: 'Draft' };
 
-function parseTatMinutes(value){
-    if(!value || value==='N/A') return null;
-    var match=String(value).match(/(\d+)\s*h\s*(\d+)\s*m/);
-    if(!match) return null;
-    return (Number(match[1])*60)+Number(match[2]);
-}
+    const body = D.shell({ page: 'clients', title: 'Client requests', icon: 'people', subtitle: 'Requests as the client sees them: who asked, which vertical, how fast Digilabs responded' });
 
-$(function(){
-    // Check session
-    if(!localStorage.getItem('accessToken')){
-        window.location.href = getApiBase() + 'datatable/admin/login';
-        return;
-    }
+    const grid = D.grid(body, {
+        id: 'clients', version: 4, title: 'Client requests', icon: 'people',
+        endpoint: 'clients/data', exportName: 'client_requests', pinned: 2,
+        searchPlaceholder: 'Search project, vertical, client, status or ID…',
+        quick: ['project_status', 'request_type_name', 'client_division', 'project_requested_at_client'],
+        kpis: [
+            { label: 'Clients', icon: 'people', tone: 'brand', value: s => s.clients, hint: () => 'Distinct requesters' },
+            { label: 'Requests', icon: 'folder2-open', tone: 'info', value: s => s.total },
+            { label: 'Pending response', icon: 'hourglass-split', tone: 'warning', value: s => s.pending, share: true, filter: { key: 'project_status', values: ['pending'] } },
+            { label: 'Ongoing', icon: 'arrow-repeat', tone: 'accent', value: s => (s.status_counts || {}).in_progress, share: true, filter: { key: 'project_status', values: ['in_progress'] } },
+            { label: 'Avg response time', icon: 'speedometer2', tone: 'success', value: s => s.avg_response_tat_hours, format: v => D.fmt.hours(v), hint: () => 'Request → first response' }
+        ],
+        statusBar: { column: 'project_status', title: 'Request stage breakdown' },
+        columns: [
+            C('project_status', 'Project Status', 'status', { options: 'work_request_statuses', labels: STAGE }),
+            C('work_request_id', 'Project Request ID', 'id'),
+            C('project_name', 'Project Name', 'name'),
+            C('request_type_name', 'Requested Vertical', 'text', { filter: 'select', options: 'request_types' }),
+            C('project_type_name', 'Project Type', 'text', { filter: 'select', options: 'project_types' }),
+            C('project_priority', 'Project Priority', 'enum', { options: 'priorities' }),
+            C('project_requester_name', 'Client Name', 'text', { filter: 'select', options: 'clients' }),
+            C('client_division', 'Client Division', 'text', { filter: 'select', options: 'divisions', match: 'contains' }),
+            C('digi_vertical_manager_name', 'Request Accepted By / Project Manager', 'text', { filter: 'select', options: 'managers', match: 'contains' }),
+            C('project_count', 'No. of Project', 'number'),
+            C('description', 'Status Description', 'longtext'),
+            C('project_requested_at_client', 'Request Timestamp', 'datetime'),
+            C('response_timestamp', 'Response Timestamp', 'datetime'),
+            C('request_to_response_tat', 'Request to Response TAT', 'tat'),
+            C('deferral_count', 'Deferral Count', 'number'),
+            C('month', 'Month', 'text'),
+            C('financial_year', 'Financial Year', 'text'),
+            C('work_request_created_at', 'Created', 'date', { filterOnly: true })
+        ],
+        detailTitle: row => row.project_name || `Request #${row.work_request_id}`,
+        detailSubtitle: row => `Request #${row.work_request_id} · ${row.project_requester_name || ''}`,
+        rowActions: [
+            { icon: 'pencil', label: 'Edit request', onClick: row => editClient(row) },
+            { icon: 'trash3', label: 'Delete request', tone: 'danger', onClick: row => deleteClient(row) }
+        ]
+    });
 
-    // Load user info
-    var userData = localStorage.getItem('userData');
-    if(userData){
-        try {
-            var user = JSON.parse(userData);
-            var name = user.name || user.email || 'Admin';
-            var initials = name.split(' ').map(function(n){return n[0];}).join('').substring(0,2).toUpperCase();
-            $('#userName').text(name);
-            $('#userAvatar').text(initials);
-            if(user.jobRole && user.jobRole.role_title){
-                $('#userRole').text(user.jobRole.role_title);
+    function editClient(row) {
+        D.editRecord({
+            type: 'client', id: row.work_request_id, title: 'Edit client request', subtitle: `Request #${row.work_request_id}`,
+            onDone: () => grid.reload(),
+            fields: ({ record: r, clientUsers }) => {
+                const users = (clientUsers || []).map(u => ({ value: u.id, label: `${u.name} – ${u.email}` }));
+                return [
+                    { name: 'work_request_id', label: 'Request ID', type: 'readonly', value: r.id },
+                    { name: 'requested_at', label: 'Requested at', type: 'datetime-local', value: r.requested_at ? D.toDateTimeLocal(r.requested_at) : '' },
+                    { name: 'project_name', label: 'Project name', value: r.project_name, span: 2 },
+                    { name: 'brand', label: 'Brand', value: r.brand },
+                    { name: 'priority', label: 'Priority', type: 'select', value: r.priority, options: ['low', 'medium', 'high', 'critical'], labeler: D.statusLabel },
+                    { name: 'status', label: 'Status', type: 'select', value: r.status, options: ['draft', 'pending', 'accepted', 'assigned', 'in_progress', 'completed', 'rejected', 'deferred'], labeler: s => STAGE[s] || D.statusLabel(s) },
+                    { name: 'client_name', label: 'Client', type: 'readonly', value: r.client_name },
+                    { name: 'client_email', label: 'Client email', type: 'readonly', value: r.client_email },
+                    { name: 'client_division', label: 'Client division', type: 'readonly', value: r.client_division },
+                    users.length
+                        ? { name: 'user_id', label: 'Reassign to client user', type: 'select', value: r.user_id, options: users, span: 2, help: 'Users in the same client division' }
+                        : { name: 'user_id', label: 'Reassign to client user', type: 'select', value: '', options: [{ value: '', label: 'No users in this client division' }], span: 2 },
+                    { name: 'remarks', label: 'Remarks', type: 'textarea', value: r.remarks },
+                    { name: 'description', label: 'Description', type: 'textarea', value: r.description },
+                    { name: 'about_project', label: 'About the project', type: 'textarea', value: r.about_project }
+                ];
             }
-        } catch(e){}
-    }
-
-    $('#btnLogout').on('click', function(){
-        if(confirm('Are you sure you want to logout?')){
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('refreshToken');
-            localStorage.removeItem('userData');
-            window.location.href = getApiBase() + 'datatable/admin/login';
-        }
-    });
-
-    $('#sidebarToggle').on('click', function(){
-        $('body').toggleClass('sidebar-collapsed');
-        var isCollapsed = $('body').hasClass('sidebar-collapsed');
-        $(this).find('i').toggleClass('bi-chevron-left bi-chevron-right');
-        localStorage.setItem('sidebarCollapsed', isCollapsed);
-    });
-    if(localStorage.getItem('sidebarCollapsed') === 'true'){
-        $('body').addClass('sidebar-collapsed');
-        $('#sidebarToggle').find('i').removeClass('bi-chevron-left').addClass('bi-chevron-right');
-    }
-    $.getJSON('./clients/data',function(res){
-        $('#loader').hide();
-        var data=res.data||[];
-        $('#recordCount').text(data.length+' Records');
-
-        function updateStats(arr){
-            $('#s1').text(new Set(arr.map(r=>r.project_requester_name).filter(Boolean)).size);
-            $('#s2').text(arr.length);
-            $('#s3').text(arr.filter(r=>r.project_status==='pending').length);
-            var tatValues=arr.map(r=>parseTatMinutes(r.request_to_response_tat)).filter(v=>v!==null);
-            $('#s4').text(tatValues.length ? Math.round(tatValues.reduce((a,b)=>a+b,0)/tatValues.length)+'m' : 'N/A');
-        }
-        updateStats(data);
-
-        var cols=[];
-        if(data.length){
-            cols.push({
-                data:null,title:'Action',orderable:false,searchable:false,width:'82px',
-                render:function(v,type,row){
-                    if(type!=='display') return '';
-                    return '<button class="edit-btn" data-type="client" data-id="'+row.work_request_id+'" title="Edit Client" style="background:#6366f122;border:1px solid #6366f144;color:#818cf8;border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;margin-right:4px;"><i class="bi bi-pencil"></i></button>'
-                          +'<button class="del-btn" data-type="client" data-id="'+row.work_request_id+'" title="Delete Client" style="background:#be123c22;border:1px solid #be123c44;color:#f43f5e;border-radius:6px;padding:3px 7px;cursor:pointer;font-size:13px;"><i class="bi bi-trash3"></i></button>';
-                }
-            });
-        }
-        var orderedKeys=COL_ORDER.filter(function(k){return data.length && Object.prototype.hasOwnProperty.call(data[0],k);});
-        orderedKeys.forEach(function(k){
-            cols.push({
-                data:k,title:HEADERS[k]||k,defaultContent:'N/A',
-                render:function(v,type){
-                    if(type!=='display') return v;
-                    var val=v!=null?v:'N/A';
-                    if(k==='project_status' && STATUS_LABELS[val]){
-                        return '<span class="status-badge '+BADGES[k][val]+'">'+STATUS_LABELS[val]+'</span>';
-                    }
-                    if(BADGES[k] && val && val!=='N/A'){
-                        var c=BADGES[k][val]||'';
-                        return '<span class="status-badge '+c+'">'+val+'</span>';
-                    }
-                    if(TRUNCATE.indexOf(k)!==-1){
-                        return '<span class="truncate-cell" title="'+String(val).replace(/"/g,'"')+'">'+val+'</span>';
-                    }
-                    return val;
-                }
-            });
         });
+    }
 
-        var dt=$('#mainTable').DataTable({
-            data:data,columns:cols,
-            pageLength:25,lengthMenu:[[25,50,100,200,-1],[25,50,100,200,'All']],
-            dom:'<"dt-top-row"lf>rt<"dt-bottom-row"ip>',
-            scrollX:true,scrollY:'calc(100vh - 360px)',scrollCollapse:false,autoWidth:false,fixedColumns:{left:3},
-            language:{search:'',searchPlaceholder:'Search all columns...',lengthMenu:'Show _MENU_ rows'},
-            initComplete:function(){
-                var api=this.api();
-                api.columns().every(function(){
-                    var col=this,idx=col.index();
-                    var th=$(col.header());
-                    var key=idx===0 ? null : (orderedKeys[idx-1]||Object.keys(data[0])[idx-1]);
-                    var labelText=idx===0 ? 'Action' : (HEADERS[key]||key);
-                    th.empty();
-                    var wrap=$('<div class="th-wrap"></div>');
-                    wrap.append('<div class="th-label"><span title="'+labelText+'">'+labelText+'</span><span class="th-sort"></span></div>');
-                    if(idx===0){ th.append(wrap); return; }
-                    if(BADGES[key]){
-                        var sel=$('<select class="col-filter"><option value="">All</option></select>');
-                        Object.keys(BADGES[key]).forEach(function(opt){sel.append('<option value="'+opt+'">'+opt+'</option>');});
-                        sel.on('change click mousedown',function(e){e.stopPropagation();});
-                        sel.on('change',function(){col.search(this.value).draw();});
-                        wrap.append(sel);
-                    } else {
-                        var inp=$('<input class="col-filter" type="text" placeholder="Filter...">');
-                        inp.on('click mousedown focus',function(e){e.stopPropagation();});
-                        inp.on('keyup change clear',function(){if(col.search()!==this.value)col.search(this.value).draw();});
-                        wrap.append(inp);
-                    }
-                    th.append(wrap);
-                    th.off('click').on('click',function(e){
-                        if($(e.target).closest('.col-filter').length===0){
-                            var currentOrder=api.order();
-                            if(currentOrder.length && currentOrder[0][0]===idx){
-                                api.order([idx,currentOrder[0][1]==='asc'?'desc':'asc']).draw();
-                            } else {
-                                api.order([idx,'asc']).draw();
-                            }
-                        }
-                    });
+    function deleteClient(row) {
+        D.confirmDelete({
+            type: 'client', id: row.work_request_id, title: `Delete request #${row.work_request_id}?`, confirmLabel: 'Delete request', doneMessage: 'Request deleted',
+            onDone: () => grid.reload(),
+            renderPreview: p => {
+                const r = p.record || {};
+                return D.previewBlock('This client request will be deleted', [['Request ID', r.id], ['Project', r.project_name], ['Client', r.client_name], ['Division', r.client_division]], {
+                    title: `${(p.tasks || []).length} linked task(s) will also be deleted`,
+                    items: (p.tasks || []).map(t => [t.task_name || 'Unnamed task', `${t.issue_count} change(s)`]),
+                    empty: 'No tasks are linked to this request.'
                 });
             }
         });
-        $('#mainTable').on('click','.del-btn',function(e){ e.stopPropagation(); openDeleteModal($(this).data('type'),$(this).data('id')); });
-        $('#mainTable').on('click','.edit-btn',function(e){ e.stopPropagation(); openEditModal($(this).data('type'),$(this).data('id')); });
-
-        var colTitles=cols.map(function(c){return c.title;});
-        new $.fn.dataTable.Buttons(dt,[
-            {extend:'excel',className:'buttons-excel',filename:'clients_'+new Date().toISOString().slice(0,10),exportOptions:{columns:':gt(0):visible',modifier:{page:'all'},orthogonal:'export',format:{header:function(data,col){return colTitles[col]||data;},body:function(data){return data == null ? '' : data;}}}},
-            {extend:'csv',className:'buttons-csv',filename:'clients_'+new Date().toISOString().slice(0,10),exportOptions:{columns:':gt(0):visible',modifier:{page:'all'},orthogonal:'export',format:{header:function(data,col){return colTitles[col]||data;},body:function(data){return data == null ? '' : data;}}}}
-        ]);
-        $('#btnExcel').on('click',function(){dt.button('.buttons-excel').trigger();});
-        $('#btnCsv').on('click',function(){dt.button('.buttons-csv').trigger();});
-        dt.on('draw',function(){
-            var rows=dt.rows({ filter:'applied' }).data();
-            var arr=rows.toArray ? rows.toArray() : rows;
-            updateStats(arr);
-            $('#recordCount').text(arr.length+' Records');
-        });
-    }).fail(function(){$('#loader').html('<div style="color:#be123c;font-size:13px"><i class="bi bi-exclamation-triangle"></i> Failed to load data</div>');});
-});
-
-function fi(label,name,val,t){
-    t=t||'text';
-    return '<div style="margin-bottom:12px;"><label style="display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;">'+label+'</label>'
-        +'<input name="'+name+'" value="'+(val!=null?String(val).replace(/"/g,'&quot;'):'')+'" type="'+t+'" style="width:100%;background:#131929;border:1px solid #2d3548;border-radius:6px;padding:7px 10px;color:#e2e8f0;font-size:13px;box-sizing:border-box;"></div>';
-}
-function fr(label,name,val,t){
-    t=t||'text';
-    return '<div style="margin-bottom:12px;"><label style="display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;">'+label+'</label>'
-        +'<input name="'+name+'" value="'+(val!=null?String(val).replace(/"/g,'&quot;'):'')+'" type="'+t+'" readonly style="width:100%;background:#111827;border:1px solid #2d3548;border-radius:6px;padding:7px 10px;color:#94a3b8;font-size:13px;box-sizing:border-box;"></div>';
-}
-function fs(label,name,val,opts){
-    var s='<div style="margin-bottom:12px;"><label style="display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;">'+label+'</label>'
-        +'<select name="'+name+'" style="width:100%;background:#131929;border:1px solid #2d3548;border-radius:6px;padding:7px 10px;color:#e2e8f0;font-size:13px;">';
-    opts.forEach(function(o){s+='<option value="'+o+'"'+(String(val)===String(o)?' selected':'')+'>'+o+'</option>';});
-    return s+'</select></div>';
-}
-function fu(label,name,val,users){
-    var s='<div style="margin-bottom:12px;"><label style="display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;">'+label+'</label>'
-        +'<select name="user_id" style="width:100%;background:#131929;border:1px solid #2d3548;border-radius:6px;padding:7px 10px;color:#e2e8f0;font-size:13px;">';
-    if(!users || !users.length){
-        s+='<option value="">No users in this client division</option>';
-    } else {
-        users.forEach(function(u){s+='<option value="'+u.id+'"'+(String(val)===String(u.id)?' selected':'')+'>'+u.name+' - '+u.email+'</option>';});
     }
-    return s+'</select></div>';
-}
-function ft(label,name,val){
-    return '<div style="margin-bottom:12px;"><label style="display:block;color:#94a3b8;font-size:11px;margin-bottom:4px;">'+label+'</label>'
-        +'<textarea name="'+name+'" rows="2" style="width:100%;background:#131929;border:1px solid #2d3548;border-radius:6px;padding:7px 10px;color:#e2e8f0;font-size:13px;box-sizing:border-box;resize:vertical;">'+(val||'')+'</textarea></div>';
-}
-
-function openEditModal(type, id){
-    $('#editModalBody').html('<div style="color:#94a3b8;padding:20px;text-align:center;"><i class="bi bi-arrow-repeat"></i> Loading...</div>');
-    $('#editModal').css('display','flex');
-    $.getJSON(getApiBase()+'datatable/admin/edit/'+type+'/'+id, function(res){
-        var r=res.record, html='';
-        html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 16px;">';
-        html+=fr('Project Request ID','work_request_id',r.id);
-        html+=fi('Project Name','project_name',r.project_name);
-        html+=fi('Brand','brand',r.brand);
-        html+=fs('Priority','priority',r.priority,['low','medium','high','critical']);
-        html+=fs('Status','status',r.status,['draft','pending','accepted','assigned','in_progress','completed','rejected','deferred']);
-        html+=fi('Requested At','requested_at',r.requested_at?String(r.requested_at).slice(0,16):'','datetime-local');
-        html+='</div>';
-        html+=fr('Client Name','client_name',r.client_name);
-        html+=fr('Client Email','client_email',r.client_email);
-        html+=fr('Client Division','client_division',r.client_division);
-        html+=fu('Update Client User','user_id',r.user_id,res.clientUsers);
-        html+=ft('Remarks','remarks',r.remarks);
-        html+=ft('Description','description',r.description);
-        html+=ft('About Project','about_project',r.about_project);
-        $('#editModalBody').html(html);
-        $('#confirmEditBtn').off('click').on('click',function(){ submitEdit(type,id); });
-    }).fail(function(){ $('#editModalBody').html('<div style="color:#f43f5e;">Failed to load data.</div>'); });
-}
-function closeEditModal(){ $('#editModal').hide(); }
-function submitEdit(type,id){
-    var payload={};
-    $('#editModalBody input,#editModalBody select,#editModalBody textarea').each(function(){ payload[this.name]=this.value; });
-    $('#confirmEditBtn').prop('disabled',true).html('<i class="bi bi-arrow-repeat"></i> Saving...');
-    $.ajax({
-        url:getApiBase()+'datatable/admin/edit/'+type+'/'+id,
-        method:'PUT', contentType:'application/json',
-        data:JSON.stringify(payload),
-        success:function(){ closeEditModal(); location.reload(); },
-        error:function(xhr){ $('#confirmEditBtn').prop('disabled',false).html('<i class="bi bi-check-lg"></i> Save Changes'); alert((xhr.responseJSON && xhr.responseJSON.error) || 'Update failed. Please try again.'); }
-    });
-}
-
-function openDeleteModal(type, id){
-    $('#deleteModalBody').html('<div style="color:#94a3b8;padding:20px;text-align:center;"><i class="bi bi-arrow-repeat"></i> Loading preview...</div>');
-    $('#deleteModal').css('display','flex');
-    $.getJSON(getApiBase()+'datatable/admin/delete/preview/'+type+'/'+id, function(res){
-        var p=res.preview, r=p.record, html='';
-        html+='<div style="background:#be123c11;border:1px solid #be123c33;border-radius:8px;padding:12px 16px;margin-bottom:14px;">';
-        html+='<div style="color:#f43f5e;font-weight:600;margin-bottom:6px;"><i class="bi bi-people"></i> Client request to be deleted</div>';
-        html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;">';
-        html+='<div><span style="color:#64748b;">ID:</span> <span style="color:#e2e8f0;">'+r.id+'</span></div>';
-        html+='<div><span style="color:#64748b;">Project:</span> <span style="color:#e2e8f0;">'+(r.project_name||'N/A')+'</span></div>';
-        html+='<div><span style="color:#64748b;">Client:</span> <span style="color:#e2e8f0;">'+(r.client_name||'N/A')+'</span></div>';
-        html+='<div><span style="color:#64748b;">Division:</span> <span style="color:#e2e8f0;">'+(r.client_division||'N/A')+'</span></div>';
-        html+='</div></div>';
-        if(p.tasks && p.tasks.length){
-            html+='<div style="color:#f59e0b;font-size:12px;font-weight:600;margin-bottom:8px;"><i class="bi bi-exclamation-triangle"></i> '+p.tasks.length+' linked task(s) will also be deleted:</div>';
-            html+='<div style="max-height:200px;overflow-y:auto;">';
-            p.tasks.forEach(function(t){
-                html+='<div style="background:#1a2035;border:1px solid #2d3548;border-radius:6px;padding:8px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">';
-                html+='<span style="color:#cbd5e1;"><i class="bi bi-check2-square" style="color:#6366f1;"></i> '+(t.task_name||'Unnamed Task')+'</span>';
-                html+='<span style="color:#64748b;font-size:11px;">'+t.issue_count+' change(s)</span>';
-                html+='</div>';
-            });
-            html+='</div>';
-        } else {
-            html+='<div style="color:#22c55e;font-size:12px;"><i class="bi bi-check-circle"></i> No tasks linked to this client request.</div>';
-        }
-        $('#deleteModalBody').html(html);
-        $('#confirmDeleteBtn').off('click').on('click',function(){ confirmDelete(type,id); });
-    }).fail(function(){ $('#deleteModalBody').html('<div style="color:#f43f5e;">Failed to load preview.</div>'); });
-}
-function closeDeleteModal(){ $('#deleteModal').hide(); }
-function confirmDelete(type,id){
-    $('#confirmDeleteBtn').prop('disabled',true).html('<i class="bi bi-arrow-repeat"></i> Deleting...');
-    $.ajax({ url:getApiBase()+'datatable/admin/delete/'+type+'/'+id, method:'DELETE',
-        success:function(){ closeDeleteModal(); location.reload(); },
-        error:function(){ $('#confirmDeleteBtn').prop('disabled',false).html('<i class="bi bi-trash3"></i> Yes, Delete'); alert('Delete failed. Please try again.'); }
-    });
-}
+});
 </script>
 </body>
 </html>
