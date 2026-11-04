@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', function () {
         id: 'tasks', version: 4, title: 'Tasks', icon: 'check2-square',
         endpoint: 'taskdetails/data', exportName: 'tasks', pinned: 3,
         searchPlaceholder: 'Search task, type, client, status or request ID…',
-        quick: ['task_status', 'task_type_name', 'task_manager_vertical', 'assigned_creative_user', 'task_deadline'],
+        quick: ['task_status', 'task_type_name', 'task_manager_vertical', 'assigned_creative_user', 'fy', 'task_deadline'],
         kpis: [
             { label: 'Total tasks', icon: 'check2-square', tone: 'brand', value: s => s.work_pages, hint: s => `${D.fmt.num(s.total)} tasks · ${D.fmt.num(s.projects)} projects` },
             { label: 'Completed', icon: 'check-circle', tone: 'success', value: s => s.completed_work_pages, hint: s => `${D.fmt.pct(s.completed_work_pages, s.work_pages)} of ${D.fmt.num(s.work_pages)}`, filter: { key: 'task_status', values: ['completed'] } }
@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', function () {
             C('cm_change_requested_counter', 'CM Change Requested Counter', 'number'),
             C('change_version', 'Change Version', 'text'),
             C('month', 'Month', 'text'),
-            C('fy', 'Financial Year', 'text'),
+            C('fy', 'Financial Year', 'text', { filter: 'select', options: 'deadline_financial_years' }),
             // costs last: task work, all its changes, and the two together
             C('task_cost', 'Task Cost', 'money', { adminOnly: true }),
             C('change_cost', 'Change Cost', 'money', { adminOnly: true }),

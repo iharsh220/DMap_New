@@ -3099,7 +3099,8 @@ const getTaskDetailsData = async (req, res) => {
             "task_ai": "CAST(COALESCE(t.no_of_images_videos_audio, 0) AS CHAR)",
             "task_shoot_setup": "CAST(COALESCE(t.shoot_setup, 0) AS CHAR)",
             "month": "MONTH(t.end_date)",
-            "fy": "(CASE WHEN MONTH(t.end_date) >= 4 THEN CONCAT(YEAR(t.end_date),'-',RIGHT(YEAR(t.end_date)+1,2)) ELSE CONCAT(YEAR(t.end_date)-1,'-',RIGHT(YEAR(t.end_date),2)) END)"
+            // Financial year of the task deadline (same text as the fy column, e.g. "FY 2026-27")
+            "fy": "COALESCE(CASE WHEN MONTH(t.deadline) >= 4 THEN CONCAT('FY ', YEAR(t.deadline), '-', RIGHT(YEAR(t.deadline) + 1, 2)) ELSE CONCAT('FY ', YEAR(t.deadline) - 1, '-', RIGHT(YEAR(t.deadline), 2)) END, '00')"
         };
 
         if (searchTerm) {
@@ -4107,31 +4108,31 @@ const getTaskDetailsData = async (req, res) => {
 
 
                 /* ==========================================
-                   FINANCIAL YEAR
+                   FINANCIAL YEAR (of the deadline, April-March)
                    ========================================== */
 
                 COALESCE(
 
                     CASE
 
-                        WHEN MONTH(t.end_date) >= 4
+                        WHEN MONTH(t.deadline) >= 4
 
                         THEN CONCAT(
                             'FY ',
-                            YEAR(t.end_date),
+                            YEAR(t.deadline),
                             '-',
                             RIGHT(
-                                YEAR(t.end_date) + 1,
+                                YEAR(t.deadline) + 1,
                                 2
                             )
                         )
 
                         ELSE CONCAT(
                             'FY ',
-                            YEAR(t.end_date) - 1,
+                            YEAR(t.deadline) - 1,
                             '-',
                             RIGHT(
-                                YEAR(t.end_date),
+                                YEAR(t.deadline),
                                 2
                             )
                         )
@@ -4380,7 +4381,9 @@ const getIssueDetailsData = async (req, res) => {
             "issue_no_of_responsive_screen": "CAST(COALESCE(ia.responsive_screen, 0) AS CHAR)",
             "issue_resize_work": "CAST(COALESCE(ia.resize_work, 0) AS CHAR)",
             "issue_ai": "CAST(COALESCE(ia.no_of_images_videos_audio, 0) AS CHAR)",
-            "issue_shoot_setup": "CAST(COALESCE(ia.shoot_setup, 0) AS CHAR)"
+            "issue_shoot_setup": "CAST(COALESCE(ia.shoot_setup, 0) AS CHAR)",
+            // Financial year of the change deadline (same text as the fy column, e.g. "FY 2026-27")
+            "fy": "COALESCE(CASE WHEN MONTH(ia.deadline) >= 4 THEN CONCAT('FY ', YEAR(ia.deadline), '-', RIGHT(YEAR(ia.deadline) + 1, 2)) ELSE CONCAT('FY ', YEAR(ia.deadline) - 1, '-', RIGHT(YEAR(ia.deadline), 2)) END, '00')"
         };
 
         if (searchTerm) {
@@ -5134,29 +5137,29 @@ const getIssueDetailsData = async (req, res) => {
                 ) AS month,
 
                 /* =====================================================
-                   FINANCIAL YEAR
+                   FINANCIAL YEAR (of the deadline, April-March)
                    ===================================================== */
 
                 COALESCE(
                     CASE
-                        WHEN MONTH(t.end_date) >= 4
+                        WHEN MONTH(ia.deadline) >= 4
 
                         THEN CONCAT(
                             'FY ',
-                            YEAR(t.end_date),
+                            YEAR(ia.deadline),
                             '-',
                             RIGHT(
-                                YEAR(t.end_date) + 1,
+                                YEAR(ia.deadline) + 1,
                                 2
                             )
                         )
 
                         ELSE CONCAT(
                             'FY ',
-                            YEAR(t.end_date) - 1,
+                            YEAR(ia.deadline) - 1,
                             '-',
                             RIGHT(
-                                YEAR(t.end_date),
+                                YEAR(ia.deadline),
                                 2
                             )
                         )
@@ -7295,7 +7298,8 @@ const deleteMasterCard = async (req, res) => {
 const getFilterOptions = async (req, res) => {
     try {
         const list = (sql) => sequelize.query(sql, { type: sequelize.QueryTypes.SELECT }).then(rows => rows.map(row => row.v));
-        const [requestTypes, projectTypes, taskTypes, divisions, digilabsVerticals, financialYears, creativeTeam, managers, clients] = await Promise.all([
+        const fyOf = col => `CONCAT('FY ', YEAR(${col}) - (MONTH(${col}) < 4), '-', RIGHT(YEAR(${col}) - (MONTH(${col}) < 4) + 1, 2))`;
+        const [requestTypes, projectTypes, taskTypes, divisions, digilabsVerticals, financialYears, creativeTeam, managers, clients, deadlineFinancialYears] = await Promise.all([
             list("SELECT DISTINCT request_type AS v FROM request_type WHERE request_type IS NOT NULL AND request_type <> '' ORDER BY v"),
             list("SELECT DISTINCT project_type AS v FROM project_type WHERE project_type IS NOT NULL AND project_type <> '' ORDER BY v"),
             list("SELECT DISTINCT task_type AS v FROM task_type WHERE task_type IS NOT NULL AND task_type <> '' ORDER BY v"),
@@ -7305,7 +7309,13 @@ const getFilterOptions = async (req, res) => {
             list("SELECT DISTINCT financial_year AS v FROM master_card WHERE financial_year IS NOT NULL AND financial_year <> '' ORDER BY v"),
             list("SELECT DISTINCT name AS v FROM users WHERE job_role_id IN (2, 3, 4) AND name IS NOT NULL ORDER BY v"),
             list("SELECT DISTINCT name AS v FROM users WHERE job_role_id IN (1, 2, 3) AND name IS NOT NULL ORDER BY v"),
-            list("SELECT DISTINCT u.name AS v FROM work_requests wr JOIN users u ON u.id = wr.user_id WHERE wr.is_deleted = 0 AND u.name IS NOT NULL ORDER BY v")
+            list("SELECT DISTINCT u.name AS v FROM work_requests wr JOIN users u ON u.id = wr.user_id WHERE wr.is_deleted = 0 AND u.name IS NOT NULL ORDER BY v"),
+            // Financial years (April-March) of task and change deadlines, for the Tasks / Changes "fy" filter
+            list(`SELECT v FROM (
+                SELECT DISTINCT ${fyOf('deadline')} AS v FROM tasks WHERE is_deleted = 0 AND deadline IS NOT NULL
+                UNION
+                SELECT DISTINCT ${fyOf('deadline')} AS v FROM issue_assignments WHERE is_deleted = 0 AND deadline IS NOT NULL
+            ) fy ORDER BY v DESC`)
         ]);
         res.json({
             success: true,
@@ -7316,6 +7326,7 @@ const getFilterOptions = async (req, res) => {
                 divisions,
                 digilabs_verticals: digilabsVerticals,
                 financial_years: financialYears,
+                deadline_financial_years: deadlineFinancialYears,
                 creative_team: creativeTeam,
                 managers,
                 clients,
