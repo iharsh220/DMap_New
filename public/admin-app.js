@@ -567,7 +567,7 @@
             { label: 'Last 30 days', from: ago(29), to: today },
             { label: 'Last 90 days', from: ago(89), to: today },
             { label: 'This month', from: isoDay(new Date(t.getFullYear(), t.getMonth(), 1)), to: today },
-            { label: 'This FY', from: `${fyStart}-04-01`, to: today },
+            { label: 'This FY', from: `${fyStart}-04-01`, to: `${fyStart + 1}-03-31` },
             { label: 'Last FY', from: `${fyStart - 1}-04-01`, to: `${fyStart}-03-31` }
         ];
     };
