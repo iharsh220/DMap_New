@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { getAllSalesUsers, getAllDoctorsData, uploadSalesUsers, uploadDoctors } = require('../../controller/salesUserActivityController/salesUsersController');
 const { getAllActivities, createActivity, updateActivity, deleteActivity } = require('../../controller/salesUserActivityController/salesUsersActivityController');
-const { salesLogin, myActivities  } = require('../../controller/salesUserActivityController/authSalesUserController');
+const { salesLogin, myActivities, ssoCheck, openActivity } = require('../../controller/salesUserActivityController/authSalesUserController');
 
 const { authenticateToken } = require('../../middleware/jwtMiddleware');
 
@@ -22,5 +22,12 @@ router.get('/activities', authenticateToken, getAllActivities);
 router.post('/activities', authenticateToken, createActivity);
 router.put('/activity/:activity_id', authenticateToken, updateActivity);
 router.delete('/activity/:activity_id', authenticateToken, deleteActivity);
+
+
+// Activity single-sign-on
+router.get('/sso_check', ssoCheck);
+router.get('/open_activity', openActivity);
+
+
 
 module.exports = router;

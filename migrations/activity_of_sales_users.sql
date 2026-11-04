@@ -41,3 +41,18 @@ CREATE TABLE `activity` (
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_unicode_ci;
+
+
+
+CREATE TABLE `activity_access` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_type` ENUM('ho', 'sales') NOT NULL,
+    `user_identity_id` INT UNSIGNED NOT NULL,
+    `access_token` VARCHAR(255) NOT NULL,
+    `activity_access_link` TEXT NOT NULL,
+    `expired_status` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '0 = Active, 1 = Expired',
+    `expired_at` DATETIME DEFAULT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ 
+    INDEX `idx_user_identity` (`user_type`, `user_identity_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -47,10 +47,11 @@ const getAllActivities = async (req, res) => {
         });
     }
 };
-
+  
 
 const createActivity = async (req, res) => {
-    try {
+
+    try { 
 
         console.log(req.user.divisions[0].title);
 
