@@ -2252,6 +2252,13 @@ const getAdminData = async (req, res) => {
         // ---------------------------------------
 
         const outputKeys = selectAliases(query.slice(0, query.lastIndexOf('\n            FROM work_requests wr\n')));
+        // opened from the Overview: the same team / division / person scope as its cards
+        const overviewScope = await gridOverviewScope(req);
+        if (overviewScope && overviewScope.error) return res.status(overviewScope.status).json({ success: false, error: overviewScope.error });
+        if (overviewScope && overviewScope.sql) {
+            whereClauses.push(overviewScope.sql.wr);
+            Object.assign(replacements, overviewScope.replacements);
+        }
         const outerConditions = applyGridFilters({ filters: gridFilters, directMap: colSearchMap, outerKeys: outputKeys, whereClauses, replacements });
         const sort = resolveSort(req.query, outputKeys);
         const orderByClause = sort ? `${orderSql(sort)}, wr.id DESC` : 'wr.created_at DESC';
@@ -4174,6 +4181,13 @@ const getTaskDetailsData = async (req, res) => {
 
         const outputKeys = selectAliases(selectSql);
         if (!isAdmin) TASK_COST_KEYS.forEach(key => outputKeys.delete(key));
+        // opened from the Overview: the same team / division / person scope as its cards
+        const overviewScope = await gridOverviewScope(req);
+        if (overviewScope && overviewScope.error) return res.status(overviewScope.status).json({ success: false, error: overviewScope.error });
+        if (overviewScope && overviewScope.sql) {
+            whereClauses.push(overviewScope.sql.task);
+            Object.assign(replacements, overviewScope.replacements);
+        }
         const outerConditions = applyGridFilters({ filters: gridFilters, directMap: colSearchMap, outerKeys: outputKeys, whereClauses, replacements });
 
 
@@ -5202,6 +5216,13 @@ const getIssueDetailsData = async (req, res) => {
         // full select. Any output column can be sorted; cost columns stay admin-only.
         const outputKeys = selectAliases(query.slice(0, query.lastIndexOf('\n            FROM issue_assignments ia\n')));
         if (!isAdmin) ISSUE_COST_KEYS.forEach(key => outputKeys.delete(key));
+        // opened from the Overview: the same team / division / person scope as its cards
+        const overviewScope = await gridOverviewScope(req);
+        if (overviewScope && overviewScope.error) return res.status(overviewScope.status).json({ success: false, error: overviewScope.error });
+        if (overviewScope && overviewScope.sql) {
+            whereClauses.push(overviewScope.sql.issue);
+            Object.assign(replacements, overviewScope.replacements);
+        }
         const outerConditions = applyGridFilters({ filters: gridFilters, directMap: colSearchMap, outerKeys: outputKeys, whereClauses, replacements });
         const sort = resolveSort(req.query, outputKeys);
         const orderByClause = sort ? `${orderSql(sort)}, ia.id DESC` : 'ia.id DESC';
@@ -7351,13 +7372,15 @@ const getFilterOptions = async (req, res) => {
 // their team (everyone sharing one of their divisions, the same team as `my-team`).
 // ?division_id= narrows to one division's people and ?user_id= to one person, both only
 // within what the caller may see. `people` is null when nothing narrows the admin's view.
-async function resolveOverviewScope(req) {
+// `team` is the pool whose work counts for `people`: the people themselves, plus (for one
+// person) everyone sharing one of that person's divisions. `params` defaults to req.query.
+async function resolveOverviewScope(req, params = req.query) {
     const select = (sql, replacements) => sequelize.query(sql, { replacements, type: sequelize.QueryTypes.SELECT });
     const me = req.user.id;
     const isAdmin = req.user.jobRole && req.user.jobRole.id === 1;
-    const divisionId = req.query.division_id ? parseId(req.query.division_id) : null;
-    const userId = req.query.user_id ? parseId(req.query.user_id) : null;
-    if ((req.query.division_id && !divisionId) || (req.query.user_id && !userId)) {
+    const divisionId = params.division_id ? parseId(params.division_id) : null;
+    const userId = params.user_id ? parseId(params.user_id) : null;
+    if ((params.division_id && !divisionId) || (params.user_id && !userId)) {
         return { status: 400, error: 'Invalid division_id or user_id' };
     }
 
@@ -7379,11 +7402,66 @@ async function resolveOverviewScope(req) {
 
     let people = isAdmin ? null : roster.map(u => u.id);
     if (divisionId) people = roster.filter(u => u.division_ids.includes(divisionId)).map(u => u.id);
-    if (userId) people = [userId];
+    let team = people;
+    if (userId) {
+        people = [userId];
+        if (!divisionId) {
+            const own = (roster.find(u => u.id === userId) || {}).division_ids || [];
+            team = roster.filter(u => u.id === userId || u.division_ids.some(id => own.includes(id))).map(u => u.id);
+        }
+    }
     // a division with no members: keep the IN list valid and match nobody
     if (people && !people.length) people = [0];
+    if (team && !team.length) team = [0];
 
-    return { isAdmin, me, divisionId, userId, divisions, roster, people };
+    return { isAdmin, me, divisionId, userId, divisions, roster, people, team };
+}
+
+// SQL conditions (no leading AND) that limit work requests (alias wr), tasks (t), changes (ia)
+// and feedback (f) to an Overview scope; null when the scope is everything. Uses the
+// replacements :scopePeople and :scopeTeam (scopeReplacements). The work counts for the people
+// when it is assigned to them or raised by them; work on a request they manage counts only when
+// it is not assigned yet or assigned to someone in their team, so a manager's requests do not
+// pull in other verticals' tasks. A request without live tasks counts for its managers.
+function overviewScopeSql(scope) {
+    if (!scope || !scope.people) return null;
+    const assignedTask = (taskAlias, list) => `EXISTS (SELECT 1 FROM task_assignments s_ta WHERE s_ta.task_id = ${taskAlias}.id AND s_ta.user_id IN (${list}))`;
+    const assignedChange = (alias, list) => `EXISTS (SELECT 1 FROM issue_user_assignments s_iua WHERE s_iua.issue_assignment_id = ${alias}.id AND s_iua.user_id IN (${list}))`;
+    const managed = wrAlias => `EXISTS (SELECT 1 FROM work_request_managers s_wrm WHERE s_wrm.work_request_id = ${wrAlias}.id AND s_wrm.manager_id IN (:scopePeople))`;
+    const taskForTeam = taskAlias => `(${assignedTask(taskAlias, ':scopeTeam')} OR NOT EXISTS (SELECT 1 FROM task_assignments s_ta0 WHERE s_ta0.task_id = ${taskAlias}.id))`;
+    // raised by the people, or managed by them with `teamOk` (the item is the team's work)
+    const viaRequest = (taskAlias, teamOk) => `EXISTS (SELECT 1 FROM work_requests s_wr WHERE s_wr.id = ${taskAlias}.work_request_id
+            AND (s_wr.user_id IN (:scopePeople) OR (${managed('s_wr')} AND ${teamOk})))`;
+    const task = taskAlias => `(${assignedTask(taskAlias, ':scopePeople')} OR ${viaRequest(taskAlias, taskForTeam(taskAlias))})`;
+    const changeForTeam = `(${assignedChange('ia', ':scopeTeam')}
+            OR (NOT EXISTS (SELECT 1 FROM issue_user_assignments s_iua0 WHERE s_iua0.issue_assignment_id = ia.id) AND ${taskForTeam('s_it')}))`;
+    return {
+        wr: `(wr.user_id IN (:scopePeople)
+            OR EXISTS (SELECT 1 FROM tasks s_t WHERE s_t.work_request_id = wr.id AND s_t.is_deleted = 0 AND ${task('s_t')})
+            OR EXISTS (SELECT 1 FROM tasks s_t2 JOIN issue_assignments s_ia ON s_ia.task_id = s_t2.id AND s_ia.is_deleted = 0
+                WHERE s_t2.work_request_id = wr.id AND ${assignedChange('s_ia', ':scopePeople')})
+            OR (${managed('wr')} AND NOT EXISTS (SELECT 1 FROM tasks s_t3 WHERE s_t3.work_request_id = wr.id AND s_t3.is_deleted = 0)))`,
+        task: task('t'),
+        issue: `(${assignedChange('ia', ':scopePeople')}
+            OR ia.requested_by_user_id IN (:scopePeople)
+            OR EXISTS (SELECT 1 FROM tasks s_it WHERE s_it.id = ia.task_id
+                AND (${assignedTask('s_it', ':scopePeople')} OR ${viaRequest('s_it', changeForTeam)})))`,
+        feedback: `(f.user_id IN (:scopePeople) OR EXISTS (SELECT 1 FROM tasks s_ft WHERE s_ft.id = f.task_id AND ${task('s_ft')}))`
+    };
+}
+const scopeReplacements = scope => (scope && scope.people ? { scopePeople: scope.people, scopeTeam: scope.team || scope.people } : {});
+
+// Grid endpoints (projects, tasks, changes) opened from the Overview carry ?scope=
+// {"team":1} / {"division_id":n} / {"user_id":n}: the same scope as the overview card, so the
+// grid lists exactly what the card counted. Returns { error, status } | { sql } | null.
+async function gridOverviewScope(req) {
+    if (!req.query.scope) return null;
+    let params;
+    try { params = JSON.parse(req.query.scope); } catch (e) { params = null; }
+    if (!params || typeof params !== 'object' || Array.isArray(params)) return { status: 400, error: 'Invalid scope' };
+    const scope = await resolveOverviewScope(req, { division_id: params.division_id, user_id: params.user_id });
+    if (scope.error) return scope;
+    return { sql: overviewScopeSql(scope), replacements: scopeReplacements(scope) };
 }
 
 // Cross-entity KPIs, trends and per-person totals for the admin Overview page, limited to the
@@ -7399,27 +7477,17 @@ const getOverviewData = async (req, res) => {
         const isDate = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
         const from = isDate(req.query.from) ? req.query.from : null;
         const to = isDate(req.query.to) ? req.query.to : null;
-        const replacements = { from, to, people };
+        const replacements = Object.assign({ from, to }, scopeReplacements(scope));
         const range = column => [from ? `${column} >= :from` : null, to ? `${column} < DATE_ADD(:to, INTERVAL 1 DAY)` : null].filter(Boolean).map(c => ` AND ${c}`).join('');
         const select = (sql) => sequelize.query(sql, { replacements, type: sequelize.QueryTypes.SELECT });
         const counts = (column, statuses) => Object.entries(statusCountSql(column, statuses)).map(([key, sql]) => `${sql} AS ${key}`).join(', ');
 
-        // A work request is in scope when someone in `people` raised it, manages it, or was
-        // assigned one of its tasks or changes. A task when it is assigned to them or its request
-        // was raised / managed by them; a change when it is assigned to them, they raised it, or
-        // its task is in scope. Aliases: wr, t, ia, f.
-        const managedOrRaised = alias => `(${alias}.user_id IN (:people) OR EXISTS (SELECT 1 FROM work_request_managers s_wrm WHERE s_wrm.work_request_id = ${alias}.id AND s_wrm.manager_id IN (:people)))`;
-        const taskScopeCond = `(EXISTS (SELECT 1 FROM task_assignments s_ta WHERE s_ta.task_id = t.id AND s_ta.user_id IN (:people))
-            OR EXISTS (SELECT 1 FROM work_requests s_wr WHERE s_wr.id = t.work_request_id AND ${managedOrRaised('s_wr')}))`;
-        const wrScope = people ? ` AND (${managedOrRaised('wr')}
-            OR EXISTS (SELECT 1 FROM tasks s_t JOIN task_assignments s_ta ON s_ta.task_id = s_t.id WHERE s_t.work_request_id = wr.id AND s_t.is_deleted = 0 AND s_ta.user_id IN (:people))
-            OR EXISTS (SELECT 1 FROM tasks s_t JOIN issue_assignments s_ia ON s_ia.task_id = s_t.id AND s_ia.is_deleted = 0
-                JOIN issue_user_assignments s_iua ON s_iua.issue_assignment_id = s_ia.id WHERE s_t.work_request_id = wr.id AND s_iua.user_id IN (:people)))` : '';
-        const taskScope = people ? ` AND ${taskScopeCond}` : '';
-        const issueScope = people ? ` AND (EXISTS (SELECT 1 FROM issue_user_assignments s_iua WHERE s_iua.issue_assignment_id = ia.id AND s_iua.user_id IN (:people))
-            OR ia.requested_by_user_id IN (:people)
-            OR EXISTS (SELECT 1 FROM tasks t WHERE t.id = ia.task_id AND ${taskScopeCond}))` : '';
-        const feedbackScope = people ? ` AND (f.user_id IN (:people) OR EXISTS (SELECT 1 FROM tasks t WHERE t.id = f.task_id AND ${taskScopeCond}))` : '';
+        // Scope rules: see overviewScopeSql. Aliases: wr, t, ia, f.
+        const scopeSql = overviewScopeSql(scope);
+        const wrScope = scopeSql ? ` AND ${scopeSql.wr}` : '';
+        const taskScope = scopeSql ? ` AND ${scopeSql.task}` : '';
+        const issueScope = scopeSql ? ` AND ${scopeSql.issue}` : '';
+        const feedbackScope = scopeSql ? ` AND ${scopeSql.feedback}` : '';
 
         const openTask = "t.status NOT IN ('completed', 'cancelled', 'rejected', 'draft')";
         const openIssue = "ia.status NOT IN ('completed', 'cancelled', 'rejected')";
@@ -7475,7 +7543,7 @@ const getOverviewData = async (req, res) => {
                 JOIN tasks t ON t.id = ta.task_id AND t.is_deleted = 0
                 JOIN users u ON u.id = ta.user_id
                 LEFT JOIN job_role jr ON jr.id = u.job_role_id
-                WHERE 1 = 1${range('t.created_at')}${people ? ' AND ta.user_id IN (:people)' : ''}
+                WHERE 1 = 1${range('t.created_at')}${people ? ' AND ta.user_id IN (:scopePeople)' : ''}
                 GROUP BY u.id, u.name, jr.role_title
                 ORDER BY open_tasks DESC, completed DESC LIMIT 10`),
             select(`SELECT u.name,
@@ -7485,6 +7553,8 @@ const getOverviewData = async (req, res) => {
                 FROM work_requests wr JOIN users u ON u.id = wr.user_id
                 WHERE wr.is_deleted = 0${range('wr.created_at')}${wrScope}
                 GROUP BY u.id, u.name ORDER BY requests DESC LIMIT 10`),
+            // Everyone in a team / division / person scope is listed (inactive users too, flagged
+            // `active: false`); the unscoped admin view lists only people with any activity.
             // One row per person: what they raised, managed and were assigned (each item by its own
             // created_at). DISTINCT on the assignment tables so a duplicate row never double counts.
             select(`SELECT u.id, u.name, jr.role_title AS role, u.job_role_id, u.account_status,
@@ -7536,8 +7606,8 @@ const getOverviewData = async (req, res) => {
                     JOIN issue_assignments ia ON ia.id = iua.issue_assignment_id AND ia.is_deleted = 0
                     WHERE 1 = 1${range('ia.created_at')} GROUP BY iua.user_id
                 ) ch ON ch.user_id = u.id
-                WHERE u.name IS NOT NULL AND ${people ? 'u.id IN (:people)' : '1 = 1'}
-                  AND (${people && !scope.isAdmin ? "u.account_status = 'active' OR " : ''}COALESCE(p.projects, 0) + COALESCE(tk.tasks, 0) + COALESCE(ch.changes, 0) > 0)
+                WHERE u.name IS NOT NULL AND ${people ? 'u.id IN (:scopePeople)' : '1 = 1'}
+                  ${people ? '' : 'AND COALESCE(p.projects, 0) + COALESCE(tk.tasks, 0) + COALESCE(ch.changes, 0) > 0'}
                 ORDER BY projects DESC, tasks DESC, u.name`)
         ]);
 

@@ -656,6 +656,8 @@ html[data-theme="dark"] .dm-toast { background: #2a2d38; color: var(--text-1); }
 .dm-ptable .dm-pname small { display: block; font-size: 11.5px; color: var(--text-3); }
 .dm-ptable tfoot td { font-weight: 700; border-top: 1px solid var(--border-strong); border-bottom: 0; position: sticky; bottom: 0; background: var(--surface); }
 .dm-tag { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 10.5px; font-weight: 650; background: var(--brand-soft); color: var(--brand); margin-left: 6px; vertical-align: 1px; }
+.dm-tag.is-inactive { background: var(--danger-bg); color: var(--danger); }
+.dm-ptable tr.is-inactive .dm-avatar { opacity: .55; }
 @media (max-width: 960px) {
     .dm-person { grid-template-columns: 1fr; }
     .dm-person-id { border-right: 0; padding-right: 0; border-bottom: 1px solid var(--border); padding-bottom: 16px; }

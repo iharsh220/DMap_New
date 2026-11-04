@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const grid = D.grid(body, {
         id: 'changes', version: 4, title: 'Changes', icon: 'arrow-repeat',
-        endpoint: 'issuedetails/data', exportName: 'changes', pinned: 4,
+        endpoint: 'issuedetails/data', exportName: 'changes', pinned: 4, scopeable: true,
         searchPlaceholder: 'Search task, type, client, status or request ID…',
         quick: ['issue_status', 'task_type_name', 'task_manager_vertical', 'assigned_creative_user', 'fy', 'issue_deadline'],
         kpis: [

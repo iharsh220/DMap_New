@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     D.grid(body, {
         id: 'projects', version: 4, title: 'Projects', icon: 'folder2-open',
-        endpoint: 'projectsdetails/data', exportName: 'projects', pinned: 2,
+        endpoint: 'projectsdetails/data', exportName: 'projects', pinned: 2, scopeable: true,
         searchPlaceholder: 'Search project, vertical, type, client, brand or ID…',
         quick: ['project_request_status', 'request_type_name', 'project_priority', 'project_request_timestamp'],
         kpis: [

@@ -866,7 +866,9 @@
             limit: hash.l > 0 ? hash.l : (cfg.pageSize || 25),
             search: hash.q || '',
             sort: hash.o ? { key: hash.o[0], dir: hash.o[1] } : (cfg.defaultSort || null),
-            filters: hash.f || {}
+            filters: hash.f || {},
+            // team / division / person scope of an Overview card ({ team | division_id | user_id, label })
+            scope: cfg.scopeable && hash.sc && typeof hash.sc === 'object' ? hash.sc : null
         };
         this.summary = null;
         this.rows = [];
@@ -1021,6 +1023,7 @@ ${cfg.statusBar ? '<div class="dm-card dm-statusbar" data-status></div>' : ''}
 
     Grid.prototype.renderChips = function () {
         const chips = [];
+        if (this.state.scope) chips.push({ label: this.state.scope.user_id ? 'Person' : 'Team', value: String(this.state.scope.label || (this.state.scope.user_id ? 'Selected person' : 'Your team')), clear: () => { this.state.scope = null; } });
         if (this.state.search) chips.push({ label: 'Search', value: this.state.search, clear: () => { this.state.search = ''; const i = this.el.search.querySelector('input'); i.value = ''; this.el.search.classList.remove('has-value'); } });
         Object.keys(this.state.filters).forEach(key => {
             const col = this.byKey[key];
@@ -1059,6 +1062,7 @@ ${cfg.statusBar ? '<div class="dm-card dm-statusbar" data-status></div>' : ''}
 
     Grid.prototype.clearAll = function () {
         this.state.filters = {};
+        this.state.scope = null;
         this.state.search = '';
         this.state.page = 1;
         const i = this.el.search.querySelector('input');
@@ -1173,6 +1177,10 @@ ${cfg.statusBar ? '<div class="dm-card dm-statusbar" data-status></div>' : ''}
         if (Object.keys(searches).length) p.set('col_searches', JSON.stringify(searches));
         if (Object.keys(exact).length) p.set('col_exact', JSON.stringify(exact));
         if (Object.keys(ranges).length) p.set('col_ranges', JSON.stringify(ranges));
+        if (this.state.scope) {
+            const sc = this.state.scope;
+            p.set('scope', JSON.stringify(sc.user_id ? { user_id: sc.user_id, division_id: sc.division_id || undefined } : sc.division_id ? { division_id: sc.division_id } : { team: 1 }));
+        }
         Object.entries(this.cfg.params || {}).forEach(([k, v]) => p.set(k, v));
         return p;
     };
@@ -1184,6 +1192,7 @@ ${cfg.statusBar ? '<div class="dm-card dm-statusbar" data-status></div>' : ''}
         if (this.state.search) s.q = this.state.search;
         if (this.state.sort && JSON.stringify(this.state.sort) !== JSON.stringify(this.cfg.defaultSort || null)) s.o = [this.state.sort.key, this.state.sort.dir];
         if (Object.keys(this.state.filters).length) s.f = this.state.filters;
+        if (this.state.scope) s.sc = this.state.scope;
         const hash = Object.keys(s).length ? '#s=' + encodeURIComponent(JSON.stringify(s)) : '';
         if (window.location.hash !== hash) history.replaceState(null, '', window.location.pathname + window.location.search + hash);
     };
@@ -1273,7 +1282,7 @@ ${cfg.statusBar ? '<div class="dm-card dm-statusbar" data-status></div>' : ''}
         }
         if (!this.rows.length) {
             this.el.tbody.innerHTML = '';
-            const filtered = this.state.search || Object.keys(this.state.filters).length;
+            const filtered = this.state.search || this.state.scope || Object.keys(this.state.filters).length;
             this.el.state.innerHTML = `<div class="dm-state"><i class="bi bi-${filtered ? 'funnel' : 'inbox'}"></i><h4>${filtered ? 'No records match these filters' : 'No records yet'}</h4><p>${filtered ? 'Try removing a filter or searching for something else.' : 'Records will appear here as soon as they are created.'}</p>${filtered ? '<button class="dm-btn" type="button">Clear all filters</button>' : ''}</div>`;
             const b = this.el.state.querySelector('button');
             if (b) b.addEventListener('click', () => this.clearAll());

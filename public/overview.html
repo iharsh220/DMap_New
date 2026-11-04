@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', function () {
       <div class="dm-ptable-tools"><label class="dm-search"><i class="bi bi-search"></i><input type="search" placeholder="Search people…" aria-label="Search people" data-people-search></label><span data-people-export></span></div></div>
     <div class="dm-card-body"><div class="dm-ptable-wrap"><table class="dm-mini-table dm-ptable" data-people></table></div></div>
   </section>
-  <section class="dm-card dm-col-7" data-output-card><div class="dm-card-head"><div><h3 class="dm-card-title">Work output by person</h3><p class="dm-card-sub">Work pages and change pages · top 12 · click a name to drill in</p></div><div data-output-legend></div></div><div class="dm-card-body"><div data-output></div></div></section>
+  <section class="dm-card dm-col-7" data-output-card><div class="dm-card-head"><div><h3 class="dm-card-title">Work output by person</h3><p class="dm-card-sub">Task pages and change pages · top 12 · click a name to drill in</p></div><div data-output-legend></div></div><div class="dm-card-body"><div data-output></div></div></section>
   <section class="dm-card dm-col-5" data-flex-col><div class="dm-card-head"><div><h3 class="dm-card-title">Top task types</h3><p class="dm-card-sub">Tasks created in the period</p></div></div><div class="dm-card-body"><div data-tasktypes></div></div></section>
   <section class="dm-card dm-col-7" data-flex-col><div class="dm-card-head"><div><h3 class="dm-card-title">Demand by vertical</h3><p class="dm-card-sub">Work requests per requested vertical</p></div><div data-vertical-legend></div></div><div class="dm-card-body"><div data-verticals></div></div></section>
   <section class="dm-card dm-col-5" data-flex-col><div class="dm-card-head"><div><h3 class="dm-card-title">Top clients</h3><p class="dm-card-sub">Most work requests in the period</p></div></div><div class="dm-card-body" style="overflow-x:auto"><table class="dm-mini-table" data-clients></table></div></section>
@@ -93,8 +93,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Links into the grids with the same period (and the selected person) applied
     const rangeFilter = key => (period.from || period.to ? { [key]: { type: 'range', from: period.from || '', to: period.to || '' } } : {});
-    const link = (page, dateKey, filters) => D.gridLink(page, { f: Object.assign({}, rangeFilter(dateKey), filters || {}) });
-    const assigneeFilter = name => (name ? { assigned_creative_user: { type: 'contains', value: name, values: [name] } } : {});
+    // ...and the same team / division / person scope, so the grid lists exactly what a card counted
+    let linkScope = null;
+    const link = (page, dateKey, filters) => D.gridLink(page, Object.assign({ f: Object.assign({}, rangeFilter(dateKey), filters || {}) }, linkScope && page !== 'clients' && page !== 'feedback' ? { sc: linkScope } : {}));
+    function scopeForLinks(s) {
+        const person = s.user_id ? s.people.find(p => p.id === s.user_id) : null;
+        const divTitle = s.division_id ? (s.divisions.find(x => x.id === s.division_id) || {}).title : null;
+        if (person) return { user_id: person.id, division_id: s.division_id || undefined, label: person.name };
+        if (divTitle) return { division_id: s.division_id, label: divTitle };
+        if (s.mode !== 'all') return { team: 1, label: 'Your team (' + (s.divisions.map(x => x.title).join(', ') || 'no division') + ')' };
+        return null;
+    }
     const initials = name => String(name || '?').split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
     let current = null;
@@ -238,17 +247,18 @@ document.addEventListener('DOMContentLoaded', function () {
 </div>
 <div class="dm-person-stats" data-stats></div>`;
         host.querySelector('.dm-person-name').textContent = info.name + (info.id === s.me ? ' (you)' : '');
-        host.querySelector('[data-meta]').textContent = [info.role, info.active ? null : 'inactive'].filter(Boolean).join(' · ');
+        host.querySelector('[data-meta]').textContent = info.role || '';
+        if (!info.active) host.querySelector('.dm-person-name').insertAdjacentHTML('beforeend', '<span class="dm-tag is-inactive" title="This user account is inactive">Inactive</span>');
         host.querySelector('[data-divs]').innerHTML = divisions ? `<i class="bi bi-diagram-3"></i> ${esc(divisions)}` : '';
 
         const links = host.querySelector('[data-links]');
-        if (r.tasks) links.appendChild(D.button({ label: 'Their tasks', icon: 'check2-square', small: true, onClick: () => { window.location.href = link('taskdetails', 'task_created_at', assigneeFilter(info.name)); } }));
-        if (r.changes) links.appendChild(D.button({ label: 'Their changes', icon: 'arrow-repeat', small: true, onClick: () => { window.location.href = link('issuedetails', 'issue_created_at', assigneeFilter(info.name)); } }));
+        if (d.tasks.total) links.appendChild(D.button({ label: 'Their tasks', icon: 'check2-square', small: true, onClick: () => { window.location.href = link('taskdetails', 'task_created_at'); } }));
+        if (d.changes.total) links.appendChild(D.button({ label: 'Their changes', icon: 'arrow-repeat', small: true, onClick: () => { window.location.href = link('issuedetails', 'issue_created_at'); } }));
 
         const stats = [
             { icon: 'folder2-open', label: 'Projects', value: r.projects, sub: [r.requested ? `${fmt.num(r.requested)} raised` : null, r.managed ? `${fmt.num(r.managed)} managed` : null].filter(Boolean).join(' · ') || 'worked on' },
             { icon: 'check2-square', label: 'Tasks received', value: r.tasks, sub: `${fmt.num(r.tasks_completed)} done · ${fmt.num(r.open_tasks)} open` },
-            { icon: 'file-earmark-richtext', label: 'Work pages', value: r.work_pages, sub: r.tasks ? `${(r.work_pages / r.tasks).toFixed(1)} per task` : 'on assigned tasks' },
+            { icon: 'file-earmark-richtext', label: 'Task pages', value: r.work_pages, sub: r.tasks ? `${(r.work_pages / r.tasks).toFixed(1)} per task` : 'on assigned tasks' },
             { icon: 'arrow-repeat', label: 'Changes done', value: r.changes, sub: `${fmt.num(r.changes_completed)} done · ${fmt.num(r.open_changes)} open` },
             { icon: 'files', label: 'Change pages', value: r.change_pages, sub: r.changes ? `${(r.change_pages / r.changes).toFixed(1)} per change` : 'on assigned changes' },
             { icon: 'alarm', label: 'Overdue', value: r.overdue, sub: 'open tasks past deadline', tone: r.overdue ? 'danger' : null }
@@ -272,7 +282,7 @@ document.addEventListener('DOMContentLoaded', function () {
         { key: 'tasks_completed', label: 'Done' },
         { key: 'open_tasks', label: 'Open' },
         { key: 'overdue', label: 'Overdue' },
-        { key: 'work_pages', label: 'Work pages' },
+        { key: 'work_pages', label: 'Task pages' },
         { key: 'changes', label: 'Changes', title: 'Changes assigned' },
         { key: 'change_pages', label: 'Change pages' },
         { key: 'requested', label: 'Raised', title: 'Work requests raised' },
@@ -329,7 +339,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 }).join('');
             tr.querySelector('b').textContent = r.name;
             if (r.id === s.me) tr.querySelector('b').insertAdjacentHTML('beforeend', '<span class="dm-tag">you</span>');
-            tr.querySelector('small').textContent = [r.role, r.divisions, r.active ? null : 'inactive'].filter(Boolean).join(' · ');
+            if (!r.active) { tr.classList.add('is-inactive'); tr.querySelector('b').insertAdjacentHTML('beforeend', '<span class="dm-tag is-inactive" title="This user account is inactive">Inactive</span>'); }
+            tr.querySelector('small').textContent = [r.role, r.divisions].filter(Boolean).join(' · ');
             const open = () => setScope({ division_id: s.division_id, user_id: r.id });
             tr.addEventListener('click', open);
             tr.addEventListener('keydown', e => { if (e.key === 'Enter') open(); });
@@ -342,8 +353,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function render(d) {
         const wr = d.work_requests, t = d.tasks, ch = d.changes;
         const s = d.scope;
-        const person = s.user_id ? s.people.find(p => p.id === s.user_id) : null;
-        const who = person ? assigneeFilter(person.name) : {};
+        linkScope = scopeForLinks(s);
         const done = (wr.status_counts.completed || 0);
         const tDone = t.status_counts.completed || 0;
         const chDone = ch.status_counts.completed || 0;
@@ -353,13 +363,13 @@ document.addEventListener('DOMContentLoaded', function () {
         const kpis = q('[data-kpis]');
         kpis.innerHTML = '';
         kpi(kpis, { label: 'Projects', icon: 'folder2-open', tone: 'brand', value: fmt.num(wr.total), meter: wr.total ? done / wr.total : 0, hint: `${fmt.pct(done, wr.total)} completed`, href: link('projectsdetails', 'work_request_created_at') });
-        kpi(kpis, { label: 'Tasks', icon: 'check2-square', tone: 'info', value: fmt.num(t.total), meter: t.total ? tDone / t.total : 0, hint: `${fmt.pct(tDone, t.total)} completed`, href: link('taskdetails', 'task_created_at', who) });
-        kpi(kpis, { label: 'Work pages', icon: 'file-earmark-richtext', tone: 'success', value: fmt.num(t.work_pages), meter: t.work_pages ? t.completed_work_pages / t.work_pages : 0, hint: `${fmt.num(t.completed_work_pages)} on completed tasks`, title: 'Sum of work pages (task count) on the tasks in view' });
-        kpi(kpis, { label: 'Changes', icon: 'arrow-repeat', tone: 'accent', value: fmt.num(ch.total), meter: ch.total ? chDone / ch.total : 0, hint: t.total ? `${(ch.total / Math.max(1, t.total)).toFixed(2)} per task · on ${fmt.num(ch.tasks_with_changes)} tasks` : '', title: person ? 'Changes assigned to them, raised by them or on their tasks' : 'Changes on the work in view', href: link('issuedetails', 'issue_created_at', who) });
-        kpi(kpis, { label: 'Change pages', icon: 'files', tone: 'warning', value: fmt.num(ch.change_pages), meter: ch.change_pages ? ch.completed_change_pages / ch.change_pages : 0, hint: `${fmt.num(ch.completed_change_pages)} on completed changes`, title: 'Sum of change pages on the changes in view' });
-        kpi(kpis, { label: 'Overdue tasks', icon: 'alarm', tone: 'danger', value: fmt.num(t.overdue), hint: 'Open past the deadline', href: D.gridLink('taskdetails', { f: Object.assign(rangeFilter('task_created_at'), who, { task_deadline: { type: 'range', from: '', to: D.isoDay(new Date(Date.now() - 864e5)) }, task_status: { type: 'exact', values: OPEN_TASK } }) }) });
-        kpi(kpis, { label: 'Due in 7 days', icon: 'calendar-week', tone: 'warning', value: fmt.num(t.due_7_days), hint: 'Open tasks with a deadline this week', href: D.gridLink('taskdetails', { f: Object.assign(rangeFilter('task_created_at'), who, { task_deadline: { type: 'range', from: D.isoDay(new Date()), to: D.isoDay(new Date(Date.now() + 7 * 864e5)) }, task_status: { type: 'exact', values: OPEN_TASK } }) }) });
+        kpi(kpis, { label: 'Overdue tasks', icon: 'alarm', tone: 'danger', value: fmt.num(t.overdue), hint: 'Open past the deadline', href: D.gridLink('taskdetails', Object.assign(linkScope ? { sc: linkScope } : {}, { f: Object.assign(rangeFilter('task_created_at'), { task_deadline: { type: 'range', from: '', to: D.isoDay(new Date(Date.now() - 864e5)) }, task_status: { type: 'exact', values: OPEN_TASK } }) })) });
+        kpi(kpis, { label: 'Due in 7 days', icon: 'calendar-week', tone: 'warning', value: fmt.num(t.due_7_days), hint: 'Open tasks with a deadline this week', href: D.gridLink('taskdetails', Object.assign(linkScope ? { sc: linkScope } : {}, { f: Object.assign(rangeFilter('task_created_at'), { task_deadline: { type: 'range', from: D.isoDay(new Date()), to: D.isoDay(new Date(Date.now() + 7 * 864e5)) }, task_status: { type: 'exact', values: OPEN_TASK } }) })) });
         kpi(kpis, { label: 'Client NPS', icon: 'emoji-smile', tone: 'success', value: d.feedback.nps === null ? '—' : (d.feedback.nps > 0 ? '+' : '') + d.feedback.nps, hint: `${fmt.num(d.feedback.total)} responses · ${d.feedback.timeliness ?? '—'}/5 timeliness`, href: D.canOpenPage('feedback') ? link('feedback', 'created_at') : undefined });
+        kpi(kpis, { label: 'Tasks', icon: 'check2-square', tone: 'info', value: fmt.num(t.total), meter: t.total ? tDone / t.total : 0, hint: `${fmt.pct(tDone, t.total)} completed`, href: link('taskdetails', 'task_created_at') });
+        kpi(kpis, { label: 'Task pages', icon: 'file-earmark-richtext', tone: 'success', value: fmt.num(t.work_pages), meter: t.work_pages ? t.completed_work_pages / t.work_pages : 0, hint: `${fmt.num(t.completed_work_pages)} on completed tasks`, title: 'Sum of task pages (task count) on the tasks in view' });
+        kpi(kpis, { label: 'Changes', icon: 'arrow-repeat', tone: 'accent', value: fmt.num(ch.total), meter: ch.total ? chDone / ch.total : 0, hint: t.total ? `${(ch.total / Math.max(1, t.total)).toFixed(2)} per task · on ${fmt.num(ch.tasks_with_changes)} tasks` : '', title: 'Changes on the work in view', href: link('issuedetails', 'issue_created_at') });
+        kpi(kpis, { label: 'Change pages', icon: 'files', tone: 'warning', value: fmt.num(ch.change_pages), meter: ch.change_pages ? ch.completed_change_pages / ch.change_pages : 0, hint: `${fmt.num(ch.completed_change_pages)} on completed changes`, title: 'Sum of change pages on the changes in view' });
 
         // monthly trend: three counts on one axis
         const series = [
@@ -380,9 +390,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
         renderPeople(d);
 
-        // work output: work pages + change pages per person
+        // work output: task pages + change pages per person
         if (!s.user_id) {
-            const oSeries = [{ name: 'Work pages', slot: 1 }, { name: 'Change pages', slot: 2 }];
+            const oSeries = [{ name: 'Task pages', slot: 1 }, { name: 'Change pages', slot: 2 }];
             D.legend(q('[data-output-legend]'), oSeries, 'bar');
             D.barList(q('[data-output]'), d.people
                 .filter(p => p.work_pages + p.change_pages > 0)
@@ -390,7 +400,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 .slice(0, 12)
                 .map(p => ({
                     label: p.name, value: p.work_pages + p.change_pages,
-                    parts: [{ name: 'Work pages', value: p.work_pages, slot: 1 }, { name: 'Change pages', value: p.change_pages, slot: 2 }],
+                    parts: [{ name: 'Task pages', value: p.work_pages, slot: 1 }, { name: 'Change pages', value: p.change_pages, slot: 2 }],
                     onClick: () => setScope({ division_id: s.division_id, user_id: p.id })
                 })));
         }
@@ -406,7 +416,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         D.barList(q('[data-tasktypes]'), d.by_task_type.map(x => ({
             label: x.name, value: x.tasks, parts: [{ name: 'Tasks', value: x.tasks, slot: 1 }],
-            href: link('taskdetails', 'task_created_at', Object.assign({ task_type_name: { type: 'exact', values: [x.name] } }, who))
+            href: link('taskdetails', 'task_created_at', { task_type_name: { type: 'exact', values: [x.name] } })
         })));
 
         const cl = q('[data-clients]');
