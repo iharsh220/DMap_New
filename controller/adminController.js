@@ -2263,32 +2263,32 @@ const getAdminData = async (req, res) => {
 
 
                 /* ==================================================
-                   FINANCIAL YEAR
+                   FINANCIAL YEAR (owner, 2026-11-05): FY (April-March) of the LAST end date of
+                   the project's tasks and their changes. '00' while the project has no task or
+                   any (non-deleted) task / change has no end date yet. Before: FY of created_at.
+                   DATE_SUB(.., 3 MONTH) maps April-March onto one calendar year.
                    ================================================== */
 
-                CASE
-                    WHEN MONTH(wr.created_at) >= 4 THEN
-                        CONCAT(
+                (
+                    SELECT CASE
+                        WHEN COUNT(*) = 0
+                          OR SUM(t_fy.end_date IS NULL) > 0
+                          OR SUM(ia_fy.id IS NOT NULL AND ia_fy.end_date IS NULL) > 0
+                        THEN '00'
+                        ELSE CONCAT(
                             'FY ',
-                            YEAR(wr.created_at),
+                            YEAR(DATE_SUB(GREATEST(MAX(t_fy.end_date), COALESCE(MAX(ia_fy.end_date), MAX(t_fy.end_date))), INTERVAL 3 MONTH)),
                             '-',
-                            RIGHT(
-                                YEAR(wr.created_at) + 1,
-                                2
-                            )
+                            RIGHT(YEAR(DATE_SUB(GREATEST(MAX(t_fy.end_date), COALESCE(MAX(ia_fy.end_date), MAX(t_fy.end_date))), INTERVAL 3 MONTH)) + 1, 2)
                         )
-
-                    ELSE
-                        CONCAT(
-                            'FY ',
-                            YEAR(wr.created_at) - 1,
-                            '-',
-                            RIGHT(
-                                YEAR(wr.created_at),
-                                2
-                            )
-                        )
-                END AS fy
+                    END
+                    FROM tasks t_fy
+                    LEFT JOIN issue_assignments ia_fy
+                        ON ia_fy.task_id = t_fy.id
+                       AND ia_fy.is_deleted = 0
+                    WHERE t_fy.work_request_id = wr.id
+                      AND t_fy.is_deleted = 0
+                ) AS fy
 
 
             FROM work_requests wr
@@ -3169,7 +3169,7 @@ const getTaskDetailsData = async (req, res) => {
             "task_shoot_setup": "CAST(COALESCE(t.shoot_setup, 0) AS CHAR)",
             "month": "MONTH(t.end_date)",
             // Financial year of the task deadline (same text as the fy column, e.g. "FY 2026-27")
-            "fy": "COALESCE(CASE WHEN MONTH(t.deadline) >= 4 THEN CONCAT('FY ', YEAR(t.deadline), '-', RIGHT(YEAR(t.deadline) + 1, 2)) ELSE CONCAT('FY ', YEAR(t.deadline) - 1, '-', RIGHT(YEAR(t.deadline), 2)) END, '00')"
+            "fy": "COALESCE(CASE WHEN MONTH(t.end_date) >= 4 THEN CONCAT('FY ', YEAR(t.end_date), '-', RIGHT(YEAR(t.end_date) + 1, 2)) ELSE CONCAT('FY ', YEAR(t.end_date) - 1, '-', RIGHT(YEAR(t.end_date), 2)) END, '00')"
         };
 
         if (searchTerm) {
@@ -4177,31 +4177,31 @@ const getTaskDetailsData = async (req, res) => {
 
 
                 /* ==========================================
-                   FINANCIAL YEAR (of the deadline, April-March)
+                   FINANCIAL YEAR (of the end date, April-March)
                    ========================================== */
 
                 COALESCE(
 
                     CASE
 
-                        WHEN MONTH(t.deadline) >= 4
+                        WHEN MONTH(t.end_date) >= 4
 
                         THEN CONCAT(
                             'FY ',
-                            YEAR(t.deadline),
+                            YEAR(t.end_date),
                             '-',
                             RIGHT(
-                                YEAR(t.deadline) + 1,
+                                YEAR(t.end_date) + 1,
                                 2
                             )
                         )
 
                         ELSE CONCAT(
                             'FY ',
-                            YEAR(t.deadline) - 1,
+                            YEAR(t.end_date) - 1,
                             '-',
                             RIGHT(
-                                YEAR(t.deadline),
+                                YEAR(t.end_date),
                                 2
                             )
                         )
@@ -4459,7 +4459,7 @@ const getIssueDetailsData = async (req, res) => {
             "issue_ai": "CAST(COALESCE(ia.no_of_images_videos_audio, 0) AS CHAR)",
             "issue_shoot_setup": "CAST(COALESCE(ia.shoot_setup, 0) AS CHAR)",
             // Financial year of the change deadline (same text as the fy column, e.g. "FY 2026-27")
-            "fy": "COALESCE(CASE WHEN MONTH(ia.deadline) >= 4 THEN CONCAT('FY ', YEAR(ia.deadline), '-', RIGHT(YEAR(ia.deadline) + 1, 2)) ELSE CONCAT('FY ', YEAR(ia.deadline) - 1, '-', RIGHT(YEAR(ia.deadline), 2)) END, '00')"
+            "fy": "COALESCE(CASE WHEN MONTH(ia.end_date) >= 4 THEN CONCAT('FY ', YEAR(ia.end_date), '-', RIGHT(YEAR(ia.end_date) + 1, 2)) ELSE CONCAT('FY ', YEAR(ia.end_date) - 1, '-', RIGHT(YEAR(ia.end_date), 2)) END, '00')"
         };
 
         if (searchTerm) {
@@ -5213,29 +5213,29 @@ const getIssueDetailsData = async (req, res) => {
                 ) AS month,
 
                 /* =====================================================
-                   FINANCIAL YEAR (of the deadline, April-March)
+                   FINANCIAL YEAR (of the end date, April-March)
                    ===================================================== */
 
                 COALESCE(
                     CASE
-                        WHEN MONTH(ia.deadline) >= 4
+                        WHEN MONTH(ia.end_date) >= 4
 
                         THEN CONCAT(
                             'FY ',
-                            YEAR(ia.deadline),
+                            YEAR(ia.end_date),
                             '-',
                             RIGHT(
-                                YEAR(ia.deadline) + 1,
+                                YEAR(ia.end_date) + 1,
                                 2
                             )
                         )
 
                         ELSE CONCAT(
                             'FY ',
-                            YEAR(ia.deadline) - 1,
+                            YEAR(ia.end_date) - 1,
                             '-',
                             RIGHT(
-                                YEAR(ia.deadline),
+                                YEAR(ia.end_date),
                                 2
                             )
                         )
@@ -7393,11 +7393,11 @@ const getFilterOptions = async (req, res) => {
             list("SELECT DISTINCT name AS v FROM users WHERE job_role_id IN (2, 3, 4) AND name IS NOT NULL ORDER BY v"),
             list("SELECT DISTINCT name AS v FROM users WHERE job_role_id IN (1, 2, 3) AND name IS NOT NULL ORDER BY v"),
             list("SELECT DISTINCT u.name AS v FROM work_requests wr JOIN users u ON u.id = wr.user_id WHERE wr.is_deleted = 0 AND u.name IS NOT NULL ORDER BY v"),
-            // Financial years (April-March) of task and change deadlines, for the Tasks / Changes "fy" filter
+            // Financial years (April-March) of task and change END DATES (key name kept for the pages), for the Tasks / Changes "fy" filter
             list(`SELECT v FROM (
-                SELECT DISTINCT ${fyOf('deadline')} AS v FROM tasks WHERE is_deleted = 0 AND deadline IS NOT NULL
+                SELECT DISTINCT ${fyOf('end_date')} AS v FROM tasks WHERE is_deleted = 0 AND end_date IS NOT NULL
                 UNION
-                SELECT DISTINCT ${fyOf('deadline')} AS v FROM issue_assignments WHERE is_deleted = 0 AND deadline IS NOT NULL
+                SELECT DISTINCT ${fyOf('end_date')} AS v FROM issue_assignments WHERE is_deleted = 0 AND end_date IS NOT NULL
             ) fy ORDER BY v DESC`)
         ]);
         res.json({
