@@ -71,11 +71,24 @@ const safePathSegment = (name, fallback = 'unnamed') => {
     return cleaned || fallback;
 };
 
+// Number of work pages (tasks.task_count / issue_assignments.task_count). A completed task or change
+// must have at least 1 page (owner's rule, 2026-11-05). Accepts 3 or "3"; rejects 0, negatives,
+// decimals ("2.5"), text and absurd values. Returns the integer or null.
+const MAX_PAGES = 100000;
+const parsePageCount = (value) => {
+    if (value === undefined || value === null) return null;
+    const s = String(value).trim();
+    if (!/^\d+$/.test(s)) return null;
+    const n = Number(s);
+    return n >= 1 && n <= MAX_PAGES ? n : null;
+};
+
 module.exports = {
     parseId,
     parseIdArray,
     parseIdList,
     parseDateOnly,
     todayDateOnly,
-    safePathSegment
+    safePathSegment,
+    parsePageCount
 };

@@ -1,6 +1,8 @@
 const { sequelize } = require('../config/databaseConfig');
 const { Op } = require('sequelize');
 const { parseGridFilters, applyGridFilters, selectAliases, resolveSort, orderSql, runOuterQuery, statusCountSql, statusCountsFrom, tatHoursSql } = require('../services/adminGridService');
+const { checkWorkItem } = require('../services/workItemRules');
+const { recordTaskHistory, recordIssueHistory, recordWorkRequestHistory } = require('../services/historyService');
 
 // Status values per entity (schema ENUMs), used for the KPI status breakdowns
 const WORK_REQUEST_STATUSES = ['draft', 'pending', 'accepted', 'assigned', 'in_progress', 'completed', 'rejected', 'deferred', 'cancelled'];
@@ -301,10 +303,28 @@ const updateProject = async (req, res) => {
         const { project_name, brand, priority, status, remarks, description, project_id, request_type_id } = req.body;
 
         const [existing] = await sequelize.query(
-            `SELECT request_type_id FROM work_requests WHERE id = :id`,
+            `SELECT request_type_id, status FROM work_requests WHERE id = :id`,
             { replacements: { id }, type: sequelize.QueryTypes.SELECT }
         );
-        const oldRequestTypeId = existing ? existing.request_type_id : null;
+        if (!existing) return res.status(404).json({ success: false, error: 'Project not found' });
+        const oldRequestTypeId = existing.request_type_id;
+
+        // A project can be marked completed only when it has work and all of it is finished
+        // (3 projects were "completed" without any task before; they then have no end date).
+        if (status === 'completed' && existing.status !== 'completed') {
+            const [open] = await sequelize.query(
+                `SELECT
+                    (SELECT COUNT(*) FROM tasks t WHERE t.work_request_id = :id AND t.is_deleted = 0 AND t.status NOT IN ('cancelled', 'rejected')) AS live_tasks,
+                    (SELECT COUNT(*) FROM tasks t WHERE t.work_request_id = :id AND t.is_deleted = 0 AND t.status NOT IN ('completed', 'cancelled', 'rejected')) AS open_tasks,
+                    (SELECT COUNT(*) FROM issue_assignments ia JOIN tasks t ON t.id = ia.task_id AND t.is_deleted = 0
+                      WHERE t.work_request_id = :id AND ia.is_deleted = 0 AND ia.status NOT IN ('completed', 'cancelled', 'rejected')) AS open_changes`,
+                { replacements: { id }, type: sequelize.QueryTypes.SELECT }
+            );
+            if (!Number(open.live_tasks)) return res.status(400).json({ success: false, error: 'A project without tasks cannot be marked completed' });
+            if (Number(open.open_tasks) || Number(open.open_changes)) {
+                return res.status(400).json({ success: false, error: `Finish the open work first: ${open.open_tasks} task(s) and ${open.open_changes} change(s) are not completed` });
+            }
+        }
 
         let setClause = 'project_name=:project_name, brand=:brand, priority=:priority, status=:status, remarks=:remarks, description=:description';
         const replacements = { id, project_name, brand, priority, status, remarks, description };
@@ -325,6 +345,14 @@ const updateProject = async (req, res) => {
             `UPDATE work_requests SET ${setClause} WHERE id=:id`,
             { replacements, type: sequelize.QueryTypes.UPDATE }
         );
+        if (status !== undefined && status !== existing.status) {
+            await recordWorkRequestHistory({
+                req, workRequestId: Number(id), action: 'admin_status_changed',
+                previousData: existing, nextData: { status },
+                previousStatus: existing.status, newStatus: status,
+                comments: 'Status changed in the admin panel'
+            });
+        }
 
         if (request_type_id !== undefined && request_type_id !== '' && String(oldRequestTypeId) !== String(request_type_id)) {
             const manager = await sequelize.query(
@@ -411,11 +439,20 @@ const updateClient = async (req, res) => {
 const updateTask = async (req, res) => {
     try {
         const { id } = req.params;
+        const [current] = await sequelize.query('SELECT * FROM tasks WHERE id = :id', { replacements: { id }, type: sequelize.QueryTypes.SELECT });
+        if (!current) return res.status(404).json({ success: false, error: 'Task not found' });
+        // fields that are not sent keep their current value (before, they were saved as NULL / 0,
+        // or the query failed with a 500)
+        const body = Object.assign({}, current, req.body || {});
         const { task_name, status, review, review_stage, deadline, start_date, end_date, comments, description,
             assignment_type, version, task_count, no_of_options_provided, concept_work, no_of_concepts,
             resize_work, no_of_resize, no_of_images_videos_audio, duration_minutes, duration_seconds,
             no_of_products_shot, shoot_setup, no_of_words_written, no_of_responsive_screen, link,
-            intimate_team, intimate_client } = req.body;
+            intimate_team, intimate_client } = body;
+        // Same rules as the workflow (services/workItemRules.js): real dates, end >= start,
+        // completed needs start + end date and >= 1 page, open items have no end date.
+        const rule = checkWorkItem('task', { status, start_date, end_date, deadline, task_count });
+        if (rule.error) return res.status(400).json({ success: false, error: rule.error });
         await sequelize.query(
             `UPDATE tasks SET task_name=:task_name, status=:status, review=:review, review_stage=:review_stage,
                 deadline=:deadline, start_date=:start_date, end_date=:end_date, comments=:comments, description=:description,
@@ -430,8 +467,8 @@ const updateTask = async (req, res) => {
             {
                 replacements: {
                     id, task_name, status, review, review_stage,
-                    deadline: deadline || null, start_date: start_date || null, end_date: end_date || null,
-                    comments, description, assignment_type, version, task_count: task_count || 0,
+                    deadline: rule.values.deadline, start_date: rule.values.start_date, end_date: rule.values.end_date,
+                    comments, description, assignment_type, version, task_count: rule.values.task_count,
                     no_of_options_provided: no_of_options_provided || 0, concept_work: concept_work || 0,
                     no_of_concepts: no_of_concepts || 0, resize_work: resize_work || 0, no_of_resize: no_of_resize || 0,
                     no_of_images_videos_audio: no_of_images_videos_audio || 0,
@@ -442,6 +479,14 @@ const updateTask = async (req, res) => {
                 }, type: sequelize.QueryTypes.UPDATE
             }
         );
+        const [next] = await sequelize.query('SELECT * FROM tasks WHERE id = :id', { replacements: { id }, type: sequelize.QueryTypes.SELECT });
+        await recordTaskHistory({
+            req, taskId: Number(id),
+            workRequestId: current.work_request_id,
+            action: 'admin_updated', previousData: current, nextData: next,
+            previousStatus: current.status, newStatus: next ? next.status : null,
+            comments: 'Edited in the admin panel'
+        });
         res.json({ success: true, message: 'Task updated successfully' });
     } catch (error) {
         console.error('Error updating task:', error);
@@ -452,11 +497,20 @@ const updateTask = async (req, res) => {
 const updateIssue = async (req, res) => {
     try {
         const { id } = req.params;
+        const [current] = await sequelize.query('SELECT * FROM issue_assignments WHERE id = :id', { replacements: { id }, type: sequelize.QueryTypes.SELECT });
+        if (!current) return res.status(404).json({ success: false, error: 'Issue not found' });
+        // fields that are not sent keep their current value (before, they were saved as NULL / 0,
+        // or the query failed with a 500)
+        const body = Object.assign({}, current, req.body || {});
         const { status, review, review_stage, deadline, start_date, end_date, comments, description,
             assignment_type, version, task_count, no_of_options_provided, concept_work, no_of_concepts,
             resize_work, no_of_resize, no_of_images_videos_audio, duration_minutes, duration_seconds,
             no_of_products_shot, shoot_setup, no_of_words_written, responsive_screen, link,
-            intimate_team, intimate_client } = req.body;
+            intimate_team, intimate_client } = body;
+        // Same rules as the workflow (services/workItemRules.js): real dates, end >= start,
+        // completed needs start + end date and >= 1 page, open items have no end date.
+        const rule = checkWorkItem('change', { status, start_date, end_date, deadline, task_count });
+        if (rule.error) return res.status(400).json({ success: false, error: rule.error });
         await sequelize.query(
             `UPDATE issue_assignments SET status=:status, review=:review, review_stage=:review_stage,
                 deadline=:deadline, start_date=:start_date, end_date=:end_date, comments=:comments, description=:description,
@@ -471,8 +525,8 @@ const updateIssue = async (req, res) => {
             {
                 replacements: {
                     id, status, review, review_stage,
-                    deadline: deadline || null, start_date: start_date || null, end_date: end_date || null,
-                    comments, description, assignment_type, version, task_count: task_count || 0,
+                    deadline: rule.values.deadline, start_date: rule.values.start_date, end_date: rule.values.end_date,
+                    comments, description, assignment_type, version, task_count: rule.values.task_count,
                     no_of_options_provided: no_of_options_provided || 0, concept_work: concept_work || 0,
                     no_of_concepts: no_of_concepts || 0, resize_work: resize_work || 0, no_of_resize: no_of_resize || 0,
                     no_of_images_videos_audio: no_of_images_videos_audio || 0,
@@ -483,6 +537,14 @@ const updateIssue = async (req, res) => {
                 }, type: sequelize.QueryTypes.UPDATE
             }
         );
+        const [next] = await sequelize.query('SELECT * FROM issue_assignments WHERE id = :id', { replacements: { id }, type: sequelize.QueryTypes.SELECT });
+        await recordIssueHistory({
+            req, issueAssignmentId: Number(id), taskId: current.task_id,
+            workRequestId: null,
+            action: 'admin_updated', previousData: current, nextData: next,
+            previousStatus: current.status, newStatus: next ? next.status : null,
+            comments: 'Edited in the admin panel'
+        });
         res.json({ success: true, message: 'Issue updated successfully' });
     } catch (error) {
         console.error('Error updating issue:', error);

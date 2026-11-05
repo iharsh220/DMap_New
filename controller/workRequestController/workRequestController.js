@@ -36,7 +36,7 @@ const { recordWorkRequestHistory, recordTaskHistory, recordIssueHistory, getWork
 const { completeWorkRequestIfFinished } = require('../../services/workRequestCompletionService');
 const { canActAsRequester, canViewWorkRequest } = require('../../services/accessService');
 const { pickModelFilters, pickModelFields } = require('../../utils/queryFilters');
-const { parseId, parseIdList, parseDateOnly } = require('../../utils/validators');
+const { parseId, parseIdList, parseDateOnly, todayDateOnly } = require('../../utils/validators');
 const { sequelize } = require('../../config/databaseConfig');
 // const { queueFileUpload } = require('../../services/fileUploadService');
 const path = require('path');
@@ -1921,6 +1921,15 @@ const pmApproveTask = async (req, res) => {
             });
         }
 
+        // Only submitted (completed) work can be approved: every approval in the history was of a
+        // completed task, and approving unfinished work closed it without an end date or pages.
+        if (task.status !== 'completed') {
+            return res.status(400).json({
+                success: false,
+                error: `Only a completed task can be approved (current status: ${task.status})`
+            });
+        }
+
         // Update the task: status stays 'completed', review = 'approved', review_stage = 'final_approved'
         await task.update({
             status: 'completed',
@@ -2054,6 +2063,14 @@ const handleIssuePmApproval = async (req, res, issueId) => {
             });
         }
 
+        // Only a submitted (completed) change can be approved (all 1,137 approvals in the history were)
+        if (issueAssignment.status !== 'completed') {
+            return res.status(400).json({
+                success: false,
+                error: `Only a completed change can be approved (current status: ${issueAssignment.status})`
+            });
+        }
+
         const previousStatus = issueAssignment.status;
         const previousStage = issueAssignment.review_stage;
         const previousReview = issueAssignment.review;
@@ -2118,11 +2135,16 @@ const handleIssuePmApproval = async (req, res, issueId) => {
                     comments: 'PM approved linked task after issue approval'
                 });
 
-                await linkedTask.update({
-                    status: linkedTaskStatus,
-                    review: 'approved',
-                    review_stage: 'final_approved'
-                });
+                // A task that becomes completed here (it had been re-opened) gets valid dates:
+                // start not in the future, end not before start (today when missing or invalid)
+                const linkedTaskUpdate = { status: linkedTaskStatus, review: 'approved', review_stage: 'final_approved' };
+                if (linkedTaskStatus === 'completed') {
+                    const today = todayDateOnly();
+                    const start = linkedTask.start_date && String(linkedTask.start_date).slice(0, 10) <= today ? String(linkedTask.start_date).slice(0, 10) : today;
+                    if (!linkedTask.start_date || String(linkedTask.start_date).slice(0, 10) !== start) linkedTaskUpdate.start_date = start;
+                    if (!linkedTask.end_date || String(linkedTask.end_date).slice(0, 10) < start) linkedTaskUpdate.end_date = today;
+                }
+                await linkedTask.update(linkedTaskUpdate);
 
                 // Also update all documents for this task where intimate_client = 1
                 const taskAssignments = await TaskAssignments.findAll({

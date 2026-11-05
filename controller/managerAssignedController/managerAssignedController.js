@@ -36,7 +36,7 @@ const { renderTemplate } = require('../../services/templateService');
 const { recordWorkRequestHistory, recordTaskHistory, recordIssueHistory, getTaskHistory: getTaskHistoryRecords, getIssueHistory: getIssueHistoryRecords } = require('../../services/historyService');
 const { isSuperAdmin, isTaskManager, managedTaskIdsSubquery, sharesDivision, assignTargetError, canViewWorkRequest, workRequestIdForTask, workRequestIdForIssue } = require('../../services/accessService');
 const { pickModelFilters, pickModelFields } = require('../../utils/queryFilters');
-const { parseId, parseIdArray, parseDateOnly, safePathSegment } = require('../../utils/validators');
+const { parseId, parseIdArray, parseDateOnly, safePathSegment, parsePageCount, todayDateOnly } = require('../../utils/validators');
 
 const workRequestService = new CrudService(WorkRequests);
 const userService = new CrudService(User);
@@ -3560,6 +3560,20 @@ const updateTask = async (req, res) => {
             taskUpdateData.description = description;
         }
 
+        // A finished task cannot be given to someone else (same rule as assign-task): moving it back
+        // to pending kept its old end date, so the new start date ended up after it. Checked before
+        // anything is written.
+        if (user_id !== undefined) {
+            const currentUserId = task.TaskAssignments && task.TaskAssignments.length ? task.TaskAssignments[0].user_id : null;
+            const newUserId = user_id === null || user_id === '' ? null : parseInt(user_id, 10);
+            if (newUserId !== currentUserId && ['completed', 'cancelled', 'rejected'].includes(task.status)) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Cannot reassign a ${task.status} task`
+                });
+            }
+        }
+
         // Update task if there are updates
         if (Object.keys(taskUpdateData).length > 0) {
             await Tasks.update(taskUpdateData, { where: { id: taskId } });
@@ -3638,9 +3652,10 @@ const updateTask = async (req, res) => {
             }
         }
 
-        // If user was changed, update task status to pending
+        // If user was changed, update task status to pending; the new user starts from scratch, so
+        // the previous start / end dates go too (as in assign-task)
         if (userChanged) {
-            await Tasks.update({ status: 'pending' }, { where: { id: taskId } });
+            await Tasks.update({ status: 'pending', start_date: null, end_date: null }, { where: { id: taskId } });
         }
 
         // Fetch updated task with assignments
@@ -6014,10 +6029,12 @@ const completeAllTasksAndIssues = async (req, res) => {
             });
         }
 
-        // Find all tasks linked to this work_request_id
-        const tasks = await Tasks.findAll({
-            where: { work_request_id: workRequestId }
-        });
+        // Live items only: deleted, cancelled and rejected tasks / changes stay as they are (before,
+        // they were turned into "completed" too).
+        const CLOSED = ['cancelled', 'rejected'];
+        const tasks = (await Tasks.findAll({
+            where: { work_request_id: workRequestId, is_deleted: 0 }
+        })).filter(t => !CLOSED.includes(t.status));
 
         if (tasks.length === 0) {
             return res.status(404).json({
@@ -6027,98 +6044,91 @@ const completeAllTasksAndIssues = async (req, res) => {
         }
 
         const taskIds = tasks.map(task => task.id);
+        const issueAssignments = (await IssueAssignments.findAll({
+            where: { task_id: taskIds, is_deleted: 0 }
+        })).filter(ia => !CLOSED.includes(ia.status));
 
-        // Update all tasks: status = 'completed', review = 'approved', review_stage = 'final_approved'
-        const tasksUpdateResult = await Tasks.update(
-            {
-                status: 'completed',
-                review: 'approved',
-                review_stage: 'final_approved'
-            },
-            {
-                where: { id: taskIds }
-            }
-        );
-
-        // Also update the work_request status to 'completed'
-        const workRequestUpdateResult = await WorkRequests.update(
-            {
-                status: 'completed'
-            },
-            {
-                where: { id: workRequestId }
-            }
-        );
-
-        // Find all issue_assignments linked to these tasks
-        const issueAssignments = await IssueAssignments.findAll({
-            where: {
-                task_id: taskIds
-            }
-        });
-
-        let issuesUpdateResult = 0;
-        if (issueAssignments.length > 0) {
-            const issueIds = issueAssignments.map(issue => issue.id);
-
-            // Update all issue_assignments: status = 'completed', review = 'approved', review_stage = 'final_approved'
-            issuesUpdateResult = await IssueAssignments.update(
-                {
-                    status: 'completed',
-                    review: 'approved',
-                    review_stage: 'final_approved'
-                },
-                {
-                    where: { id: issueIds }
-                }
-            );
-        }
-
-        await recordWorkRequestHistory({
-            req,
-            workRequestId: workRequestId,
-            action: 'completed',
-            previousData: workRequest,
-            nextData: { status: 'completed' },
-            comments: 'All tasks and issues completed by manager',
-            relatedUserId: workRequest.user_id,
-            relatedManagerId: manager_id
-        });
-
-        for (const task of tasks) {
-            await recordTaskHistory({
-                req,
-                taskId: task.id,
-                workRequestId: workRequestId,
-                action: 'completed',
-                previousData: task,
-                nextData: {
-                    status: 'completed',
-                    review: 'approved',
-                    review_stage: 'final_approved'
-                },
-                comments: 'Task completed while completing all work request items',
-                relatedManagerId: manager_id
+        // Every completed task / change needs its pages (owner's rule, 2026-11-05): refuse before
+        // writing anything and name what is missing.
+        const noPages = [
+            ...tasks.filter(t => !parsePageCount(t.task_count)).map(t => `task "${t.task_name}" (#${t.id})`),
+            ...issueAssignments.filter(ia => !parsePageCount(ia.task_count)).map(ia => `change #${ia.id}${ia.version ? ' ' + ia.version : ''}`)
+        ];
+        if (noPages.length) {
+            return res.status(400).json({
+                success: false,
+                error: `Add the number of pages before completing: ${noPages.slice(0, 10).join(', ')}${noPages.length > 10 ? ` and ${noPages.length - 10} more` : ''}`
             });
         }
 
-        for (const issueAssignment of issueAssignments) {
-            await recordIssueHistory({
+        // A completed item always has a start and an end date, with end >= start: keep the real
+        // dates when they are valid, otherwise use today (start never in the future).
+        const today = todayDateOnly();
+        const datesFor = (item) => {
+            const start = item.start_date && String(item.start_date).slice(0, 10) <= today ? String(item.start_date).slice(0, 10) : today;
+            const end = item.end_date && String(item.end_date).slice(0, 10) >= start ? item.end_date : today;
+            return { start_date: start, end_date: end };
+        };
+        const COMPLETED = { status: 'completed', review: 'approved', review_stage: 'final_approved' };
+        // response counts keep their old shape ([affected rows]; 0 when there are no changes)
+        const tasksUpdateResult = [tasks.length];
+        const issuesUpdateResult = issueAssignments.length ? [issueAssignments.length] : 0;
+        const workRequestUpdateResult = [1];
+
+        await sequelize.transaction(async (transaction) => {
+            for (const task of tasks) {
+                await Tasks.update(Object.assign({}, COMPLETED, datesFor(task)), { where: { id: task.id }, transaction });
+            }
+            for (const ia of issueAssignments) {
+                await IssueAssignments.update(Object.assign({}, COMPLETED, datesFor(ia)), { where: { id: ia.id }, transaction });
+            }
+            await WorkRequests.update({ status: 'completed' }, { where: { id: workRequestId }, transaction });
+
+            await recordWorkRequestHistory({
                 req,
-                issueAssignmentId: issueAssignment.id,
-                taskId: issueAssignment.task_id,
                 workRequestId: workRequestId,
                 action: 'completed',
-                previousData: issueAssignment,
-                nextData: {
-                    status: 'completed',
-                    review: 'approved',
-                    review_stage: 'final_approved'
-                },
-                comments: 'Issue completed while completing all work request items',
-                relatedManagerId: manager_id
+                previousData: workRequest,
+                nextData: { status: 'completed' },
+                comments: 'All tasks and issues completed by manager',
+                relatedUserId: workRequest.user_id,
+                relatedManagerId: manager_id,
+                transaction
             });
-        }
+
+            for (const task of tasks) {
+                await recordTaskHistory({
+                    req,
+                    taskId: task.id,
+                    workRequestId: workRequestId,
+                    action: 'completed',
+                    previousData: task,
+                    nextData: Object.assign({}, COMPLETED, datesFor(task)),
+                    previousStatus: task.status,
+                    newStatus: 'completed',
+                    comments: 'Task completed while completing all work request items',
+                    relatedManagerId: manager_id,
+                    transaction
+                });
+            }
+
+            for (const issueAssignment of issueAssignments) {
+                await recordIssueHistory({
+                    req,
+                    issueAssignmentId: issueAssignment.id,
+                    taskId: issueAssignment.task_id,
+                    workRequestId: workRequestId,
+                    action: 'completed',
+                    previousData: issueAssignment,
+                    nextData: Object.assign({}, COMPLETED, datesFor(issueAssignment)),
+                    previousStatus: issueAssignment.status,
+                    newStatus: 'completed',
+                    comments: 'Issue completed while completing all work request items',
+                    relatedManagerId: manager_id,
+                    transaction
+                });
+            }
+        });
 
         // Get user details who created the work request
         const requestCreator = await User.findByPk(workRequest.user_id, {

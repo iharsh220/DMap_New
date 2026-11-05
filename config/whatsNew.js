@@ -16,6 +16,21 @@
 
 const VERSIONS = [
     {
+        version: '1.7.0',
+        date: '2026-11-05',
+        title: 'Complete data for every task and change',
+        changes: [
+            { type: 'improved', area: 'Tasks & Changes', text: 'Submitting a task or a change needs the number of pages (a whole number, at least 1).' },
+            { type: 'fixed', area: 'Changes', text: 'A change accepted for a later start date and finished earlier now starts on the day it is submitted, so its end date is never before its start date.' },
+            { type: 'fixed', area: 'Projects', text: '"Complete all" no longer closes cancelled or deleted work, asks for the pages of any task or change that has none, and gives every completed item a start and end date.' },
+            { type: 'fixed', area: 'Tasks', text: 'A completed task can no longer be reassigned to someone else (this left old end dates behind). Only completed work can be approved.' },
+            { type: 'improved', area: 'Admin panel', text: 'Editing a task, change or project in the admin panel checks the data (real dates, end date not before start date, completed work has dates and pages, a project is completed only when all its work is) and keeps a history of every edit. Fields you do not change are kept as they are.' },
+            { type: 'api', area: 'Tasks API', text: 'POST /users/tasks/submit: task_count must be an integer >= 1 (400 otherwise). PUT /users/issues/:issueId/submit: task_count (or the change\'s existing count) must be >= 1; optional start_date (YYYY-MM-DD, not after today); a future start_date on the change is moved to today.' },
+            { type: 'api', area: 'Workflow API', text: 'PUT /manager/assigned-work-requests/complete: skips deleted/cancelled/rejected items, 400 listing items without pages, sets valid start/end dates, one transaction (response unchanged). PUT /manager/assigned-work-requests/tasks/:taskId: 400 when reassigning a completed/cancelled/rejected task. POST /work-requests/pm-approve: 400 unless the task / change is completed.' },
+            { type: 'api', area: 'Admin API', text: 'PUT /datatable/admin/edit/task|issue/:id: 400 with the reason for invalid status, dates (YYYY-MM-DD, end >= start, completed needs start + end, open items no end) or pages (completed >= 1); 404 for an unknown id; missing fields keep their value; history action admin_updated. PUT /datatable/admin/edit/project/:id: status completed only with >= 1 live task and no open task/change (400); status changes write work_request_history admin_status_changed.' }
+        ]
+    },
+    {
         version: '1.6.0',
         date: '2026-11-05',
         title: 'Master data requests',

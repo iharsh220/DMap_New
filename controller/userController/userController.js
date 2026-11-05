@@ -29,7 +29,7 @@ const { recordTaskHistory, recordIssueHistory, recordWorkRequestHistory, getTask
 const { sequelize } = require('../../config/databaseConfig');
 const { canDelegateTask, assignTargetError, isTaskManager, canViewWorkRequest, workRequestIdForTask, workRequestIdForIssue } = require('../../services/accessService');
 const { pickModelFilters, pickModelFields } = require('../../utils/queryFilters');
-const { parseId, parseDateOnly, todayDateOnly, safePathSegment } = require('../../utils/validators');
+const { parseId, parseDateOnly, todayDateOnly, safePathSegment, parsePageCount } = require('../../utils/validators');
 const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
@@ -1310,13 +1310,20 @@ const submitTask = async (req, res) => {
         }
 
         const taskId = parseInt(task_id, 10);
-        const taskCount = parseInt(task_count, 10);
+        // pages must be a whole number >= 1 ("0", negatives and decimals were accepted before)
+        const taskCount = parsePageCount(task_count);
         const workRequestId = work_request_id ? parseInt(work_request_id, 10) : null;
 
-        if (isNaN(taskId) || isNaN(taskCount)) {
+        if (isNaN(taskId)) {
             return res.status(400).json({
                 success: false,
                 error: 'Invalid task_id or task_count'
+            });
+        }
+        if (!taskCount) {
+            return res.status(400).json({
+                success: false,
+                error: 'task_count (number of pages) must be a whole number of at least 1'
             });
         }
 
@@ -2556,8 +2563,25 @@ const submitIssue = async (req, res) => {
         //     }
         // }
 
-        if (task_count) {
-            issueUpdateData.task_count = parseInt(task_count, 10);
+        // Pages are required (owner's rule, 2026-11-05): the submitted value, or the count already
+        // on the change; it must be a whole number >= 1 (before, 0 or text were saved silently).
+        const submittedPages = task_count !== undefined && task_count !== null && String(task_count).trim() !== '' ? parsePageCount(task_count) : parsePageCount(issueAssignment.task_count);
+        if (!submittedPages) {
+            return res.status(400).json({ success: false, error: 'task_count (number of pages) must be a whole number of at least 1' });
+        }
+        issueUpdateData.task_count = submittedPages;
+
+        // End date (today) can never be before the start date: a change accepted with a future
+        // start date and finished earlier starts today (19 changes had end < start before this).
+        // An explicit start_date (YYYY-MM-DD, not after today) may be sent like on task submit.
+        const today = todayDateOnly();
+        if (req.body.start_date) {
+            const startDate = parseDateOnly(req.body.start_date);
+            if (!startDate) return res.status(400).json({ success: false, error: 'Invalid start_date. Use YYYY-MM-DD format.' });
+            if (startDate > today) return res.status(400).json({ success: false, error: 'End date cannot be before start date' });
+            issueUpdateData.start_date = startDate;
+        } else if (!issueAssignment.start_date || String(issueAssignment.start_date).slice(0, 10) > today) {
+            issueUpdateData.start_date = today;
         }
 
         // Add comments if provided
