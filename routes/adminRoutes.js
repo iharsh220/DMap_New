@@ -26,6 +26,10 @@ router.use((req, res, next) => {
 // public (see above): only an admin can start an upload and get its job id.
 const adminOnly = checkRole([1]);
 
+// Edit / delete on the Work grids (client requests, projects, tasks, changes): Super Admin and
+// managers (Creative Manager 2, Creative Lead 3) only; every other role has view + filter access.
+const canEditWork = checkRole([1, 2, 3]);
+
 // Serve shared CSS theme
 router.get('/admin/dmap-theme.css', (req, res) => {
     res.setHeader('Content-Type', 'text/css');
@@ -133,31 +137,31 @@ router.get('/admin/workrequesttasks/data', adminOnly, paginationMiddleware, cach
 router.get('/admin/projectsdetails/tasks/:workRequestId', cachedAdminData(getTasksForWorkRequest));
 
 // Delete preview
-router.get('/admin/delete/preview/:type/:id', cachedAdminData(getDeletePreview));
+router.get('/admin/delete/preview/:type/:id', canEditWork, cachedAdminData(getDeletePreview));
 
 // Delete endpoints
-router.delete('/admin/delete/project/:id', invalidateAdminCache, deleteProject);
-router.delete('/admin/delete/client/:id', invalidateAdminCache, deleteClient);
-router.delete('/admin/delete/task/:id', invalidateAdminCache, deleteTask);
-router.delete('/admin/delete/issue/:id', invalidateAdminCache, deleteIssue);
+router.delete('/admin/delete/project/:id', canEditWork, invalidateAdminCache, deleteProject);
+router.delete('/admin/delete/client/:id', canEditWork, invalidateAdminCache, deleteClient);
+router.delete('/admin/delete/task/:id', canEditWork, invalidateAdminCache, deleteTask);
+router.delete('/admin/delete/issue/:id', canEditWork, invalidateAdminCache, deleteIssue);
 
 // Edit - get current data
-router.get('/admin/edit/:type/:id', getEditData);
+router.get('/admin/edit/:type/:id', canEditWork, getEditData);
 
 // Get all request types for dropdown
-router.get('/admin/edit/project/:id/request-types', getRequestTypes);
+router.get('/admin/edit/project/:id/request-types', canEditWork, getRequestTypes);
 
 // Get project types for a project (optionally filtered by request_type_id)
-router.get('/admin/edit/project/:id/project-types', getProjectTypesByProject);
+router.get('/admin/edit/project/:id/project-types', canEditWork, getProjectTypesByProject);
 
 // Get creative manager for a project (optionally filtered by request_type_id)
-router.get('/admin/edit/project/:id/creative-manager', getCreativeManagerByProject);
+router.get('/admin/edit/project/:id/creative-manager', canEditWork, getCreativeManagerByProject);
 
 // Edit - update endpoints
-router.put('/admin/edit/project/:id', invalidateAdminCache, updateProject);
-router.put('/admin/edit/client/:id', invalidateAdminCache, updateClient);
-router.put('/admin/edit/task/:id', invalidateAdminCache, updateTask);
-router.put('/admin/edit/issue/:id', invalidateAdminCache, updateIssue);
+router.put('/admin/edit/project/:id', canEditWork, invalidateAdminCache, updateProject);
+router.put('/admin/edit/client/:id', canEditWork, invalidateAdminCache, updateClient);
+router.put('/admin/edit/task/:id', canEditWork, invalidateAdminCache, updateTask);
+router.put('/admin/edit/issue/:id', canEditWork, invalidateAdminCache, updateIssue);
 
 // Weekly report (Digilabs managers for their own division, Super Admin for any Digilabs division)
 router.get('/admin/reports', (req, res) => {

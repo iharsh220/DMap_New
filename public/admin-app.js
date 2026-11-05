@@ -44,6 +44,8 @@
     const user = () => { try { return JSON.parse(store.raw('userData') || 'null'); } catch (e) { return null; } };
     D.user = user;
     D.isAdmin = () => { const u = user(); return !!(u && u.jobRole && u.jobRole.id === 1); };
+    // Edit / delete on the grids: Super Admin and managers (roles 1, 2, 3; same as canEditWork in adminRoutes.js)
+    D.canEditWork = () => { const u = user(); return !!(u && u.jobRole && [1, 2, 3].includes(Number(u.jobRole.id))); };
 
     function clearSession() {
         try { ['accessToken', 'refreshToken', 'userData'].forEach(k => localStorage.removeItem(k)); } catch (e) { /* ignore */ }
@@ -849,8 +851,9 @@
 
     function Grid(mount, cfg) {
         this.mount = mount;
-        this.cfg = cfg;
         this.admin = D.isAdmin();
+        // View-only for everyone except Super Admin and managers: no Edit / Delete row actions (the API also returns 403)
+        this.cfg = D.canEditWork() ? cfg : Object.assign({}, cfg, { rowActions: null });
         this.columns = cfg.columns.filter(c => !c.adminOnly || this.admin).map(c => Object.assign({ filterKind: defaultFilter(c) }, c));
         this.byKey = {};
         this.columns.forEach(c => { this.byKey[c.key] = c; });
@@ -1506,6 +1509,7 @@ ${share !== null ? `<div class="dm-kpi-meter fg-${esc(k.tone || 'brand')}"><span
     // ------------------------------------------------------------------
     /** Opens the delete preview (GET delete/preview/:type/:id) and deletes on confirm. */
     D.confirmDelete = async function (opts) {
+        if (!D.canEditWork()) { D.toast('You have view-only access.', 'warning'); return; }
         const body = document.createElement('div');
         body.innerHTML = '<div class="dm-state" style="padding:24px"><i class="bi bi-arrow-repeat dm-spin" style="font-size:22px"></i></div>';
         const dlg = D.modal({
@@ -1560,6 +1564,7 @@ ${share !== null ? `<div class="dm-kpi-meter fg-${esc(k.tone || 'brand')}"><span
 
     /** Loads GET edit/:type/:id, shows a form built by `fields(res)`, PUTs the values. */
     D.editRecord = async function (opts) {
+        if (!D.canEditWork()) { D.toast('You have view-only access.', 'warning'); return; }
         const body = document.createElement('div');
         body.innerHTML = '<div class="dm-state" style="padding:24px"><i class="bi bi-arrow-repeat dm-spin" style="font-size:22px"></i></div>';
         let form = null;
