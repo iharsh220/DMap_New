@@ -27,7 +27,7 @@ const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
 const { recordTaskHistory, recordIssueHistory, recordWorkRequestHistory, getTaskHistory: getTaskHistoryRecords, getIssueHistory: getIssueHistoryRecords } = require('../../services/historyService');
 const { sequelize } = require('../../config/databaseConfig');
-const { canDelegateTask, isDivisionManagerForRequestType, canViewWorkRequest, workRequestIdForTask, workRequestIdForIssue } = require('../../services/accessService');
+const { canDelegateTask, assignTargetError, isTaskManager, canViewWorkRequest, workRequestIdForTask, workRequestIdForIssue } = require('../../services/accessService');
 const { pickModelFilters, pickModelFields } = require('../../utils/queryFilters');
 const { parseId, parseDateOnly, todayDateOnly, safePathSegment } = require('../../utils/validators');
 const path = require('path');
@@ -624,7 +624,7 @@ const assignTaskToUser = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Task does not belong to this work request' });
         }
 
-        // Delegation chain: request manager / division manager / current assignee (delegated manager)
+        // Delegation chain (R2): request manager / the manager it was delegated to / the artist's manager
         if (!(await canDelegateTask(req.user, task))) {
             return res.status(403).json({ success: false, error: 'You are not allowed to reassign this task' });
         }
@@ -690,9 +690,12 @@ const assignTaskToUser = async (req, res) => {
             return res.status(400).json({ success: false, error: 'User account is not active' });
         }
 
-        // Division isolation: the assignee must belong to a division of the task's request type
-        if (!(await isDivisionManagerForRequestType(userId, task.request_type_id))) {
-            return res.status(403).json({ success: false, error: 'User does not belong to the division of this task' });
+        // Owner's rule (R2): a request manager gives the task to an artist of their own team or
+        // delegates it to a manager of another Digilabs division; that manager (or the artist's
+        // manager) can only give it to an artist of their own team
+        const targetError = await assignTargetError(req.user, task, userId);
+        if (targetError) {
+            return res.status(403).json({ success: false, error: targetError });
         }
 
         // Prepare task update data
@@ -743,28 +746,6 @@ const assignTaskToUser = async (req, res) => {
                 task_id: taskId,
                 user_id: userId
             }, { transaction });
-        });
-
-        await recordTaskHistory({
-            req,
-            taskId,
-            workRequestId: workRequest.id,
-            action: 'assigned',
-            previousStatus: task.status,
-            newStatus: 'pending',
-            comments: 'Task assigned to user',
-            relatedUserId: req.user.id,
-            assignedToUserId: userId,
-            assignedToUserName: assignedUser.name
-        });
-
-        await recordWorkRequestHistory({
-            req,
-            workRequestId: workRequest.id,
-            action: 'task_assigned',
-            relatedTaskId: taskId,
-            relatedUserId: req.user.id,
-            comments: 'Task assigned to user'
         });
 
         await recordTaskHistory({
@@ -885,8 +866,9 @@ const getTaskById = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Invalid task ID' });
         }
 
-        // Check if user is manager (job_role_id = 2)
-        const isManager = req.user.jobRole && req.user.jobRole.id === 2;
+        // Managers (R2): full view only of tasks they manage (request manager, delegated manager,
+        // artist's manager); before, any manager could read any task. Others: tasks assigned to them.
+        const isManager = req.user.jobRole && req.user.jobRole.id === 2 && (await isTaskManager(req.user, taskId));
 
         // Get single task with full details
         let userIds = [req.user.id]; // Start with current user
@@ -1915,7 +1897,10 @@ const getMyTeamTasks = async (req, res) => {
             attributes: []
         });
 
-        const userIds = divisionUsers.map(du => du.User.id);
+        // R2: only managers see their team's tasks; an artist sees only their own (before, every
+        // artist saw all in-progress tasks of their division colleagues)
+        const isTeamManager = req.user.jobRole && [1, 2, 3].includes(req.user.jobRole.id);
+        const userIds = isTeamManager ? divisionUsers.map(du => du.User.id) : [user_id];
 
         // Get in_progress tasks assigned to these users
         const tasks = await Tasks.findAll({

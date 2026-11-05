@@ -10,6 +10,8 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+# Any local env file, e.g. .env.e2e.local (UAT test-account passwords)
+*.local
 
 # Logs
 logs

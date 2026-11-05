@@ -34,7 +34,7 @@ const {
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
 const { recordWorkRequestHistory, recordTaskHistory, recordIssueHistory, getTaskHistory: getTaskHistoryRecords, getIssueHistory: getIssueHistoryRecords } = require('../../services/historyService');
-const { isDivisionManagerForRequestType, canViewWorkRequest, workRequestIdForTask, workRequestIdForIssue } = require('../../services/accessService');
+const { isSuperAdmin, isTaskManager, managedTaskIdsSubquery, sharesDivision, assignTargetError, canViewWorkRequest, workRequestIdForTask, workRequestIdForIssue } = require('../../services/accessService');
 const { pickModelFilters, pickModelFields } = require('../../utils/queryFilters');
 const { parseId, parseIdArray, parseDateOnly, safePathSegment } = require('../../utils/validators');
 
@@ -1896,6 +1896,17 @@ const createTask = async (req, res) => {
             });
         }
 
+        // Owner's rule (R2): a request manager gives a task to an artist of their own team, or
+        // delegates it to a manager of another Digilabs division (who then assigns their own artist)
+        if (!isSuperAdmin(req.user)) {
+            for (const assigneeId of assigned_to_ids) {
+                const targetError = await assignTargetError(req.user, { work_request_id, request_type_id }, assigneeId, { isRequestManager: true });
+                if (targetError) {
+                    return res.status(403).json({ success: false, error: `${targetError} (user ${assigneeId})` });
+                }
+            }
+        }
+
         // Validate dependencies if provided
         if (dependencyIds.length > 0) {
             // Check if all dependency tasks exist and belong to the same work_request
@@ -1972,6 +1983,19 @@ const createTask = async (req, res) => {
 
             return task;
         });
+
+        // Re-opening a completed request is the only allowed way back; record it (projects.md step 11)
+        if (workRequest.status === 'completed') {
+            await recordWorkRequestHistory({
+                req,
+                workRequestId: work_request_id,
+                action: 'reopened',
+                previousStatus: 'completed',
+                newStatus: 'accepted',
+                relatedTaskId: taskResult.id,
+                comments: 'Work request re-opened: new task added'
+            });
+        }
 
         await recordTaskHistory({
             req,
@@ -3435,20 +3459,12 @@ const updateTask = async (req, res) => {
             });
         }
 
-        // Find the task with its work request to verify manager access
+        // Find the task with its work request; access is checked below with isTaskManager
         const task = await Tasks.findByPk(taskId, {
             include: [
                 {
                     model: WorkRequests,
-                    required: true,
-                    include: [
-                        {
-                            model: WorkRequestManagers,
-                            where: { manager_id: manager_id },
-                            required: true,
-                            attributes: []
-                        }
-                    ]
+                    required: true
                 },
                 {
                     model: TaskAssignments,
@@ -3475,6 +3491,15 @@ const updateTask = async (req, res) => {
         });
 
         if (!task) {
+            return res.status(404).json({
+                success: false,
+                error: 'Task not found or not assigned to you'
+            });
+        }
+
+        // Access (R2): a task manager may edit the task: the request's manager(s), the manager the
+        // task was delegated to, or the manager of the artist it is assigned to (shares a division).
+        if (!(await isTaskManager(req.user, task.id))) {
             return res.status(404).json({
                 success: false,
                 error: 'Task not found or not assigned to you'
@@ -3583,6 +3608,14 @@ const updateTask = async (req, res) => {
                         success: false,
                         error: 'User is not active'
                     });
+                }
+
+                // Same rule as createTask / assign-task: own team, or (request manager) a Digilabs manager
+                if (previousUserId !== userIdInt) {
+                    const targetError = await assignTargetError(req.user, task, userIdInt);
+                    if (targetError) {
+                        return res.status(403).json({ success: false, error: targetError });
+                    }
                 }
 
                 // Check if user_id is different from previous
@@ -4408,82 +4441,33 @@ const shareForClientReview = async (req, res) => {
             });
         }
 
-        // ✅ Check access directly from task/issue instead of work request
-        let hasAccess = false;
-        let divisionIds = [];
-
-        // First check access from task_ids if provided
-        if (task_ids && Array.isArray(task_ids) && task_ids.length > 0) {
-            const taskId = parseInt(task_ids[0], 10);
-            if (!isNaN(taskId)) {
-                const task = await Tasks.findByPk(taskId, {
-                    attributes: ['id', 'request_type_id']
-                });
-
-                if (task && task.request_type_id) {
-                    const requestType = await RequestType.findByPk(task.request_type_id, {
-                        include: [{ model: Division, through: { attributes: [] }, attributes: ['id'] }]
-                    });
-
-                    if (requestType) {
-                        divisionIds = requestType.Divisions?.map(d => d.id) || [];
-                    }
-                }
-            }
+        // Access (R2): the caller must be a task manager (request manager, delegated manager or the
+        // artist's manager) of every task / of the task of every change being shared
+        const parsedShareTaskIds = (Array.isArray(task_ids) ? task_ids : []).map(id => parseId(id));
+        const parsedShareIssueIds = (Array.isArray(issue_ids) ? issue_ids : []).map(id => parseId(id));
+        if (parsedShareTaskIds.includes(null) || parsedShareIssueIds.includes(null)) {
+            return res.status(400).json({ success: false, error: 'task_ids and issue_ids must contain valid IDs' });
         }
-
-        // If no division from task, check from issue_ids
-        if (divisionIds.length === 0 && issue_ids && Array.isArray(issue_ids) && issue_ids.length > 0) {
-            const issueId = parseInt(issue_ids[0], 10);
-            if (!isNaN(issueId)) {
-                const issue = await IssueAssignments.findByPk(issueId, {
-                    include: [{ model: Tasks, as: 'task', attributes: ['id', 'request_type_id'] }]
-                });
-
-                if (issue && issue.task && issue.task.request_type_id) {
-                    const requestType = await RequestType.findByPk(issue.task.request_type_id, {
-                        include: [{ model: Division, through: { attributes: [] }, attributes: ['id'] }]
-                    });
-
-                    if (requestType) {
-                        divisionIds = requestType.Divisions?.map(d => d.id) || [];
-                    }
-                }
+        const shareTaskIds = new Set(parsedShareTaskIds);
+        if (parsedShareIssueIds.length > 0) {
+            const shareIssues = await IssueAssignments.findAll({ where: { id: { [Op.in]: parsedShareIssueIds } }, attributes: ['id', 'task_id'], raw: true });
+            if (shareIssues.length !== new Set(parsedShareIssueIds).size) {
+                return res.status(404).json({ success: false, error: 'Issue not found' });
             }
+            shareIssues.forEach(issue => shareTaskIds.add(issue.task_id));
         }
-
-        // Check if manager is in any of these divisions
-        if (divisionIds.length > 0) {
-            const managerDivision = await UserDivisions.findOne({
-                where: {
-                    user_id: manager_id,
-                    division_id: { [Op.in]: divisionIds }
-                }
-            });
-
-            if (managerDivision) {
-                hasAccess = true;
-            }
-        }
-
-        // Fallback: Check work request manager access if still no access
-        if (!hasAccess) {
-            const workRequestManager = await WorkRequestManagers.findOne({
-                where: {
-                    work_request_id: work_request_id,
-                    manager_id: manager_id
-                }
-            });
-
-            if (workRequestManager) {
-                hasAccess = true;
+        let hasAccess = shareTaskIds.size > 0;
+        for (const shareTaskId of shareTaskIds) {
+            if (!shareTaskId || !(await isTaskManager(req.user, shareTaskId))) {
+                hasAccess = false;
+                break;
             }
         }
 
         if (!hasAccess) {
             return res.status(403).json({
                 success: false,
-                error: 'You are not authorized to share this. Only division manager of this task/issue can share for client review.'
+                error: 'You are not authorized to share this. Only a manager of this task/issue can share for client review.'
             });
         }
 
@@ -4880,32 +4864,20 @@ const acceptIssueRequest = async (req, res) => {
 
         const task = issueAssignment.task;
 
-        // 2. Check if current user is manager for this task's request_type
-        // Get divisions from task's request_type
+        // 2. Access (R2): a task manager of the change's task (request manager, delegated manager
+        //    or the artist's manager)
+        if (!(await isTaskManager(req.user, task.id))) {
+            return res.status(403).json({
+                success: false,
+                error: 'You are not authorized to accept this issue request. Only a manager of this task can accept.'
+            });
+        }
+
+        // Divisions of the task's request type: still returned as `division_ids` (response contract)
         const requestType = await RequestType.findByPk(task.request_type_id, {
             include: [{ model: Division, through: { attributes: [] }, attributes: ['id'] }]
         });
-
-        if (!requestType) {
-            return res.status(400).json({ success: false, error: 'Invalid request type for this task' });
-        }
-
-        const divisionIds = requestType.Divisions?.map(d => d.id) || [];
-
-        // 3. Check if current manager belongs to any of these divisions
-        const managerDivision = await UserDivisions.findOne({
-            where: {
-                user_id: manager_id,
-                division_id: { [Op.in]: divisionIds }
-            }
-        });
-
-        if (!managerDivision) {
-            return res.status(403).json({
-                success: false,
-                error: 'You are not authorized to accept this issue request. Only division managers for this task can accept.'
-            });
-        }
+        const divisionIds = requestType?.Divisions?.map(d => d.id) || [];
 
         if (issueAssignment.status === 'm_accepted') {
             return res.status(400).json({ success: false, error: 'Issue request is already accepted by manager' });
@@ -4949,7 +4921,7 @@ const acceptIssueRequest = async (req, res) => {
                 task_name: task.task_name,
                 project_name: workRequest ? workRequest.project_name : 'N/A',
                 brand: workRequest ? workRequest.brand : 'N/A',
-                request_type: requestType.request_type,
+                request_type: requestType?.request_type || 'N/A',
                 accepted_at: new Date().toLocaleDateString('en-IN', {
                     year: 'numeric',
                     month: 'long',
@@ -5028,28 +5000,11 @@ const cancelIssueRequest = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Issue assignment is not linked to a valid task or parent issue' });
         }
 
-        // 2. Authorization: current manager must belong to a division of the task's request type
-        const requestType = await RequestType.findByPk(task.request_type_id, {
-            include: [{ model: Division, through: { attributes: [] }, attributes: ['id'] }]
-        });
-
-        if (!requestType) {
-            return res.status(400).json({ success: false, error: 'Invalid request type for this task' });
-        }
-
-        const divisionIds = requestType.Divisions?.map(d => d.id) || [];
-
-        const managerDivision = await UserDivisions.findOne({
-            where: {
-                user_id: manager_id,
-                division_id: { [Op.in]: divisionIds }
-            }
-        });
-
-        if (!managerDivision) {
+        // 2. Authorization (R2): a task manager of the change's task
+        if (!(await isTaskManager(req.user, task.id))) {
             return res.status(403).json({
                 success: false,
-                error: 'You are not authorized to cancel this issue request. Only division managers for this task can cancel.'
+                error: 'You are not authorized to cancel this issue request. Only a manager of this task can cancel.'
             });
         }
 
@@ -5164,7 +5119,7 @@ const cancelIssueRequest = async (req, res) => {
                 task_name: task.task_name,
                 project_name: workRequest ? workRequest.project_name : 'N/A',
                 brand: workRequest ? workRequest.brand : 'N/A',
-                request_type: requestType.request_type,
+                request_type: (await RequestType.findByPk(task.request_type_id, { attributes: ['request_type'] }))?.request_type || 'N/A',
                 cancel_reason: cancelReason,
                 cancelled_at: new Date().toLocaleDateString('en-IN', {
                     year: 'numeric',
@@ -5459,59 +5414,21 @@ const getIssueAssignments = async (req, res) => {
             }
         }
 
-        // Get all active creative users (job_role_id = 4) and creative leads (job_role_id = 3) in manager's divisions
-        const usersInManagerDivisions = await UserDivisions.findAll({
-            where: { division_id: { [Op.in]: managerDivisionIds } },
-            include: [
-                {
-                    model: User,
-                    where: {
-                        account_status: 'active',
-                        job_role_id: { [Op.in]: [3, 4] } // Creative Lead (3) and Creative User (4)
-                    },
-                    attributes: ['id', 'name', 'email', 'job_role_id']
-                }
-            ],
-            attributes: []
-        });
-
-        // Get user IDs including the manager themselves (since manager also works as creative user)
-        const userIdsInDivisions = usersInManagerDivisions.map(ud => ud.User.id);
-        userIdsInDivisions.push(manager_id); // Include manager's own ID
-        const uniqueUserIds = [...new Set(userIdsInDivisions)];
-
-        // ✅ DIRECT & FAST WAY: Get all tasks that belong to manager's division via RequestType → Division
-        // Instead of going through WorkRequestManagers → Tasks (old slow path)
-        // Get all request types that are linked to manager's divisions
-        const requestTypesOfManagerDivisions = await RequestType.findAll({
-            include: [
-                {
-                    model: Division,
-                    through: { attributes: [] },
-                    where: { id: { [Op.in]: managerDivisionIds } },
-                    attributes: ['id']
-                }
-            ],
-            attributes: ['id'],
-            raw: true
-        });
-
-        const requestTypeIds = requestTypesOfManagerDivisions.map(rt => rt.id);
-
-        // Get all tasks that use these request types
-        const tasksInManagerDivisions = await Tasks.findAll({
-            attributes: ['id'],
-            where: { request_type_id: { [Op.in]: requestTypeIds } },
-            raw: true
-        });
-
-        const taskIds = tasksInManagerDivisions.map(t => t.id);
+        // Access (R2): only changes on tasks this manager manages (request manager, the manager a
+        // task was delegated to, the artist's manager). Before, every manager of the request type's
+        // division saw them. Super admin sees every task.
+        const managedTasksSql = managedTaskIdsSubquery(req.user);
+        const managedTasks = await sequelize.query(
+            managedTasksSql ? `SELECT mt.id FROM ${managedTasksSql} AS mt` : 'SELECT t.id FROM tasks t',
+            { type: sequelize.QueryTypes.SELECT }
+        );
+        const taskIds = managedTasks.map(t => t.id);
 
         if (taskIds.length === 0) {
             return res.json({
                 success: true,
                 data: [],
-                message: 'No tasks found in your division'
+                message: 'No tasks found for you'
             });
         }
 
@@ -5874,8 +5791,8 @@ const assignIssueToUser = async (req, res) => {
             return res.status(404).json({ success: false, error: 'Issue assignment not found' });
         }
 
-        // Same scoping as acceptIssueRequest: manager must belong to the task's request-type division
-        if (!issueAssignment.task || !(await isDivisionManagerForRequestType(manager_id, issueAssignment.task.request_type_id))) {
+        // Same scoping as acceptIssueRequest (R2): a task manager of the change's task
+        if (!issueAssignment.task || !(await isTaskManager(req.user, issueAssignment.task.id))) {
             return res.status(403).json({ success: false, error: 'You are not authorized to assign this issue' });
         }
 
@@ -5894,6 +5811,20 @@ const assignIssueToUser = async (req, res) => {
 
         if (assignedUser.account_status !== 'active') {
             return res.status(400).json({ success: false, error: 'User account is not active' });
+        }
+
+        // Assignee (R2): an artist of the manager's own team, or someone who already worked on this
+        // task (its assignee or the assignee of one of its changes, e.g. the same artist again)
+        if (!isSuperAdmin(req.user) && assignedUser.id !== manager_id && !(await sharesDivision(manager_id, assignedUser.id))) {
+            const [workedOnTask] = await sequelize.query(
+                `SELECT 1 AS ok FROM task_assignments WHERE task_id = :taskId AND user_id = :userId
+                 UNION SELECT 1 FROM issue_assignments ia JOIN issue_user_assignments iu ON iu.issue_assignment_id = ia.id
+                 WHERE ia.task_id = :taskId AND iu.user_id = :userId LIMIT 1`,
+                { replacements: { taskId: issueAssignment.task.id, userId: assignedUser.id }, type: sequelize.QueryTypes.SELECT }
+            );
+            if (!workedOnTask) {
+                return res.status(403).json({ success: false, error: 'You can assign this change only to an artist of your own team or to an artist who worked on this task' });
+            }
         }
 
         // Update existing assignment for this issue_assignment_id if exists, else create new

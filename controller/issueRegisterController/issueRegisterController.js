@@ -4,8 +4,9 @@ const fs = require('fs');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
 const { recordTaskHistory, recordIssueHistory, recordWorkRequestHistory, recordTaskReviewHistory } = require('../../services/historyService');
-const { parseId, parseIdList } = require('../../utils/validators');
-const { viewableWorkRequestIdsSubquery } = require('../../services/accessService');
+const { parseId, parseIdList, safePathSegment } = require('../../utils/validators');
+const { viewableWorkRequestIdsSubquery, canActAsRequester, isSuperAdmin } = require('../../services/accessService');
+const { sequelize } = require('../../config/databaseConfig');
 const {
     IssueRegister,
     ChangeIssueTasktype,
@@ -135,29 +136,50 @@ const createIssueAssignment = async (req, res) => {
         const actorName = actor.name || null;
         const actorEmail = actor.email || null;
 
-        let rootTaskId = task_id;
+        let rootTaskId = task_id ? parseId(task_id) : null;
         let workRequestId = null;
+        if (task_id && !rootTaskId) {
+            return res.status(400).json({ success: false, error: 'task_id must be a valid ID' });
+        }
+        if (issue_id && !parseId(issue_id)) {
+            return res.status(400).json({ success: false, error: 'issue_id must be a valid ID' });
+        }
 
         if (issue_id) {
             const parentIssue = await IssueAssignments.findByPk(issue_id, {
-                attributes: ['id', 'issue_id', 'task_id']
+                attributes: ['id', 'issue_id', 'task_id', 'is_deleted']
             });
-            if (!parentIssue) {
+            if (!parentIssue || parentIssue.is_deleted) {
                 return res.status(404).json({ success: false, error: 'Parent issue not found' });
             }
-
-            if (parentIssue.task_id) {
-                rootTaskId = parentIssue.task_id;
-            } else if (parentIssue.issue_id) {
-                rootTaskId = parentIssue.issue_id;
+            if (rootTaskId && parentIssue.task_id && parentIssue.task_id !== rootTaskId) {
+                return res.status(400).json({ success: false, error: 'Parent issue does not belong to this task' });
             }
+            // A change always keeps the task it belongs to (also when only issue_id is sent)
+            rootTaskId = parentIssue.task_id || rootTaskId;
         }
 
-        if (rootTaskId) {
-            const task = await Tasks.findByPk(rootTaskId, {
-                attributes: ['id', 'work_request_id']
-            });
-            if (task) workRequestId = task.work_request_id;
+        const rootTask = rootTaskId ? await Tasks.findByPk(rootTaskId, {
+            attributes: ['id', 'work_request_id', 'status', 'is_deleted'],
+            include: [{ model: WorkRequests, as: 'WorkRequest', attributes: ['id', 'user_id', 'status', 'is_deleted'] }]
+        }) : null;
+        if (!rootTask || rootTask.is_deleted || !rootTask.WorkRequest || rootTask.WorkRequest.is_deleted) {
+            return res.status(404).json({ success: false, error: 'Task not found' });
+        }
+        const closedStatuses = ['cancelled', 'rejected'];
+        if (closedStatuses.includes(rootTask.status)) {
+            return res.status(400).json({ success: false, error: `Changes cannot be requested on a task that is ${rootTask.status}` });
+        }
+        if (closedStatuses.includes(rootTask.WorkRequest.status)) {
+            return res.status(400).json({ success: false, error: `Changes cannot be requested on a project that is ${rootTask.WorkRequest.status}` });
+        }
+        workRequestId = rootTask.work_request_id;
+
+        // Access (R2): changes are requested by the requester side (PMT): the user who raised the
+        // project or a colleague in their division, as for PM approve / reject. Checked on the dump:
+        // all 964 changes in issue_history were created this way.
+        if (!isSuperAdmin(req.user) && !(await canActAsRequester(req.user.id, rootTask.WorkRequest.user_id))) {
+            return res.status(403).json({ success: false, error: 'Only the requester of this project (or a colleague in their division) can request changes' });
         }
 
         if (rootTaskId && !issue_id) {
@@ -184,124 +206,152 @@ const createIssueAssignment = async (req, res) => {
             }
         }
 
-        const issueAssignment = await IssueAssignments.create({
-            issue_id: issue_id || null,
-            task_id: task_id || null,
-            requested_by_user_id,
-            assignment_type,
-            version,
-            description,
-            deadline,
-            start_date,
-            end_date,
-            link,
-            task_count,
-            intimate_team,
-            intimate_client,
-            status: 'm_pending',
-            review: 'pending',
-            notification_alert: 1
-        });
+        // The change, its change types, the task / parent review update, the project re-open and
+        // their history rows are saved together: a failure part-way never leaves a change without
+        // its types again (43 such changes were left by the multipart crash of 21-28 Oct 2026).
+        const issueAssignment = await sequelize.transaction(async (transaction) => {
+            // A change on a completed project re-opens it (projects.md step 11), with history
+            if (rootTask.WorkRequest.status === 'completed') {
+                await WorkRequests.update({ status: 'accepted' }, { where: { id: workRequestId, status: 'completed' }, transaction });
+                await recordWorkRequestHistory({
+                    req,
+                    transaction,
+                    workRequestId,
+                    action: 'reopened',
+                    previousStatus: 'completed',
+                    newStatus: 'accepted',
+                    relatedTaskId: rootTaskId,
+                    comments: 'Work request re-opened: new change requested'
+                });
+            }
 
-        const actorOverride = {
-            id: actorId,
-            actor_type: actorType,
-            name: actorName,
-            email: actorEmail
-        };
+            const issueAssignment = await IssueAssignments.create({
+                issue_id: issue_id || null,
+                task_id: rootTaskId,
+                requested_by_user_id,
+                assignment_type,
+                version,
+                description,
+                deadline,
+                start_date,
+                end_date,
+                link,
+                task_count,
+                intimate_team,
+                intimate_client,
+                status: 'm_pending',
+                review: 'pending',
+                notification_alert: 1
+            }, { transaction });
 
-        await recordIssueHistory({
-            req,
-            issueAssignmentId: issueAssignment.id,
-            taskId: task_id || null,
-            workRequestId,
-            action: 'created',
-            previousStatus: null,
-            newStatus: 'm_pending',
-            comments: 'Issue assignment created',
-            actorOverride
-        });
-
-        if (workRequestId) {
-            await recordWorkRequestHistory({
-                req,
-                workRequestId,
-                action: 'change_request_issue_created',
-                relatedTaskId: task_id || null,
-                relatedIssueId: issueAssignment.id,
-                comments: 'Change request issue created',
-                actorOverride
-            });
-        }
-
-        if (task_id) {
-            await Tasks.update({ review: 'change_request' }, { where: { id: task_id } });
-
-            await recordTaskHistory({
-                req,
-                taskId: task_id,
-                workRequestId,
-                action: 'change_request_created',
-                previousReview: 'pending',
-                newReview: 'change_request',
-                previousReviewStage: 'final_approved',
-                newReviewStage: 'change_requested',
-                relatedIssueId: issueAssignment.id,
-                comments: `New issue request created - ${version}`,
-                actorOverride
-            });
-
-            await recordTaskReviewHistory({
-                task_id: task_id,
-                reviewer_id: requested_by_user_id,
-                reviewer_type: 'project_manager',
-                action: 'change_request',
-                comments: `New issue request created - ${version}`,
-                previous_stage: 'final_approved',
-                new_stage: 'change_requested'
-            });
-        }
-
-        if (issue_id) {
-            await IssueAssignments.update({ review: 'change_request' }, { where: { id: issue_id } });
-
-            const parentIssue = await IssueAssignments.findByPk(issue_id, { attributes: ['task_id'] });
+            const actorOverride = {
+                id: actorId,
+                actor_type: actorType,
+                name: actorName,
+                email: actorEmail
+            };
 
             await recordIssueHistory({
                 req,
-                issueAssignmentId: issue_id,
-                taskId: parentIssue?.task_id || null,
+                transaction,
+                issueAssignmentId: issueAssignment.id,
+                taskId: task_id || null,
                 workRequestId,
-                action: 'child_change_request_created',
-                previousReview: 'pending',
-                newReview: 'change_request',
-                previousReviewStage: 'final_approved',
-                newReviewStage: 'change_requested',
-                relatedIssueId: issueAssignment.id,
-                comments: `New issue request created for issue - ${version}`,
+                action: 'created',
+                previousStatus: null,
+                newStatus: 'm_pending',
+                comments: 'Issue assignment created',
                 actorOverride
             });
 
-            if (parentIssue && parentIssue.task_id) {
+            if (workRequestId) {
+                await recordWorkRequestHistory({
+                    req,
+                transaction,
+                    workRequestId,
+                    action: 'change_request_issue_created',
+                    relatedTaskId: task_id || null,
+                    relatedIssueId: issueAssignment.id,
+                    comments: 'Change request issue created',
+                    actorOverride
+                });
+            }
+
+            if (task_id) {
+                await Tasks.update({ review: 'change_request' }, { where: { id: task_id }, transaction });
+
+                await recordTaskHistory({
+                    req,
+                transaction,
+                    taskId: task_id,
+                    workRequestId,
+                    action: 'change_request_created',
+                    previousReview: 'pending',
+                    newReview: 'change_request',
+                    previousReviewStage: 'final_approved',
+                    newReviewStage: 'change_requested',
+                    relatedIssueId: issueAssignment.id,
+                    comments: `New issue request created - ${version}`,
+                    actorOverride
+                });
+
                 await recordTaskReviewHistory({
-                    task_id: parentIssue.task_id,
+                    task_id: task_id,
                     reviewer_id: requested_by_user_id,
                     reviewer_type: 'project_manager',
                     action: 'change_request',
-                    comments: `New issue request created for issue - ${version}`,
+                    comments: `New issue request created - ${version}`,
                     previous_stage: 'final_approved',
-                    new_stage: 'change_requested'
+                    new_stage: 'change_requested',
+                    transaction
                 });
             }
-        }
 
-        if (issueRegisterIds.length > 0) {
-            const issueTypeLinks = issueRegisterIds.map(registerId => ({
-                issue_assignment_id: issueAssignment.id,
-                issue_register_id: registerId
-            }));
-            await IssueAssignmentTypes.bulkCreate(issueTypeLinks);
-        }
+            if (issue_id) {
+                await IssueAssignments.update({ review: 'change_request' }, { where: { id: issue_id }, transaction });
+
+                const parentIssue = await IssueAssignments.findByPk(issue_id, { attributes: ['task_id'], transaction });
+
+                await recordIssueHistory({
+                    req,
+                transaction,
+                    issueAssignmentId: issue_id,
+                    taskId: parentIssue?.task_id || null,
+                    workRequestId,
+                    action: 'child_change_request_created',
+                    previousReview: 'pending',
+                    newReview: 'change_request',
+                    previousReviewStage: 'final_approved',
+                    newReviewStage: 'change_requested',
+                    relatedIssueId: issueAssignment.id,
+                    comments: `New issue request created for issue - ${version}`,
+                    actorOverride
+                });
+
+                if (parentIssue && parentIssue.task_id) {
+                    await recordTaskReviewHistory({
+                        task_id: parentIssue.task_id,
+                        reviewer_id: requested_by_user_id,
+                        reviewer_type: 'project_manager',
+                        action: 'change_request',
+                        comments: `New issue request created for issue - ${version}`,
+                        previous_stage: 'final_approved',
+                        new_stage: 'change_requested',
+                        transaction
+                    });
+                }
+            }
+
+            if (issueRegisterIds.length > 0) {
+                const issueTypeLinks = issueRegisterIds.map(registerId => ({
+                    issue_assignment_id: issueAssignment.id,
+                    issue_register_id: registerId
+                }));
+                await IssueAssignmentTypes.bulkCreate(issueTypeLinks, { transaction });
+            }
+
+            return issueAssignment;
+        });
 
         const createdIssueAssignment = await IssueAssignments.findByPk(issueAssignment.id, {
             include: [
@@ -332,7 +382,7 @@ const createIssueAssignment = async (req, res) => {
 
             const workRequest = task ? task.WorkRequest : null;
             const sanitizedProjectName = workRequest ? workRequest.project_name.replace(/[^a-zA-Z0-9]/g, '_') : 'Issue';
-            const taskName = task ? task.task_name : `Issue_${issueAssignment.id}`;
+            const taskName = safePathSegment(task ? task.task_name : `Issue_${issueAssignment.id}`);
             const uploadDir = path.join(__dirname, '../../uploads');
             const projectFolder = path.join(uploadDir, sanitizedProjectName);
             const taskFolder = path.join(projectFolder, taskName);

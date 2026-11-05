@@ -36,7 +36,8 @@ const { recordWorkRequestHistory, recordTaskHistory, recordIssueHistory, getWork
 const { completeWorkRequestIfFinished } = require('../../services/workRequestCompletionService');
 const { canActAsRequester, canViewWorkRequest } = require('../../services/accessService');
 const { pickModelFilters, pickModelFields } = require('../../utils/queryFilters');
-const { parseId, parseIdList } = require('../../utils/validators');
+const { parseId, parseIdList, parseDateOnly } = require('../../utils/validators');
+const { sequelize } = require('../../config/databaseConfig');
 // const { queueFileUpload } = require('../../services/fileUploadService');
 const path = require('path');
 const fs = require('fs');
@@ -701,6 +702,96 @@ const updateWorkRequest = async (req, res) => {
     }
 };
 
+// ---- Requester (PMT) list helpers: my-requests and division/all (R3, 2026-11-04) ----
+// Extra query params (all optional; they are not work_requests columns, so pickModelFilters ignores them):
+//   deadline_from / deadline_to  YYYY-MM-DD, on the project deadline (latest deadline of its live tasks)
+//   artist_name / artist_id      someone assigned to one of its live tasks or changes (name: LIKE)
+//   requester_name / requester_id  the user who raised it (name: LIKE)
+//   sort_by  created_at | requested_at | deadline | status | project_name | priority | id,  order  asc | desc
+// The default order stays created_at DESC; `id` is added as a tie-break so pages are stable.
+const PROJECT_DEADLINE_SQL = '(SELECT MAX(dt.deadline) FROM tasks dt WHERE dt.work_request_id = `WorkRequests`.`id` AND dt.is_deleted = 0)';
+const REQUESTER_LIST_SORTS = {
+    created_at: 'created_at',
+    requested_at: 'requested_at',
+    status: 'status',
+    project_name: 'project_name',
+    priority: 'priority',
+    id: 'id',
+    deadline: 'deadline',
+    project_deadline: 'deadline'
+};
+
+const singleQueryValue = (value) => (Array.isArray(value) ? value.join(',') : value);
+
+// Returns { conditions, order } or { error } (400)
+const buildRequesterListQuery = (query) => {
+    const conditions = [];
+    const from = query.deadline_from !== undefined && query.deadline_from !== '' ? parseDateOnly(singleQueryValue(query.deadline_from)) : null;
+    const to = query.deadline_to !== undefined && query.deadline_to !== '' ? parseDateOnly(singleQueryValue(query.deadline_to)) : null;
+    if ((query.deadline_from && !from) || (query.deadline_to && !to)) {
+        return { error: 'deadline_from and deadline_to must be valid dates (YYYY-MM-DD)' };
+    }
+    if (from && to && from > to) {
+        return { error: 'deadline_from must not be after deadline_to' };
+    }
+    if (from) conditions.push(sequelize.literal(`${PROJECT_DEADLINE_SQL} >= ${sequelize.escape(from)}`));
+    if (to) conditions.push(sequelize.literal(`${PROJECT_DEADLINE_SQL} <= ${sequelize.escape(to + ' 23:59:59')}`));
+
+    const artistCondition = (userSql) => sequelize.literal(`\`WorkRequests\`.\`id\` IN (
+        SELECT at.work_request_id FROM tasks at JOIN task_assignments ata ON ata.task_id = at.id
+        WHERE at.is_deleted = 0 AND ata.user_id IN (${userSql})
+        UNION
+        SELECT at.work_request_id FROM tasks at JOIN issue_assignments aia ON aia.task_id = at.id AND aia.is_deleted = 0
+        JOIN issue_user_assignments aiu ON aiu.issue_assignment_id = aia.id
+        WHERE at.is_deleted = 0 AND aiu.user_id IN (${userSql}))`);
+    if (query.artist_id !== undefined && query.artist_id !== '') {
+        const artistId = parseId(singleQueryValue(query.artist_id));
+        if (!artistId) return { error: 'artist_id must be a valid ID' };
+        conditions.push(artistCondition(String(artistId)));
+    }
+    const artistName = String(singleQueryValue(query.artist_name) || '').trim();
+    if (artistName) {
+        conditions.push(artistCondition(`SELECT au.id FROM users au WHERE au.name LIKE ${sequelize.escape(`%${artistName}%`)}`));
+    }
+    if (query.requester_id !== undefined && query.requester_id !== '') {
+        const requesterId = parseId(singleQueryValue(query.requester_id));
+        if (!requesterId) return { error: 'requester_id must be a valid ID' };
+        conditions.push({ user_id: requesterId });
+    }
+    const requesterName = String(singleQueryValue(query.requester_name) || '').trim();
+    if (requesterName) {
+        conditions.push(sequelize.literal(`\`WorkRequests\`.\`user_id\` IN (SELECT ru.id FROM users ru WHERE ru.name LIKE ${sequelize.escape(`%${requesterName}%`)})`));
+    }
+
+    const sortBy = String(singleQueryValue(query.sort_by) || 'created_at').trim();
+    const sortKey = REQUESTER_LIST_SORTS[sortBy];
+    if (!sortKey) {
+        return { error: `Invalid sort_by. Valid values are: ${Object.keys(REQUESTER_LIST_SORTS).join(', ')}` };
+    }
+    const orderParam = String(singleQueryValue(query.order) || '').trim().toLowerCase();
+    if (orderParam && !['asc', 'desc'].includes(orderParam)) {
+        return { error: 'order must be asc or desc' };
+    }
+    const direction = (orderParam || (sortKey === 'deadline' ? 'asc' : 'desc')).toUpperCase();
+    const order = sortKey === 'deadline'
+        // requests without any task deadline go last in both directions
+        ? [[sequelize.literal(`${PROJECT_DEADLINE_SQL} IS NULL`), 'ASC'], [sequelize.literal(PROJECT_DEADLINE_SQL), direction]]
+        : [[sortKey, direction]];
+    order.push(['id', direction]);
+    return { conditions, order };
+};
+
+// Adds total / total_pages to the pagination object (page, limit, offset are unchanged)
+const paginationWithTotal = (pagination, total) => ({
+    ...pagination,
+    total,
+    total_pages: pagination.limit === -1 ? (total > 0 ? 1 : 0) : Math.ceil(total / pagination.limit)
+});
+
+// Sequelize turns `limit: -1` into invalid SQL; -1 means all rows
+const sqlLimit = (pagination) => (pagination.limit === -1 ? undefined : pagination.limit);
+const sqlOffset = (pagination) => (pagination.limit === -1 ? undefined : pagination.offset);
+
 const getMyWorkRequests = async (req, res) => {
     try {
         const user_id = req.user.id;
@@ -785,6 +876,17 @@ const getMyWorkRequests = async (req, res) => {
             }));
         }
 
+        const listQuery = buildRequesterListQuery(req.query);
+        if (listQuery.error) {
+            return res.status(400).json({ success: false, error: listQuery.error });
+        }
+        if (listQuery.conditions.length > 0) {
+            where[Op.and] = listQuery.conditions;
+        }
+
+        // One-to-many includes are loaded with `separate` queries, so the page query no longer
+        // multiplies rows (managers x divisions x tasks x assignees x changes x documents)
+        const total = await WorkRequests.count({ where });
         const result = await workRequestService.getAll({
             where,
             attributes: { exclude: ['request_type_id', 'updated_at'] },
@@ -793,7 +895,7 @@ const getMyWorkRequests = async (req, res) => {
                 { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
                 { model: RequestType, attributes: { exclude: ['created_at', 'updated_at'] } },
                 {
-                    model: WorkRequestManagers, attributes: { exclude: ['created_at', 'updated_at'] }, include: [
+                    model: WorkRequestManagers, separate: true, order: [['id', 'ASC']], attributes: { exclude: ['created_at', 'updated_at'] }, include: [
                         {
                             model: User, as: 'manager', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] }, include: [
                                 { model: Department, as: 'Department', attributes: { exclude: ['created_at', 'updated_at'] } },
@@ -806,6 +908,8 @@ const getMyWorkRequests = async (req, res) => {
                 },
                 {
                     model: Tasks,
+                    separate: true,
+                    order: [['id', 'ASC']],
                     attributes: { exclude: ['created_at', 'updated_at'] },
                     where: taskReviewWhere,
                     required: false,
@@ -823,6 +927,8 @@ const getMyWorkRequests = async (req, res) => {
                         {
                             model: TaskDependencies,
                             as: 'dependencies',
+                            separate: true,
+                            order: [['id', 'ASC']],
                             include: [
                                 {
                                     model: Tasks,
@@ -834,6 +940,8 @@ const getMyWorkRequests = async (req, res) => {
                         {
                             model: IssueAssignments,
                             as: 'issueAssignments',
+                            separate: true,
+                            order: [['id', 'ASC']],
                             where: issueReviewWhere,
                             required: false,
                             include: [
@@ -852,9 +960,9 @@ const getMyWorkRequests = async (req, res) => {
                     ]
                 }
             ],
-            limit: req.pagination.limit,
-            offset: req.pagination.offset,
-            order: [['created_at', 'DESC']]
+            limit: sqlLimit(req.pagination),
+            offset: sqlOffset(req.pagination),
+            order: listQuery.order
         });
 
         if (result.success) {
@@ -885,7 +993,7 @@ const getMyWorkRequests = async (req, res) => {
                 }
             });
 
-            res.json({ success: true, data: result.data, pagination: req.pagination, notification_alert_count: totalNotificationAlert });
+            res.json({ success: true, data: result.data, pagination: paginationWithTotal(req.pagination, total), notification_alert_count: totalNotificationAlert });
         } else {
             res.status(500).json({ success: false, error: result.error });
         }
@@ -1433,6 +1541,16 @@ const getDivisionWorkRequests = async (req, res) => {
             }));
         }
 
+        const listQuery = buildRequesterListQuery(req.query);
+        if (listQuery.error) {
+            return res.status(400).json({ success: false, error: listQuery.error });
+        }
+        // requester_id filters inside the caller's divisions, never outside them
+        if (listQuery.conditions.length > 0) {
+            where[Op.and] = listQuery.conditions;
+        }
+        const total = await WorkRequests.count({ where });
+
         const result = await workRequestService.getAll({
             where,
             attributes: { exclude: ['request_type_id', 'updated_at'] },
@@ -1440,7 +1558,7 @@ const getDivisionWorkRequests = async (req, res) => {
                 { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
                 { model: RequestType, attributes: { exclude: ['created_at', 'updated_at'] } },
                 {
-                    model: WorkRequestManagers, attributes: { exclude: ['created_at', 'updated_at'] }, include: [
+                    model: WorkRequestManagers, separate: true, order: [['id', 'ASC']], attributes: { exclude: ['created_at', 'updated_at'] }, include: [
                         {
                             model: User, as: 'manager', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] }, include: [
                                 { model: Department, as: 'Department', attributes: { exclude: ['created_at', 'updated_at'] } },
@@ -1453,6 +1571,8 @@ const getDivisionWorkRequests = async (req, res) => {
                 },
                 {
                     model: Tasks,
+                    separate: true,
+                    order: [['id', 'ASC']],
                     attributes: { exclude: ['created_at', 'updated_at'] },
                     include: [
                         {
@@ -1468,6 +1588,8 @@ const getDivisionWorkRequests = async (req, res) => {
                         {
                             model: TaskDependencies,
                             as: 'dependencies',
+                            separate: true,
+                            order: [['id', 'ASC']],
                             include: [
                                 {
                                     model: Tasks,
@@ -1479,13 +1601,13 @@ const getDivisionWorkRequests = async (req, res) => {
                     ]
                 }
             ],
-            limit: req.pagination.limit,
-            offset: req.pagination.offset,
-            order: [['created_at', 'DESC']]
+            limit: sqlLimit(req.pagination),
+            offset: sqlOffset(req.pagination),
+            order: listQuery.order
         });
 
         if (result.success) {
-            res.json({ success: true, data: result.data, pagination: req.pagination });
+            res.json({ success: true, data: result.data, pagination: paginationWithTotal(req.pagination, total) });
         } else {
             res.status(500).json({ success: false, error: result.error });
         }

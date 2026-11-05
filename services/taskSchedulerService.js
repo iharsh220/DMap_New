@@ -1,7 +1,7 @@
 const { Queue, Worker } = require('bullmq');
 const cron = require('node-cron');
 const { Op } = require('sequelize');
-const { Tasks, WorkRequests, IssueAssignments, User } = require('../models');
+const { Tasks, WorkRequests, IssueAssignments, User, PmReviewReminderHistory } = require('../models');
 const { sendMail } = require('./mailService');
 const { renderTemplate } = require('./templateService');
 const { recordPmReviewReminderHistory } = require('./historyService');
@@ -169,9 +169,34 @@ const addReminderItem = (remindersByEmail, client, item) => {
 };
 
 // Function to send daily reminders for pending PM/client reviews
-const sendPmReviewPendingReminders = async () => {
+// Daily PMT reminder ("your project's work is completed, please approve it"). It is sent only
+// from production: it needs PM_REVIEW_REMINDER_ENABLED=true in .env, and it never runs when
+// BASE_ROUTE is a UAT route, so UAT / local copies of the data never mail real requesters.
+// PM_REVIEW_REMINDER_CRON overrides the schedule (default 09:00 IST, Monday to Saturday).
+const PM_REVIEW_REMINDER_CRON = process.env.PM_REVIEW_REMINDER_CRON || '0 9 * * 1-6';
+
+const pmReviewReminderStatus = () => {
+  if (String(process.env.PM_REVIEW_REMINDER_ENABLED || '').toLowerCase() !== 'true') {
+    return { enabled: false, reason: 'PM_REVIEW_REMINDER_ENABLED is not true' };
+  }
+  if (/(^|\/)uat(\/|$)/i.test(process.env.BASE_ROUTE || '')) {
+    return { enabled: false, reason: 'UAT environment (BASE_ROUTE contains /uat/)' };
+  }
+  return { enabled: true };
+};
+
+// 'YYYY-MM-DD' of today in IST
+const todayIst = () => new Date(Date.now() + 330 * 60 * 1000).toISOString().slice(0, 10);
+
+const sendPmReviewPendingReminders = async ({ force = false } = {}) => {
   try {
+    const status = pmReviewReminderStatus();
+    if (!status.enabled && !force) {
+      return { success: true, skipped: true, message: `PM review reminders are disabled: ${status.reason}` };
+    }
+
     const remindersByEmail = new Map();
+    const liveRequestWhere = { is_deleted: 0, status: { [Op.notIn]: ['cancelled', 'rejected'] } };
 
     const pendingTasks = await Tasks.findAll({
       where: {
@@ -179,13 +204,17 @@ const sendPmReviewPendingReminders = async () => {
         review_stage: 'pm_review',
         is_deleted: 0
       },
-      attributes: ['id', 'task_name', 'deadline', 'work_request_id', 'updated_at'],
+      attributes: ['id', 'task_name', 'deadline', 'work_request_id', 'updated_at', 'shared_with_client_at'],
       include: [{
         model: WorkRequests,
+        required: true,
+        where: liveRequestWhere,
         attributes: ['id', 'project_name', 'brand', 'user_id'],
         include: [{
           model: User,
           as: 'users',
+          required: true,
+          where: { account_status: 'active' },
           attributes: ['id', 'name', 'email']
         }]
       }]
@@ -201,7 +230,7 @@ const sendPmReviewPendingReminders = async () => {
         brand: workRequest?.brand || 'N/A',
         work_request_id: workRequest?.id || task.work_request_id,
         deadline: formatDate(task.deadline),
-        pending_since: formatDate(task.updated_at)
+        pending_since: formatDate(task.shared_with_client_at || task.updated_at)
       });
     }
 
@@ -219,10 +248,14 @@ const sendPmReviewPendingReminders = async () => {
         attributes: ['id', 'task_name', 'work_request_id'],
         include: [{
           model: WorkRequests,
+          required: true,
+          where: liveRequestWhere,
           attributes: ['id', 'project_name', 'brand', 'user_id'],
           include: [{
             model: User,
             as: 'users',
+            required: true,
+            where: { account_status: 'active' },
             attributes: ['id', 'name', 'email']
           }]
         }]
@@ -235,7 +268,7 @@ const sendPmReviewPendingReminders = async () => {
       addReminderItem(remindersByEmail, workRequest?.users, {
         type: 'Issue',
         id: issue.id,
-        name: issue.version ? `Issue ${issue.version}` : `Issue ${issue.id}`,
+        name: issue.version ? String(issue.version) : `#${issue.id}`,
         task_name: task?.task_name || 'N/A',
         project_name: workRequest?.project_name || 'N/A',
         brand: workRequest?.brand || 'N/A',
@@ -246,8 +279,22 @@ const sendPmReviewPendingReminders = async () => {
     }
 
     let sentEmails = 0;
+    let skippedAlreadySent = 0;
+    const startOfToday = `${todayIst()} 00:00:00`;
 
     for (const [email, reminder] of remindersByEmail.entries()) {
+      // At most one reminder per requester per day (also when several API processes run the cron)
+      if (!force) {
+        const alreadySent = await PmReviewReminderHistory.findOne({
+          where: { user_id: reminder.client.id, created_at: { [Op.gte]: startOfToday }, email_status: { [Op.in]: ['sent', 'queued'] } },
+          attributes: ['id']
+        });
+        if (alreadySent) {
+          skippedAlreadySent++;
+          continue;
+        }
+      }
+
       const html = renderTemplate('pmReviewPendingReminder', {
         client_name: reminder.client.name || 'User',
         pending_count: reminder.items.length,
@@ -255,13 +302,14 @@ const sendPmReviewPendingReminders = async () => {
         frontend_url: process.env.FRONTEND_URL
       });
 
-      await sendMail({
+      // sendMail never throws; it returns null when the mail queue (Redis) is unavailable
+      const queued = await sendMail({
         to: email,
-        subject: `Pending PM Review Reminder (${reminder.items.length})`,
+        subject: `Reminder: ${reminder.items.length} item(s) waiting for your approval - D-Map`,
         html
       });
 
-      sentEmails++;
+      if (queued) sentEmails++;
 
       for (const item of reminder.items) {
         await recordPmReviewReminderHistory({
@@ -271,7 +319,7 @@ const sendPmReviewPendingReminders = async () => {
           issueAssignmentId: item.type === 'Issue' ? item.id : null,
           itemsCount: reminder.items.length,
           itemsData: reminder.items,
-          emailStatus: 'sent'
+          emailStatus: queued ? 'queued' : 'failed'
         });
       }
 
@@ -282,7 +330,8 @@ const sendPmReviewPendingReminders = async () => {
 
     return {
       success: true,
-      message: `Sent ${sentEmails} PM review reminder email(s)`,
+      message: `Queued ${sentEmails} PM review reminder email(s)`,
+      skippedAlreadySent,
       pendingTasks: pendingTasks.length,
       pendingIssues: pendingIssues.length,
       sentEmails
@@ -318,22 +367,27 @@ const scheduleTaskProgression = () => {
     timezone: 'Asia/Kolkata'
   });
 
-  // Runs at 9:00 AM and 5:00 PM IST on weekdays only
-  // cron.schedule('0 9,17 * * 1-5', async () => {
-  //   console.log('Running scheduled task: PM review pending reminders');
-
-  //   try {
-  //     await taskSchedulerQueue.add('pm-review-reminders', { type: 'pm_review_reminders' });
-  //     console.log('PM review reminder job queued successfully');
-  //   } catch (error) {
-  //     console.error('Failed to queue PM review reminder job:', error);
-  //   }
-  // }, {
-  //   timezone: 'Asia/Kolkata'
-  // });
+  // Daily reminder to requesters (PMT) about completed work waiting for their approval.
+  // Production only, see pmReviewReminderStatus().
+  const reminderStatus = pmReviewReminderStatus();
+  if (reminderStatus.enabled) {
+    cron.schedule(PM_REVIEW_REMINDER_CRON, async () => {
+      console.log('Running scheduled task: PM review pending reminders');
+      try {
+        await taskSchedulerQueue.add('pm-review-reminders', { type: 'pm_review_reminders' });
+        console.log('PM review reminder job queued successfully');
+      } catch (error) {
+        console.error('Failed to queue PM review reminder job:', error);
+      }
+    }, {
+      timezone: 'Asia/Kolkata'
+    });
+  }
 
   console.log('Task and Issue progression + work request completion scheduler initialized - runs daily at 12:01 AM IST');
-  console.log('PM review reminder scheduler initialized - runs on weekdays at 9:00 AM and 5:00 PM IST');
+  console.log(reminderStatus.enabled
+    ? `PM review reminder scheduler initialized - cron '${PM_REVIEW_REMINDER_CRON}' (Asia/Kolkata)`
+    : `PM review reminder scheduler is off: ${reminderStatus.reason}`);
 };
 
 
@@ -398,5 +452,6 @@ module.exports = {
   progressTasksWithTodayStartDate,
   progressIssuesWithTodayStartDate,
   sendPmReviewPendingReminders,
+  pmReviewReminderStatus,
   completeAllFinishedWorkRequests
 };

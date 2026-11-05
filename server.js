@@ -86,6 +86,29 @@ app.use(baseRoute, express.static(path.join(__dirname, 'public')));
 // const limiter = require('./middleware/rateLimitMiddleware');
 // app.use(limiter);
 
+// R5: a 5xx response never exposes internal error text (SQL errors, file paths) to the client.
+// Handlers keep sending { success: false, error: error.message }; here the real text is logged
+// with context (endpoint, user id, ids) and the client gets a generic message in the same shape.
+const GENERIC_SERVER_ERROR = 'Something went wrong. Please try again later.';
+app.use((req, res, next) => {
+    const sendJson = res.json.bind(res);
+    res.json = (body) => {
+        if (res.statusCode >= 500 && body && typeof body === 'object' && !Array.isArray(body) && typeof body.error === 'string' && body.error !== GENERIC_SERVER_ERROR) {
+            console.error('[api 5xx]', JSON.stringify({
+                status: res.statusCode,
+                endpoint: `${req.method} ${req.originalUrl}`,
+                user_id: req.user ? req.user.id : null,
+                params: req.params,
+                error: body.error,
+                message: body.message
+            }));
+            body = { ...body, error: GENERIC_SERVER_ERROR };
+        }
+        return sendJson(body);
+    };
+    next();
+});
+
 // Routes
 app.use(baseRoute, require('./routes/indexRoute'));
 
@@ -105,13 +128,19 @@ app.use((err, req, res, next) => {
     if (err.type === 'entity.parse.failed') {
         return res.status(400).json({ success: false, error: 'Invalid JSON in request body' });
     }
-    console.error(err.stack);
-    res.status(500).json({ error: 'Something went wrong!' });
+    console.error('[api error]', `${req.method} ${req.originalUrl}`, 'user', req.user ? req.user.id : null, err.stack);
+    res.status(err.status && err.status < 500 ? err.status : 500).json({ success: false, error: err.status && err.status < 500 ? err.message : GENERIC_SERVER_ERROR });
 });
 
 // 404 handler
 app.use('*', (req, res) => {
     res.status(404).json({ error: 'Route not found' });
+});
+
+// A rejected promise nobody awaited (e.g. a fire-and-forget email or history write) is logged
+// instead of crashing the API process (Node's default for unhandled rejections)
+process.on('unhandledRejection', (reason) => {
+    console.error('[unhandledRejection]', reason && reason.stack ? reason.stack : reason);
 });
 
 const PORT = process.env.PORT || 1007;

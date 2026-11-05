@@ -59,9 +59,12 @@ const buildActor = (req, actorOverride) => {
   };
 };
 
+// `payload.transaction` (if any) is the caller's transaction: it is passed as the create option,
+// not as a column value (before, history rows were written outside the caller's transaction)
 const safeCreate = async (Model, payload) => {
   try {
-    return await Model.create(payload);
+    const { transaction, ...values } = payload;
+    return await Model.create(values, transaction ? { transaction } : undefined);
   } catch (error) {
     console.error(`Error recording ${Model.tableName} history:`, error);
     return null;
@@ -233,7 +236,8 @@ const recordTaskReviewHistory = async ({
   action = 'change_request',
   comments = null,
   previous_stage = null,
-  new_stage = null
+  new_stage = null,
+  transaction = null
 }) => {
   const payload = {
     task_id,
@@ -242,7 +246,8 @@ const recordTaskReviewHistory = async ({
     action,
     comments,
     previous_stage,
-    new_stage
+    new_stage,
+    transaction
   };
 
   return safeCreate(TaskReviewHistory, payload);
