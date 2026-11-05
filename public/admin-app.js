@@ -204,7 +204,8 @@
     const NAV = [
         { section: 'Insights', items: [
             { page: 'overview', label: 'Overview', icon: 'grid-1x2' },
-            { page: 'powerbi', label: 'Power BI', icon: 'bar-chart-line' }
+            { page: 'powerbi', label: 'Power BI', icon: 'bar-chart-line' },
+            { page: 'whats-new', label: 'What\'s new', icon: 'megaphone' }
         ] },
         { section: 'Work', items: [
             { page: 'clients', label: 'Client requests', icon: 'people' },
@@ -221,6 +222,10 @@
             { page: 'reports', hash: 'extra', label: 'Highlight & notes', icon: 'stars', reportsOnly: true },
             { page: 'reports', hash: 'settings', label: 'History & settings', icon: 'clock-history', reportsOnly: true }
         ] },
+        // Master data: Super Admin (everything) and managers (their own department); the API checks it too
+        { section: 'Setup', items: [
+            { page: 'master-data', label: 'Master data', icon: 'diagram-3', editorsOnly: true }
+        ] },
         // Manage pages (and Raw data above) are for the super admin only (their APIs are role-checked too)
         { section: 'Manage', adminOnly: true, items: [
             { page: 'feedback', label: 'Feedback', icon: 'chat-square-heart' },
@@ -235,8 +240,10 @@
         const u = user();
         return !!(u && u.jobRole && u.jobRole.id === 2 && u.department && u.department.department_name === 'Digilabs');
     };
+    const EDITOR_PAGES = NAV.flatMap(g => g.items.filter(i => i.editorsOnly).map(i => i.page));
     D.canOpenPage = page => D.isAdmin()
-        || (REPORT_PAGES.includes(page) ? D.isDigilabsManager() : !ADMIN_ONLY_PAGES.includes(page));
+        || (REPORT_PAGES.includes(page) ? D.isDigilabsManager()
+            : EDITOR_PAGES.includes(page) ? D.canEditWork() : !ADMIN_ONLY_PAGES.includes(page));
 
     D.shell = function (opts) {
         if (!token()) { toLogin(); throw new Error('Not signed in'); }
@@ -317,7 +324,79 @@
 
         const actions = document.querySelector('[data-page-actions]');
         (opts.actions || []).forEach(a => actions.appendChild(D.button(a)));
+        // What's new: badge on the nav item and, once per release, the popup (not on its own page)
+        setTimeout(() => D.checkWhatsNew({ popup: opts.page !== 'whats-new' }), 500);
         return document.querySelector('[data-page-body]');
+    };
+
+    // ------------------------------------------------------------------
+    // What's new (release notes from config/whatsNew.js via whats-new/data)
+    // ------------------------------------------------------------------
+    const CHANGE_TYPES = {
+        new: { label: 'New', icon: 'stars', tone: 'success' },
+        improved: { label: 'Improved', icon: 'arrow-up-circle', tone: 'info' },
+        fixed: { label: 'Fixed', icon: 'wrench-adjustable', tone: 'warning' },
+        api: { label: 'API', icon: 'code-slash', tone: 'accent' }
+    };
+    D.changeTypes = CHANGE_TYPES;
+    let whatsNewPromise = null;
+    D.whatsNew = (fresh) => {
+        if (fresh || !whatsNewPromise) whatsNewPromise = api('whats-new/data').then(r => r.data).catch(err => { whatsNewPromise = null; throw err; });
+        return whatsNewPromise;
+    };
+    const seenLocalKey = () => 'dmWhatsNewSeen:' + ((user() || {}).id || 'anon');
+    const cmpVersion = (a, b) => {
+        const x = String(a || '0').split('.').map(Number), y = String(b || '0').split('.').map(Number);
+        for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) - (y[i] || 0);
+        return 0;
+    };
+    /** Marks `version` as seen (server + this browser), so the popup does not come back. */
+    D.markWhatsNewSeen = function (version) {
+        store.set(seenLocalKey(), version);
+        document.querySelectorAll('[data-whatsnew-badge]').forEach(b => b.remove());
+        return api('whats-new/seen', { method: 'POST', body: { version } }).catch(() => null);
+    };
+    /** HTML for one release (shared by the popup and the What's new page). API text is escaped. */
+    D.releaseHtml = function (v, opts = {}) {
+        const order = ['new', 'improved', 'fixed', 'api'];
+        const changes = v.changes.filter(c => !opts.types || opts.types.includes(c.type))
+            .filter(c => !opts.q || (c.text + ' ' + (c.area || '')).toLowerCase().includes(opts.q));
+        if (!changes.length) return '';
+        const groups = order.map(t => ({ t, items: changes.filter(c => c.type === t) })).filter(g => g.items.length);
+        return `<article class="dm-release">
+  <header class="dm-release-head"><span class="dm-release-ver">v${esc(v.version)}</span><span class="dm-release-date">${esc(fmt.date(v.date) || v.date)}</span>${opts.latest ? '<span class="dm-pill tone-brand no-dot">Latest</span>' : ''}</header>
+  <h3 class="dm-release-title">${esc(v.title)}</h3>
+  ${groups.map(g => `<div class="dm-release-group">
+    <div class="dm-release-type tone-${CHANGE_TYPES[g.t].tone}"><i class="bi bi-${CHANGE_TYPES[g.t].icon}"></i>${esc(CHANGE_TYPES[g.t].label)}${g.t === 'api' ? ' <span class="dm-release-note">· admins and managers only</span>' : ''}</div>
+    <ul>${g.items.map(c => `<li>${c.area ? `<span class="dm-release-area">${esc(c.area)}</span>` : ''}${esc(c.text)}</li>`).join('')}</ul>
+  </div>`).join('')}
+</article>`;
+    };
+    /** Nav badge + one-time popup for releases the user has not closed yet. */
+    D.checkWhatsNew = async function (opts = {}) {
+        let data;
+        try { data = await D.whatsNew(); } catch (e) { return; }
+        const local = store.get(seenLocalKey(), null);
+        const seenVersion = [data.seen, local].filter(Boolean).sort(cmpVersion).pop() || null;
+        const unseen = data.versions.filter(v => data.unseen.includes(v.version) && (!seenVersion || cmpVersion(v.version, seenVersion) > 0));
+        if (!unseen.length) return;
+        document.querySelectorAll('.dm-nav-item[href$="whats-new"]').forEach(a => {
+            if (!a.querySelector('[data-whatsnew-badge]')) a.insertAdjacentHTML('beforeend', '<span class="dm-nav-badge" data-whatsnew-badge>New</span>');
+        });
+        if (!opts.popup || document.querySelector('.dm-layer')) return;
+        const latest = data.versions[0].version;
+        const body = document.createElement('div');
+        body.className = 'dm-release-list';
+        body.innerHTML = unseen.map((v, i) => D.releaseHtml(v, { latest: i === 0 && v.version === latest })).join('');
+        D.modal({
+            title: `What's new in D-Map ${latest}`, subtitle: unseen.length > 1 ? `${unseen.length} updates since your last visit` : 'Here is what changed in this update',
+            icon: 'megaphone', size: 'lg', body,
+            onClose: () => D.markWhatsNewSeen(latest),
+            actions: [
+                { label: 'See all updates', icon: 'clock-history', left: true, onClick: dlg => { dlg.close(); window.location.href = ADMIN + 'whats-new'; } },
+                { label: 'Got it', icon: 'check2', variant: 'primary' }
+            ]
+        });
     };
 
     // Marks the nav item of the open tab (pages whose tabs are nav items, see NAV hash)

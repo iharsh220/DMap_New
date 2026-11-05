@@ -1,0 +1,77 @@
+// Admin panel "Master data" page API (see services/masterDataService.js for the rules).
+// Super Admin: every row. Managers (roles 2, 3): rows of their own department only.
+const md = require('../services/masterDataService');
+
+const fail = (res, err) => {
+    if (err && err.status) return res.status(err.status).json({ success: false, error: err.message });
+    console.error('Master data error:', err);
+    return res.status(500).json({ success: false, error: 'Something went wrong. Please try again later.' });
+};
+const idParam = (req) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) throw md.httpError(400, 'Invalid id');
+    return id;
+};
+const entityParam = (req) => {
+    if (!Object.prototype.hasOwnProperty.call(md.REGISTRY, req.params.entity)) throw md.httpError(404, 'Unknown table');
+    return req.params.entity;
+};
+
+const getMeta = async (req, res) => {
+    try {
+        const scope = await md.resolveScope(req.user);
+        res.json({ success: true, data: await md.meta(scope) });
+    } catch (err) { fail(res, err); }
+};
+
+const getList = async (req, res) => {
+    try {
+        const entity = entityParam(req);
+        const scope = await md.resolveScope(req.user);
+        const data = await md.list(entity, scope, { lite: req.query.lite === '1' || req.query.lite === 'true', all: req.query.all });
+        res.json({ success: true, data });
+    } catch (err) { fail(res, err); }
+};
+
+const getDetail = async (req, res) => {
+    try {
+        const entity = entityParam(req);
+        const id = idParam(req);
+        const scope = await md.resolveScope(req.user);
+        res.json({ success: true, data: await md.detail(entity, id, scope) });
+    } catch (err) { fail(res, err); }
+};
+
+const createRow = async (req, res) => {
+    try {
+        const entity = entityParam(req);
+        const scope = await md.resolveScope(req.user);
+        const id = await md.create(entity, req.body || {}, scope);
+        console.log(`[master-data] user ${scope.userId} created ${entity} #${id}`);
+        res.status(201).json({ success: true, data: await md.detail(entity, id, scope), message: `${md.REGISTRY[entity].singular} created` });
+    } catch (err) { fail(res, err); }
+};
+
+const updateRow = async (req, res) => {
+    try {
+        const entity = entityParam(req);
+        const id = idParam(req);
+        const scope = await md.resolveScope(req.user);
+        await md.update(entity, id, req.body || {}, scope);
+        console.log(`[master-data] user ${scope.userId} updated ${entity} #${id}`);
+        res.json({ success: true, data: await md.detail(entity, id, scope), message: `${md.REGISTRY[entity].singular} updated` });
+    } catch (err) { fail(res, err); }
+};
+
+const deleteRow = async (req, res) => {
+    try {
+        const entity = entityParam(req);
+        const id = idParam(req);
+        const scope = await md.resolveScope(req.user);
+        const out = await md.remove(entity, id, scope);
+        console.log(`[master-data] user ${scope.userId} deleted ${entity} #${id} (${out.label})`);
+        res.json({ success: true, data: out, message: `${md.REGISTRY[entity].singular} deleted` });
+    } catch (err) { fail(res, err); }
+};
+
+module.exports = { getMeta, getList, getDetail, createRow, updateRow, deleteRow };

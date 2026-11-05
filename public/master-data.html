@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master data · D-Map Admin</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%235b2be0'/%3E%3Ctext x='16' y='22' font-family='Arial' font-size='16' font-weight='700' fill='white' text-anchor='middle'%3ED%3C/text%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="../admin/dmap-theme.css" rel="stylesheet">
+    <script>try{document.documentElement.setAttribute('data-theme',localStorage.getItem('themePreference')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'))}catch(e){}</script>
+    <script src="../admin/admin-app.js" defer></script>
+    <style>
+        /* relationship map: which table links to which; each node switches the table below */
+        .md-map { display: grid; gap: 10px; padding: 14px; }
+        .md-flow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .md-flow-label { font-size: 11px; font-weight: 650; text-transform: uppercase; letter-spacing: .05em; color: var(--text-3); width: 100%; margin-bottom: 2px; }
+        .md-node { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border); background: var(--surface); border-radius: 10px; padding: 7px 11px; font: inherit; font-size: 13px; color: var(--text-1); cursor: pointer; transition: border-color .12s, background .12s; }
+        .md-node:hover { border-color: var(--border-strong); background: var(--surface-2); }
+        .md-node.is-active { border-color: var(--brand); background: var(--brand-soft); }
+        .md-node i { color: var(--brand); }
+        .md-node .c { font-size: 11.5px; color: var(--text-3); background: var(--surface-3); border-radius: 9px; padding: 0 7px; }
+        .md-arrow { color: var(--text-3); font-size: 12px; }
+        .md-head { display: flex; align-items: flex-start; gap: 12px; padding: 14px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+        .md-head h2 { margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+        .md-head p { margin: 4px 0 0; font-size: 12.5px; color: var(--text-3); max-width: 760px; }
+        .md-scope { margin-left: auto; font-size: 12px; color: var(--text-2); background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px; padding: 4px 9px; white-space: nowrap; }
+        .md-wrap { overflow: auto; max-height: calc(100vh - 330px); min-height: 200px; }
+        .md-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+        .md-table th { position: sticky; top: 0; z-index: 1; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-3); font-weight: 650; padding: 10px 12px; border-bottom: 1px solid var(--border); background: var(--surface-2); white-space: nowrap; }
+        .md-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; background: var(--surface); }
+        .md-table tbody tr { cursor: pointer; }
+        .md-table tbody tr:hover td { background: var(--surface-2); }
+        .md-table .md-name { font-weight: 600; min-width: 160px; }
+        .md-table .md-id { color: var(--text-3); font-size: 11.5px; font-weight: 400; }
+        .md-table .t-act { text-align: right; white-space: nowrap; width: 1%; }
+        .md-tags { display: flex; flex-wrap: wrap; gap: 4px; min-width: 140px; max-width: 360px; }
+        .md-tag { display: inline-block; font-size: 11.5px; padding: 1px 7px; border-radius: 7px; background: var(--surface-3); color: var(--text-2); white-space: nowrap; max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+        .md-tag.more { background: transparent; color: var(--text-3); }
+        .md-tag.warn { background: var(--warning-bg, var(--surface-3)); color: var(--warning); }
+        .md-muted { color: var(--text-3); font-size: 12px; }
+        .md-used { font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .md-lock { color: var(--text-3); font-size: 12px; }
+        .md-sec { margin-top: 18px; }
+        .md-sec h4 { margin: 0 0 8px; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+        .md-sec h4 .c { font-size: 11.5px; color: var(--text-3); font-weight: 500; }
+        .md-sec h4 .md-add { margin-left: auto; }
+        .md-list { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+        .md-li { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--border); font-size: 13px; }
+        .md-li:last-child { border-bottom: 0; }
+        .md-li button.md-link { border: 0; background: none; padding: 0; font: inherit; color: var(--brand); cursor: pointer; text-align: left; }
+        .md-li button.md-link:hover { text-decoration: underline; }
+        .md-li .sub { margin-left: auto; color: var(--text-3); font-size: 12px; text-align: right; }
+        .md-empty { padding: 10px; font-size: 12.5px; color: var(--text-3); }
+        .md-kv { display: grid; grid-template-columns: 140px 1fr; gap: 6px 12px; font-size: 13px; margin: 0; }
+        .md-kv dt { color: var(--text-3); }
+        .md-kv dd { margin: 0; word-break: break-word; }
+        .md-links-field { display: flex; gap: 6px; align-items: center; }
+        .md-links-field .dm-dd-btn { flex: 1; min-width: 0; }
+        .md-map-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; margin-bottom: 8px; }
+        .md-note { font-size: 12px; color: var(--text-3); margin-top: 4px; }
+        .md-help { font-size: 12.5px; color: var(--text-2); background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 9px 11px; margin-bottom: 14px; }
+        .md-help b { color: var(--text-1); }
+        @media (max-width: 720px) {
+            .md-scope { margin-left: 0; }
+            .md-kv { grid-template-columns: 1fr; }
+            .md-map-row { grid-template-columns: 1fr; }
+            .md-wrap { max-height: none; }
+        }
+    </style>
+</head>
+<body>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const D = window.DMap;
+    const esc = D.esc;
+    let body;
+    try {
+        body = D.shell({
+            page: 'master-data', title: 'Master data', icon: 'diagram-3',
+            subtitle: 'Departments, divisions, roles and work types, and how they link together',
+            actions: [{ id: 'new', label: 'New', icon: 'plus-lg', variant: 'primary', onClick: () => openForm(current) }]
+        });
+    } catch (e) { return; }
+
+    let META = null;           // { scope, entities }
+    let current = null;        // entity key
+    let rows = [];
+    let search = '';
+    let stateFilter = '';
+    const byKey = {};
+    const lite = {};           // cache of lite lists: `${key}|${all}` -> promise
+
+    body.innerHTML = `
+<section class="dm-card" style="margin-bottom:14px"><div class="md-map" data-map><div class="dm-skel" style="width:60%"></div></div></section>
+<section class="dm-card">
+  <div class="md-head" data-head></div>
+  <div class="dm-toolbar">
+    <label class="dm-search"><i class="bi bi-search"></i><input type="search" placeholder="Search…" aria-label="Search rows" data-search></label>
+    <span data-state-filter></span>
+    <span class="dm-toolbar-spacer"></span>
+    <span class="md-muted" data-count></span>
+  </div>
+  <div class="md-wrap"><table class="md-table" data-table></table></div>
+</section>`;
+    const $ = sel => body.querySelector(sel);
+
+    const FLOWS = [
+        { label: 'Work setup: a request goes to the managers of its divisions, then project type → task type → change type', keys: ['department', 'division', 'request_type', 'project_type', 'task_type', 'change_type'] },
+        { label: 'People setup: at registration a user picks department + designation; the job role comes from the designation', keys: ['department', 'designation', 'job_role'] }
+    ];
+
+    // ------------------------------------------------------------------ data
+    const liteList = (key, all) => {
+        const k = key + '|' + (all ? 1 : 0);
+        if (!lite[k]) lite[k] = D.api(`master/${key}?lite=1${all ? '&all=1' : ''}`).then(r => r.data || []).catch(err => { delete lite[k]; throw err; });
+        return lite[k];
+    };
+    const resetLite = () => Object.keys(lite).forEach(k => delete lite[k]);
+
+    async function loadMeta() {
+        const r = await D.api('master/meta');
+        META = r.data;
+        META.entities.forEach(e => { byKey[e.key] = e; });
+        renderMap();
+    }
+
+    async function loadRows() {
+        $('[data-table]').innerHTML = `<tbody>${Array.from({ length: 6 }, () => '<tr><td colspan="6"><span class="dm-skel" style="width:70%"></span></td></tr>').join('')}</tbody>`;
+        try {
+            const r = await D.api('master/' + current);
+            rows = r.data || [];
+            renderTable();
+        } catch (err) {
+            $('[data-table]').innerHTML = `<tbody><tr><td><div class="dm-state"><i class="bi bi-exclamation-octagon"></i><h4>Could not load</h4><p>${esc(err.message)}</p></div></td></tr></tbody>`;
+        }
+    }
+
+    // ------------------------------------------------------------------ render
+    function renderMap() {
+        const node = key => {
+            const e = byKey[key];
+            return `<button type="button" class="md-node${key === current ? ' is-active' : ''}" data-node="${esc(key)}"><i class="bi bi-${esc(e.icon)}"></i>${esc(e.label)}<span class="c">${esc(D.fmt.num(e.count))}</span></button>`;
+        };
+        $('[data-map]').innerHTML = FLOWS.map(f => `<div class="md-flow"><div class="md-flow-label">${esc(f.label)}</div>${f.keys.map(node).join('<i class="bi bi-arrow-right md-arrow"></i>')}</div>`).join('');
+        $('[data-map]').querySelectorAll('[data-node]').forEach(b => b.addEventListener('click', () => select(b.dataset.node)));
+    }
+
+    function renderHead() {
+        const e = byKey[current];
+        const scope = META.scope.all ? 'All departments (Super Admin)' : 'Your department: ' + (META.scope.departments.map(d => d.name).join(', ') || 'none');
+        const must = e.links.filter(l => l.min).map(l => `<b>${esc(byKey[l.target].singular.toLowerCase())}</b>`).concat(e.mapping ? ['<b>department + job role</b>'] : []);
+        $('[data-head]').innerHTML = `<div><h2><i class="bi bi-${esc(e.icon)}"></i>${esc(e.label)}</h2>
+<p>${esc(e.help || '')}${must.length ? ` Each one must be linked to at least one ${must.join(' and ')}.` : ''} Delete is only possible when nothing uses the row${e.hasState ? '; otherwise set it to inactive' : ''}.</p></div>
+<span class="md-scope"><i class="bi bi-shield-lock"></i> ${esc(scope)}</span>`;
+        const newBtn = document.querySelector('[data-page-actions] button');
+        if (newBtn) {
+            newBtn.hidden = !e.canCreate;
+            newBtn.querySelector('span').textContent = 'New ' + e.singular.toLowerCase();
+        }
+        const sf = $('[data-state-filter]');
+        sf.innerHTML = '';
+        if (e.hasState) {
+            const ms = D.multiSelect({ placeholder: 'Status', single: true, options: [{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }], values: stateFilter ? [stateFilter] : [], onChange: v => { stateFilter = v[0] || ''; renderTable(); } });
+            sf.appendChild(ms.el);
+        }
+    }
+
+    const tags = (list, hidden) => {
+        const shown = list.slice(0, 4).map(x => `<span class="md-tag" title="${esc(x.label)}">${esc(x.label)}</span>`).join('');
+        const more = list.length > 4 ? `<span class="md-tag more">+${list.length - 4}</span>` : '';
+        const other = hidden ? `<span class="md-tag more" title="Linked to other departments (not shown)">+${hidden} other dept.</span>` : '';
+        return `<div class="md-tags">${shown}${more}${other}${!list.length && !hidden ? '<span class="md-muted">—</span>' : ''}</div>`;
+    };
+
+    function renderTable() {
+        const e = byKey[current];
+        const q = search.trim().toLowerCase();
+        const list = rows.filter(r => (!stateFilter || r.state === stateFilter) && (!q || JSON.stringify([r.label, r.id, ...e.fields.map(f => r[f.name + '__label'] || r[f.name])]).toLowerCase().includes(q)));
+        $('[data-count]').textContent = `${D.fmt.num(list.length)} of ${D.fmt.num(rows.length)}`;
+        const extraFields = e.fields.filter(f => f.name !== e.fields[0].name && f.type !== 'textarea');
+        const head = `<thead><tr><th>Name</th>${extraFields.map(f => `<th>${esc(f.label)}</th>`).join('')}${e.links.map(l => `<th>${esc(l.label)}</th>`).join('')}${e.mapping ? `<th>${esc(e.mapping.label)}</th>` : ''}<th>Used by</th><th class="t-act"><span class="sr-only">Actions</span></th></tr></thead>`;
+        if (!list.length) {
+            $('[data-table]').innerHTML = head + `<tbody><tr><td colspan="${3 + extraFields.length + e.links.length + (e.mapping ? 1 : 0)}"><div class="dm-state"><i class="bi bi-inbox"></i><h4>No ${esc(e.label.toLowerCase())}</h4><p>${rows.length ? 'Nothing matches the search.' : (e.canCreate ? 'Create the first one with "New".' : '')}</p></div></td></tr></tbody>`;
+            return;
+        }
+        const cell = (f, r) => {
+            if (f.type === 'ref') return esc(r[f.name + '__label'] || '—');
+            if (f.name === 'state') return D.pill(r.state === 'active' ? 'completed' : 'cancelled', r.state === 'active' ? 'Active' : 'Inactive');
+            return r[f.name] === null || r[f.name] === '' ? '<span class="md-muted">—</span>' : esc(r[f.name]);
+        };
+        $('[data-table]').innerHTML = head + '<tbody>' + list.map(r => {
+            const used = r.usage.parts.filter(p => p.count).map(p => `${D.fmt.num(p.count)} ${p.label.toLowerCase()}`).join(', ');
+            const mapping = e.mapping ? `<td>${tags(r.mapping.map(m => ({ label: `${m.department} → ${m.jobrole}` })), r.mappingHidden)}</td>` : '';
+            return `<tr data-id="${esc(r.id)}">
+<td class="md-name">${esc(r.label)} <span class="md-id">#${esc(r.id)}</span>${r.protected ? ' <i class="bi bi-lock-fill md-lock" title="' + esc(r.protected) + '"></i>' : ''}</td>
+${extraFields.map(f => `<td>${cell(f, r)}</td>`).join('')}
+${e.links.map(l => `<td>${tags(r.links[l.key] || [], (r.linksHidden || {})[l.key])}</td>`).join('')}
+${mapping}
+<td class="md-used">${used ? esc(used) : '<span class="md-muted">Not used</span>'}</td>
+<td class="t-act"><span class="dm-row-actions">
+  ${r.canEdit ? `<button type="button" class="dm-icon-btn" data-act="edit" title="Edit" aria-label="Edit ${esc(r.label)}"><i class="bi bi-pencil"></i></button>` : ''}
+  ${e.canCreate ? `<button type="button" class="dm-icon-btn" data-act="delete" title="${esc(r.canDelete ? 'Delete' : (r.protected || 'In use, cannot delete'))}" aria-label="Delete ${esc(r.label)}"${r.canDelete ? '' : ' disabled'}><i class="bi bi-trash3"></i></button>` : ''}
+</span></td></tr>`;
+        }).join('') + '</tbody>';
+        $('[data-table]').querySelectorAll('tbody tr[data-id]').forEach(tr => {
+            const row = rows.find(r => String(r.id) === tr.dataset.id);
+            tr.addEventListener('click', ev => {
+                const act = ev.target.closest('[data-act]');
+                if (act) { ev.stopPropagation(); if (act.dataset.act === 'edit') openForm(current, row); else confirmDelete(current, row); return; }
+                openDetail(current, row.id);
+            });
+        });
+    }
+
+    // ------------------------------------------------------------------ detail drawer
+    async function openDetail(key, id) {
+        const e = byKey[key];
+        const content = document.createElement('div');
+        content.innerHTML = '<div class="dm-state" style="padding:24px"><i class="bi bi-arrow-repeat dm-spin" style="font-size:22px"></i></div>';
+        const dlg = D.drawer({ title: e.singular, subtitle: '#' + id, icon: e.icon, body: content });
+        let data;
+        try { data = (await D.api(`master/${key}/${id}`)).data; } catch (err) { content.innerHTML = `<div class="dm-callout tone-danger"><i class="bi bi-exclamation-octagon"></i><div>${esc(err.message)}</div></div>`; return; }
+        const r = data.row;
+        dlg.root.querySelector('.dm-dialog-title').textContent = r.label;
+        const kv = e.fields.map(f => {
+            let v = f.type === 'ref' ? r[f.name + '__label'] : r[f.name];
+            if (f.name === 'state') v = r.state === 'active' ? 'Active' : 'Inactive';
+            return `<dt>${esc(f.label)}</dt><dd>${v === null || v === undefined || v === '' ? '<span class="md-muted">—</span>' : esc(v)}</dd>`;
+        }).join('') + `<dt>Updated</dt><dd>${esc(D.fmt.datetime(r.updated_at) || '—')}</dd>`;
+        const sections = data.sections.map((s, i) => {
+            const t = byKey[s.entity];
+            const canAdd = s.add && byKey[s.add.entity] && byKey[s.add.entity].canCreate;
+            return `<div class="md-sec"><h4><i class="bi bi-${esc(t ? t.icon : 'link')}"></i>${esc(s.title)} <span class="c">${esc(D.fmt.num(s.rows.length))}${s.hidden ? ` + ${esc(s.hidden)} in other departments` : ''}</span>
+  ${canAdd ? `<button type="button" class="dm-btn dm-btn-sm md-add" data-add="${i}"><i class="bi bi-plus-lg"></i><span>Add ${esc(byKey[s.add.entity].singular.toLowerCase())}</span></button>` : ''}</h4>
+  <div class="md-list">${s.rows.length ? s.rows.map(x => `<div class="md-li"><button type="button" class="md-link" data-go="${esc(s.entity)}:${esc(x.id)}">${esc(x.label)}</button>${x.sub ? `<span class="sub">${esc(x.sub)}</span>` : ''}</div>`).join('') : '<div class="md-empty">Nothing linked yet.</div>'}</div></div>`;
+        }).join('');
+        const used = r.usage.parts.length ? `<div class="md-sec"><h4><i class="bi bi-database"></i>Used by <span class="c">${esc(D.fmt.num(r.usage.total))} rows</span></h4><div class="md-list">${r.usage.parts.map(p => `<div class="md-li"><span>${esc(p.label)}</span><span class="sub">${esc(D.fmt.num(p.count))}</span></div>`).join('')}</div></div>` : '';
+        content.innerHTML = `${r.protected ? `<div class="dm-callout tone-warning"><i class="bi bi-lock-fill"></i><div>${esc(r.protected)}</div></div>` : ''}<dl class="md-kv">${kv}</dl>${sections}${used}`;
+        const foot = dlg.root.querySelector('.dm-dialog-foot') || (() => { const f = document.createElement('div'); f.className = 'dm-dialog-foot'; dlg.root.querySelector('.dm-drawer').appendChild(f); return f; })();
+        foot.innerHTML = '';
+        if (e.canCreate) {
+            const del = D.button({ label: 'Delete', icon: 'trash3', variant: 'danger', onClick: () => { dlg.close(); confirmDelete(key, r); } });
+            del.disabled = !r.canDelete;
+            if (!r.canDelete) del.title = r.protected || 'Still in use';
+            del.classList.add('left');
+            foot.appendChild(del);
+        }
+        if (r.canEdit) foot.appendChild(D.button({ label: 'Edit', icon: 'pencil', variant: 'primary', onClick: () => { dlg.close(); openForm(key, r); } }));
+        content.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => {
+            const [k, rid] = b.dataset.go.split(':');
+            dlg.close();
+            if (k !== current) select(k);
+            openDetail(k, Number(rid));
+        }));
+        content.querySelectorAll('[data-add]').forEach(b => b.addEventListener('click', () => {
+            const s = data.sections[Number(b.dataset.add)];
+            dlg.close();
+            openForm(s.add.entity, null, { preset: s.add.preset, onSaved: () => openDetail(key, id) });
+        }));
+    }
+
+    // ------------------------------------------------------------------ create / edit form
+    async function openForm(key, row, opts = {}) {
+        const e = byKey[key];
+        if (!row && !e.canCreate) { D.toast(`Only Super Admin can create a ${e.singular.toLowerCase()}.`, 'warning'); return; }
+        const preset = opts.preset || {};
+        const content = document.createElement('div');
+        content.innerHTML = '<div class="dm-state" style="padding:24px"><i class="bi bi-arrow-repeat dm-spin" style="font-size:22px"></i></div>';
+        const dlg = D.modal({
+            title: row ? `Edit ${e.singular.toLowerCase()}` : `New ${e.singular.toLowerCase()}`, subtitle: row ? `${row.label} · #${row.id}` : (META.scope.all ? 'Super Admin' : 'Your department only'),
+            icon: e.icon, size: 'lg', body: content,
+            actions: [{ label: 'Cancel' }, { id: 'save', label: row ? 'Save changes' : 'Create', icon: 'check2', variant: 'primary', onClick: (d, btn) => save(btn) }]
+        });
+        let full = row;
+        try {
+            if (row) full = (await D.api(`master/${key}/${row.id}`)).data.row;
+        } catch (err) { content.innerHTML = `<div class="dm-callout tone-danger"><i class="bi bi-exclamation-octagon"></i><div>${esc(err.message)}</div></div>`; return; }
+
+        // plain fields
+        const refOptions = {};
+        for (const f of e.fields.filter(x => x.type === 'ref')) {
+            refOptions[f.name] = await liteList(f.ref, !f.scopeParent);
+        }
+        const fields = e.fields.map(f => {
+            const v = full ? full[f.name] : (preset[f.name] !== undefined ? preset[f.name] : f.default);
+            if (f.type === 'ref') {
+                const opts2 = refOptions[f.name].map(o => ({ value: String(o.id), label: o.label + (o.state === 'inactive' ? ' (inactive)' : '') }));
+                return { name: f.name, label: f.label, type: 'select', required: f.required, value: v === null || v === undefined ? (opts2.length === 1 ? opts2[0].value : '') : String(v), options: [{ value: '', label: '— Select —' }].concat(opts2), placeholderOption: true };
+            }
+            if (f.type === 'select') return { name: f.name, label: f.label, type: 'select', required: f.required, value: v || f.default, options: f.options.map(o => ({ value: o, label: D.fmt.label(o) })) };
+            return { name: f.name, label: f.label, type: f.type === 'textarea' ? 'textarea' : 'text', required: f.required, value: v === null || v === undefined ? '' : v, help: f.max ? `Max ${f.max} characters` : null };
+        });
+        const form = D.form(fields);
+        const nameLocked = full && full.protected && key !== 'job_role';
+        if (nameLocked) { const inp = form.field(e.fields[0].name); inp.readOnly = true; inp.title = full.protected; }
+
+        content.innerHTML = '';
+        const help = document.createElement('div');
+        help.className = 'md-help';
+        const must = e.links.filter(l => l.min).map(l => byKey[l.target].singular.toLowerCase()).concat(e.mapping ? ['department + job role'] : []);
+        help.innerHTML = `${esc(e.help || '')}${must.length ? ` <b>Required links:</b> ${esc(must.join(', '))}.` : ''} Missing a linked row? Use <b>+ New</b> next to the list to create it here.${META.scope.all ? '' : ' You can only pick rows of your own department; links to other departments stay as they are.'}`;
+        content.appendChild(help);
+        content.appendChild(form.el);
+
+        // link pickers (+ New creates the missing row inline)
+        const pickers = {};
+        for (const l of e.links) {
+            const t = byKey[l.target];
+            const wrap = document.createElement('div');
+            wrap.className = 'dm-field span-2';
+            wrap.innerHTML = `<label>${esc(l.label)}${l.min ? '<span class="req"> *</span>' : ''}</label><div class="md-links-field"></div><div class="md-note"></div>`;
+            const values = full ? (full.links[l.key] || []).map(x => String(x.id)) : (preset.links && preset.links[l.key] ? preset.links[l.key].map(String) : []);
+            const all = !l.scopeParent;   // child links may reuse any existing row; the scope link only own rows
+            const ms = D.multiSelect({ block: true, placeholder: `Select ${t.label.toLowerCase()}`, values, options: () => liteList(l.target, all).then(list => list.map(o => ({ value: String(o.id), label: o.label }))) });
+            wrap.querySelector('.md-links-field').appendChild(ms.el);
+            if (t.canCreate) {
+                wrap.querySelector('.md-links-field').appendChild(D.button({ label: 'New', icon: 'plus-lg', small: true, title: `Create a new ${t.singular.toLowerCase()}`, onClick: () => openForm(l.target, null, {
+                    preset: inversePreset(l, key, full),
+                    onSaved: created => {
+                        delete lite[l.target + '|0']; delete lite[l.target + '|1'];
+                        const ms2 = D.multiSelect({ block: true, placeholder: `Select ${t.label.toLowerCase()}`, values: ms.get().concat(String(created.id)), options: () => liteList(l.target, all).then(list => list.map(o => ({ value: String(o.id), label: o.label }))) });
+                        ms.el.replaceWith(ms2.el);
+                        pickers[l.key] = ms2;
+                    }
+                }) }));
+            }
+            const hidden = full && full.linksHidden ? full.linksHidden[l.key] : 0;
+            wrap.querySelector('.md-note').textContent = (hidden ? `+ ${hidden} linked to other departments (kept). ` : '') + (l.scopeParent && !META.scope.all ? 'Only your department\'s rows are listed.' : '');
+            form.el.appendChild(wrap);
+            pickers[l.key] = ms;
+        }
+
+        // designation: department + job role pairs (written to designation_jobroles and designation_departments together)
+        let mapRows = [];
+        if (e.mapping) {
+            const wrap = document.createElement('div');
+            wrap.className = 'dm-field span-2';
+            wrap.innerHTML = `<label>${esc(e.mapping.label)}<span class="req"> *</span></label><div data-maprows></div><div><button type="button" class="dm-btn dm-btn-sm" data-mapadd><i class="bi bi-plus-lg"></i><span>Add department</span></button></div><div class="md-note"></div>`;
+            form.el.appendChild(wrap);
+            const depts = await liteList('department', false);
+            const roles = await liteList('job_role', META.scope.all);
+            const host = wrap.querySelector('[data-maprows]');
+            const addRow = (p = {}) => {
+                const line = document.createElement('div');
+                line.className = 'md-map-row';
+                const ds = document.createElement('select'); ds.className = 'dm-select'; ds.setAttribute('aria-label', 'Department');
+                ds.innerHTML = '<option value="">— Department —</option>' + depts.map(d => `<option value="${esc(d.id)}">${esc(d.label)}</option>`).join('');
+                const rs = document.createElement('select'); rs.className = 'dm-select'; rs.setAttribute('aria-label', 'Job role');
+                const fillRoles = () => {
+                    const keep = rs.value || (p.jobrole_id ? String(p.jobrole_id) : '');
+                    const list = roles.filter(r => !ds.value || String(r.department_id) === ds.value);
+                    rs.innerHTML = '<option value="">— Job role —</option>' + list.map(r => `<option value="${esc(r.id)}">${esc(r.label)}</option>`).join('');
+                    rs.value = list.some(r => String(r.id) === keep) ? keep : '';
+                };
+                ds.value = p.department_id ? String(p.department_id) : (depts.length === 1 ? String(depts[0].id) : '');
+                fillRoles();
+                ds.addEventListener('change', fillRoles);
+                const rm = document.createElement('button'); rm.type = 'button'; rm.className = 'dm-icon-btn'; rm.title = 'Remove'; rm.setAttribute('aria-label', 'Remove department'); rm.innerHTML = '<i class="bi bi-x-lg"></i>';
+                const item = { ds, rs, line };
+                rm.addEventListener('click', () => { line.remove(); mapRows = mapRows.filter(x => x !== item); });
+                line.append(ds, rs, rm);
+                host.appendChild(line);
+                mapRows.push(item);
+            };
+            (full ? full.mapping : []).forEach(addRow);
+            if (!mapRows.length) addRow();
+            wrap.querySelector('[data-mapadd]').addEventListener('click', () => addRow());
+            if (full && full.mappingHidden) wrap.querySelector('.md-note').textContent = `+ ${full.mappingHidden} other departments (kept).`;
+        }
+
+        async function save(btn) {
+            const values = form.values();
+            const payload = {};
+            for (const f of e.fields) {
+                if (f.name === e.fields[0].name && nameLocked) continue;
+                payload[f.name] = values[f.name];
+                if (f.required && !String(values[f.name] || '').trim()) { D.toast(`${f.label} is required`, 'warning'); form.field(f.name).focus(); return; }
+            }
+            payload.links = {};
+            for (const l of e.links) {
+                payload.links[l.key] = pickers[l.key].get().map(Number);
+                if (l.min && payload.links[l.key].length < l.min) { D.toast(`${l.label}: pick at least ${l.min}`, 'warning'); return; }
+            }
+            if (e.mapping) {
+                payload.mapping = mapRows.map(m => ({ department_id: Number(m.ds.value) || null, jobrole_id: Number(m.rs.value) || null }));
+                if (!payload.mapping.length || payload.mapping.some(m => !m.department_id || !m.jobrole_id)) { D.toast('Pick a department and its job role on every row', 'warning'); return; }
+            }
+            D.setBusy(btn, true, 'Saving…');
+            try {
+                const res = await D.api(row ? `master/${key}/${row.id}` : `master/${key}`, { method: row ? 'PUT' : 'POST', body: payload });
+                D.toast(res.message || 'Saved');
+                dlg.close();
+                resetLite();
+                await refresh();
+                if (opts.onSaved) opts.onSaved(res.data.row);
+                else if (!row) openDetail(key, res.data.row.id);
+            } catch (err) {
+                D.setBusy(btn, false);
+                D.toast(err.message, 'danger', 7000);
+            }
+        }
+    }
+
+    // When "+ New" is used inside a form, pre-fill the new row's link back to the row being edited
+    // (e.g. a new project type created from a request type's form links to that request type).
+    function inversePreset(l, key, full) {
+        const t = byKey[l.target];
+        const back = t.links.find(x => x.target === key);
+        const preset = {};
+        if (back && full) preset.links = { [back.key]: [full.id] };
+        return preset;
+    }
+
+    async function confirmDelete(key, row) {
+        const e = byKey[key];
+        if (!row.canDelete) { D.toast(row.protected || 'Still in use, cannot delete' + (e.hasState ? '. Set it to inactive instead.' : '.'), 'warning', 6000); return; }
+        const ok = await D.confirm({ title: `Delete ${e.singular.toLowerCase()}?`, message: `"${row.label}" and its links will be removed. This cannot be undone.`, confirmLabel: 'Delete', tone: 'danger', icon: 'trash3' });
+        if (!ok) return;
+        try {
+            const res = await D.api(`master/${key}/${row.id}`, { method: 'DELETE' });
+            D.toast(res.message || 'Deleted');
+            resetLite();
+            await refresh();
+        } catch (err) { D.toast(err.message, 'danger', 8000); }
+    }
+
+    // ------------------------------------------------------------------ navigation
+    async function refresh() { await loadMeta(); renderHead(); await loadRows(); }
+    function select(key) {
+        if (!byKey[key] || key === current) return;
+        current = key;
+        search = ''; stateFilter = '';
+        $('[data-search]').value = '';
+        try { history.replaceState(null, '', '#' + key); } catch (e) { /* ignore */ }
+        renderMap(); renderHead(); loadRows();
+    }
+    $('[data-search]').addEventListener('input', D.debounce(ev => { search = ev.target.value; renderTable(); }, 150));
+    window.addEventListener('hashchange', () => { const k = location.hash.slice(1); if (byKey[k]) select(k); });
+
+    (async () => {
+        try { await loadMeta(); } catch (err) {
+            body.innerHTML = `<div class="dm-state"><i class="bi bi-shield-lock"></i><h4>No access</h4><p>${esc(err.message)}</p></div>`;
+            return;
+        }
+        const k = location.hash.slice(1);
+        current = byKey[k] ? k : 'department';
+        renderMap(); renderHead(); loadRows();
+    })();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,122 @@
+// "What's new" changelog, shown in the admin panel (popup once per user per release, and the
+// What's new page) and served by GET /datatable/admin/whats-new/data.
+//
+// HOW TO RELEASE: add a new object at the TOP of VERSIONS with a higher `version`
+// (major.minor.patch), the release `date` (YYYY-MM-DD), a short `title` and the `changes`.
+// Every logged-in user gets the popup once after the deploy.
+//
+// change.type:
+//   'new'      new feature            (everyone)
+//   'improved' better existing feature (everyone)
+//   'fixed'    bug fix                (everyone)
+//   'api'      API / integration note (Super Admin and managers only, roles 1, 2, 3)
+// change.area: where it shows up (Admin panel, Tasks, Changes, Projects, Emails, ...).
+// Write the 'new' / 'improved' / 'fixed' texts for end users (no code names); put endpoints,
+// parameters and response fields in 'api' items.
+
+const VERSIONS = [
+    {
+        version: '1.5.0',
+        date: '2026-11-05',
+        title: 'Master data, view-only admin panel and What\'s new',
+        changes: [
+            { type: 'new', area: 'Admin panel', text: 'What\'s new: after every update you see what changed, once. You can read all versions any time under "What\'s new" in the sidebar.' },
+            { type: 'new', area: 'Master data', text: 'New "Setup → Master data" page for Super Admin and managers: departments, divisions, designations, job roles, request types, project types, task types and change types, with everything they are linked to. Managers manage only their own department.' },
+            { type: 'improved', area: 'Master data', text: 'Linked data stays complete: a request type always has a division, a project type a request type, a task type a project type, a change type a task type, and a designation a department with its job role. Rows that are still in use cannot be deleted (set them inactive instead).' },
+            { type: 'improved', area: 'Admin panel', text: 'Only Super Admin and managers can edit or delete client requests, tasks and changes in the admin panel. Everyone else can view, filter and export.' },
+            { type: 'fixed', area: 'Tasks', text: 'The manager of the person a task is assigned to can now edit that task (before, only the project\'s manager could, and others got "Task not found").' },
+            { type: 'api', area: 'Admin API', text: 'PUT/DELETE /datatable/admin/edit/* and /datatable/admin/delete/* (and their GET helpers and delete preview) now return 403 for roles other than 1, 2, 3.' },
+            { type: 'api', area: 'Master data API', text: 'New: GET /datatable/admin/master/meta, GET /datatable/admin/master/:entity (?lite=1, &all=1), GET|PUT|DELETE /datatable/admin/master/:entity/:id, POST /datatable/admin/master/:entity. Entities: department, division, designation, job_role, request_type, project_type, task_type, change_type. Roles 1, 2, 3; managers are limited to their department.' },
+            { type: 'api', area: 'Tasks API', text: 'PUT /manager/assigned-work-requests/tasks/:taskId allows every task manager (request manager, delegated manager, the artist\'s manager); changing user_id follows the same own-team rule as task creation (403 otherwise).' },
+            { type: 'api', area: 'What\'s new API', text: 'New: GET /datatable/admin/whats-new/data (versions filtered by role, `unseen`, `current`) and POST /datatable/admin/whats-new/seen { version } for any logged-in user, so the user apps can show the same notes.' }
+        ]
+    },
+    {
+        version: '1.4.0',
+        date: '2026-11-04',
+        title: 'Access by team, project list filters and clearer errors',
+        changes: [
+            { type: 'improved', area: 'Access', text: 'A task is visible only to its project manager(s), its task manager(s) and the artist working on it. A manager gives work to their own team, or delegates it to another Digilabs manager.' },
+            { type: 'new', area: 'Projects', text: 'Project lists can be filtered by deadline range, artist and requester, and sorted by date, deadline, status, name or priority.' },
+            { type: 'improved', area: 'Projects', text: 'Adding a change or a new task to a completed project re-opens it automatically.' },
+            { type: 'improved', area: 'Overview', text: 'Team numbers count only work assigned to the team (not work of other verticals on projects the team manages). Links from the overview open the grids filtered to the same team or person.' },
+            { type: 'improved', area: 'Overview', text: 'The People table lists every team member, including inactive users, marked "Inactive".' },
+            { type: 'new', area: 'Overview', text: 'New "Overdue tasks" and "Due in 7 days" cards; clicking them opens the Tasks grid with exactly those tasks.' },
+            { type: 'new', area: 'Sales activity', text: 'Single sign-on: HO and sales users can open their activities straight from the other app without logging in again.' },
+            { type: 'new', area: 'Emails', text: 'Daily reminder to requesters with work waiting for their approval (production only, at most one per day).' },
+            { type: 'improved', area: 'Tasks & Changes', text: 'Financial Year is the financial year of the deadline, with a quick filter; "This FY" selects the whole year (1 April to 31 March).' },
+            { type: 'fixed', area: 'All', text: 'Errors no longer show technical database messages; you see "Something went wrong. Please try again later."' },
+            { type: 'api', area: 'Projects API', text: 'GET /work-requests/my-requests and /work-requests/division/all: new deadline_from, deadline_to, artist_name, artist_id, requester_name, requester_id, sort_by (created_at|requested_at|deadline|status|project_name|priority|id) and order; limit=-1 works; pagination adds total and total_pages.' },
+            { type: 'api', area: 'Access API', text: 'GET /users/tasks/:id gives the full view only to task managers; /users/my-team shows team tasks only to manager roles; POST /issue-register/assignment requires the requester or a colleague in the requester\'s division (403).' },
+            { type: 'api', area: 'Errors', text: 'Every 5xx response is { success: false, error: "Something went wrong. Please try again later." } and is logged with endpoint, user id and params.' },
+            { type: 'api', area: 'Admin API', text: 'Projects, Tasks and Changes data accept `scope` ({team:1} | {division_id} | {user_id}); the Tasks/Changes `fy` filter uses the deadline.' },
+            { type: 'api', area: 'Sales activity API', text: 'New: GET /salesusers/sso_check?user_type=ho|sales (Bearer token of the other app) and GET /salesusers/open_activity. The activity list filters on activity.division_id.' }
+        ]
+    },
+    {
+        version: '1.3.0',
+        date: '2026-11-03',
+        title: 'Weekly report, costs and automatic project completion',
+        changes: [
+            { type: 'new', area: 'Weekly report', text: 'Weekly report in the admin panel for Digilabs managers: client work, initiatives, highlights and notes, and a PowerPoint download.' },
+            { type: 'new', area: 'Tasks & Changes', text: 'Change cost and total cost columns; Excel export includes every column, also hidden ones, with numbers as numbers.' },
+            { type: 'improved', area: 'Tasks & Changes', text: 'The cards show task pages and change pages (total and completed) for the filtered rows.' },
+            { type: 'new', area: 'Tasks & Changes', text: 'Task Manager Vertical filter with the five Digilabs verticals.' },
+            { type: 'improved', area: 'Projects', text: 'A project completes automatically once every task and change is approved.' },
+            { type: 'fixed', area: 'Changes', text: 'Raising a change request with attachments no longer fails.' },
+            { type: 'fixed', area: 'Tasks', text: 'Approving a change request no longer sends its task back to "accepted".' },
+            { type: 'api', area: 'Changes API', text: 'POST /issue-register/assignment accepts issue_register_ids as an array, a JSON string, a comma-separated string, a single id or repeated multipart fields; invalid ids return 400 before anything is saved.' },
+            { type: 'api', area: 'Approval API', text: 'Approval responses add work_request_completed (task) / data.workRequestCompleted (change).' }
+        ]
+    },
+    {
+        version: '1.2.0',
+        date: '2026-11-02',
+        title: 'New admin panel and team overview',
+        changes: [
+            { type: 'new', area: 'Admin panel', text: 'New admin panel design with the same columns as the old tables, filter chips, quick filters and light/dark theme.' },
+            { type: 'new', area: 'Overview', text: 'Overview for every role: your own and your team\'s projects, tasks, changes and pages, with division and person filters and a People table.' },
+            { type: 'improved', area: 'Admin panel', text: 'Feedback, Leaves, Rate card and Raw data are for Super Admin only. Grids open with 25 rows.' },
+            { type: 'fixed', area: 'Projects', text: 'The request-to-response TAT column now shows values instead of N/A.' },
+            { type: 'api', area: 'Admin API', text: '/datatable/admin/feedback|leaves|master-card|workrequesttasks APIs require role 1 (403 otherwise). GET /datatable/admin/overview/data is scoped by role and accepts division_id and user_id.' }
+        ]
+    },
+    {
+        version: '1.1.0',
+        date: '2026-10-30',
+        title: 'Security for the admin panel',
+        changes: [
+            { type: 'fixed', area: 'Admin panel', text: 'Text typed into project names, remarks and other fields is always shown as plain text, so it can never run as code in the admin panel.' }
+        ]
+    },
+    {
+        version: '1.0.0',
+        date: '2026-10-29',
+        title: 'Faster, safer D-Map',
+        changes: [
+            { type: 'improved', area: 'Admin panel', text: 'Admin pages load much faster (task and change details went from about 1 second to a few milliseconds).' },
+            { type: 'improved', area: 'Admin panel', text: 'The cards count all filtered rows, not only the visible page, and Excel/CSV export includes every filtered row.' },
+            { type: 'improved', area: 'Emails', text: 'Emails are lighter, look right in Outlook and are retried automatically when the mail server is busy.' },
+            { type: 'improved', area: 'Access', text: 'Managers can act only on the requests assigned to them, and approvals only by the requester or their division colleagues.' },
+            { type: 'fixed', area: 'Tasks', text: 'Tasks scheduled to start on a past date now move to "In progress" automatically.' },
+            { type: 'new', area: 'Admin panel', text: 'Filter chips with "Clear all", clickable status cards, and filters kept in the page link so a filtered view can be shared.' },
+            { type: 'fixed', area: 'Admin panel', text: 'Raw data search and the Clients TAT filter work again; every Raw data row can be reached by paging.' },
+            { type: 'fixed', area: 'Changes', text: 'Change review emails reach the right person, and change lists show the request type, task type and project again.' },
+            { type: 'improved', area: 'Tasks', text: 'Creating and assigning tasks checks dates, assignees and team rules, and saves everything together (no half-saved tasks).' },
+            { type: 'api', area: 'Admin API', text: 'All /datatable/admin/* data APIs require an access token.' },
+            { type: 'api', area: 'Lists API', text: 'GET /manager/assigned-work-requests/issue-assignments and GET /issue-register/assignments support page and limit (limit=-1 = all) and return a pagination object; unknown query parameters are ignored instead of failing.' },
+            { type: 'api', area: 'Access API', text: 'History and feedback endpoints of tasks, changes and work requests return 403 to users who cannot see that work request; malformed JSON bodies return 400 instead of 500.' }
+        ]
+    },
+    {
+        version: '0.9.0',
+        date: '2026-10-28',
+        title: 'Admin panel: projects and leaves',
+        changes: [
+            { type: 'new', area: 'Projects', text: 'The admin Projects table shows the complete project data.' },
+            { type: 'improved', area: 'Leaves', text: 'Leaves page updated, with improved date fields and selection.' }
+        ]
+    }
+];
+
+module.exports = { VERSIONS };

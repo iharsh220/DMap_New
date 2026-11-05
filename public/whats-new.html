@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What's new · D-Map Admin</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%235b2be0'/%3E%3Ctext x='16' y='22' font-family='Arial' font-size='16' font-weight='700' fill='white' text-anchor='middle'%3ED%3C/text%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="../admin/dmap-theme.css" rel="stylesheet">
+    <script>try{document.documentElement.setAttribute('data-theme',localStorage.getItem('themePreference')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'))}catch(e){}</script>
+    <script src="../admin/admin-app.js" defer></script>
+    <style>
+        .wn-wrap { max-width: 860px; }
+        .wn-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+        .wn-types { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+        .wn-types button { border: 1px solid var(--border); background: var(--surface); color: var(--text-2); border-radius: 9px; padding: 6px 11px; font: inherit; font-size: 12.5px; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+        .wn-types button:hover { background: var(--surface-2); }
+        .wn-types button[aria-pressed="true"] { border-color: var(--brand); background: var(--brand-soft); color: var(--text-1); font-weight: 600; }
+        .wn-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+        .wn-note { font-size: 12.5px; color: var(--text-3); margin: 0 0 12px; }
+    </style>
+</head>
+<body>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const D = window.DMap;
+    const esc = D.esc;
+    let body;
+    try { body = D.shell({ page: 'whats-new', title: 'What\'s new', icon: 'megaphone', subtitle: 'Every D-Map update, newest first' }); } catch (e) { return; }
+    body.innerHTML = `<div class="wn-wrap">
+  <div class="wn-bar">
+    <div class="wn-types" role="group" aria-label="Filter by type" data-types></div>
+    <label class="dm-search"><i class="bi bi-search"></i><input type="search" placeholder="Search updates…" aria-label="Search updates" data-q></label>
+  </div>
+  <p class="wn-note" data-note></p>
+  <div class="wn-list" data-list><div class="dm-card"><div class="dm-card-body"><span class="dm-skel" style="width:60%"></span></div></div></div>
+</div>`;
+    const $ = s => body.querySelector(s);
+    let data = null;
+    let type = 'all';
+    let q = '';
+
+    function render() {
+        const types = type === 'all' ? null : [type];
+        const html = data.versions.map((v, i) => D.releaseHtml(v, { types, q, latest: i === 0 })).filter(Boolean).join('');
+        $('[data-list]').innerHTML = html || '<div class="dm-card"><div class="dm-state"><i class="bi bi-search"></i><h4>No matching updates</h4><p>Try another filter or search.</p></div></div>';
+    }
+
+    D.whatsNew(true).then(d => {
+        data = d;
+        const options = [['all', 'All', 'list-ul']].concat(Object.keys(D.changeTypes).filter(t => t !== 'api' || d.canSeeApi).map(t => [t, D.changeTypes[t].label, D.changeTypes[t].icon]));
+        $('[data-types]').innerHTML = options.map(([k, label, icon]) => `<button type="button" data-type="${esc(k)}" aria-pressed="${k === type}"><i class="bi bi-${esc(icon)}"></i>${esc(label)}</button>`).join('');
+        $('[data-types]').querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+            type = b.dataset.type;
+            $('[data-types]').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+            render();
+        }));
+        $('[data-note]').textContent = `Current version: v${d.current}.` + (d.canSeeApi ? ' API notes are shown to Super Admin and managers only.' : '');
+        render();
+        // opening this page counts as having seen the latest update
+        if (d.versions.length) D.markWhatsNewSeen(d.versions[0].version);
+    }).catch(err => {
+        $('[data-list]').innerHTML = `<div class="dm-callout tone-danger"><i class="bi bi-exclamation-octagon"></i><div>${esc(err.message)}</div></div>`;
+    });
+    $('[data-q]').addEventListener('input', D.debounce(e => { q = e.target.value.trim().toLowerCase(); if (data) render(); }, 150));
+});
+</script>
+</body>
+</html>

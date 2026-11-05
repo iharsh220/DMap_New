@@ -11,7 +11,7 @@ const { getAdminData, getAllFeedback, getClientsData,getTaskDetailsData, getTask
 // Every admin API call needs a valid access token. Only the HTML pages, their shared
 // CSS/JS and the upload progress streams (EventSource cannot send headers; they are
 // keyed by a random job id) are served without one.
-const PUBLIC_ADMIN_GET_PATHS = /^\/admin\/(login|overview|clients|projectsdetails|taskdetails|issuedetails|workrequesttasks|powerbi|leaves|master-card|feedback|reports|dmap-theme\.css|admin-app\.js)$|^\/admin\/(leaves|master-card)\/upload\/progress\/[^/]+$/;
+const PUBLIC_ADMIN_GET_PATHS = /^\/admin\/(login|overview|master-data|whats-new|clients|projectsdetails|taskdetails|issuedetails|workrequesttasks|powerbi|leaves|master-card|feedback|reports|dmap-theme\.css|admin-app\.js)$|^\/admin\/(leaves|master-card)\/upload\/progress\/[^/]+$/;
 
 router.use((req, res, next) => {
     if (req.method === 'GET' && PUBLIC_ADMIN_GET_PATHS.test(req.path)) {
@@ -195,5 +195,45 @@ router.put('/admin/leaves/:id', adminOnly, updateLeave);
 router.delete('/admin/leaves/:id', adminOnly, deleteLeave);
 router.post('/admin/leaves/upload', adminOnly, uploadLeaves);
 router.get('/admin/leaves/upload/progress/:jobId', sseProgress);
+
+// Master data (departments, divisions, designations, job roles, request / project / task / change
+// types and their links): Super Admin everything, managers their own department only (checked
+// against the DB in masterDataService.resolveScope). Not cached; writes clear the admin cache
+// (the grids' filter options list divisions, task types, ...).
+const masterData = require('../controller/masterDataController');
+router.get('/admin/master-data', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'master-data.html'));
+});
+router.get('/admin/master/meta', canEditWork, masterData.getMeta);
+router.get('/admin/master/:entity', canEditWork, masterData.getList);
+router.get('/admin/master/:entity/:id', canEditWork, masterData.getDetail);
+router.post('/admin/master/:entity', canEditWork, invalidateAdminCache, masterData.createRow);
+router.put('/admin/master/:entity/:id', canEditWork, invalidateAdminCache, masterData.updateRow);
+router.delete('/admin/master/:entity/:id', canEditWork, invalidateAdminCache, masterData.deleteRow);
+
+// What's new (release notes in config/whatsNew.js): any logged-in user. 'api' notes only for
+// roles 1, 2, 3. `seen` stores the last version the user closed, so the popup shows once.
+const whatsNew = require('../services/whatsNewService');
+router.get('/admin/whats-new', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'whats-new.html'));
+});
+router.get('/admin/whats-new/data', async (req, res) => {
+    try {
+        const versions = whatsNew.forUser(req.user);
+        const seen = await whatsNew.getSeen(req.user.id);
+        res.json({ success: true, data: { current: whatsNew.CURRENT, seen, canSeeApi: whatsNew.canSeeApi(req.user), unseen: whatsNew.unseenFor(versions, seen).map(v => v.version), versions } });
+    } catch (err) {
+        console.error('whats-new data:', err);
+        res.status(500).json({ success: false, error: 'Something went wrong. Please try again later.' });
+    }
+});
+router.post('/admin/whats-new/seen', async (req, res) => {
+    const version = String((req.body && req.body.version) || '');
+    if (!/^\d+\.\d+\.\d+$/.test(version) || whatsNew.compareVersions(version, whatsNew.CURRENT) > 0) {
+        return res.status(400).json({ success: false, error: 'Invalid version' });
+    }
+    const saved = await whatsNew.setSeen(req.user.id, version);
+    res.json({ success: true, data: { version, saved } });
+});
 
 module.exports = router;
