@@ -75,3 +75,39 @@ const deleteRow = async (req, res) => {
 };
 
 module.exports = { getMeta, getList, getDetail, createRow, updateRow, deleteRow };
+
+// ------------------------------------------------------------------ change requests
+// Managers raise requests (master data is view-only for them); Super Admin handles them.
+const requests = require('../services/masterDataRequestService');
+const baseUrlOf = req => {
+    const proto = String(req.headers['x-forwarded-proto'] || req.protocol || 'https').split(',')[0].trim();
+    return `${proto}://${req.get('host')}${String(process.env.BASE_ROUTE || '').replace(/\/$/, '')}`;
+};
+const reqId = req => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) throw md.httpError(400, 'Invalid id');
+    return id;
+};
+const listRequests = async (req, res) => {
+    try { res.json({ success: true, data: await requests.list(req.user, { status: req.query.status }) }); } catch (err) { fail(res, err); }
+};
+const getRequest = async (req, res) => {
+    try { res.json({ success: true, data: await requests.get(req.user, reqId(req)) }); } catch (err) { fail(res, err); }
+};
+const createRequest = async (req, res) => {
+    try {
+        const data = await requests.create(req.user, req.body || {}, { baseUrl: baseUrlOf(req) });
+        res.status(201).json({ success: true, data, message: 'Request sent to the Super Admin' });
+    } catch (err) { fail(res, err); }
+};
+const updateRequest = async (req, res) => {
+    try { res.json({ success: true, data: await requests.update(req.user, reqId(req), req.body || {}), message: 'Request updated' }); } catch (err) { fail(res, err); }
+};
+const requestAlerts = async (req, res) => {
+    try { res.json({ success: true, data: await requests.alerts(req.user) }); } catch (err) { fail(res, err); }
+};
+const requestAlertsSeen = async (req, res) => {
+    try { res.json({ success: true, data: { saved: await requests.markSeen(req.user, (req.body || {}).last_id) } }); } catch (err) { fail(res, err); }
+};
+
+module.exports = Object.assign(module.exports, { listRequests, getRequest, createRequest, updateRequest, requestAlerts, requestAlertsSeen });

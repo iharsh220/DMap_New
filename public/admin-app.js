@@ -325,7 +325,8 @@
         const actions = document.querySelector('[data-page-actions]');
         (opts.actions || []).forEach(a => actions.appendChild(D.button(a)));
         // What's new: badge on the nav item and, once per release, the popup (not on its own page)
-        setTimeout(() => D.checkWhatsNew({ popup: opts.page !== 'whats-new' }), 500);
+        // then (Super Admin) the popup for new master data requests from managers
+        setTimeout(() => D.checkWhatsNew({ popup: opts.page !== 'whats-new' }).then(() => D.checkMasterRequests({ popup: true })), 500);
         return document.querySelector('[data-page-body]');
     };
 
@@ -388,13 +389,51 @@
         const body = document.createElement('div');
         body.className = 'dm-release-list';
         body.innerHTML = unseen.map((v, i) => D.releaseHtml(v, { latest: i === 0 && v.version === latest })).join('');
-        D.modal({
+        // resolves when the popup is closed, so the next popup (requests) waits for it
+        await new Promise(resolve => D.modal({
             title: `What's new in D-Map ${latest}`, subtitle: unseen.length > 1 ? `${unseen.length} updates since your last visit` : 'Here is what changed in this update',
             icon: 'megaphone', size: 'lg', body,
-            onClose: () => D.markWhatsNewSeen(latest),
+            onClose: () => { D.markWhatsNewSeen(latest); resolve(); },
             actions: [
                 { label: 'See all updates', icon: 'clock-history', left: true, onClick: dlg => { dlg.close(); window.location.href = ADMIN + 'whats-new'; } },
                 { label: 'Got it', icon: 'check2', variant: 'primary' }
+            ]
+        }));
+    };
+
+    // ------------------------------------------------------------------
+    // Master data requests (Super Admin): badge with the open count on "Master data" and a popup
+    // for requests raised since the admin last closed it (server keeps the last seen id)
+    // ------------------------------------------------------------------
+    D.refreshRequestBadge = async function () {
+        if (!D.isAdmin()) return null;
+        let data;
+        try { data = (await api('master/requests/alerts')).data; } catch (e) { return null; }
+        document.querySelectorAll('.dm-nav-item[href$="master-data"]').forEach(a => {
+            let b = a.querySelector('[data-request-badge]');
+            if (!data.open) { if (b) b.remove(); return; }
+            if (!b) { a.insertAdjacentHTML('beforeend', '<span class="dm-nav-badge" data-request-badge></span>'); b = a.querySelector('[data-request-badge]'); }
+            b.textContent = data.open > 99 ? '99+' : String(data.open);
+            b.title = `${data.open} open master data request(s)`;
+        });
+        return data;
+    };
+    D.checkMasterRequests = async function (opts = {}) {
+        const data = await D.refreshRequestBadge();
+        if (!data || !data.unseen.length || !opts.popup || document.querySelector('.dm-layer')) return;
+        const body = document.createElement('div');
+        body.innerHTML = `<p style="margin:0 0 12px;color:var(--text-2)">Managers asked for these master data changes. They were also emailed.</p>
+<div class="dm-release" style="padding:0">${data.unseen.map(r => `<div style="padding:10px 14px;border-bottom:1px solid var(--border)">
+  <div style="font-weight:600">${esc(r.title)} <span style="color:var(--text-3);font-weight:400">#${esc(r.id)}</span></div>
+  <div style="font-size:12.5px;color:var(--text-3)">${esc(r.action_label)} · ${esc(r.table_label)}${r.target_label ? ' · ' + esc(r.target_label) : ''} · ${esc(r.requested_by_name)}${r.department ? ' (' + esc(r.department) + ')' : ''} · ${esc(fmt.datetime(r.created_at) || '')}</div>
+</div>`).join('')}</div>`;
+        D.modal({
+            title: data.unseen.length === 1 ? 'New master data request' : `${data.unseen.length} new master data requests`,
+            subtitle: `${data.open} open in total`, icon: 'inbox', size: 'lg', body,
+            onClose: () => { api('master/requests/alerts/seen', { method: 'POST', body: { last_id: data.latest_id } }).catch(() => null); },
+            actions: [
+                { label: 'Later' },
+                { label: 'Open requests', icon: 'arrow-right', variant: 'primary', onClick: dlg => { dlg.close(); window.location.href = ADMIN + 'master-data#requests'; } }
             ]
         });
     };

@@ -79,7 +79,7 @@ const REGISTRY = {
         help: 'A division belongs to one department. Request types linked here are handled by this division\'s managers.'
     },
     designation: {
-        table: 'designation', title: 'designation_name', label: 'Designations', singular: 'Designation', icon: 'person-vcard',
+        table: 'designation', title: 'designation_name', label: 'Designations', singular: 'Designation', icon: 'person-vcard', adminOnly: true,
         fields: [text('designation_name', 'Name', 100), text('designation_category', 'Category', 50), STATE],
         links: [],
         // designation -> (department, job role) pairs: designation_jobroles, mirrored in designation_departments
@@ -88,7 +88,7 @@ const REGISTRY = {
         help: 'At registration a user picks department + designation; the job role comes from this mapping, so every department needs a job role.'
     },
     job_role: {
-        table: 'job_role', title: 'role_title', label: 'Job roles', singular: 'Job role', icon: 'shield-check',
+        table: 'job_role', title: 'role_title', label: 'Job roles', singular: 'Job role', icon: 'shield-check', adminOnly: true,
         fields: [text('role_title', 'Name', 100), { name: 'level', label: 'Level', type: 'text', max: 50, required: false }, area('description', 'Description'), { name: 'department_id', label: 'Department', type: 'ref', ref: 'department', required: true, scopeParent: true }, STATE],
         uniqueWithin: 'department_id',
         links: [],
@@ -199,15 +199,22 @@ const scopedIds = async (key, scope, transaction) => {
 // ------------------------------------------------------------------
 // meta
 // ------------------------------------------------------------------
-const canCreate = (key, scope) => scope.all || !REGISTRY[key].adminOnlyCreate;
+// Since 2026-11-05 (owner): managers only VIEW master data (the Work setup tables of their own
+// department; People setup = designations and job roles is Super Admin only) and ask for changes
+// through master data requests. Every write is Super Admin only.
+const canCreate = (key, scope) => scope.all;
+const visible = (key, scope) => scope.all || !REGISTRY[key].adminOnly;
+const VISIBLE_ORDER = scope => ORDER.filter(k => visible(k, scope));
+const assertVisible = (key, scope) => { if (!visible(key, scope)) throw httpError(403, 'Only Super Admin can see this table'); };
+const assertWriter = scope => { if (!scope.all) throw httpError(403, 'Managers can only view master data. Use "Request a change" to ask the Super Admin.'); };
 
 const meta = async (scope) => {
     const departments = scope.all ? [] : await SELECT('SELECT id, department_name AS name FROM department WHERE id IN (:scopeDepartments)', scopeReplacements(scope));
     const counts = {};
-    for (const key of ORDER) counts[key] = (await scopedIds(key, scope)).size;
+    for (const key of VISIBLE_ORDER(scope)) counts[key] = (await scopedIds(key, scope)).size;
     return {
         scope: { all: scope.all, departments },
-        entities: ORDER.map(key => {
+        entities: VISIBLE_ORDER(scope).map(key => {
             const e = REGISTRY[key];
             return {
                 key, label: e.label, singular: e.singular, icon: e.icon, help: e.help || null, count: counts[key],
@@ -307,8 +314,8 @@ const loadRows = async (key, scope, { ids = null } = {}) => {
     }
     byId.forEach(row => {
         row.protected = protectedReason(key, row);
-        row.canDelete = !row.protected && row.usage.total === 0 && (scope.all || canCreate(key, scope));
-        row.canEdit = scope.all || !(key === 'job_role' && row.id === ADMIN_ROLE);
+        row.canDelete = scope.all && !row.protected && row.usage.total === 0;
+        row.canEdit = scope.all;
     });
     return rows.map(r => byId.get(r.id));
 };
@@ -327,10 +334,11 @@ const protectedReason = (key, row) => {
 const list = async (key, scope, query = {}) => {
     const e = entityOf(key);
     if (!e) throw httpError(404, 'Unknown table');
+    assertVisible(key, scope);
     // lite: id + label for pickers. `all=1` lists every row (names only), used to link an existing
     // child type (e.g. a task type another department already created) instead of a duplicate.
     if (query.lite) {
-        const all = query.all === '1' || query.all === 'true' || scope.all;
+        const all = scope.all;   // managers: only their own department's rows
         const cond = all ? null : scopeSql(key, 'x', scope);
         const extra = e.fields.filter(f => f.type === 'ref').map(f => `, x.${f.name}`).join('');
         return SELECT(`SELECT x.id, x.${e.title} AS label${extra}${e.fields.some(f => f.name === 'state') ? ', x.state' : ''} FROM ${e.table} x${cond ? ' WHERE ' + cond : ''} ORDER BY x.${e.title}, x.id`, scopeReplacements(scope));
@@ -343,6 +351,7 @@ const list = async (key, scope, query = {}) => {
 const detail = async (key, id, scope) => {
     const e = entityOf(key);
     if (!e) throw httpError(404, 'Unknown table');
+    assertVisible(key, scope);
     const [row] = await loadRows(key, scope, { ids: [id] });
     if (!row) throw httpError(404, `${e.singular} not found or not in your department`);
     const sections = [];
@@ -353,16 +362,16 @@ const detail = async (key, id, scope) => {
         sections.push({ title: e.mapping.label, entity: 'department', mapping: true, hidden: row.mappingHidden || 0, rows: row.mapping.map(m => ({ id: m.department_id, label: m.department, sub: m.jobrole, subEntity: 'job_role', subId: m.jobrole_id })) });
     }
     // other tables pointing at this row through a ref field (department -> divisions, job roles)
-    for (const otherKey of ORDER) {
+    for (const otherKey of VISIBLE_ORDER(scope)) {
         const o = REGISTRY[otherKey];
         for (const f of o.fields.filter(x => x.type === 'ref' && x.ref === key)) {
             const cond = scopeSql(otherKey, 'x', scope);
             const rows = await SELECT(`SELECT x.id, x.${o.title} AS label FROM ${o.table} x WHERE x.${f.name} = :id${cond ? ' AND ' + cond : ''} ORDER BY x.${o.title}`, Object.assign({ id }, scopeReplacements(scope)));
-            sections.push({ title: `${o.label} in this ${e.singular.toLowerCase()}`, entity: otherKey, rows, add: { entity: otherKey, preset: { [f.name]: id } } });
+            sections.push({ title: `${o.label} in this ${e.singular.toLowerCase()}`, entity: otherKey, rows, add: scope.all ? { entity: otherKey, preset: { [f.name]: id } } : null });
         }
     }
     // reverse designation mapping (department / job role -> designations)
-    if (key === 'department' || key === 'job_role') {
+    if (scope.all && (key === 'department' || key === 'job_role')) {
         const col = key === 'department' ? 'department_id' : 'jobrole_id';
         const rows = await SELECT(
             `SELECT DISTINCT g.id, g.designation_name AS label, ${key === 'department' ? 'j.role_title' : 'd.department_name'} AS sub
@@ -520,6 +529,7 @@ const writeLinks = async (key, id, body, scope, transaction, isNew) => {
 const create = async (key, body, scope) => {
     const e = entityOf(key);
     if (!e) throw httpError(404, 'Unknown table');
+    assertWriter(scope);
     if (!canCreate(key, scope)) throw httpError(403, `Only Super Admin can create a ${e.singular.toLowerCase()}`);
     return sequelize.transaction(async (transaction) => {
         const values = await cleanFields(key, body || {}, scope, null, transaction);
@@ -537,6 +547,7 @@ const create = async (key, body, scope) => {
 const update = async (key, id, body, scope) => {
     const e = entityOf(key);
     if (!e) throw httpError(404, 'Unknown table');
+    assertWriter(scope);
     return sequelize.transaction(async (transaction) => {
         const cond = scopeSql(key, 'x', scope);
         const [current] = await SELECT(`SELECT x.* FROM ${e.table} x WHERE x.id = :id${cond ? ' AND ' + cond : ''} FOR UPDATE`, Object.assign({ id }, scopeReplacements(scope)), transaction);
@@ -583,6 +594,7 @@ const orphanedByDelete = async (key, id, transaction) => {
 const remove = async (key, id, scope) => {
     const e = entityOf(key);
     if (!e) throw httpError(404, 'Unknown table');
+    assertWriter(scope);
     if (!canCreate(key, scope)) throw httpError(403, `Only Super Admin can delete a ${e.singular.toLowerCase()}`);
     return sequelize.transaction(async (transaction) => {
         const [row] = await loadRows(key, scope, { ids: [id] });
@@ -615,4 +627,4 @@ const remove = async (key, id, scope) => {
     });
 };
 
-module.exports = { REGISTRY, ORDER, EDITOR_ROLES, resolveScope, meta, list, detail, create, update, remove, httpError };
+module.exports = { REGISTRY, ORDER, EDITOR_ROLES, resolveScope, meta, list, detail, create, update, remove, httpError, visible, scopedIds, scopeReplacements, scopeSql };

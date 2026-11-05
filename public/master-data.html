@@ -23,6 +23,7 @@
         .md-node i { color: var(--brand); }
         .md-node .c { font-size: 11.5px; color: var(--text-3); background: var(--surface-3); border-radius: 9px; padding: 0 7px; }
         .md-arrow { color: var(--text-3); font-size: 12px; }
+        .md-node .c.md-open { background: var(--warning-bg); color: var(--warning); font-weight: 600; }
         .md-head { display: flex; align-items: flex-start; gap: 12px; padding: 14px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
         .md-head h2 { margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px; }
         .md-head p { margin: 4px 0 0; font-size: 12.5px; color: var(--text-3); max-width: 760px; }
@@ -81,9 +82,15 @@ document.addEventListener('DOMContentLoaded', () => {
         body = D.shell({
             page: 'master-data', title: 'Master data', icon: 'diagram-3',
             subtitle: 'Departments, divisions, roles and work types, and how they link together',
-            actions: [{ id: 'new', label: 'New', icon: 'plus-lg', variant: 'primary', onClick: () => openForm(current) }]
+            actions: [
+                { label: 'Request a change', icon: 'send', onClick: () => openRequestForm(current !== 'requests' ? { entity: current } : {}) },
+                { label: 'New', icon: 'plus-lg', variant: 'primary', onClick: () => openForm(current) }
+            ]
         });
     } catch (e) { return; }
+    const [reqBtn, newBtnEl] = document.querySelectorAll('[data-page-actions] button');
+    reqBtn.hidden = true; newBtnEl.hidden = true;
+    newBtnEl.dataset.new = '1';
 
     let META = null;           // { scope, entities }
     let current = null;        // entity key
@@ -144,22 +151,25 @@ document.addEventListener('DOMContentLoaded', () => {
             const e = byKey[key];
             return `<button type="button" class="md-node${key === current ? ' is-active' : ''}" data-node="${esc(key)}"><i class="bi bi-${esc(e.icon)}"></i>${esc(e.label)}<span class="c">${esc(D.fmt.num(e.count))}</span></button>`;
         };
-        $('[data-map]').innerHTML = FLOWS.map(f => `<div class="md-flow"><div class="md-flow-label">${esc(f.label)}</div>${f.keys.map(node).join('<i class="bi bi-arrow-right md-arrow"></i>')}</div>`).join('');
+        // a flow is shown only when the user may see all of its tables (managers: no People setup)
+        const open = reqSummary ? reqSummary.pending + reqSummary.in_progress : 0;
+        const reqNode = `<div class="md-flow"><div class="md-flow-label">${esc(META.scope.all ? 'Change requests from managers' : 'Need a change? Managers ask, the Super Admin makes it')}</div>
+<button type="button" class="md-node${current === 'requests' ? ' is-active' : ''}" data-node="requests"><i class="bi bi-inbox"></i>${META.scope.all ? 'Requests' : 'My requests'}<span class="c${open ? ' md-open' : ''}">${esc(D.fmt.num(open))} open</span></button></div>`;
+        $('[data-map]').innerHTML = FLOWS.filter(f => f.keys.every(k => byKey[k])).map(f => `<div class="md-flow"><div class="md-flow-label">${esc(f.label)}</div>${f.keys.map(node).join('<i class="bi bi-arrow-right md-arrow"></i>')}</div>`).join('') + reqNode;
         $('[data-map]').querySelectorAll('[data-node]').forEach(b => b.addEventListener('click', () => select(b.dataset.node)));
     }
 
     function renderHead() {
+        reqBtn.hidden = META.scope.all;   // managers ask for changes; the Super Admin edits directly
+        if (current === 'requests') return renderRequestsHead();
         const e = byKey[current];
         const scope = META.scope.all ? 'All departments (Super Admin)' : 'Your department: ' + (META.scope.departments.map(d => d.name).join(', ') || 'none');
         const must = e.links.filter(l => l.min).map(l => `<b>${esc(byKey[l.target].singular.toLowerCase())}</b>`).concat(e.mapping ? ['<b>department + job role</b>'] : []);
         $('[data-head]').innerHTML = `<div><h2><i class="bi bi-${esc(e.icon)}"></i>${esc(e.label)}</h2>
 <p>${esc(e.help || '')}${must.length ? ` Each one must be linked to at least one ${must.join(' and ')}.` : ''} Delete is only possible when nothing uses the row${e.hasState ? '; otherwise set it to inactive' : ''}.</p></div>
 <span class="md-scope"><i class="bi bi-shield-lock"></i> ${esc(scope)}</span>`;
-        const newBtn = document.querySelector('[data-page-actions] button');
-        if (newBtn) {
-            newBtn.hidden = !e.canCreate;
-            newBtn.querySelector('span').textContent = 'New ' + e.singular.toLowerCase();
-        }
+        newBtnEl.hidden = !e.canCreate;
+        newBtnEl.querySelector('span').textContent = 'New ' + e.singular.toLowerCase();
         const sf = $('[data-state-filter]');
         sf.innerHTML = '';
         if (e.hasState) {
@@ -249,6 +259,7 @@ ${mapping}
             foot.appendChild(del);
         }
         if (r.canEdit) foot.appendChild(D.button({ label: 'Edit', icon: 'pencil', variant: 'primary', onClick: () => { dlg.close(); openForm(key, r); } }));
+        if (!META.scope.all) foot.appendChild(D.button({ label: 'Request a change', icon: 'send', variant: 'primary', onClick: () => { dlg.close(); openRequestForm({ entity: key, action: 'change', title: `Change ${e.singular.toLowerCase()} "${r.label}"` }); } }));
         content.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => {
             const [k, rid] = b.dataset.go.split(':');
             dlg.close();
@@ -427,27 +438,158 @@ ${mapping}
         } catch (err) { D.toast(err.message, 'danger', 8000); }
     }
 
+    // ------------------------------------------------------------------ change requests
+    // Managers only view master data and ask the Super Admin for changes. Every request is emailed
+    // and keeps its history (created, emailed, status changes, comments).
+    let reqData = null;
+    let reqSummary = null;
+    let reqStatus = '';
+    const REQ_STATUS = { pending: ['pending', 'Pending'], in_progress: ['in_progress', 'In progress'], done: ['completed', 'Done'], rejected: ['rejected', 'Rejected'] };
+    const reqPill = s => D.pill((REQ_STATUS[s] || [s])[0], (REQ_STATUS[s] || [s, s])[1]);
+    const HISTORY_LABEL = { created: 'Request raised', email_queued: 'Email sent', email_failed: 'Email could not be sent', status_changed: 'Status changed', comment: 'Comment' };
+
+    async function loadRequestSummary() {
+        try { const r = await D.api('master/requests'); reqData = r.data.rows; reqSummary = r.data.summary; } catch (e) { reqData = []; reqSummary = null; }
+    }
+
+    function renderRequestsHead() {
+        newBtnEl.hidden = true;
+        $('[data-head]').innerHTML = `<div><h2><i class="bi bi-inbox"></i>${META.scope.all ? 'Change requests' : 'My change requests'}</h2>
+<p>${META.scope.all
+            ? 'Requests raised by managers. Make the change in the right table, then mark the request done (or reject it with a reason). Every step is kept in the request history.'
+            : 'Master data is view-only for managers. Ask for a new or changed row here: the request is emailed to the Super Admin and you can follow its status and history.'}</p></div>
+<span class="md-scope"><i class="bi bi-shield-lock"></i> ${esc(META.scope.all ? 'All requests (Super Admin)' : 'Only your requests')}</span>`;
+        const sf = $('[data-state-filter]');
+        sf.innerHTML = '';
+        sf.appendChild(D.multiSelect({ placeholder: 'Status', single: true, options: Object.keys(REQ_STATUS).map(k => ({ value: k, label: REQ_STATUS[k][1], count: reqSummary ? reqSummary[k] : undefined })), values: reqStatus ? [reqStatus] : [], onChange: v => { reqStatus = v[0] || ''; renderRequests(); } }).el);
+    }
+
+    async function loadRequests() {
+        $('[data-table]').innerHTML = `<tbody>${Array.from({ length: 4 }, () => '<tr><td colspan="6"><span class="dm-skel" style="width:70%"></span></td></tr>').join('')}</tbody>`;
+        await loadRequestSummary();
+        renderMap();
+        renderRequestsHead();
+        renderRequests();
+    }
+
+    function renderRequests() {
+        const q = search.trim().toLowerCase();
+        const list = (reqData || []).filter(r => (!reqStatus || r.status === reqStatus) && (!q || [r.id, r.title, r.details, r.requested_by_name, r.table_label, r.target_label].join(' ').toLowerCase().includes(q)));
+        $('[data-count]').textContent = `${D.fmt.num(list.length)} of ${D.fmt.num((reqData || []).length)}`;
+        const admin = META.scope.all;
+        const head = `<thead><tr><th>Request</th><th>Table</th>${admin ? '<th>Requested by</th>' : ''}<th>Status</th><th>Raised</th><th>Last update</th></tr></thead>`;
+        if (!list.length) {
+            $('[data-table]').innerHTML = head + `<tbody><tr><td colspan="7"><div class="dm-state"><i class="bi bi-inbox"></i><h4>No requests</h4><p>${admin ? 'Nothing to handle.' : 'Use "Request a change" to ask for a new or changed row.'}</p></div></td></tr></tbody>`;
+            return;
+        }
+        $('[data-table]').innerHTML = head + '<tbody>' + list.map(r => `<tr data-req="${esc(r.id)}">
+<td class="md-name">${esc(r.title)} <span class="md-id">#${esc(r.id)}</span><div class="md-muted">${esc(r.action_label)}</div></td>
+<td>${esc(r.table_label)}</td>
+${admin ? `<td>${esc(r.requested_by_name)}<div class="md-muted">${esc(r.department || '')}</div></td>` : ''}
+<td>${reqPill(r.status)}</td>
+<td class="md-used">${esc(D.fmt.datetime(r.created_at) || '')}</td>
+<td class="md-used">${esc(D.fmt.datetime(r.updated_at) || '')}</td></tr>`).join('') + '</tbody>';
+        $('[data-table]').querySelectorAll('tr[data-req]').forEach(tr => tr.addEventListener('click', () => openRequest(Number(tr.dataset.req))));
+    }
+
+    async function openRequest(id) {
+        const content = document.createElement('div');
+        content.innerHTML = '<div class="dm-state" style="padding:24px"><i class="bi bi-arrow-repeat dm-spin" style="font-size:22px"></i></div>';
+        const dlg = D.drawer({ title: 'Request #' + id, icon: 'inbox', body: content });
+        const draw = async () => {
+            let r;
+            try { r = (await D.api('master/requests/' + id)).data; } catch (err) { content.innerHTML = `<div class="dm-callout tone-danger"><i class="bi bi-exclamation-octagon"></i><div>${esc(err.message)}</div></div>`; return; }
+            dlg.root.querySelector('.dm-dialog-title').textContent = r.title;
+            const kv = [['Request', `#${r.id} · ${r.action_label}`], ['Table', r.table_label], ['Requested by', `${r.requested_by_name}${r.department ? ' (' + r.department + ')' : ''}`], ['Raised', D.fmt.datetime(r.created_at)], ['Email', r.email_status === 'queued' ? 'Sent to the Super Admin' : (r.email_status === 'failed' ? 'Could not be sent (the request is saved)' : '—')]]
+                .map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('') + `<dt>Status</dt><dd>${reqPill(r.status)}</dd>`;
+            const history = r.history.map(h => `<div class="md-li"><span><b>${esc(HISTORY_LABEL[h.action] || h.action)}</b>${h.action === 'status_changed' ? ` ${esc((REQ_STATUS[h.from_status] || [0, h.from_status])[1])} → ${esc((REQ_STATUS[h.to_status] || [0, h.to_status])[1])}` : ''}${h.remark ? `<div class="md-muted" style="white-space:pre-line">${esc(h.remark)}</div>` : ''}</span><span class="sub">${esc(h.actor_name || '')}<br>${esc(D.fmt.datetime(h.created_at) || '')}</span></div>`).join('');
+            content.innerHTML = `<dl class="md-kv">${kv}</dl>
+<div class="md-sec"><h4><i class="bi bi-card-text"></i>Details</h4><div class="md-help" style="white-space:pre-line;margin:0">${esc(r.details || '—')}</div></div>
+${r.admin_remark ? `<div class="md-sec"><h4><i class="bi bi-chat-left-text"></i>Super Admin's remark</h4><div class="md-help" style="white-space:pre-line;margin:0">${esc(r.admin_remark)}</div></div>` : ''}
+<div class="md-sec"><h4><i class="bi bi-clock-history"></i>History <span class="c">${esc(r.history.length)}</span></h4><div class="md-list">${history}</div></div>
+${META.scope.all ? `<div class="md-sec"><h4><i class="bi bi-pencil-square"></i>Update</h4><textarea class="dm-textarea" rows="3" placeholder="Remark (shown to the manager and kept in the history)" aria-label="Remark" data-remark style="width:100%"></textarea></div>` : ''}`;
+            const foot = dlg.root.querySelector('.dm-dialog-foot') || (() => { const f = document.createElement('div'); f.className = 'dm-dialog-foot'; dlg.root.querySelector('.dm-drawer').appendChild(f); return f; })();
+            foot.innerHTML = '';
+            if (META.scope.all) {
+                const act = (status, label, icon, variant) => D.button({ label, icon, variant, onClick: async (e, btn) => {
+                    const remark = content.querySelector('[data-remark]').value.trim();
+                    if (status === 'rejected' && !remark) { D.toast('Give a reason for rejecting', 'warning'); content.querySelector('[data-remark]').focus(); return; }
+                    if (!status && !remark) { D.toast('Write a comment first', 'warning'); content.querySelector('[data-remark]').focus(); return; }
+                    D.setBusy(btn, true, 'Saving…');
+                    try {
+                        await D.api('master/requests/' + id, { method: 'PUT', body: status ? { status, remark } : { remark } });
+                        D.toast('Request updated');
+                        await draw();
+                        await loadRequests();
+                        if (D.refreshRequestBadge) D.refreshRequestBadge();
+                    } catch (err) { D.setBusy(btn, false); D.toast(err.message, 'danger', 7000); }
+                } });
+                const comment = act(null, 'Add comment', 'chat-left-text');
+                comment.classList.add('left');
+                foot.appendChild(comment);
+                if (r.status === 'pending' || r.status === 'in_progress') {
+                    if (r.status === 'pending') foot.appendChild(act('in_progress', 'Start', 'play-circle'));
+                    foot.appendChild(act('rejected', 'Reject', 'x-circle', 'danger'));
+                    foot.appendChild(act('done', 'Mark done', 'check2-circle', 'primary'));
+                }
+            } else foot.remove();
+        };
+        await draw();
+    }
+
+    async function openRequestForm(preset = {}) {
+        const tables = META.entities.map(e => ({ value: e.key, label: e.label }));
+        const form = D.form([
+            { name: 'entity', label: 'Table', type: 'select', required: true, value: preset.entity && byKey[preset.entity] ? preset.entity : tables[0].value, options: tables },
+            { name: 'action', label: 'What do you need?', type: 'select', required: true, value: preset.action || 'add', options: [{ value: 'add', label: 'Add a new row' }, { value: 'change', label: 'Change a row' }, { value: 'remove', label: 'Remove a row' }, { value: 'other', label: 'Something else' }] },
+            { name: 'title', label: 'Title', type: 'text', required: true, span: 2, value: preset.title || '', placeholder: 'e.g. Add task type "Reels editing" to Video', help: 'Max 200 characters' },
+            { name: 'details', label: 'Details', type: 'textarea', required: true, rows: 5, help: 'What exactly should be added, changed or removed, and why (names, links to other tables, …).' }
+        ]);
+        const content = document.createElement('div');
+        const help = document.createElement('div');
+        help.className = 'md-help';
+        help.innerHTML = 'Master data is view-only for managers. Your request is <b>emailed to the Super Admin</b>, who makes the change; you can follow its status under <b>My requests</b>.';
+        content.append(help, form.el);
+        D.modal({
+            title: 'Request a change', subtitle: 'Sent to the Super Admin', icon: 'send', size: 'lg', body: content,
+            actions: [{ label: 'Cancel' }, { label: 'Send request', icon: 'send', variant: 'primary', onClick: async (dlg, btn) => {
+                const v = form.values();
+                if (!v.title.trim()) { D.toast('Title is required', 'warning'); form.field('title').focus(); return; }
+                if (!v.details.trim()) { D.toast('Describe what you need in Details', 'warning'); form.field('details').focus(); return; }
+                D.setBusy(btn, true, 'Sending…');
+                try {
+                    const res = await D.api('master/requests', { method: 'POST', body: { entity: v.entity, action: v.action, title: v.title, details: v.details } });
+                    D.toast(`Request #${res.data.id} sent to the Super Admin`);
+                    dlg.close();
+                    if (current === 'requests') await loadRequests(); else { await loadRequestSummary(); renderMap(); }
+                } catch (err) { D.setBusy(btn, false); D.toast(err.message, 'danger', 7000); }
+            } }]
+        });
+    }
+
     // ------------------------------------------------------------------ navigation
     async function refresh() { await loadMeta(); renderHead(); await loadRows(); }
     function select(key) {
-        if (!byKey[key] || key === current) return;
+        if ((!byKey[key] && key !== 'requests') || key === current) return;
         current = key;
-        search = ''; stateFilter = '';
+        search = ''; stateFilter = ''; reqStatus = '';
         $('[data-search]').value = '';
         try { history.replaceState(null, '', '#' + key); } catch (e) { /* ignore */ }
-        renderMap(); renderHead(); loadRows();
+        renderMap(); renderHead();
+        if (key === 'requests') loadRequests(); else loadRows();
     }
-    $('[data-search]').addEventListener('input', D.debounce(ev => { search = ev.target.value; renderTable(); }, 150));
-    window.addEventListener('hashchange', () => { const k = location.hash.slice(1); if (byKey[k]) select(k); });
+    $('[data-search]').addEventListener('input', D.debounce(ev => { search = ev.target.value; if (current === 'requests') renderRequests(); else renderTable(); }, 150));
+    window.addEventListener('hashchange', () => { const k = location.hash.slice(1); if (byKey[k] || k === 'requests') select(k); });
 
     (async () => {
-        try { await loadMeta(); } catch (err) {
+        try { await Promise.all([loadMeta(), loadRequestSummary()]); } catch (err) {
             body.innerHTML = `<div class="dm-state"><i class="bi bi-shield-lock"></i><h4>No access</h4><p>${esc(err.message)}</p></div>`;
             return;
         }
         const k = location.hash.slice(1);
-        current = byKey[k] ? k : 'department';
-        renderMap(); renderHead(); loadRows();
+        current = byKey[k] || k === 'requests' ? k : 'department';
+        renderMap(); renderHead();
+        if (current === 'requests') loadRequests(); else loadRows();
     })();
 });
 </script>

@@ -16,6 +16,18 @@
 
 const VERSIONS = [
     {
+        version: '1.6.0',
+        date: '2026-11-05',
+        title: 'Master data requests',
+        changes: [
+            { type: 'new', area: 'Master data', text: 'Managers can raise a change request ("Request a change") for master data: pick the table and what you need, and write a title and details. The Super Admin gets an email (you are in CC) and a popup, and you can follow the status and full history under "My requests".' },
+            { type: 'improved', area: 'Master data', text: 'Master data is view-only for managers and shows only the work setup of their department (divisions, request, project, task and change types). Designations and job roles are managed by the Super Admin only.' },
+            { type: 'new', area: 'Admin panel', text: 'Super Admin: a popup when managers raise new master data requests, and the number of open requests next to "Master data" in the sidebar.' },
+            { type: 'api', area: 'Master data API', text: 'Writes (POST/PUT/DELETE /datatable/admin/master/:entity) are Super Admin only; managers get 403. designation and job_role return 403 for managers, and meta lists only the tables the caller may see. lite lists are always scoped for managers (all=1 is ignored).' },
+            { type: 'api', area: 'Requests API', text: 'New: GET /datatable/admin/master/requests (Super Admin all, managers their own; { rows, summary }), GET /datatable/admin/master/requests/:id (with history), POST /datatable/admin/master/requests { entity, action: add|change|remove|other, title, details } (details required; optional target_id must be in the caller\'s scope; the email CCs the requester) (roles 2, 3), PUT /datatable/admin/master/requests/:id { status: in_progress|done|rejected, remark } (Super Admin), GET /datatable/admin/master/requests/alerts and POST .../alerts/seen { last_id } (Super Admin popup).' }
+        ]
+    },
+    {
         version: '1.5.0',
         date: '2026-11-05',
         title: 'Master data, view-only admin panel and What\'s new',

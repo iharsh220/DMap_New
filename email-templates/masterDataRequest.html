@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="x-apple-disable-message-reformatting">
+    <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+    <title>Master Data Request</title>
+    <!--[if mso]>
+    <noscript>
+        <xml>
+            <o:OfficeDocumentSettings>
+                <o:AllowPNG/>
+                <o:PixelsPerInch>96</o:PixelsPerInch>
+            </o:OfficeDocumentSettings>
+        </xml>
+    </noscript>
+    <style type="text/css">
+        body, table, td, p, a, h1, h2, h3, li { font-family: Arial, Helvetica, sans-serif !important; }
+    </style>
+    <![endif]-->
+    <style type="text/css">
+        body { margin: 0; padding: 0; width: 100% !important; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { border: 0; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }
+        a { color: #5b2be0; }
+        @media only screen and (max-width: 620px) {
+            .dm-container { width: 100% !important; }
+            .dm-px { padding-left: 20px !important; padding-right: 20px !important; }
+            .dm-hide-sm { display: none !important; }
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #eef1f6;">
+    <div style="display: none; font-size: 1px; color: #eef1f6; line-height: 1px; max-height: 0; max-width: 0; opacity: 0; overflow: hidden; mso-hide: all;">Master data request #{{request_id}} from {{requester_name}}: {{title}}</div>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#eef1f6" style="background-color: #eef1f6;">
+        <tr>
+            <td align="center" style="padding: 24px 12px;">
+                <!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" align="center"><tr><td><![endif]-->
+                <table role="presentation" class="dm-container" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="width: 600px; max-width: 600px; background-color: #ffffff; border: 1px solid #e3e7ef; border-radius: 10px;">
+
+                    <!-- Logo -->
+                    <tr>
+                        <td class="dm-px" style="padding: 20px 32px 16px 32px;">
+                            <a href="{{frontend_url}}" target="_blank"><img src="{{logo_base64}}" width="170" height="71" alt="Alembic" style="display: block; width: 170px; height: auto;"></a>
+                        </td>
+                    </tr>
+
+                    <!-- Header -->
+                    <tr>
+                        <td class="dm-px" bgcolor="#291467" style="background-color: #291467; padding: 22px 32px;">
+                            <h1 style="margin: 0; color: #ffffff; font-family: Arial, Helvetica, sans-serif; font-size: 22px; line-height: 28px; font-weight: bold;">Master Data Request #{{request_id}}</h1>
+                        </td>
+                    </tr>
+
+                    <!-- Content -->
+                    <tr>
+                        <td class="dm-px" style="padding: 30px 32px; font-family: Arial, Helvetica, sans-serif; font-size: 15px; line-height: 23px; color: #1f2937;">
+                            <p style="margin: 0 0 15px 0; color: #333333;"><strong>{{requester_name}}</strong> ({{department}}) has asked for a change to the D-Map master data.</p>
+
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 20px 0;">
+                                <tr>
+                                    <td bgcolor="#f8f9fa" style="background-color: #f8f9fa; border-radius: 8px; padding: 12px 8px; font-family: Arial, Helvetica, sans-serif;">
+                                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width: 100%; border-collapse: collapse; font-size: 14px; line-height: 20px;">
+                                            <tr>
+                                                <td width="34%" style="padding: 8px 10px; border-bottom: 1px solid #e9ecef; font-weight: bold; color: #374151; vertical-align: top;">Request</td>
+                                                <td style="padding: 8px 10px; border-bottom: 1px solid #e9ecef; color: #1f2937; vertical-align: top;">{{action_label}}: <strong>{{title}}</strong></td>
+                                            </tr>
+                                            <tr>
+                                                <td width="34%" style="padding: 8px 10px; border-bottom: 1px solid #e9ecef; font-weight: bold; color: #374151; vertical-align: top;">Table</td>
+                                                <td style="padding: 8px 10px; border-bottom: 1px solid #e9ecef; color: #1f2937; vertical-align: top;">{{table_name}}</td>
+                                            </tr>
+                                            {{#if target_label}}
+                                            <tr>
+                                                <td width="34%" style="padding: 8px 10px; border-bottom: 1px solid #e9ecef; font-weight: bold; color: #374151; vertical-align: top;">Row</td>
+                                                <td style="padding: 8px 10px; border-bottom: 1px solid #e9ecef; color: #1f2937; vertical-align: top;">{{target_label}}</td>
+                                            </tr>
+                                            {{/if}}
+                                            <tr>
+                                                <td width="34%" style="padding: 8px 10px; border-bottom: 1px solid #e9ecef; font-weight: bold; color: #374151; vertical-align: top;">Requested by</td>
+                                                <td style="padding: 8px 10px; border-bottom: 1px solid #e9ecef; color: #1f2937; vertical-align: top;">{{requester_name}}<br><span style="font-size: 12px; color: #6b7280;">{{requester_email}}</span></td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            {{#if details}}
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 20px 0;">
+                                <tr>
+                                    <td bgcolor="#f8f9fa" style="background-color: #f8f9fa; border-left: 4px solid #5b2be0; padding: 15px 20px; font-family: Arial, Helvetica, sans-serif;">
+                                        <p style="margin: 0 0 6px 0;"><strong>Details</strong></p>
+                                        <p style="margin: 0; white-space: pre-line;">{{details}}</p>
+                                    </td>
+                                </tr>
+                            </table>
+                            {{/if}}
+
+                            {{#if admin_url}}
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0;">
+                                <tr>
+                                    <td align="center" style="text-align: center; font-family: Arial, Helvetica, sans-serif;">
+                                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin: 20px auto;">
+                                            <tr>
+                                                <td align="center" bgcolor="#5b2be0" style="background-color: #5b2be0; border-radius: 6px;">
+                                                    <!--[if mso]>
+                                                    <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{admin_url}}" style="height:46px; v-text-anchor:middle; width:260px;" arcsize="13%" stroke="f" fillcolor="#5b2be0">
+                                                    <w:anchorlock/>
+                                                    <center style="color:#ffffff; font-family:Arial, Helvetica, sans-serif; font-size:15px; font-weight:bold;">Open the request</center>
+                                                    </v:roundrect>
+                                                    <![endif]-->
+                                                    <!--[if !mso]><!-->
+                                                    <a href="{{admin_url}}" target="_blank" style="display: inline-block; background-color: #5b2be0; color: #ffffff; font-family: Arial, Helvetica, sans-serif; font-size: 15px; font-weight: bold; line-height: 46px; padding: 0 30px; border-radius: 6px; text-decoration: none; mso-hide: all;">Open the request</a>
+                                                    <!--<![endif]-->
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            {{/if}}
+                        </td>
+                    </tr>
+
+                    <!-- Banner -->
+                    <tr>
+                        <td style="padding: 0;">
+                            <a href="{{frontend_url}}" target="_blank"><img src="{{banner_base64}}" width="600" alt="D-Map Banner" style="display: block; width: 100%; max-width: 600px; height: auto;"></a>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td class="dm-px" bgcolor="#f6f7fb" style="background-color: #f6f7fb; padding: 22px 32px; text-align: center; border-top: 1px solid #e3e7ef; border-radius: 0 0 10px 10px; font-family: Arial, Helvetica, sans-serif;">
+                            <p style="margin: 4px 0; font-size: 12px; line-height: 18px; color: #6b7280;">You receive this email because a master data request was raised in the D-Map admin panel (the manager who raised it is in copy).</p>
+                            <p style="margin: 4px 0; font-size: 12px; line-height: 18px; color: #6b7280;">This is an automated message from D-Map. Please do not reply directly to this email.</p>
+                            <p style="margin: 4px 0; font-size: 12px; line-height: 18px; color: #6b7280;">&copy; 2026 Alembic Digital Labs. All rights reserved.</p>
+                            <p style="margin: 10px 0 0 0; font-size: 12px; line-height: 18px;">
+                                <a href="{{frontend_url}}" style="color: #5b2be0; text-decoration: none;">Visit D-Map</a> |
+                                <a href="mailto:support@alembicdigilabs.com" style="color: #5b2be0; text-decoration: none;">Support</a>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+                <!--[if mso]></td></tr></table><![endif]-->
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

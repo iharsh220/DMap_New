@@ -204,6 +204,14 @@ const masterData = require('../controller/masterDataController');
 router.get('/admin/master-data', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'master-data.html'));
 });
+// Change requests (before /admin/master/:entity): managers raise them (email to
+// MASTER_DATA_REQUEST_EMAIL), Super Admin handles them; alerts feed the admin popup.
+router.get('/admin/master/requests', canEditWork, masterData.listRequests);
+router.post('/admin/master/requests', checkRole([2, 3]), masterData.createRequest);
+router.get('/admin/master/requests/alerts', adminOnly, masterData.requestAlerts);
+router.post('/admin/master/requests/alerts/seen', adminOnly, masterData.requestAlertsSeen);
+router.get('/admin/master/requests/:id', canEditWork, masterData.getRequest);
+router.put('/admin/master/requests/:id', adminOnly, masterData.updateRequest);
 router.get('/admin/master/meta', canEditWork, masterData.getMeta);
 router.get('/admin/master/:entity', canEditWork, masterData.getList);
 router.get('/admin/master/:entity/:id', canEditWork, masterData.getDetail);
