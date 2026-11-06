@@ -16,6 +16,18 @@
 
 const VERSIONS = [
     {
+        version: '1.8.0',
+        date: '2026-11-06',
+        title: 'See how projects, tasks and changes connect',
+        changes: [
+            { type: 'new', area: 'Projects', text: 'Opening a project now shows its tasks and, under each task, the changes raised on it (status, artist, dates and pages).' },
+            { type: 'new', area: 'Tasks', text: 'Opening a task shows its project and the changes raised on it; the project\'s other tasks are one click away.' },
+            { type: 'new', area: 'Changes', text: 'Opening a change shows the task it came from, the project, and the task\'s other versions (V2, V3 …), with this change marked.' },
+            { type: 'improved', area: 'Admin panel', text: 'Click any project, task or change in that list to open it with its details.' },
+            { type: 'api', area: 'Admin API', text: 'New GET /datatable/admin/linked/:kind/:id (kind = project | task | change) returns { focus, project, tasks[ { …, changes[] } ], totals } for the project of that record; deleted tasks and changes are left out. 400 for a bad kind or id, 404 when not found.' }
+        ]
+    },
+    {
         version: '1.7.0',
         date: '2026-11-05',
         title: 'Complete data for every task and change',

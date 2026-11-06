@@ -965,6 +965,57 @@
     /** Builds a link to a grid page with filters applied (used by the overview). */
     D.gridLink = (page, state) => ADMIN + page + '#s=' + encodeURIComponent(JSON.stringify(state));
 
+    // ---- "Linked work" in a detail drawer: project -> tasks -> changes of a project / task / change.
+    // Every item links to its own grid filtered on its id, with its details opened (d:1).
+    const PROJECT_STAGE = { pending: 'Pending Response', accepted: 'Awaiting Assignment', assigned: 'Upcoming', in_progress: 'Ongoing', completed: 'Completed', deferred: 'Deferred', cancelled: 'Cancelled' };
+    const linkTo = (page, key, id) => D.gridLink(page, { f: { [key]: { type: 'exact', values: [String(id)] } }, d: 1 });
+    const meta = parts => parts.filter(p => !isEmpty(p[1])).map(p => `<span><span class="muted">${esc(p[0])}</span> ${esc(p[1])}</span>`).join('');
+    D.linkedWork = function (kind, id) {
+        const box = document.createElement('div');
+        box.className = 'dm-detail-group dm-linked';
+        box.innerHTML = '<h5>Linked work</h5><div class="dm-linked-body"><span class="dm-skel" style="width:60%"></span><span class="dm-skel" style="width:80%"></span><span class="dm-skel" style="width:40%"></span></div>';
+        const out = box.querySelector('.dm-linked-body');
+        // a link to the same grid page only changes the hash: reload so the grid reads the new filter
+        box.addEventListener('click', e => {
+            const a = e.target.closest('a.dm-linked-item');
+            if (!a || e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;
+            const url = new URL(a.href, window.location.href);
+            if (url.pathname !== window.location.pathname) return;
+            e.preventDefault();
+            history.replaceState(null, '', url.pathname + url.search + url.hash);
+            window.location.reload();
+        });
+        api(`linked/${encodeURIComponent(kind)}/${encodeURIComponent(id)}`).then(res => {
+            const d = res.data || {};
+            const p = d.project || {};
+            const t = d.totals || {};
+            const focusTask = kind === 'task' ? Number(id) : kind === 'change' ? ((d.tasks || []).find(x => (x.changes || []).some(c => Number(c.id) === Number(id))) || {}).id : null;
+            const changeHtml = c => `<a class="dm-linked-item is-change${kind === 'change' && Number(c.id) === Number(id) ? ' is-current' : ''}" href="${esc(linkTo('issuedetails', 'issue_id', c.id))}">
+                <div class="dm-linked-head"><i class="bi bi-arrow-repeat"></i><span class="dm-cell-id">#${esc(c.id)}</span><b>${esc(c.version || 'Change')}</b>${D.pill(c.status)}${kind === 'change' && Number(c.id) === Number(id) ? '<span class="dm-linked-tag">This change</span>' : ''}</div>
+                <div class="dm-linked-meta">${meta([['Type', c.change_types], ['Artist', c.assignees], ['Raised by', c.requested_by], ['Deadline', fmt.date(c.deadline)], ['Start', fmt.date(c.start_date)], ['End', fmt.date(c.end_date)], ['Pages', c.task_count], ['Review', c.review_stage && D.statusLabel(c.review_stage)]])}</div></a>`;
+            const taskHtml = x => `<div class="dm-linked-task${Number(x.id) === Number(focusTask) ? ' is-focus' : ''}">
+                <a class="dm-linked-item${kind === 'task' && Number(x.id) === Number(id) ? ' is-current' : ''}" href="${esc(linkTo('taskdetails', 'task_id', x.id))}">
+                <div class="dm-linked-head"><i class="bi bi-check2-square"></i><span class="dm-cell-id">#${esc(x.id)}</span><b>${esc(x.task_name || 'Task')}</b>${D.pill(x.status)}${kind === 'task' && Number(x.id) === Number(id) ? '<span class="dm-linked-tag">This task</span>' : ''}</div>
+                <div class="dm-linked-meta">${meta([['Type', x.task_type], ['Artist', x.assignees], ['Deadline', fmt.date(x.deadline)], ['Start', fmt.date(x.start_date)], ['End', fmt.date(x.end_date)], ['Pages', x.task_count], ['Review', x.review_stage && D.statusLabel(x.review_stage)]])}</div></a>
+                ${(x.changes || []).length ? `<div class="dm-linked-changes">${x.changes.map(changeHtml).join('')}</div>` : '<div class="dm-linked-none">No changes</div>'}
+            </div>`;
+            const tasks = d.tasks || [];
+            const mine = focusTask ? tasks.filter(x => Number(x.id) === Number(focusTask)) : tasks;
+            const others = focusTask ? tasks.filter(x => Number(x.id) !== Number(focusTask)) : [];
+            out.innerHTML = `
+                <a class="dm-linked-item is-project${kind === 'project' ? ' is-current' : ''}" href="${esc(linkTo('projectsdetails', 'work_request_id', p.id))}">
+                    <div class="dm-linked-head"><i class="bi bi-folder2-open"></i><span class="dm-cell-id">#${esc(p.id)}</span><b>${esc(p.project_name || 'Project')}</b>${D.pill(p.status, PROJECT_STAGE[p.status])}${kind === 'project' ? '<span class="dm-linked-tag">This project</span>' : ''}</div>
+                    <div class="dm-linked-meta">${meta([['Vertical', p.request_type], ['Project type', p.project_type], ['Client', p.requester_name], ['Manager', p.managers], ['Priority', p.priority]])}</div>
+                </a>
+                <div class="dm-linked-totals">${fmt.num(t.tasks)} task${t.tasks === 1 ? '' : 's'} · ${fmt.num(t.task_pages)} pages · ${fmt.num(t.changes)} change${t.changes === 1 ? '' : 's'} · ${fmt.num(t.change_pages)} pages</div>
+                ${mine.length ? mine.map(taskHtml).join('') : '<div class="dm-linked-none">No tasks yet</div>'}
+                ${others.length ? `<details class="dm-linked-others"><summary>Other tasks in this project (${others.length})</summary>${others.map(taskHtml).join('')}</details>` : ''}`;
+        }).catch(err => {
+            out.innerHTML = `<div class="dm-linked-none">${esc(err && err.message ? err.message : 'Could not load linked work')}</div>`;
+        });
+        return box;
+    };
+
     D.grid = function (mount, cfg) { return new Grid(mount, cfg); };
 
     function Grid(mount, cfg) {
@@ -991,6 +1042,7 @@
             // team / division / person scope of an Overview card ({ team | division_id | user_id, label })
             scope: cfg.scopeable && hash.sc && typeof hash.sc === 'object' ? hash.sc : null
         };
+        this.openFirst = !!hash.d;
         this.summary = null;
         this.rows = [];
         this.total = 0;
@@ -1346,6 +1398,11 @@ ${cfg.statusBar ? '<div class="dm-card dm-statusbar" data-status></div>' : ''}
             if (ctrl === this.request) { this.el.grid.classList.remove('is-loading'); this.request = null; }
         }
         this.render();
+        // opened from a "Linked work" link (#s={..., d:1}): show the record's details right away
+        if (this.openFirst) {
+            this.openFirst = false;
+            if (this.rows.length === 1) this.openDetail(this.rows[0], this.el.tbody.querySelector('tr[data-i="0"]'));
+        }
         if (this.cfg.onLoad) this.cfg.onLoad(this);
     };
     Grid.prototype.reload = function () { return this.load(); };
@@ -1570,6 +1627,8 @@ ${share !== null ? `<div class="dm-kpi-meter fg-${esc(k.tone || 'brand')}"><span
         const rest = shown.filter(k => !used.has(k));
         if (rest.length) sections.push({ title: 'More', keys: rest });
         body.innerHTML = '<div class="dm-detail-search"><input class="dm-input" placeholder="Find a field…" aria-label="Find a field"></div>';
+        // project -> tasks -> changes of this record (cfg.linked = { kind, idKey })
+        if (this.cfg.linked && row[this.cfg.linked.idKey]) body.appendChild(D.linkedWork(this.cfg.linked.kind, row[this.cfg.linked.idKey]));
         sections.forEach(sec => {
             if (!sec.keys.length) return;
             const g = document.createElement('div');

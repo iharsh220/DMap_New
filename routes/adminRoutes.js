@@ -133,6 +133,10 @@ router.get('/admin/issuedetails/data', paginationMiddleware, cachedAdminData(get
 // API endpoint for workrequest tasks raw data
 router.get('/admin/workrequesttasks/data', adminOnly, paginationMiddleware, cachedAdminData(getWorkRequestTasksData));
 
+// Linked work for the detail drawers: project -> tasks -> changes (any logged-in user, like the grids)
+const { getLinkedWork } = require('../controller/adminLinkedController');
+router.get('/admin/linked/:kind/:id', cachedAdminData(getLinkedWork));
+
 // API endpoint for tasks
 router.get('/admin/projectsdetails/tasks/:workRequestId', cachedAdminData(getTasksForWorkRequest));
 

@@ -91,6 +91,7 @@ document.addEventListener('DOMContentLoaded', function () {
             C('total_cost', 'Total Cost', 'money', { adminOnly: true }),
             C('issue_created_at', 'Created', 'date', { filterOnly: true })
         ],
+        linked: { kind: 'change', idKey: 'issue_id' },
         detailTitle: row => `${row.task_name || 'Change'} · ${row.change_version || ''}`.replace(/ · $/, ''),
         detailSubtitle: row => `Change #${row.issue_id} · Task #${row.task_id} · Request #${row.work_request_id}`,
         detailGroups: [

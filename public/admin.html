@@ -98,6 +98,7 @@ document.addEventListener('DOMContentLoaded', function () {
             C('fy', 'Financial Year', 'text'),
             C('work_request_created_at', 'Created', 'date', { filterOnly: true })
         ],
+        linked: { kind: 'project', idKey: 'work_request_id' },
         detailTitle: row => row.project_name || `Request #${row.work_request_id}`,
         detailSubtitle: row => `Request #${row.work_request_id} · ${row.request_type_name || ''}`,
         detailGroups: [

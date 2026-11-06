@@ -92,6 +92,7 @@ document.addEventListener('DOMContentLoaded', function () {
             C('total_cost', 'Total Cost', 'money', { adminOnly: true }),
             C('task_created_at', 'Created', 'date', { filterOnly: true })
         ],
+        linked: { kind: 'task', idKey: 'task_id' },
         detailTitle: row => row.task_name || `Task #${row.task_id}`,
         detailSubtitle: row => `Task #${row.task_id} · Request #${row.work_request_id}`,
         detailGroups: [
