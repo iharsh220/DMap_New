@@ -16,6 +16,20 @@
 
 const VERSIONS = [
     {
+        version: '1.10.0',
+        date: '2026-11-06',
+        title: 'Change requests and delegated tasks fixed',
+        changes: [
+            { type: 'fixed', area: 'Changes', text: 'A change requested from the PMT review gets the right version: the task is V1, the first change V2, the next V3.' },
+            { type: 'fixed', area: 'Projects', text: 'After two or more rounds of changes the project now completes automatically when the last change is approved (the older version no longer stays "in progress").' },
+            { type: 'fixed', area: 'Changes', text: 'When a manager cancels a change, the task goes back to the requester as completed and can be approved again (before, the approval was refused).' },
+            { type: 'fixed', area: 'Tasks', text: 'When a manager sends a task or change back for rework, its end date is cleared until the artist submits again.' },
+            { type: 'improved', area: 'Tasks', text: 'A task given to a manager of another vertical is handled only by that manager: the project manager can still see it but can no longer edit, re-assign or review it.' },
+            { type: 'improved', area: 'History', text: 'Manager approve, rework and share steps show the status and review stage in the history; a change approval is recorded once.' },
+            { type: 'api', area: 'API', text: 'POST /work-requests/pm-reject accepts an optional version (V2, V3 ...). Manager actions on a delegated task (update, assign-task, review, share, delete, change accept / assign / cancel) return 403/404 for managers other than the delegated one (and Super Admin). New history action approved_with_later_version.' }
+        ]
+    },
+    {
         version: '1.9.0',
         date: '2026-11-06',
         title: 'Project cancellation with clear rules',

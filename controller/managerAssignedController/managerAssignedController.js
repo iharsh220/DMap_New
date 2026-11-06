@@ -34,7 +34,7 @@ const {
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
 const { recordWorkRequestHistory, recordTaskHistory, recordIssueHistory, getTaskHistory: getTaskHistoryRecords, getIssueHistory: getIssueHistoryRecords } = require('../../services/historyService');
-const { isSuperAdmin, isTaskManager, managedTaskIdsSubquery, sharesDivision, assignTargetError, canViewWorkRequest, workRequestIdForTask, workRequestIdForIssue } = require('../../services/accessService');
+const { isSuperAdmin, isTaskManager, canActOnTask, isDelegatedAway, managedTaskIdsSubquery, sharesDivision, assignTargetError, canViewWorkRequest, workRequestIdForTask, workRequestIdForIssue } = require('../../services/accessService');
 const { pickModelFilters, pickModelFields } = require('../../utils/queryFilters');
 const { parseId, parseIdArray, parseDateOnly, safePathSegment, parsePageCount, todayDateOnly } = require('../../utils/validators');
 const projectCancellation = require('../../services/projectCancellationService');
@@ -2897,6 +2897,9 @@ const deleteTask = async (req, res) => {
         if (!task) {
             return res.status(404).json({ success: false, error: 'Task not found or not assigned to you' });
         }
+        if (await isDelegatedAway(req.user, task.id)) {
+            return res.status(403).json({ success: false, error: 'This task was delegated to another manager; only that manager can change it' });
+        }
 
         // Record deletion before soft deleting
         await recordTaskHistory({
@@ -3475,7 +3478,7 @@ const updateTask = async (req, res) => {
 
         // Access (R2): a task manager may edit the task: the request's manager(s), the manager the
         // task was delegated to, or the manager of the artist it is assigned to (shares a division).
-        if (!(await isTaskManager(req.user, task.id))) {
+        if (!(await canActOnTask(req.user, task.id))) {
             return res.status(404).json({
                 success: false,
                 error: 'Task not found or not assigned to you'
@@ -3979,6 +3982,10 @@ const reviewTask = async (req, res) => {
                         error: 'Task not found or not assigned to you'
                     });
                 }
+                // delegated to another manager: only that manager reviews it (owner's rule, 2026-11-06)
+                if (await isDelegatedAway(req.user, task.id)) {
+                    return res.status(403).json({ success: false, error: 'This task was delegated to another manager; only that manager can review it' });
+                }
 
             // Validation: Task must be completed for manager to review
             if (task.status !== 'completed') {
@@ -4018,10 +4025,12 @@ const reviewTask = async (req, res) => {
                 // Change request - only update review field, keep review_stage as is
                 // updateData.review = 'change_request';
                 updateData.review = 'pending';
-                // If task is completed, change status back to in_progress
+                // If task is completed, change status back to in_progress; the end date is set again
+                // when the artist resubmits (an open task has no end date, UAT ISSUES #4)
                 if (task.status === 'completed') {
                     newStatus = 'in_progress';
                     updateData.status = newStatus;
+                    updateData.end_date = null;
                 }
             }
 
@@ -4110,6 +4119,12 @@ const reviewTask = async (req, res) => {
                 previousData: task,
                 nextData: updatedTask,
                 changes: { review: action, review_stage: newStage, status: newStatus },
+                previousStatus: task.status,
+                newStatus,
+                previousReview: task.review,
+                newReview: updateData.review !== undefined ? updateData.review : task.review,
+                previousReviewStage: previousStage,
+                newReviewStage: newStage,
                 comments: comments || null,
                 relatedManagerId: manager_id,
                 relatedUserId: updatedTask?.assignedUsers?.[0]?.id || null
@@ -4236,6 +4251,10 @@ const reviewTask = async (req, res) => {
                     error: 'Issue not found or not assigned to you'
                 });
             }
+            // change on a task delegated to another manager: only that manager reviews it
+            if (issueAssignment.task_id && await isDelegatedAway(req.user, issueAssignment.task_id)) {
+                return res.status(403).json({ success: false, error: 'This task was delegated to another manager; only that manager can review its changes' });
+            }
 
             // Validation: Issue must be completed for manager to review
             if (issueAssignment.status !== 'completed') {
@@ -4274,10 +4293,12 @@ const reviewTask = async (req, res) => {
             } else if (action === 'change_request') {
                 // Change request - only update review field, keep review_stage as is
                 updateData.review = 'change_request';
-                // If issue is completed, change status back to in_progress
+                // If issue is completed, change status back to in_progress; the end date is set again
+                // when the artist resubmits (an open change has no end date, UAT ISSUES #4)
                 if (issueAssignment.status === 'completed') {
                     newStatus = 'in_progress';
                     updateData.status = newStatus;
+                    updateData.end_date = null;
                 }
             }
 
@@ -4378,6 +4399,12 @@ const reviewTask = async (req, res) => {
                 previousData: issueAssignment,
                 nextData: updatedIssue,
                 changes: { review: action, review_stage: newStage, status: newStatus },
+                previousStatus: issueAssignment.status,
+                newStatus,
+                previousReview: issueAssignment.review,
+                newReview: updateData.review !== undefined ? updateData.review : issueAssignment.review,
+                previousReviewStage: previousStage,
+                newReviewStage: newStage,
                 comments: comments || null,
                 relatedManagerId: manager_id,
                 relatedUserId: updatedIssue?.userAssignments?.[0]?.user?.id || null
@@ -4449,7 +4476,7 @@ const shareForClientReview = async (req, res) => {
         }
         let hasAccess = shareTaskIds.size > 0;
         for (const shareTaskId of shareTaskIds) {
-            if (!shareTaskId || !(await isTaskManager(req.user, shareTaskId))) {
+            if (!shareTaskId || !(await canActOnTask(req.user, shareTaskId))) {
                 hasAccess = false;
                 break;
             }
@@ -4607,6 +4634,10 @@ const shareForClientReview = async (req, res) => {
                     action: 'shared_for_client_review',
                     previousData: task,
                     nextData: { intimate_client: 1, shared_with_client_at: new Date() },
+                    previousStatus: task.status,
+                    newStatus: task.status,
+                    previousReviewStage: task.review_stage,
+                    newReviewStage: task.review_stage,
                     comments: 'Task shared with client by manager',
                     relatedManagerId: manager_id
                 });
@@ -4739,6 +4770,10 @@ const shareForClientReview = async (req, res) => {
                     action: 'shared_for_client_review',
                     previousData: issueAssignment,
                     nextData: { intimate_client: 1, shared_with_client_at: new Date() },
+                    previousStatus: issueAssignment.status,
+                    newStatus: issueAssignment.status,
+                    previousReviewStage: issueAssignment.review_stage,
+                    newReviewStage: issueAssignment.review_stage,
                     comments: 'Issue shared with client by manager',
                     relatedManagerId: manager_id
                 });
@@ -4762,6 +4797,8 @@ const shareForClientReview = async (req, res) => {
                 shared_task_ids: sharedTaskIds.map(item => item.taskId),
                 shared_issue_ids: sharedIssueIds.map(item => item.issueAssignmentId)
             },
+            previousStatus: workRequest.status,
+            newStatus: workRequest.status,
             comments: 'Items shared with client by manager',
             relatedUserId: workRequest.user_id,
             relatedManagerId: manager_id
@@ -4857,7 +4894,7 @@ const acceptIssueRequest = async (req, res) => {
 
         // 2. Access (R2): a task manager of the change's task (request manager, delegated manager
         //    or the artist's manager)
-        if (!(await isTaskManager(req.user, task.id))) {
+        if (!(await canActOnTask(req.user, task.id))) {
             return res.status(403).json({
                 success: false,
                 error: 'You are not authorized to accept this issue request. Only a manager of this task can accept.'
@@ -4946,6 +4983,20 @@ const acceptIssueRequest = async (req, res) => {
     }
 };
 
+// When the PM asked for changes, the task / previous version was re-opened (in_progress +
+// change_requested). Cancelling that change puts it back as it was: completed, with valid dates
+// (UAT ISSUES #3: before, the review went back to the PM but the status stayed in_progress, so the
+// PM approval was refused for good).
+const reopenedBack = (row) => {
+    if (!row || row.status !== 'in_progress' || row.review_stage !== 'change_requested') return {};
+    const today = todayDateOnly();
+    const start = row.start_date && String(row.start_date).slice(0, 10) <= today ? String(row.start_date).slice(0, 10) : today;
+    const back = { status: 'completed' };
+    if (!row.start_date || String(row.start_date).slice(0, 10) !== start) back.start_date = start;
+    if (!row.end_date || String(row.end_date).slice(0, 10) < start) back.end_date = today;
+    return back;
+};
+
 const cancelIssueRequest = async (req, res) => {
     try {
         const id = parseInt(req.params.id, 10);
@@ -4992,7 +5043,7 @@ const cancelIssueRequest = async (req, res) => {
         }
 
         // 2. Authorization (R2): a task manager of the change's task
-        if (!(await isTaskManager(req.user, task.id))) {
+        if (!(await canActOnTask(req.user, task.id))) {
             return res.status(403).json({
                 success: false,
                 error: 'You are not authorized to cancel this issue request. Only a manager of this task can cancel.'
@@ -5036,8 +5087,9 @@ const cancelIssueRequest = async (req, res) => {
             });
 
             if (parentIssue) {
+                const parentBack = reopenedBack(parentIssue);
                 await IssueAssignments.update(
-                    { review: 'pending', review_stage: 'pm_review' },
+                    Object.assign({ review: 'pending', review_stage: 'pm_review' }, parentBack),
                     { where: { id: issueAssignment.issue_id } }
                 );
 
@@ -5049,7 +5101,9 @@ const cancelIssueRequest = async (req, res) => {
                     parentIssueId: parentIssue.issue_id,
                     action: 'review_reset_to_pm',
                     previousData: parentIssue,
-                    nextData: { review: 'pending', review_stage: 'pm_review' },
+                    nextData: Object.assign({ review: 'pending', review_stage: 'pm_review' }, parentBack),
+                    previousStatus: parentIssue.status,
+                    newStatus: parentBack.status || parentIssue.status,
                     previousReview: parentIssue.review,
                     newReview: 'pending',
                     previousReviewStage: parentIssue.review_stage,
@@ -5063,12 +5117,17 @@ const cancelIssueRequest = async (req, res) => {
         } else if (issueAssignment.task_id) {
             // No parent issue but linked to a task -> reset that task's review back to PM review
             const relatedTask = await Tasks.findByPk(issueAssignment.task_id, {
-                attributes: ['id', 'task_name', 'review', 'review_stage', 'work_request_id']
+                attributes: ['id', 'task_name', 'status', 'review', 'review_stage', 'start_date', 'end_date', 'work_request_id']
             });
 
             if (relatedTask) {
+                // other open changes on the task keep it re-opened
+                const otherOpen = await IssueAssignments.count({
+                    where: { task_id: issueAssignment.task_id, is_deleted: 0, id: { [Op.ne]: id }, status: { [Op.notIn]: ['completed', 'cancelled', 'rejected'] } }
+                });
+                const taskBack = otherOpen ? {} : reopenedBack(relatedTask);
                 await Tasks.update(
-                    { review: 'pending', review_stage: 'pm_review' },
+                    Object.assign({ review: 'pending', review_stage: 'pm_review' }, taskBack),
                     { where: { id: issueAssignment.task_id } }
                 );
 
@@ -5078,7 +5137,9 @@ const cancelIssueRequest = async (req, res) => {
                     workRequestId: relatedTask.work_request_id,
                     action: 'review_reset_to_pm',
                     previousData: relatedTask,
-                    nextData: { review: 'pending', review_stage: 'pm_review' },
+                    nextData: Object.assign({ review: 'pending', review_stage: 'pm_review' }, taskBack),
+                    previousStatus: relatedTask.status,
+                    newStatus: taskBack.status || relatedTask.status,
                     previousReview: relatedTask.review,
                     newReview: 'pending',
                     previousReviewStage: relatedTask.review_stage,
@@ -5783,7 +5844,7 @@ const assignIssueToUser = async (req, res) => {
         }
 
         // Same scoping as acceptIssueRequest (R2): a task manager of the change's task
-        if (!issueAssignment.task || !(await isTaskManager(req.user, issueAssignment.task.id))) {
+        if (!issueAssignment.task || !(await canActOnTask(req.user, issueAssignment.task.id))) {
             return res.status(403).json({ success: false, error: 'You are not authorized to assign this issue' });
         }
 

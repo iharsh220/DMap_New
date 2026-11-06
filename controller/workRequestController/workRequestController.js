@@ -2079,26 +2079,40 @@ const handleIssuePmApproval = async (req, res, issueId) => {
         if (issueAssignment.task_id) {
             const taskId = issueAssignment.task_id;
             const allIssuesForTask = await IssueAssignments.findAll({ where: { task_id: taskId } });
+            const today = todayDateOnly();
 
+            // The other versions of the task are closed with it (UAT ISSUES #2 / #5, 2026-11-06):
+            //   - a version that was sent back for changes (in_progress + change_requested, set by
+            //     pm-reject) is completed again: before, it stayed in_progress for ever and the project
+            //     never completed;
+            //   - their history row says "approved with a later version"; the approved change itself
+            //     gets its own pm_approved row below (before, it was written twice).
             for (const issue of allIssuesForTask) {
+                if (issue.id === issueAssignment.id) continue;
+                const superseded = !issue.is_deleted && issue.status === 'in_progress' && issue.review_stage === 'change_requested';
+                const issueUpdate = { review: 'approved', review_stage: 'final_approved' };
+                if (superseded) {
+                    issueUpdate.status = 'completed';
+                    const start = issue.start_date && String(issue.start_date).slice(0, 10) <= today ? String(issue.start_date).slice(0, 10) : today;
+                    if (!issue.start_date || String(issue.start_date).slice(0, 10) !== start) issueUpdate.start_date = start;
+                    if (!issue.end_date || String(issue.end_date).slice(0, 10) < start) issueUpdate.end_date = today;
+                    await issue.update({ status: 'completed', start_date: issueUpdate.start_date || issue.start_date, end_date: issueUpdate.end_date || issue.end_date });
+                }
                 await recordIssueHistory({
                     req,
                     issueAssignmentId: issue.id,
                     taskId,
                     workRequestId: issueAssignment.task ? issueAssignment.task.WorkRequest?.id : null,
-                    action: 'pm_approved',
+                    action: 'approved_with_later_version',
                     previousData: issue,
-                    nextData: {
-                        review: 'approved',
-                        review_stage: 'final_approved'
-                    },
+                    nextData: issueUpdate,
                     previousStatus: issue.status,
-                    newStatus: issue.status,
+                    newStatus: issueUpdate.status || issue.status,
                     previousReview: issue.review,
                     newReview: 'approved',
                     previousReviewStage: issue.review_stage,
                     newReviewStage: 'final_approved',
-                    comments: 'PM approved issue'
+                    comments: `Closed when ${issueAssignment.version || 'a later version'} (#${issueAssignment.id}) was approved by the PM`
                 });
             }
 
@@ -2317,16 +2331,21 @@ const pmRejectTask = async (req, res) => {
         }
 
         const createChangeRequestIssue = async (targetTaskId, parentIssueId) => {
-            const versionCount = await IssueAssignments.count({
-                where: parentIssueId ? { issue_id: parentIssueId } : { task_id: targetTaskId }
-            });
+            // Version rule (owner): the task itself is V1, its first change V2, the next V3, ... for the
+            // whole task, also for a change requested on a change (before: V1 every time, UAT ISSUES #1)
+            const existing = await IssueAssignments.findAll({ where: { task_id: targetTaskId }, attributes: ['version'] });
+            const versionCount = existing.reduce((max, row) => {
+                const n = parseInt(String(row.version || '').replace(/^V/i, ''), 10);
+                return Number.isInteger(n) && n > max ? n : max;
+            }, 1);
             const issueAssignment = await IssueAssignments.create({
                 issue_id: parentIssueId || null,
                 // Child issues keep the task link too; manager issue lists are scoped by task_id
                 task_id: targetTaskId,
                 requested_by_user_id: manager.id,
                 assignment_type: 'mod',
-                version: `V${versionCount + 1}`,
+                // the version sent by the frontend (V2, V3, ...) wins; otherwise the next one of the task
+                version: /^V\d+$/i.test(String(req.body.version || '').trim()) ? String(req.body.version).trim().toUpperCase() : `V${versionCount + 1}`,
                 description: issue_description || comments || 'PM change request',
                 deadline,
                 start_date,

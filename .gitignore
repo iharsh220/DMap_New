@@ -126,3 +126,6 @@ migrations/*.sql
 
 # Weekly report files (generated .pptx and highlight images)
 storage/
+
+# UAT end-to-end tests and their reports (local only, never pushed)
+tests/

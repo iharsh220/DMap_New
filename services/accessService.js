@@ -150,6 +150,58 @@ const isTaskManager = async (user, taskId) => {
     return rows.length > 0;
 };
 
+// Delegation (owner's rule, 2026-11-06): when a project manager gives a task to a manager of
+// another vertical (Manager -> Manager -> User), that manager is the task's handler: only he (and
+// super admin) may act on it; the project manager and the others can still view it.
+// Handler = the manager the task is assigned to, otherwise the manager who last assigned it
+// ('assigned' history). Only a handler who is NOT one of the project's managers counts as a
+// delegation; tasks handled by the project's own managers keep the task-manager rule above.
+// Returns the handler's user id, or null when the task is not delegated.
+const delegatedHandler = async (taskId) => {
+    if (!taskId) return null;
+    const rows = await sequelize.query(
+        `SELECT h.handler FROM (
+            SELECT ta.user_id AS handler, 2 AS pri, NULL AS at FROM task_assignments ta
+              JOIN users u ON u.id = ta.user_id AND u.job_role_id IN (:roles) WHERE ta.task_id = :taskId
+            UNION ALL
+            SELECT th.actor_id, 1, th.created_at FROM task_history th
+              JOIN users u ON u.id = th.actor_id AND u.job_role_id IN (:roles) WHERE th.task_id = :taskId AND th.action = 'assigned'
+         ) h
+         JOIN tasks t ON t.id = :taskId
+         WHERE h.handler NOT IN (SELECT m.manager_id FROM work_request_managers m WHERE m.work_request_id = t.work_request_id)
+         ORDER BY h.pri DESC, h.at DESC LIMIT 1`,
+        { replacements: { taskId, roles: MANAGER_ROLE_IDS }, type: sequelize.QueryTypes.SELECT }
+    );
+    // the newest assigner / current assignee may be a project manager again (task given back):
+    // then it is no longer delegated
+    const [latest] = await sequelize.query(
+        `SELECT h.handler FROM (
+            SELECT ta.user_id AS handler, 2 AS pri, NULL AS at FROM task_assignments ta
+              JOIN users u ON u.id = ta.user_id AND u.job_role_id IN (:roles) WHERE ta.task_id = :taskId
+            UNION ALL
+            SELECT th.actor_id, 1, th.created_at FROM task_history th
+              JOIN users u ON u.id = th.actor_id AND u.job_role_id IN (:roles) WHERE th.task_id = :taskId AND th.action = 'assigned'
+         ) h ORDER BY h.pri DESC, h.at DESC LIMIT 1`,
+        { replacements: { taskId, roles: MANAGER_ROLE_IDS }, type: sequelize.QueryTypes.SELECT }
+    );
+    if (!rows.length || !latest || Number(latest.handler) !== Number(rows[0].handler)) return null;
+    return Number(rows[0].handler);
+};
+
+// The task was delegated to another manager than `user` (so `user` may only view it)
+const isDelegatedAway = async (user, taskId) => {
+    if (!user || isSuperAdmin(user)) return false;
+    const handler = await delegatedHandler(taskId);
+    return handler !== null && handler !== Number(user.id);
+};
+
+// Manager-level ACTION on a task: a task manager (see isTaskManager) that the task was not
+// delegated away from. Viewing still uses isTaskManager / canViewWorkRequest.
+const canActOnTask = async (user, taskId) => {
+    if (!(await isTaskManager(user, taskId))) return false;
+    return !(await isDelegatedAway(user, taskId));
+};
+
 // Subquery of the task ids this manager may act on (null = no restriction, super admin)
 const managedTaskIdsSubquery = (user) => {
     if (isSuperAdmin(user)) return null;
@@ -200,7 +252,7 @@ const workRequestIdForIssue = async (issueAssignmentId) => {
 // request type's division that are not involved may no longer do it (owner's rule, 2026-11-04).
 const canDelegateTask = async (user, task) => {
     if (!user || !task) return false;
-    return isTaskManager(user, task.id);
+    return canActOnTask(user, task.id);
 };
 
 // To whom a task may be given (owner's rule, 2026-11-04), checked for createTask and assign-task:
@@ -241,6 +293,9 @@ module.exports = {
     viewableWorkRequestSql,
     viewableWorkRequestIdsSubquery,
     isTaskManager,
+    canActOnTask,
+    isDelegatedAway,
+    delegatedHandler,
     managedTaskIdsSubquery,
     sharesDivision,
     isDigilabsManager,
