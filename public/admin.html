@@ -99,6 +99,11 @@ document.addEventListener('DOMContentLoaded', function () {
             C('work_request_created_at', 'Created', 'date', { filterOnly: true })
         ],
         linked: { kind: 'project', idKey: 'work_request_id' },
+        // Super Admin and the request's managers (checked by the API) can cancel an open project
+        rowActions: [
+            { icon: 'x-octagon', label: 'Cancel project', tone: 'danger', visible: row => !['completed', 'cancelled', 'rejected'].includes(row.project_request_status),
+              onClick: (row, grid) => D.cancelProject({ id: row.work_request_id, name: row.project_name, onDone: () => grid.reload() }) }
+        ],
         detailTitle: row => row.project_name || `Request #${row.work_request_id}`,
         detailSubtitle: row => `Request #${row.work_request_id} · ${row.request_type_name || ''}`,
         detailGroups: [

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="x-apple-disable-message-reformatting">
+    <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+    <title>Project Cancelled</title>
+    <!--[if mso]>
+    <noscript>
+        <xml>
+            <o:OfficeDocumentSettings>
+                <o:AllowPNG/>
+                <o:PixelsPerInch>96</o:PixelsPerInch>
+            </o:OfficeDocumentSettings>
+        </xml>
+    </noscript>
+    <style type="text/css">
+        body, table, td, p, a, h1, h2, h3, li { font-family: Arial, Helvetica, sans-serif !important; }
+    </style>
+    <![endif]-->
+    <style type="text/css">
+        body { margin: 0; padding: 0; width: 100% !important; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { border: 0; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }
+        a { color: #5b2be0; }
+        @media only screen and (max-width: 620px) {
+            .dm-container { width: 100% !important; }
+            .dm-px { padding-left: 20px !important; padding-right: 20px !important; }
+            .dm-hide-sm { display: none !important; }
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #eef1f6;">
+    <div style="display: none; font-size: 1px; color: #eef1f6; line-height: 1px; max-height: 0; max-width: 0; opacity: 0; overflow: hidden; mso-hide: all;">Project #{{project_id}} {{project_name}} was cancelled on {{cancel_date}}</div>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#eef1f6" style="background-color: #eef1f6;">
+        <tr>
+            <td align="center" style="padding: 24px 12px;">
+                <!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" align="center"><tr><td><![endif]-->
+                <table role="presentation" class="dm-container" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="width: 600px; max-width: 600px; background-color: #ffffff; border: 1px solid #e3e7ef; border-radius: 10px;">
+
+                    <!-- Logo -->
+                    <tr>
+                        <td class="dm-px" style="padding: 20px 32px 16px 32px;">
+                            <a href="{{frontend_url}}" target="_blank"><img src="{{logo_base64}}" width="170" height="71" alt="Alembic" style="display: block; width: 170px; height: auto;"></a>
+                        </td>
+                    </tr>
+
+                    <!-- Header -->
+                    <tr>
+                        <td class="dm-px" bgcolor="#291467" style="background-color: #291467; padding: 22px 32px;">
+                            <h1 style="margin: 0; color: #ffffff; font-family: Arial, Helvetica, sans-serif; font-size: 22px; line-height: 28px; font-weight: bold;">Project Cancelled</h1>
+                        </td>
+                    </tr>
+
+                    <!-- Content -->
+                    <tr>
+                        <td class="dm-px" style="padding: 30px 32px; font-family: Arial, Helvetica, sans-serif; font-size: 15px; line-height: 23px; color: #1f2937;">
+                            <p style="margin: 0 0 15px 0; color: #333333;">The project <strong>{{project_name}}</strong> (#{{project_id}}) was cancelled by <strong>{{cancelled_by}}</strong>, effective <strong>{{cancel_date}}</strong>. No new work, tasks or changes can be added to it; its documents and history are kept.</p>
+
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 20px 0;">
+                                <tr>
+                                    <td bgcolor="#f8f9fa" style="background-color: #f8f9fa; border-radius: 8px; padding: 12px 8px; font-family: Arial, Helvetica, sans-serif;">
+                                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width: 100%; border-collapse: collapse; font-size: 14px; line-height: 20px;">
+                                            <tr>
+                                                <td width="34%" style="padding: 8px 10px; border-bottom: 1px solid #e9ecef; font-weight: bold; color: #374151; vertical-align: top;">Project</td>
+                                                <td style="padding: 8px 10px; border-bottom: 1px solid #e9ecef; color: #1f2937; vertical-align: top;">#{{project_id}} {{project_name}}</td>
+                                            </tr>
+                                            <tr>
+                                                <td width="34%" style="padding: 8px 10px; border-bottom: 1px solid #e9ecef; font-weight: bold; color: #374151; vertical-align: top;">Cancelled on</td>
+                                                <td style="padding: 8px 10px; border-bottom: 1px solid #e9ecef; color: #1f2937; vertical-align: top;">{{cancel_date}}</td>
+                                            </tr>
+                                            <tr>
+                                                <td width="34%" style="padding: 8px 10px; border-bottom: 1px solid #e9ecef; font-weight: bold; color: #374151; vertical-align: top;">Cancelled by</td>
+                                                <td style="padding: 8px 10px; border-bottom: 1px solid #e9ecef; color: #1f2937; vertical-align: top;">{{cancelled_by}}</td>
+                                            </tr>
+                                            <tr>
+                                                <td width="34%" style="padding: 8px 10px; border-bottom: 1px solid #e9ecef; font-weight: bold; color: #374151; vertical-align: top;">Tasks</td>
+                                                <td style="padding: 8px 10px; border-bottom: 1px solid #e9ecef; color: #1f2937; vertical-align: top;">Started (now cancelled): {{tasks.in_progress}}<br>Not started (cancelled): {{tasks.not_started}}<br>Waiting for review / approval: {{tasks.pending_approval}}<br>Completed (unchanged): {{tasks.completed}}</td>
+                                            </tr>
+                                            <tr>
+                                                <td width="34%" style="padding: 8px 10px; border-bottom: 1px solid #e9ecef; font-weight: bold; color: #374151; vertical-align: top;">Changes</td>
+                                                <td style="padding: 8px 10px; border-bottom: 1px solid #e9ecef; color: #1f2937; vertical-align: top;">Started (now cancelled): {{changes.in_progress}}<br>Not started (cancelled): {{changes.not_started}}<br>Waiting for review / approval: {{changes.pending_approval}}<br>Completed (unchanged): {{changes.completed}}</td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 20px 0;">
+                                <tr>
+                                    <td bgcolor="#f8f9fa" style="background-color: #f8f9fa; border-left: 4px solid #5b2be0; padding: 15px 20px; font-family: Arial, Helvetica, sans-serif;">
+                                        <p style="margin: 0 0 6px 0;"><strong>Reason</strong></p>
+                                        <p style="margin: 0; white-space: pre-line;">{{reason}}</p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            {{#if has_pending}}
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 20px 0;">
+                                <tr>
+                                    <td bgcolor="#fff7e6" style="background-color: #fff7e6; border-left: 4px solid #d97706; padding: 15px 20px; font-family: Arial, Helvetica, sans-serif;">
+                                        <p style="margin: 0;"><strong>Action needed:</strong> some submitted work is still waiting for review or approval. The creative manager and the requester can still review and approve it as usual.</p>
+                                    </td>
+                                </tr>
+                            </table>
+                            {{/if}}
+
+                            {{#if items.length}}
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 20px 0;">
+                                <tr>
+                                    <td bgcolor="#f8f9fa" style="background-color: #f8f9fa; border-radius: 8px; padding: 12px 8px; font-family: Arial, Helvetica, sans-serif;">
+                                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width: 100%; border-collapse: collapse; font-size: 14px; line-height: 20px;">
+                                            {{#each items}}
+                                            <tr>
+                                                <td width="50%" style="padding: 8px 10px; border-bottom: 1px solid #e9ecef; font-weight: bold; color: #374151; vertical-align: top;">{{label}}</td>
+                                                <td style="padding: 8px 10px; border-bottom: 1px solid #e9ecef; color: #1f2937; vertical-align: top;">{{result}}</td>
+                                            </tr>
+                                            {{/each}}
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            {{/if}}
+                        </td>
+                    </tr>
+
+                    <!-- Banner -->
+                    <tr>
+                        <td style="padding: 0;">
+                            <a href="{{frontend_url}}" target="_blank"><img src="{{banner_base64}}" width="600" alt="D-Map Banner" style="display: block; width: 100%; max-width: 600px; height: auto;"></a>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td class="dm-px" bgcolor="#f6f7fb" style="background-color: #f6f7fb; padding: 22px 32px; text-align: center; border-top: 1px solid #e3e7ef; border-radius: 0 0 10px 10px; font-family: Arial, Helvetica, sans-serif;">
+                            <p style="margin: 4px 0; font-size: 12px; line-height: 18px; color: #6b7280;">You receive this email because you raised, manage or worked on this project.</p>
+                            <p style="margin: 4px 0; font-size: 12px; line-height: 18px; color: #6b7280;">This is an automated message from D-Map. Please do not reply directly to this email.</p>
+                            <p style="margin: 4px 0; font-size: 12px; line-height: 18px; color: #6b7280;">&copy; 2026 Alembic Digital Labs. All rights reserved.</p>
+                            <p style="margin: 10px 0 0 0; font-size: 12px; line-height: 18px;">
+                                <a href="{{frontend_url}}" style="color: #5b2be0; text-decoration: none;">Visit D-Map</a> |
+                                <a href="mailto:support@alembicdigilabs.com" style="color: #5b2be0; text-decoration: none;">Support</a>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+                <!--[if mso]></td></tr></table><![endif]-->
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

@@ -16,6 +16,21 @@
 
 const VERSIONS = [
     {
+        version: '1.9.0',
+        date: '2026-11-06',
+        title: 'Project cancellation with clear rules',
+        changes: [
+            { type: 'new', area: 'Projects', text: 'Cancel project: before confirming you see how many tasks and changes are started, not started, waiting for approval and completed, the list of affected items and who is notified. A reason is required.' },
+            { type: 'improved', area: 'Projects', text: 'On cancellation, started work gets the cancellation date as its end date, work that has not started is cancelled without dates, and completed or submitted work keeps its status and dates.' },
+            { type: 'improved', area: 'Projects', text: 'Submitted work that is still waiting for review or approval can still be reviewed and approved after the project is cancelled.' },
+            { type: 'new', area: 'Emails', text: 'The requester, the project managers and every assigned creative user get an email with the cancellation date, the reason and what happened to each task and change.' },
+            { type: 'improved', area: 'Projects', text: 'A cancelled project is read-only: no new tasks, changes, assignments, acceptances, submissions or edits. Its documents and history are kept.' },
+            { type: 'improved', area: 'Admin panel', text: 'Cancel project action on Projects and Client requests (Super Admin and the project\'s managers). The history records who cancelled, when, why and every task or change that changed.' },
+            { type: 'api', area: 'Manager API', text: 'New GET /manager/assigned-work-requests/:id/cancel-preview returns { project, can_cancel, blockers, cancel_date, summary: { tasks, changes: { in_progress, not_started, pending_approval, completed, closed } }, items[], notify[] }. PUT /:id/cancel now requires body { reason } (5-1000 characters; 400 without it), is allowed for the request\'s managers and Super Admin (404 for others) and adds data (summary, items, email_status) to the old response.' },
+            { type: 'api', area: 'API', text: 'Writes on a cancelled project return 400 "This project is cancelled and read-only": task create / update / delete / assign / accept / submit, change create / accept / assign / submit / cancel, manager change_request reviews, PM reject, complete all, project edit / accept / defer, admin edits. Approvals (review approved, share for client review, PM approve) still work.' }
+        ]
+    },
+    {
         version: '1.8.0',
         date: '2026-11-06',
         title: 'See how projects, tasks and changes connect',

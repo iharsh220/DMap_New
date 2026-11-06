@@ -785,6 +785,7 @@
                 input = document.createElement('textarea');
                 input.className = 'dm-textarea';
                 input.rows = f.rows || 3;
+                if (f.placeholder) input.placeholder = f.placeholder;
             } else {
                 input = document.createElement('input');
                 input.className = 'dm-input';
@@ -1741,6 +1742,90 @@ ${share !== null ? `<div class="dm-kpi-meter fg-${esc(k.tone || 'brand')}"><span
         } catch (err) {
             body.innerHTML = '<div class="dm-callout tone-danger"><i class="bi bi-exclamation-octagon"></i><div></div></div>';
             body.querySelector('.dm-callout div').textContent = 'Could not load the preview: ' + err.message;
+        }
+    };
+
+    /**
+     * Cancel a project: loads GET projects/:id/cancel-preview (what a cancellation today does),
+     * shows the counts, every affected task / change and who is notified, asks for the reason and
+     * POSTs projects/:id/cancel. Same rules as the manager API (services/projectCancellationService.js).
+     */
+    const CANCEL_GROUPS = [
+        ['in_progress', 'Started, not submitted', 'Cancelled; end date = today', 'warning'],
+        ['not_started', 'Not started', 'Cancelled; no start / end date', 'neutral'],
+        ['pending_approval', 'Submitted, waiting for review / approval', 'Unchanged and flagged; can still be reviewed and approved', 'info'],
+        ['completed', 'Completed', 'Unchanged', 'success'],
+        ['closed', 'Already cancelled / rejected', 'Unchanged', 'neutral']
+    ];
+    D.cancelProject = async function (opts) {
+        if (!D.canEditWork()) { D.toast('You have view-only access.', 'warning'); return; }
+        const body = document.createElement('div');
+        body.innerHTML = '<div class="dm-state" style="padding:24px"><i class="bi bi-arrow-repeat dm-spin" style="font-size:22px"></i></div>';
+        let reasonInput = null;
+        const dlg = D.modal({
+            title: 'Cancel project', subtitle: opts.name ? `#${opts.id} · ${opts.name}` : `Project #${opts.id}`, icon: 'x-octagon', tone: 'danger', size: 'lg', body,
+            actions: [{ label: 'Keep project' }, { id: 'go', label: 'Cancel project', icon: 'x-octagon', variant: 'danger', onClick: async (d, btn) => {
+                const reason = reasonInput ? reasonInput.value.trim() : '';
+                if (reason.length < 5) { D.toast('Write the reason for the cancellation (at least 5 characters).', 'warning'); if (reasonInput) reasonInput.focus(); return; }
+                D.setBusy(btn, true, 'Cancelling…');
+                try {
+                    const res = await api(`projects/${encodeURIComponent(opts.id)}/cancel`, { method: 'POST', body: { reason } });
+                    d.close();
+                    const s = (res.data || {}).summary || {};
+                    const changed = ['tasks', 'changes'].reduce((n, k) => n + ((s[k] || {}).in_progress || 0) + ((s[k] || {}).not_started || 0), 0);
+                    D.toast(`Project cancelled. ${changed} task(s) / change(s) closed; everyone involved is notified.`);
+                    if (opts.onDone) opts.onDone(res.data);
+                } catch (err) {
+                    D.setBusy(btn, false);
+                    D.toast('Cancel failed: ' + err.message, 'danger', 7000);
+                }
+            } }]
+        });
+        dlg.buttons.go.disabled = true;
+        try {
+            const res = await api(`projects/${encodeURIComponent(opts.id)}/cancel-preview`);
+            const p = res.data || {};
+            body.innerHTML = '';
+            if (!p.can_cancel) {
+                body.innerHTML = '<div class="dm-callout tone-danger"><i class="bi bi-exclamation-octagon"></i><div><b>This project cannot be cancelled</b><ul class="dm-cancel-blockers"></ul></div></div>';
+                const ul = body.querySelector('ul');
+                (p.blockers || []).forEach(b => { const li = document.createElement('li'); li.textContent = b; ul.appendChild(li); });
+                return;
+            }
+            const sum = p.summary || { tasks: {}, changes: {} };
+            body.insertAdjacentHTML('beforeend', `<div class="dm-callout tone-warning"><i class="bi bi-exclamation-triangle"></i><div>
+                The cancellation date is <b>${esc(fmt.date(p.cancel_date) || p.cancel_date)}</b> (today). After it, no new tasks, changes, assignments or submissions are possible;
+                documents and history are kept. Submitted work can still be reviewed and approved.</div></div>
+                <table class="dm-cancel-table"><thead><tr><th>Work</th><th class="num">Tasks</th><th class="num">Changes</th><th>What happens</th></tr></thead><tbody>
+                ${CANCEL_GROUPS.map(([k, label, effect, tone]) => `<tr><td><span class="dm-pill no-dot tone-${tone}">${esc(label)}</span></td><td class="num">${fmt.num((sum.tasks || {})[k] || 0)}</td><td class="num">${fmt.num((sum.changes || {})[k] || 0)}</td><td class="muted">${esc(effect)}</td></tr>`).join('')}
+                </tbody></table>`);
+            const affected = (p.items || []).filter(i => i.category === 'in_progress' || i.category === 'not_started' || i.category === 'pending_approval');
+            if (affected.length) {
+                const list = document.createElement('details');
+                list.className = 'dm-cancel-items';
+                list.innerHTML = `<summary>Affected tasks and changes (${affected.length})</summary><div class="dm-list"></div>`;
+                const l = list.querySelector('.dm-list');
+                affected.forEach(i => {
+                    const name = i.kind === 'task' ? `Task #${i.id} ${i.name || ''}` : `${i.version || 'Change'} #${i.id} · ${i.name || 'task #' + i.task_id}`;
+                    const effect = i.category === 'pending_approval' ? 'flagged, unchanged' : `${D.statusLabel(i.status)} → Cancelled${i.new_end_date ? ', ends ' + (fmt.date(i.new_end_date) || i.new_end_date) : ''}`;
+                    l.insertAdjacentHTML('beforeend', `<div class="dm-list-item"><span>${esc(name)}</span><span class="muted">${esc(effect)}</span></div>`);
+                });
+                body.appendChild(list);
+            }
+            const people = p.notify || [];
+            if (people.length) {
+                const n = document.createElement('p');
+                n.className = 'dm-cancel-notify';
+                n.textContent = `Notified by email: ${people.map(x => x.name).filter(Boolean).join(', ')}`;
+                body.appendChild(n);
+            }
+            const form = D.form([{ name: 'reason', label: 'Reason for the cancellation', type: 'textarea', required: true, rows: 3, placeholder: 'Why is this project cancelled?' }]);
+            body.appendChild(form.el || form);
+            reasonInput = body.querySelector('textarea');
+            dlg.buttons.go.disabled = false;
+        } catch (err) {
+            body.innerHTML = '<div class="dm-callout tone-danger"><i class="bi bi-exclamation-octagon"></i><div></div></div>';
+            body.querySelector('.dm-callout div').textContent = 'Could not load the cancellation summary: ' + err.message;
         }
     };
 

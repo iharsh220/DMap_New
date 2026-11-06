@@ -61,6 +61,8 @@ document.addEventListener('DOMContentLoaded', function () {
         detailSubtitle: row => `Request #${row.work_request_id} · ${row.project_requester_name || ''}`,
         rowActions: [
             { icon: 'pencil', label: 'Edit request', onClick: row => editClient(row) },
+            { icon: 'x-octagon', label: 'Cancel project', tone: 'danger', visible: row => !['completed', 'cancelled', 'rejected'].includes(row.project_status),
+              onClick: row => D.cancelProject({ id: row.work_request_id, name: row.project_name, onDone: () => grid.reload() }) },
             { icon: 'trash3', label: 'Delete request', tone: 'danger', onClick: row => deleteClient(row) }
         ]
     });

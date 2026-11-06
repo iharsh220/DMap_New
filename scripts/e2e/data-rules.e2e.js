@@ -78,7 +78,7 @@ const A = 'datatable/admin/';
         check('cancelled task stays cancelled', cancelled.status === 'cancelled', cancelled.status);
         const done1 = ts.filter(x => x.id !== wrTasks[1].id);
         check('every other task completed with start and end date, end >= start', done1.every(x => x.status === 'completed' && x.start_date && x.end_date && x.end_date >= x.start_date), JSON.stringify(done1));
-        const is = await sql('SELECT ia.id, ia.status, ia.start_date, ia.end_date FROM issue_assignments ia JOIN tasks t ON t.id = ia.task_id AND t.is_deleted = 0 WHERE t.work_request_id = ? AND ia.is_deleted = 0 AND ia.status NOT IN (\'cancelled\', \'rejected\')', [wr.id]);
+        const is = await sql('SELECT ia.id, ia.status, ia.start_date, ia.end_date FROM issue_assignments ia JOIN tasks t ON t.id = ia.task_id AND t.is_deleted = 0 AND t.status NOT IN (\'cancelled\', \'rejected\') WHERE t.work_request_id = ? AND ia.is_deleted = 0 AND ia.status NOT IN (\'cancelled\', \'rejected\')', [wr.id]);
         check('every change completed with dates; future start moved to today', is.every(x => x.status === 'completed' && x.start_date <= today() && x.end_date && x.end_date >= x.start_date), JSON.stringify(is));
 
         // ---------- manager updateTask: no reassigning a completed task

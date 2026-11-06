@@ -6,6 +6,7 @@ const { authenticateToken } = require('../middleware/jwtMiddleware');
 const { checkRole } = require('../middleware/roleMiddleware');
 const { reportAccess, getReportData, postReportAction, uploadHighlight, generateReport, downloadReport, highlightImage } = require('../controller/weeklyReportController');
 const { cachedAdminData, invalidateAdminCache } = require('../services/adminCacheService');
+const { blockIfProjectCancelled: ro } = require('../services/projectCancellationService'); // a cancelled project is read-only
 const { getAdminData, getAllFeedback, getClientsData,getTaskDetailsData, getTasksForWorkRequest, getIssueDetailsData, getWorkRequestTasksData, getDeletePreview, deleteProject, deleteClient, deleteTask, deleteIssue, getAllLeaves, getLeaveById, createLeave, updateLeave, deleteLeave, getLeaveKpis, getLeaveUsers, getUserDivision, uploadLeaves, exportLeavesCsv, exportLeavesExcel, getEditData, getRequestTypes, getProjectTypesByProject, getCreativeManagerByProject, updateProject, updateClient, updateTask, updateIssue, getMasterCardData, uploadMasterCard, updateMasterCard, deleteMasterCard, sseProgress, updateMasterCardField, getFinancialYears, getFilterOptions, getOverviewData } = require('../controller/adminController');
 
 // Every admin API call needs a valid access token. Only the HTML pages, their shared
@@ -162,10 +163,27 @@ router.get('/admin/edit/project/:id/project-types', canEditWork, getProjectTypes
 router.get('/admin/edit/project/:id/creative-manager', canEditWork, getCreativeManagerByProject);
 
 // Edit - update endpoints
-router.put('/admin/edit/project/:id', canEditWork, invalidateAdminCache, updateProject);
-router.put('/admin/edit/client/:id', canEditWork, invalidateAdminCache, updateClient);
-router.put('/admin/edit/task/:id', canEditWork, invalidateAdminCache, updateTask);
-router.put('/admin/edit/issue/:id', canEditWork, invalidateAdminCache, updateIssue);
+router.put('/admin/edit/project/:id', canEditWork, ro(req => ['workRequest', req.params.id]), invalidateAdminCache, updateProject);
+router.put('/admin/edit/client/:id', canEditWork, ro(req => ['workRequest', req.params.id]), invalidateAdminCache, updateClient);
+router.put('/admin/edit/task/:id', canEditWork, ro(req => ['task', req.params.id]), invalidateAdminCache, updateTask);
+router.put('/admin/edit/issue/:id', canEditWork, ro(req => ['change', req.params.id]), invalidateAdminCache, updateIssue);
+
+// Cancel a project from the admin panel: same rules and service as the manager API
+// (request's managers + Super Admin, reason required, date = today; preview first)
+const projectCancellation = require('../services/projectCancellationService');
+const cancelHandler = fn => async (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (!(id > 0)) return res.status(400).json({ success: false, error: 'Invalid project id' });
+        res.json({ success: true, data: await fn(req, id) });
+    } catch (error) {
+        if (error instanceof projectCancellation.CancelError) return res.status(error.status).json({ success: false, error: error.message });
+        console.error('Admin project cancellation:', error);
+        res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+};
+router.get('/admin/projects/:id/cancel-preview', canEditWork, cancelHandler((req, id) => projectCancellation.preview(req.user, id)));
+router.post('/admin/projects/:id/cancel', canEditWork, invalidateAdminCache, cancelHandler((req, id) => projectCancellation.cancel(req, id, req.body || {})));
 
 // Weekly report (Digilabs managers for their own division, Super Admin for any Digilabs division)
 router.get('/admin/reports', (req, res) => {

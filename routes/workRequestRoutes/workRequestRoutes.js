@@ -5,6 +5,7 @@ const { authenticateToken } = require('../../middleware/jwtMiddleware');
 const filterMiddleware = require('../../middleware/filterMiddleware');
 const paginationMiddleware = require('../../middleware/paginationMiddleware');
 const searchMiddleware = require('../../middleware/searchMiddleware');
+const { blockIfProjectCancelled: ro } = require('../../services/projectCancellationService'); // a cancelled project is read-only
 const path = require('path');
 const fs = require('fs');
 
@@ -26,7 +27,7 @@ router.get('/dashboard-stats', authenticateToken, getUserDashboardStats);
 
 // POST /work-requests/pm-approve - PM approve task
 router.post('/pm-approve', authenticateToken, pmApproveTask);
-router.post('/pm-reject', authenticateToken, pmRejectTask);
+router.post('/pm-reject', authenticateToken, ro(req => (req.body.task_id ? ['task', req.body.task_id] : ['change', req.body.issue_id])), pmRejectTask);
 
 // GET /work-requests/history/:workRequestId - Get work request history
 router.get('/history/:workRequestId', authenticateToken, getWorkRequestHistory);
@@ -55,7 +56,7 @@ router.post('/', authenticateToken, (req, res, next) => {
 }, createWorkRequest);
 
 // PUT /work-requests/:id - Update work request by ID
-router.put('/:id', authenticateToken, (req, res, next) => {
+router.put('/:id', authenticateToken, ro(req => ['workRequest', req.params.id]), (req, res, next) => {
     req.projectName = req.body.project_name?.replace(/[^a-zA-Z0-9]/g, '_') || 'Unknown';
 
     // Set upload path

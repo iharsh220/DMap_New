@@ -5,6 +5,7 @@ const { authenticateToken } = require('../../middleware/jwtMiddleware');
 const { checkRole } = require('../../middleware/roleMiddleware');
 const filterMiddleware = require('../../middleware/filterMiddleware');
 const paginationMiddleware = require('../../middleware/paginationMiddleware');
+const { blockIfProjectCancelled: ro } = require('../../services/projectCancellationService'); // a cancelled project is read-only
 
 // Get issue register data by task ID or issue ID
 router.get('/task/:task_id/:issue_id?', authenticateToken, getIssueRegisterByTaskId);
@@ -16,6 +17,6 @@ router.get('/', authenticateToken, getAllIssueRegisters);
 router.get('/assignments', authenticateToken, filterMiddleware, paginationMiddleware, getIssueAssignmentsWithTaskDetails);
 
 // Create issue assignment with issue types and documents
-router.post('/assignment', authenticateToken, createIssueAssignment);
+router.post('/assignment', authenticateToken, ro(req => (req.body.task_id ? ['task', req.body.task_id] : ['change', req.body.issue_id])), createIssueAssignment);
 
 module.exports = router;

@@ -4,6 +4,7 @@ const { authenticateToken } = require('../../middleware/jwtMiddleware');
 const filterMiddleware = require('../../middleware/filterMiddleware');
 const paginationMiddleware = require('../../middleware/paginationMiddleware');
 const searchMiddleware = require('../../middleware/searchMiddleware');
+const { blockIfProjectCancelled: ro } = require('../../services/projectCancellationService'); // a cancelled project is read-only
 const { getAssignedTasks, getMyTeamTasks, getTaskById, assignTaskToUser, acceptTask, submitTask, getTaskDocuments, deleteTaskDocument, getAssignedIssues, acceptIssue, submitIssue, getUserTaskHistory, getUserIssueHistory } = require('../../controller/userController/userController');
 
 // GET /api/users/tasks - Get assigned tasks (only for division 9 users or managers)
@@ -16,32 +17,32 @@ router.get('/my-team', authenticateToken, getMyTeamTasks);
 router.get('/tasks/:task_id', authenticateToken, getTaskById);
 
 // POST /api/users/assign-task - Assign task to user (only for managers and super admins)
-router.post('/assign-task', authenticateToken, assignTaskToUser);
+router.post('/assign-task', authenticateToken, ro(req => ['task', req.body.task_id]), assignTaskToUser);
 
 // PUT /api/users/tasks/:taskId/accept - Accept a task and optionally set start_date (only if intimate_team = 1)
-router.put('/tasks/:taskId/accept', authenticateToken, acceptTask);
+router.put('/tasks/:taskId/accept', authenticateToken, ro(req => ['task', req.params.taskId]), acceptTask);
 
 // GET /api/users/tasks/:taskId/history - Get task history
 router.get('/tasks/:taskId/history', authenticateToken, getUserTaskHistory);
 
 // POST /api/users/tasks/submit - Submit a task with optional link and files
-router.post('/tasks/submit', authenticateToken, submitTask);
+router.post('/tasks/submit', authenticateToken, ro(req => ['task', req.body.task_id]), submitTask);
 
 // GET /api/users/tasks/:task_id/documents - Get all documents for a task
 router.get('/tasks/:task_id/documents', authenticateToken, getTaskDocuments);
 
 // DELETE /api/users/documents/:document_id - Delete a document by ID
-router.delete('/documents/:document_id', authenticateToken, deleteTaskDocument);
+router.delete('/documents/:document_id', authenticateToken, ro(req => ['taskDocument', req.params.document_id]), deleteTaskDocument);
 
 // Issue Routes
 // GET /api/users/issues - Get issues assigned to the user
 router.get('/issues', authenticateToken, paginationMiddleware, getAssignedIssues);
 
 // PUT /api/users/issues/:issueId/accept - Accept an issue
-router.put('/issues/:issueId/accept', authenticateToken, acceptIssue);
+router.put('/issues/:issueId/accept', authenticateToken, ro(req => ['change', req.params.issueId]), acceptIssue);
 
 // PUT /api/users/issues/:issueId/submit - Submit/complete an issue
-router.put('/issues/:issueId/submit', authenticateToken, submitIssue);
+router.put('/issues/:issueId/submit', authenticateToken, ro(req => ['change', req.params.issueId]), submitIssue);
 
 // GET /api/users/issues/:issueAssignmentId/history - Get issue history
 router.get('/issues/:issueAssignmentId/history', authenticateToken, getUserIssueHistory);

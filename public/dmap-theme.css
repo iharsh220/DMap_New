@@ -749,3 +749,14 @@ body.dm-collapsed .dm-nav-badge { position: absolute; top: 6px; right: 8px; widt
 .dm-lw-label { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--text-3); font-weight: 650; padding: 4px 4px 2px; }
 .dm-lw-empty { font-size: 12.5px; color: var(--text-3); padding: 6px 8px; }
 .dm-linked-tag { font-size: 11px; font-weight: 600; color: var(--brand); text-transform: uppercase; letter-spacing: .04em; }
+
+/* Cancel project dialog */
+.dm-cancel-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 4px 0 14px; }
+.dm-cancel-table th { text-align: left; font-size: 11.5px; letter-spacing: .04em; text-transform: uppercase; color: var(--text-3); font-weight: 650; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+.dm-cancel-table td { padding: 8px; border-bottom: 1px solid var(--border); vertical-align: top; overflow-wrap: anywhere; }
+.dm-cancel-table .num { text-align: right; font-variant-numeric: tabular-nums; width: 64px; }
+.dm-cancel-items { margin: 0 0 14px; }
+.dm-cancel-items > summary { cursor: pointer; font-size: 13px; color: var(--text-2); margin-bottom: 8px; }
+.dm-cancel-notify { font-size: 12.5px; color: var(--text-2); margin: 0 0 12px; overflow-wrap: anywhere; }
+.dm-cancel-blockers { margin: 6px 0 0; padding-left: 18px; }
+@media (max-width: 560px) { .dm-cancel-table td:last-child, .dm-cancel-table th:last-child { display: none; } }

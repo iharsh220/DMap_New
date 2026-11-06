@@ -37,6 +37,7 @@ const { recordWorkRequestHistory, recordTaskHistory, recordIssueHistory, getTask
 const { isSuperAdmin, isTaskManager, managedTaskIdsSubquery, sharesDivision, assignTargetError, canViewWorkRequest, workRequestIdForTask, workRequestIdForIssue } = require('../../services/accessService');
 const { pickModelFilters, pickModelFields } = require('../../utils/queryFilters');
 const { parseId, parseIdArray, parseDateOnly, safePathSegment, parsePageCount, todayDateOnly } = require('../../utils/validators');
+const projectCancellation = require('../../services/projectCancellationService');
 
 const workRequestService = new CrudService(WorkRequests);
 const userService = new CrudService(User);
@@ -2826,67 +2827,42 @@ const deleteWorkRequest = async (req, res) => {
     }
 };
 
+// Cancel a project (owner's rules in services/projectCancellationService.js): request's managers and
+// Super Admin, reason required, cancellation date = today; started work gets the cancellation date
+// as end date, work not started is cancelled, submitted / completed work is kept; audit + emails.
+// Response keeps { success, message } and adds `data` (summary and every affected item).
 const cancelWorkRequest = async (req, res) => {
     try {
-        const id = parseInt(req.params.id, 10);
-        if (isNaN(id)) {
+        const id = parseId(req.params.id);
+        if (!id) {
             return res.status(400).json({ success: false, error: 'Invalid work request ID' });
         }
-        const manager_id = req.user.id;
-
-        const existingResult = await workRequestService.getAll({
-            where: { id },
-            include: [
-                {
-                    model: WorkRequestManagers,
-                    where: { manager_id: manager_id },
-                    required: true,
-                    attributes: []
-                }
-            ],
-            limit: 1
-        });
-
-        if (!existingResult.success || existingResult.data.length === 0) {
-            return res.status(404).json({ success: false, error: 'Work request not found or not assigned to you' });
-        }
-
-        const workRequest = existingResult.data[0];
-
-        await recordWorkRequestHistory({
-            req,
-            workRequestId: id,
-            action: 'cancelled',
-            previousData: workRequest,
-            comments: 'Work request cancelled by manager',
-            relatedUserId: workRequest.user_id,
-            relatedManagerId: manager_id
-        });
-
-        await WorkRequests.update({ status: 'cancelled' }, { where: { id } });
-
-        const tasks = await Tasks.findAll({ where: { work_request_id: id }, attributes: ['id', 'task_name', 'status', 'work_request_id', 'is_deleted'] });
-        const taskIds = tasks.map(t => t.id);
-
-        if (taskIds.length > 0) {
-            await Tasks.update({ status: 'cancelled' }, { where: { id: { [Op.in]: taskIds } } });
-
-            await IssueAssignments.update({ status: 'cancelled' }, { where: { task_id: { [Op.in]: taskIds } } });
-
-            for (const task of tasks) {
-                await recordTaskHistory({
-                    taskId: task.id,
-                    action: 'cancelled',
-                    actor_id: manager_id,
-                    actor_type: 'manager',
-                    comments: 'Task cancelled due to project cancellation'
-                });
-            }
-        }
-
-        res.json({ success: true, message: 'Work request and all related tasks/issues cancelled successfully' });
+        const data = await projectCancellation.cancel(req, id, req.body || {});
+        res.json({ success: true, message: 'Work request and all related tasks/issues cancelled successfully', data });
     } catch (error) {
+        if (error instanceof projectCancellation.CancelError) {
+            return res.status(error.status).json({ success: false, error: error.message });
+        }
         console.error('Error cancelling work request:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+// What a cancellation today would do (shown before confirming): counts of started, not started,
+// waiting for approval and completed tasks / changes, every item, blockers, who is notified
+const getCancelPreview = async (req, res) => {
+    try {
+        const id = parseId(req.params.id);
+        if (!id) {
+            return res.status(400).json({ success: false, error: 'Invalid work request ID' });
+        }
+        const data = await projectCancellation.preview(req.user, id);
+        res.json({ success: true, data });
+    } catch (error) {
+        if (error instanceof projectCancellation.CancelError) {
+            return res.status(error.status).json({ success: false, error: error.message });
+        }
+        console.error('Error previewing work request cancellation:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 };
@@ -6262,6 +6238,7 @@ module.exports = {
     updateWorkRequestProject,
     deleteWorkRequest,
     cancelWorkRequest,
+    getCancelPreview,
     deleteTask,
     getMyTasks,
     getAssignableUsers,
