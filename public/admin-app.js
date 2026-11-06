@@ -965,53 +965,81 @@
     /** Builds a link to a grid page with filters applied (used by the overview). */
     D.gridLink = (page, state) => ADMIN + page + '#s=' + encodeURIComponent(JSON.stringify(state));
 
-    // ---- "Linked work" in a detail drawer: project -> tasks -> changes of a project / task / change.
-    // Every item links to its own grid filtered on its id, with its details opened (d:1).
+    // ---- "Linked work" in a detail drawer: a tree project -> tasks -> changes of a project / task /
+    // change, inside the drawer (no navigation). A row opens / closes its details and its children;
+    // the record of the drawer is marked and opened, the path to it is shown on top.
     const PROJECT_STAGE = { pending: 'Pending Response', accepted: 'Awaiting Assignment', assigned: 'Upcoming', in_progress: 'Ongoing', completed: 'Completed', deferred: 'Deferred', cancelled: 'Cancelled' };
-    const linkTo = (page, key, id) => D.gridLink(page, { f: { [key]: { type: 'exact', values: [String(id)] } }, d: 1 });
-    const meta = parts => parts.filter(p => !isEmpty(p[1])).map(p => `<span><span class="muted">${esc(p[0])}</span> ${esc(p[1])}</span>`).join('');
+    const lwInfo = parts => {
+        const items = parts.filter(p => !isEmpty(p[1]));
+        return items.length ? `<div class="dm-lw-info">${items.map(p => `<div>${esc(p[0])}</div><div>${esc(p[1])}</div>`).join('')}</div>` : '';
+    };
+    const plural = (n, word) => `${fmt.num(n)} ${word}${Number(n) === 1 ? '' : 's'}`;
     D.linkedWork = function (kind, id) {
         const box = document.createElement('div');
         box.className = 'dm-detail-group dm-linked';
-        box.innerHTML = '<h5>Linked work</h5><div class="dm-linked-body"><span class="dm-skel" style="width:60%"></span><span class="dm-skel" style="width:80%"></span><span class="dm-skel" style="width:40%"></span></div>';
-        const out = box.querySelector('.dm-linked-body');
-        // a link to the same grid page only changes the hash: reload so the grid reads the new filter
+        box.innerHTML = `<div class="dm-lw-top"><h5>Linked work</h5><div class="dm-lw-tools" hidden>
+              <button type="button" class="dm-lw-tool" data-lw="open">Expand all</button><button type="button" class="dm-lw-tool" data-lw="close">Collapse all</button></div></div>
+            <div class="dm-lw-path"></div>
+            <div class="dm-lw-tree"><span class="dm-skel" style="width:60%"></span><span class="dm-skel" style="width:80%"></span><span class="dm-skel" style="width:40%"></span></div>`;
+        const tree = box.querySelector('.dm-lw-tree');
+        const setOpen = (node, open) => {
+            node.classList.toggle('is-open', open);
+            const row = node.querySelector(':scope > .dm-lw-row');
+            if (row) row.setAttribute('aria-expanded', open ? 'true' : 'false');
+        };
         box.addEventListener('click', e => {
-            const a = e.target.closest('a.dm-linked-item');
-            if (!a || e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;
-            const url = new URL(a.href, window.location.href);
-            if (url.pathname !== window.location.pathname) return;
-            e.preventDefault();
-            history.replaceState(null, '', url.pathname + url.search + url.hash);
-            window.location.reload();
+            const tool = e.target.closest('[data-lw]');
+            if (tool) { tree.querySelectorAll('.dm-lw-node').forEach(n => setOpen(n, tool.dataset.lw === 'open')); return; }
+            const row = e.target.closest('.dm-lw-row');
+            if (row) setOpen(row.parentElement, !row.parentElement.classList.contains('is-open'));
+            const crumb = e.target.closest('[data-goto]');
+            if (crumb) {
+                const node = tree.querySelector(`[data-node="${crumb.dataset.goto}"]`);
+                if (node) {
+                    for (let n = node; n && n !== tree; n = n.parentElement) if (n.classList.contains('dm-lw-node')) setOpen(n, true);
+                    node.scrollIntoView({ block: 'nearest' });
+                    node.querySelector(':scope > .dm-lw-row').focus();
+                }
+            }
         });
         api(`linked/${encodeURIComponent(kind)}/${encodeURIComponent(id)}`).then(res => {
             const d = res.data || {};
             const p = d.project || {};
             const t = d.totals || {};
-            const focusTask = kind === 'task' ? Number(id) : kind === 'change' ? ((d.tasks || []).find(x => (x.changes || []).some(c => Number(c.id) === Number(id))) || {}).id : null;
-            const changeHtml = c => `<a class="dm-linked-item is-change${kind === 'change' && Number(c.id) === Number(id) ? ' is-current' : ''}" href="${esc(linkTo('issuedetails', 'issue_id', c.id))}">
-                <div class="dm-linked-head"><i class="bi bi-arrow-repeat"></i><span class="dm-cell-id">#${esc(c.id)}</span><b>${esc(c.version || 'Change')}</b>${D.pill(c.status)}${kind === 'change' && Number(c.id) === Number(id) ? '<span class="dm-linked-tag">This change</span>' : ''}</div>
-                <div class="dm-linked-meta">${meta([['Type', c.change_types], ['Artist', c.assignees], ['Raised by', c.requested_by], ['Deadline', fmt.date(c.deadline)], ['Start', fmt.date(c.start_date)], ['End', fmt.date(c.end_date)], ['Pages', c.task_count], ['Review', c.review_stage && D.statusLabel(c.review_stage)]])}</div></a>`;
-            const taskHtml = x => `<div class="dm-linked-task${Number(x.id) === Number(focusTask) ? ' is-focus' : ''}">
-                <a class="dm-linked-item${kind === 'task' && Number(x.id) === Number(id) ? ' is-current' : ''}" href="${esc(linkTo('taskdetails', 'task_id', x.id))}">
-                <div class="dm-linked-head"><i class="bi bi-check2-square"></i><span class="dm-cell-id">#${esc(x.id)}</span><b>${esc(x.task_name || 'Task')}</b>${D.pill(x.status)}${kind === 'task' && Number(x.id) === Number(id) ? '<span class="dm-linked-tag">This task</span>' : ''}</div>
-                <div class="dm-linked-meta">${meta([['Type', x.task_type], ['Artist', x.assignees], ['Deadline', fmt.date(x.deadline)], ['Start', fmt.date(x.start_date)], ['End', fmt.date(x.end_date)], ['Pages', x.task_count], ['Review', x.review_stage && D.statusLabel(x.review_stage)]])}</div></a>
-                ${(x.changes || []).length ? `<div class="dm-linked-changes">${x.changes.map(changeHtml).join('')}</div>` : '<div class="dm-linked-none">No changes</div>'}
-            </div>`;
             const tasks = d.tasks || [];
-            const mine = focusTask ? tasks.filter(x => Number(x.id) === Number(focusTask)) : tasks;
-            const others = focusTask ? tasks.filter(x => Number(x.id) !== Number(focusTask)) : [];
-            out.innerHTML = `
-                <a class="dm-linked-item is-project${kind === 'project' ? ' is-current' : ''}" href="${esc(linkTo('projectsdetails', 'work_request_id', p.id))}">
-                    <div class="dm-linked-head"><i class="bi bi-folder2-open"></i><span class="dm-cell-id">#${esc(p.id)}</span><b>${esc(p.project_name || 'Project')}</b>${D.pill(p.status, PROJECT_STAGE[p.status])}${kind === 'project' ? '<span class="dm-linked-tag">This project</span>' : ''}</div>
-                    <div class="dm-linked-meta">${meta([['Vertical', p.request_type], ['Project type', p.project_type], ['Client', p.requester_name], ['Manager', p.managers], ['Priority', p.priority]])}</div>
-                </a>
-                <div class="dm-linked-totals">${fmt.num(t.tasks)} task${t.tasks === 1 ? '' : 's'} · ${fmt.num(t.task_pages)} pages · ${fmt.num(t.changes)} change${t.changes === 1 ? '' : 's'} · ${fmt.num(t.change_pages)} pages</div>
-                ${mine.length ? mine.map(taskHtml).join('') : '<div class="dm-linked-none">No tasks yet</div>'}
-                ${others.length ? `<details class="dm-linked-others"><summary>Other tasks in this project (${others.length})</summary>${others.map(taskHtml).join('')}</details>` : ''}`;
+            const isMe = (k, x) => kind === k && Number(x.id) === Number(id);
+            const focusTask = kind === 'task' ? tasks.find(x => Number(x.id) === Number(id))
+                : kind === 'change' ? tasks.find(x => (x.changes || []).some(c => Number(c.id) === Number(id))) : null;
+            const focusChange = kind === 'change' && focusTask ? focusTask.changes.find(c => Number(c.id) === Number(id)) : null;
+            const node = (key, open, current, rowHtml, infoHtml, childrenHtml) => `<div class="dm-lw-node${open ? ' is-open' : ''}${current ? ' is-current' : ''}" data-node="${key}">
+                <button type="button" class="dm-lw-row" aria-expanded="${open ? 'true' : 'false'}"><i class="bi bi-chevron-right dm-lw-chev"></i>${rowHtml}</button>
+                <div class="dm-lw-more">${infoHtml}${childrenHtml || ''}</div></div>`;
+            const tag = text => `<span class="dm-linked-tag">${esc(text)}</span>`;
+            const changeNode = c => node('c' + c.id, isMe('change', c), isMe('change', c),
+                `<i class="bi bi-arrow-repeat dm-lw-ico"></i><b>${esc(c.version || 'Change')}</b><span class="dm-cell-id">#${esc(c.id)}</span>${D.pill(c.status)}${isMe('change', c) ? tag('This change') : ''}<span class="dm-lw-count">${c.task_count ? plural(c.task_count, 'page') : ''}</span>`,
+                lwInfo([['Change type', c.change_types], ['Artist', c.assignees], ['Raised by', c.requested_by], ['Deadline', fmt.date(c.deadline)], ['Start date', fmt.date(c.start_date)], ['End date', fmt.date(c.end_date)], ['Pages', c.task_count], ['Review', c.review_stage && D.statusLabel(c.review_stage)], ['Raised on', fmt.date(c.created_at)]]));
+            const taskNode = x => {
+                const n = (x.changes || []).length;
+                const open = isMe('task', x) || (focusTask && Number(focusTask.id) === Number(x.id));
+                return node('t' + x.id, open, isMe('task', x),
+                    `<i class="bi bi-check2-square dm-lw-ico"></i><span class="dm-cell-id">#${esc(x.id)}</span><b>${esc(x.task_name || 'Task')}</b>${D.pill(x.status)}${isMe('task', x) ? tag('This task') : ''}<span class="dm-lw-count">${n ? plural(n, 'change') : 'No changes'}</span>`,
+                    lwInfo([['Task type', x.task_type], ['Artist', x.assignees], ['Deadline', fmt.date(x.deadline)], ['Start date', fmt.date(x.start_date)], ['End date', fmt.date(x.end_date)], ['Pages', x.task_count], ['Review', x.review_stage && D.statusLabel(x.review_stage)]]),
+                    n ? `<div class="dm-lw-children"><div class="dm-lw-label">Changes on this task (${n})</div>${x.changes.map(changeNode).join('')}</div>` : '');
+            };
+            tree.innerHTML = node('p' + p.id, true, kind === 'project',
+                `<i class="bi bi-folder2-open dm-lw-ico"></i><span class="dm-cell-id">#${esc(p.id)}</span><b>${esc(p.project_name || 'Project')}</b>${D.pill(p.status, PROJECT_STAGE[p.status])}${kind === 'project' ? tag('This project') : ''}<span class="dm-lw-count">${plural(t.tasks, 'task')} · ${plural(t.changes, 'change')}</span>`,
+                lwInfo([['Vertical', p.request_type], ['Project type', p.project_type], ['Client', p.requester_name], ['Manager', p.managers], ['Priority', p.priority], ['Task pages', t.task_pages], ['Change pages', t.change_pages]]),
+                tasks.length ? `<div class="dm-lw-children"><div class="dm-lw-label">Tasks in this project (${tasks.length})</div>${tasks.map(taskNode).join('')}</div>` : '<div class="dm-lw-empty">No tasks yet</div>');
+            // path to the record of this drawer: Project > Task > Change
+            const crumbs = [`<button type="button" data-goto="p${esc(p.id)}"><i class="bi bi-folder2-open"></i> Project #${esc(p.id)}</button>`];
+            if (focusTask) crumbs.push(`<button type="button" data-goto="t${esc(focusTask.id)}"><i class="bi bi-check2-square"></i> Task #${esc(focusTask.id)}</button>`);
+            if (focusChange) crumbs.push(`<button type="button" data-goto="c${esc(focusChange.id)}"><i class="bi bi-arrow-repeat"></i> ${esc(focusChange.version || 'Change')} #${esc(focusChange.id)}</button>`);
+            box.querySelector('.dm-lw-path').innerHTML = crumbs.join('<i class="bi bi-chevron-right dm-lw-sep"></i>');
+            box.querySelector('.dm-lw-tools').hidden = !tasks.length;
+            const cur = tree.querySelector('.dm-lw-node.is-current');
+            if (cur && cur !== tree.firstElementChild) setTimeout(() => { tree.scrollTop = Math.max(0, cur.offsetTop - 40); }, 0);
         }).catch(err => {
-            out.innerHTML = `<div class="dm-linked-none">${esc(err && err.message ? err.message : 'Could not load linked work')}</div>`;
+            tree.innerHTML = `<div class="dm-lw-empty">${esc(err && err.message ? err.message : 'Could not load linked work')}</div>`;
         });
         return box;
     };
