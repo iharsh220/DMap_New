@@ -1339,7 +1339,7 @@ const getAdminData = async (req, res) => {
             "project_count": "CAST(1 AS CHAR)",
             "task_count": "CAST((SELECT COUNT(*) FROM tasks WHERE work_request_id = wr.id AND is_deleted = 0) AS CHAR)",
             "issue_task_count": "CAST((SELECT COUNT(*) FROM issue_assignments ia2 INNER JOIN tasks t4 ON t4.id = ia2.task_id WHERE t4.work_request_id = wr.id AND ia2.is_deleted = 0) AS CHAR)",
-            "change_count": "CAST((SELECT COUNT(*) FROM task_history WHERE work_request_id = wr.id AND action = 'manager_change_requested') AS CHAR)",
+            "change_count": "CAST((SELECT COUNT(*) FROM issue_assignments ia_cc INNER JOIN tasks t_cc ON t_cc.id = ia_cc.task_id AND t_cc.is_deleted = 0 WHERE t_cc.work_request_id = wr.id AND ia_cc.is_deleted = 0) AS CHAR)",
             "project_deadline": "(SELECT MAX(t2.deadline) FROM tasks t2 WHERE t2.work_request_id = wr.id AND t2.is_deleted = 0)",
             "description": "wr.description",
             "about_project": "wr.about_project",
@@ -1518,13 +1518,18 @@ const getAdminData = async (req, res) => {
 
                 /* ==================================================
                    CHANGE COUNT
+                   Number of change requests (issue_assignments) on the
+                   project's live tasks (same rows as issue_no_of_work_pages)
                    ================================================== */
 
                 (
                     SELECT COUNT(*)
-                    FROM task_history th2
-                    WHERE th2.work_request_id = wr.id
-                      AND th2.action = 'manager_change_requested'
+                    FROM issue_assignments ia_cc
+                    INNER JOIN tasks t_cc
+                        ON t_cc.id = ia_cc.task_id
+                       AND t_cc.is_deleted = 0
+                    WHERE t_cc.work_request_id = wr.id
+                      AND ia_cc.is_deleted = 0
                 ) AS change_count,
 
 
