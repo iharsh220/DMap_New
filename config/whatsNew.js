@@ -16,6 +16,18 @@
 
 const VERSIONS = [
     {
+        version: '1.11.0',
+        date: '2026-11-12',
+        title: 'Start and end dates always in the right order',
+        changes: [
+            { type: 'improved', area: 'Tasks', text: 'When you submit a task or change you can pick its end date. It can be today or earlier, never in the future and never before the start date.' },
+            { type: 'fixed', area: 'Changes', text: 'Accepting a change with a wrong start date (for example 31 February) is now refused, like on tasks. A cancelled or rejected change can no longer be accepted.' },
+            { type: 'fixed', area: 'Tasks', text: 'Accepting a task or change clears an old end date, so an open item never shows an end date before its start date.' },
+            { type: 'fixed', area: 'Changes', text: 'A new change request with an end date before its start date is refused.' },
+            { type: 'api', area: 'API', text: 'POST /users/tasks/submit and PUT /users/issues/:id/submit accept an optional end_date (YYYY-MM-DD; default today; 400 when invalid, in the future or before the start date). PUT /users/issues/:id/accept validates start_date strictly (400 for invalid dates) and returns data.start_date as YYYY-MM-DD (was a full timestamp); 400 for cancelled / rejected changes. POST /issue-register/assignment and /work-requests/pm-reject return 400 when start_date / end_date are invalid or end is before start.' }
+        ]
+    },
+    {
         version: '1.10.0',
         date: '2026-11-06',
         title: 'Change requests and delegated tasks fixed',

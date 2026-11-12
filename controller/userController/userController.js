@@ -29,7 +29,7 @@ const { recordTaskHistory, recordIssueHistory, recordWorkRequestHistory, getTask
 const { sequelize } = require('../../config/databaseConfig');
 const { canDelegateTask, assignTargetError, isTaskManager, canViewWorkRequest, workRequestIdForTask, workRequestIdForIssue } = require('../../services/accessService');
 const { pickModelFilters, pickModelFields } = require('../../utils/queryFilters');
-const { parseId, parseDateOnly, todayDateOnly, safePathSegment, parsePageCount } = require('../../utils/validators');
+const { parseId, parseDateOnly, todayDateOnly, safePathSegment, parsePageCount, parseSubmitEndDate } = require('../../utils/validators');
 const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
@@ -1209,6 +1209,7 @@ const acceptTask = async (req, res) => {
         // Prepare update data
         const updateData = {
             status: 'accepted', // Default status
+            end_date: null, // an open task has no end date (an old one could be before the new start)
             notification_alert: 0 // Reset notification alert when task is accepted
         };
 
@@ -1409,12 +1410,19 @@ const submitTask = async (req, res) => {
             });
         }
 
+        // End date = the date the user picked (end_date), otherwise today; never in the future
+        const submitEnd = parseSubmitEndDate(req.body.end_date);
+        if (submitEnd.error) {
+            return res.status(400).json({ success: false, error: submitEnd.error });
+        }
+        const endDate = submitEnd.end;
+
         // Update task with task_count and link FIRST
         const taskUpdateData = {
             task_count: taskCount,
             status: 'completed',
             review: 'pending',
-            end_date: new Date(),
+            end_date: endDate,
             review_stage: 'manager_review', // Set review_stage to manager_review when task is completed
             notification_alert: 1
         };
@@ -1436,8 +1444,8 @@ const submitTask = async (req, res) => {
             providedStartDate = String(task.start_date).slice(0, 10);
         }
 
-        // Validate that end_date (today) is not before start_date
-        if (providedStartDate && todayDateOnly() < providedStartDate) {
+        // Validate that end_date is not before start_date
+        if (providedStartDate && endDate < providedStartDate) {
             return res.status(400).json({
                 success: false,
                 error: 'End date cannot be before start date'
@@ -2366,47 +2374,34 @@ const acceptIssue = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Issue is already completed' });
         }
 
-        // Validate start_date if provided
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        // A cancelled or rejected change stays closed
+        if (['cancelled', 'rejected'].includes(issueAssignment.status)) {
+            return res.status(400).json({ success: false, error: `Issue cannot be accepted from status '${issueAssignment.status}'` });
+        }
 
+        // Validate start_date if provided: a real YYYY-MM-DD date, not before today
+        // (before, new Date() accepted "abc" or rolled 2026-02-31 over to March)
+        const today = todayDateOnly();
         let providedStartDate = null;
         if (start_date) {
-            providedStartDate = new Date(start_date);
-            providedStartDate.setHours(0, 0, 0, 0);
+            providedStartDate = parseDateOnly(start_date);
+            if (!providedStartDate) {
+                return res.status(400).json({ success: false, error: 'Invalid start_date. Use YYYY-MM-DD format.' });
+            }
             if (providedStartDate < today) {
                 return res.status(400).json({ success: false, error: 'Start date cannot be before today' });
             }
         }
 
-        // Determine status based on start_date
-        // If start_date is today -> in_progress
-        // If start_date is in the future -> u_accepted
-        let newStatus = 'in_progress';
-        let finalStartDate = null;
-
-        if (providedStartDate) {
-            // Check if start_date is today or in the future
-            const isToday = providedStartDate.toDateString() === today.toDateString();
-
-            if (isToday) {
-                newStatus = 'in_progress';
-                finalStartDate = providedStartDate;
-            } else {
-                // Future date
-                newStatus = 'u_accepted';
-                finalStartDate = providedStartDate;
-            }
-        } else {
-            // No start_date provided, default to today -> in_progress
-            finalStartDate = today;
-            newStatus = 'in_progress';
-        }
+        // Start today (or no date sent) -> in_progress; a future start -> u_accepted
+        const finalStartDate = providedStartDate || today;
+        const newStatus = finalStartDate === today ? 'in_progress' : 'u_accepted';
 
         // Prepare update data
         const updateData = {
             status: newStatus,
             start_date: finalStartDate,
+            end_date: null, // an open change has no end date (an old one could be before the new start)
             notification_alert: 0
         };
 
@@ -2571,17 +2566,28 @@ const submitIssue = async (req, res) => {
         }
         issueUpdateData.task_count = submittedPages;
 
-        // End date (today) can never be before the start date: a change accepted with a future
-        // start date and finished earlier starts today (19 changes had end < start before this).
-        // An explicit start_date (YYYY-MM-DD, not after today) may be sent like on task submit.
+        // End date = the date the user picked (end_date), otherwise today; never in the future.
+        const submitEnd = parseSubmitEndDate(req.body.end_date);
+        if (submitEnd.error) return res.status(400).json({ success: false, error: submitEnd.error });
+        const endDate = submitEnd.end;
+        issueUpdateData.end_date = endDate;
+
+        // The end date can never be before the start date: a change accepted with a future
+        // start date and finished earlier starts on its end date (19 changes had end < start before).
+        // An explicit start_date (YYYY-MM-DD, not after the end date) may be sent like on task submit.
         const today = todayDateOnly();
         if (req.body.start_date) {
             const startDate = parseDateOnly(req.body.start_date);
             if (!startDate) return res.status(400).json({ success: false, error: 'Invalid start_date. Use YYYY-MM-DD format.' });
-            if (startDate > today) return res.status(400).json({ success: false, error: 'End date cannot be before start date' });
+            if (startDate > endDate) return res.status(400).json({ success: false, error: 'End date cannot be before start date' });
             issueUpdateData.start_date = startDate;
-        } else if (!issueAssignment.start_date || String(issueAssignment.start_date).slice(0, 10) > today) {
-            issueUpdateData.start_date = today;
+        } else {
+            const currentStart = issueAssignment.start_date ? String(issueAssignment.start_date).slice(0, 10) : null;
+            if (!currentStart || currentStart > today) {
+                issueUpdateData.start_date = endDate; // never started, or a future start that was not reached
+            } else if (currentStart > endDate) {
+                return res.status(400).json({ success: false, error: 'End date cannot be before start date' });
+            }
         }
 
         // Add comments if provided

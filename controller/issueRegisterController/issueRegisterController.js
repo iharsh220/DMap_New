@@ -4,7 +4,7 @@ const fs = require('fs');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
 const { recordTaskHistory, recordIssueHistory, recordWorkRequestHistory, recordTaskReviewHistory } = require('../../services/historyService');
-const { parseId, parseIdList, safePathSegment } = require('../../utils/validators');
+const { parseId, parseIdList, safePathSegment, parseDateRange } = require('../../utils/validators');
 const { viewableWorkRequestIdsSubquery, canActAsRequester, isSuperAdmin } = require('../../services/accessService');
 const { sequelize } = require('../../config/databaseConfig');
 const {
@@ -129,6 +129,11 @@ const createIssueAssignment = async (req, res) => {
         if (issueRegisterIds.length && await IssueRegister.count({ where: { id: issueRegisterIds } }) !== issueRegisterIds.length) {
             return res.status(400).json({ success: false, error: 'Unknown issue_register_ids' });
         }
+        // optional dates of the new change: real dates, end never before start
+        const changeDates = parseDateRange(start_date, end_date);
+        if (changeDates.error) {
+            return res.status(400).json({ success: false, error: changeDates.error });
+        }
 
         const actor = req.user || {};
         const actorId = actor.id || null;
@@ -233,8 +238,8 @@ const createIssueAssignment = async (req, res) => {
                 version,
                 description,
                 deadline,
-                start_date,
-                end_date,
+                start_date: changeDates.start,
+                end_date: changeDates.end,
                 link,
                 task_count,
                 intimate_team,

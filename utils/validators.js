@@ -61,6 +61,31 @@ const todayDateOnly = () => {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 };
 
+// True when a request field was actually sent (not undefined / null / empty text).
+const isProvided = (value) => value !== undefined && value !== null && String(value).trim() !== '';
+
+// Optional start / end dates sent with a task or change: each must be a real YYYY-MM-DD date and
+// the end can never be before the start. Returns { start, end } (null when not sent) or { error }.
+const parseDateRange = (start, end) => {
+    const startDate = isProvided(start) ? parseDateOnly(start) : null;
+    if (isProvided(start) && !startDate) return { error: 'Invalid start_date. Use YYYY-MM-DD format.' };
+    const endDate = isProvided(end) ? parseDateOnly(end) : null;
+    if (isProvided(end) && !endDate) return { error: 'Invalid end_date. Use YYYY-MM-DD format.' };
+    if (startDate && endDate && endDate < startDate) return { error: 'End date cannot be before start date' };
+    return { start: startDate, end: endDate };
+};
+
+// End date picked by the user on submit (end_date, YYYY-MM-DD), otherwise today.
+// It can never be in the future. Returns { end } or { error }.
+const parseSubmitEndDate = (value) => {
+    const today = todayDateOnly();
+    if (!isProvided(value)) return { end: today };
+    const end = parseDateOnly(value);
+    if (!end) return { error: 'Invalid end_date. Use YYYY-MM-DD format.' };
+    if (end > today) return { error: 'End date cannot be in the future' };
+    return { end };
+};
+
 // Makes a user-supplied name safe to use as one folder name: no path separators,
 // no leading dots (blocks '..'), no control characters. Normal names are unchanged.
 const safePathSegment = (name, fallback = 'unnamed') => {
@@ -89,6 +114,9 @@ module.exports = {
     parseIdList,
     parseDateOnly,
     todayDateOnly,
+    isProvided,
+    parseDateRange,
+    parseSubmitEndDate,
     safePathSegment,
     parsePageCount
 };

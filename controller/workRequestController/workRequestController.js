@@ -36,7 +36,7 @@ const { recordWorkRequestHistory, recordTaskHistory, recordIssueHistory, getWork
 const { completeWorkRequestIfFinished } = require('../../services/workRequestCompletionService');
 const { canActAsRequester, canViewWorkRequest } = require('../../services/accessService');
 const { pickModelFilters, pickModelFields } = require('../../utils/queryFilters');
-const { parseId, parseIdList, parseDateOnly, todayDateOnly } = require('../../utils/validators');
+const { parseId, parseIdList, parseDateOnly, todayDateOnly, parseDateRange } = require('../../utils/validators');
 const { sequelize } = require('../../config/databaseConfig');
 // const { queueFileUpload } = require('../../services/fileUploadService');
 const path = require('path');
@@ -2329,6 +2329,11 @@ const pmRejectTask = async (req, res) => {
         if (issueRegisterIds.length && await IssueRegister.count({ where: { id: issueRegisterIds } }) !== issueRegisterIds.length) {
             return res.status(400).json({ success: false, error: 'Unknown issue_register_ids' });
         }
+        // optional dates of the new change: real dates, end never before start
+        const changeDates = parseDateRange(start_date, end_date);
+        if (changeDates.error) {
+            return res.status(400).json({ success: false, error: changeDates.error });
+        }
 
         const createChangeRequestIssue = async (targetTaskId, parentIssueId) => {
             // Version rule (owner): the task itself is V1, its first change V2, the next V3, ... for the
@@ -2348,8 +2353,8 @@ const pmRejectTask = async (req, res) => {
                 version: /^V\d+$/i.test(String(req.body.version || '').trim()) ? String(req.body.version).trim().toUpperCase() : `V${versionCount + 1}`,
                 description: issue_description || comments || 'PM change request',
                 deadline,
-                start_date,
-                end_date,
+                start_date: changeDates.start,
+                end_date: changeDates.end,
                 link,
                 task_count: task_count || 0,
                 intimate_team: 1,
