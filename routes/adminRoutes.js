@@ -212,7 +212,7 @@ router.get('/admin/leaves/kpis', adminOnly, getLeaveKpis);
 router.get('/admin/leaves/export/excel', adminOnly, exportLeavesExcel);
 router.get('/admin/leaves/export/csv', adminOnly, exportLeavesCsv);
 router.get('/admin/leaves/:id', adminOnly, getLeaveById);
-router.post('/admin/leaves', adminOnly, createLeave);
+router.post('/admin/leaves', canEditWork, createLeave);
 router.put('/admin/leaves/:id', adminOnly, updateLeave);
 router.delete('/admin/leaves/:id', adminOnly, deleteLeave);
 router.post('/admin/leaves/upload', adminOnly, uploadLeaves);
