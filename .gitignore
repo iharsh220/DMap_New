@@ -126,6 +126,7 @@ migrations/*.sql
 
 # AI assistant instructions
 CLAUDE.md
+projects.md
 
 # Git ignore file
 .gitignore
