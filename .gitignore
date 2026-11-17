@@ -124,6 +124,12 @@ ecosystem.config.js
 # Ignore all SQL files in migrations folder
 migrations/*.sql
 
+# AI assistant instructions
+CLAUDE.md
+
+# Git ignore file
+.gitignore
+
 # Weekly report files (generated .pptx and highlight images)
 storage/
 
