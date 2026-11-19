@@ -2357,6 +2357,12 @@ const acceptIssue = async (req, res) => {
             return res.status(404).json({ success: false, error: 'Issue assignment not found' });
         }
 
+        // The PMT / requester raised this change; a row of theirs only holds their attachment.
+        // Only the artist the manager assigned may accept or submit it.
+        if (Number(issueAssignment.requested_by_user_id) === Number(user_id)) {
+            return res.status(404).json({ success: false, error: 'Issue not found or not assigned to you' });
+        }
+
         // Check if intimate_team is 1
         if (issueAssignment.intimate_team !== 1) {
             return res.status(403).json({ success: false, error: 'You do not have permission to accept this issue' });
@@ -2521,6 +2527,12 @@ const submitIssue = async (req, res) => {
 
         if (!issueAssignment) {
             return res.status(404).json({ success: false, error: 'Issue assignment not found' });
+        }
+
+        // The PMT / requester raised this change; a row of theirs only holds their attachment.
+        // Only the artist the manager assigned may accept or submit it.
+        if (Number(issueAssignment.requested_by_user_id) === Number(user_id)) {
+            return res.status(404).json({ success: false, error: 'Issue not found or not assigned to you' });
         }
 
         const task = issueAssignment.task;

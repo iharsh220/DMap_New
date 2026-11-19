@@ -4588,7 +4588,7 @@ const getIssueDetailsData = async (req, res) => {
                                   ON ud5.user_id = au3.id
                               JOIN division d3
                                   ON d3.id = ud5.division_id
-                              WHERE iua3.issue_assignment_id = ia.id
+                              WHERE iua3.issue_assignment_id = ia.id AND iua3.user_id <> COALESCE(ia.requested_by_user_id, 0)
                           ),
                       ''),
                       'N/A'
@@ -4615,7 +4615,7 @@ const getIssueDetailsData = async (req, res) => {
                                   ON mu4.id = ud6.user_id
                               JOIN job_role jr
                                   ON jr.id = mu4.job_role_id
-                              WHERE iua3.issue_assignment_id = ia.id
+                              WHERE iua3.issue_assignment_id = ia.id AND iua3.user_id <> COALESCE(ia.requested_by_user_id, 0)
                                 AND jr.role_title = 'Creative Manager'
                           ),
                       ''),
@@ -4633,7 +4633,7 @@ const getIssueDetailsData = async (req, res) => {
                               FROM issue_user_assignments iua2
                               JOIN users au2
                                   ON au2.id = iua2.user_id
-                              WHERE iua2.issue_assignment_id = ia.id
+                              WHERE iua2.issue_assignment_id = ia.id AND iua2.user_id <> COALESCE(ia.requested_by_user_id, 0)
                           ),
                       ''),
                       'N/A'
@@ -4652,7 +4652,7 @@ const getIssueDetailsData = async (req, res) => {
                                 ON ud2.user_id = iua3.user_id
                             JOIN division d2
                                 ON d2.id = ud2.division_id
-                            WHERE iua3.issue_assignment_id = ia.id
+                            WHERE iua3.issue_assignment_id = ia.id AND iua3.user_id <> COALESCE(ia.requested_by_user_id, 0)
                         ),
                     ''),
                     'N/A'
@@ -5264,7 +5264,7 @@ const getIssueDetailsData = async (req, res) => {
                 ON ru.id = wr.user_id
 
             LEFT JOIN issue_user_assignments iua
-                ON iua.issue_assignment_id = ia.id
+                ON iua.issue_assignment_id = ia.id AND iua.user_id <> COALESCE(ia.requested_by_user_id, 0)
 
             LEFT JOIN users au
                 ON au.id = iua.user_id

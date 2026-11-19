@@ -16,6 +16,17 @@
 
 const VERSIONS = [
     {
+        version: '1.11.1',
+        date: '2026-11-19',
+        title: 'Changes go only to your own artists',
+        changes: [
+            { type: 'fixed', area: 'Changes', text: 'A manager can no longer assign a change request to the PMT / requester who raised it (this happened when the PMT attached a file). A change is assigned only to an artist of the manager\'s team.' },
+            { type: 'fixed', area: 'Changes', text: 'The PMT is no longer shown as the person assigned to a change request when they attached a file. Until the manager assigns an artist the change shows no assignee; the PMT file is still shown with the change.' },
+            { type: 'api', area: 'API', text: 'Change objects in the /work-requests, /manager/assigned-work-requests, /users and /issue-register responses no longer list the change\'s requester (requested_by_user_id) in userAssignments / assignedUsers; the requester\'s files are in pmt_documents. PUT /users/issues/:id/accept and /submit return 404 for the change\'s requester.' },
+            { type: 'api', area: 'API', text: 'POST /manager/assigned-work-requests/assign-issue-to-user returns 403 when user_id is not a Creative Manager / Lead / User (roles 2, 3, 4) or is the change\'s requested_by_user_id. A PMT attachment row in issue_user_assignments no longer counts as "worked on this task".' }
+        ]
+    },
+    {
         version: '1.11.0',
         date: '2026-11-12',
         title: 'Start and end dates always in the right order',

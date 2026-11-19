@@ -59,7 +59,8 @@ const getLinkedWork = async (req, res) => {
                    rb.name AS requested_by,
                    (SELECT GROUP_CONCAT(DISTINCT u.name ORDER BY u.name SEPARATOR ', ')
                       FROM issue_user_assignments iua INNER JOIN users u ON u.id = iua.user_id
-                     WHERE iua.issue_assignment_id = ia.id) AS assignees,
+                     WHERE iua.issue_assignment_id = ia.id
+                       AND iua.user_id <> COALESCE(ia.requested_by_user_id, 0)) AS assignees,
                    (SELECT GROUP_CONCAT(DISTINCT ir.change_issue_type ORDER BY ir.change_issue_type SEPARATOR ', ')
                       FROM issue_assignment_types iat INNER JOIN issue_register ir ON ir.id = iat.issue_register_id
                      WHERE iat.issue_assignment_id = ia.id) AS change_types

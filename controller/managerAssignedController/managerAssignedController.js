@@ -5865,13 +5865,23 @@ const assignIssueToUser = async (req, res) => {
             return res.status(400).json({ success: false, error: 'User account is not active' });
         }
 
+        // A change is done by a creative user (Creative Manager / Lead / User), never by the PMT /
+        // requester side: the PMT raised it. (A PMT attachment is stored under an
+        // issue_user_assignments row of the PMT, which made the PMT pass the "worked on" check below.)
+        if (![2, 3, 4].includes(Number(assignedUser.job_role_id))
+            || Number(assignedUser.id) === Number(issueAssignment.requested_by_user_id)) {
+            return res.status(403).json({ success: false, error: 'A change can be assigned only to an artist of your team, not to the PMT / requester' });
+        }
+
         // Assignee (R2): an artist of the manager's own team, or someone who already worked on this
-        // task (its assignee or the assignee of one of its changes, e.g. the same artist again)
+        // task (its assignee or the assignee of one of its changes, e.g. the same artist again;
+        // rows of the change's own requester, i.e. PMT attachments, do not count)
         if (!isSuperAdmin(req.user) && assignedUser.id !== manager_id && !(await sharesDivision(manager_id, assignedUser.id))) {
             const [workedOnTask] = await sequelize.query(
                 `SELECT 1 AS ok FROM task_assignments WHERE task_id = :taskId AND user_id = :userId
                  UNION SELECT 1 FROM issue_assignments ia JOIN issue_user_assignments iu ON iu.issue_assignment_id = ia.id
-                 WHERE ia.task_id = :taskId AND iu.user_id = :userId LIMIT 1`,
+                 WHERE ia.task_id = :taskId AND iu.user_id = :userId
+                   AND iu.user_id <> COALESCE(ia.requested_by_user_id, 0) LIMIT 1`,
                 { replacements: { taskId: issueAssignment.task.id, userId: assignedUser.id }, type: sequelize.QueryTypes.SELECT }
             );
             if (!workedOnTask) {
