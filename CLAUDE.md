@@ -431,3 +431,10 @@ Owner's decisions: started work gets the cancellation date as end date (status `
 - Gap fixed: change submit (`submitIssue`) fell back to the `task_count` stored on the change when the artist sent none (e.g. a count the PMT sent when raising it). Now `task_count` is required on change submit exactly like task submit (owner: the person who did the work enters the pages). **The user app must send `task_count` on `PUT /users/issues/:id/submit`.**
 - Verified on the local dump copy: s8 48/48 (incl. a change with 3 pages stored and no pages sent → 400); local UAT suite 235 passed, 0 failed; workflow 89, data-rules 30, date-rules 31, project-cancel 43, pmt-list 15. What's new 1.11.2.
 - Deploy: copy `controller/userController/userController.js` and `config/whatsNew.js`, restart; no migration.
+
+## Session 31 (2026-11-23): Month column = month of the end date (Projects, Tasks, Changes)
+- Owner: FY and Month both follow the end date. Projects `month` still used `wr.created_at`, so "Month = April" listed projects whose Project End Date was in May–September (dump: 271 rows with FY 2026-27, only 169 ended in April). It now uses the same last end date as `fy` (tasks + their changes, `'00'` when `fy` is `'00'`); filtered through the outer query as before.
+- Tasks: the `month` column already was `DATE_FORMAT(t.end_date, '%M')`, but its directMap filter was `MONTH(t.end_date)` (a number), so a text filter "April" never matched (0 rows). It now filters `COALESCE(DATE_FORMAT(t.end_date, '%M'), '00')`. Changes were already correct (outer query on the month name of `ia.end_date`).
+- Verified on the local dump copy (old vs new handlers, `limit=-1`): same rows and keys, no other field changed; month equals the end-date month on every row (Projects 2,491, 1,076 months changed; Tasks 3,087; Changes 1,584); Month=April + FY 2026-27 → only April 2026 end dates (Projects 253, Tasks 362, Changes 100). What's new 1.11.3.
+- Not changed: Raw data `month` still uses `t.created_at` (its FY uses `t.end_date`); Client requests month already uses the project end date.
+- Deploy: copy `controller/adminController.js` and `config/whatsNew.js`, restart; no migration.

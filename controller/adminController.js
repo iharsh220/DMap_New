@@ -2250,21 +2250,25 @@ const getAdminData = async (req, res) => {
                    MONTH
                    ================================================== */
 
-                CASE
-                    WHEN MONTH(wr.created_at) = 1 THEN 'January'
-                    WHEN MONTH(wr.created_at) = 2 THEN 'February'
-                    WHEN MONTH(wr.created_at) = 3 THEN 'March'
-                    WHEN MONTH(wr.created_at) = 4 THEN 'April'
-                    WHEN MONTH(wr.created_at) = 5 THEN 'May'
-                    WHEN MONTH(wr.created_at) = 6 THEN 'June'
-                    WHEN MONTH(wr.created_at) = 7 THEN 'July'
-                    WHEN MONTH(wr.created_at) = 8 THEN 'August'
-                    WHEN MONTH(wr.created_at) = 9 THEN 'September'
-                    WHEN MONTH(wr.created_at) = 10 THEN 'October'
-                    WHEN MONTH(wr.created_at) = 11 THEN 'November'
-                    WHEN MONTH(wr.created_at) = 12 THEN 'December'
-                    ELSE '00'
-                END AS month,
+                /* Owner, 2026-11-23: month of the same LAST end date as the fy column below (tasks +
+                   their changes), '00' while the project has no task or any task / change has no
+                   end date. Before: month of wr.created_at, so filtering a month showed projects
+                   that ended in other months. */
+                (
+                    SELECT CASE
+                        WHEN COUNT(*) = 0
+                          OR SUM(t_mo.end_date IS NULL) > 0
+                          OR SUM(ia_mo.id IS NOT NULL AND ia_mo.end_date IS NULL) > 0
+                        THEN '00'
+                        ELSE DATE_FORMAT(GREATEST(MAX(t_mo.end_date), COALESCE(MAX(ia_mo.end_date), MAX(t_mo.end_date))), '%M')
+                    END
+                    FROM tasks t_mo
+                    LEFT JOIN issue_assignments ia_mo
+                        ON ia_mo.task_id = t_mo.id
+                       AND ia_mo.is_deleted = 0
+                    WHERE t_mo.work_request_id = wr.id
+                      AND t_mo.is_deleted = 0
+                ) AS month,
 
 
                 /* ==================================================
@@ -3172,7 +3176,8 @@ const getTaskDetailsData = async (req, res) => {
             "task_resize_work": "CAST(COALESCE(t.resize_work, 0) AS CHAR)",
             "task_ai": "CAST(COALESCE(t.no_of_images_videos_audio, 0) AS CHAR)",
             "task_shoot_setup": "CAST(COALESCE(t.shoot_setup, 0) AS CHAR)",
-            "month": "MONTH(t.end_date)",
+            // same text as the month column ("April", '00' without an end date)
+            "month": "COALESCE(DATE_FORMAT(t.end_date, '%M'), '00')",
             // Financial year of the task deadline (same text as the fy column, e.g. "FY 2026-27")
             "fy": "COALESCE(CASE WHEN MONTH(t.end_date) >= 4 THEN CONCAT('FY ', YEAR(t.end_date), '-', RIGHT(YEAR(t.end_date) + 1, 2)) ELSE CONCAT('FY ', YEAR(t.end_date) - 1, '-', RIGHT(YEAR(t.end_date), 2)) END, '00')"
         };

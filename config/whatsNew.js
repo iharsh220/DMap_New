@@ -16,6 +16,16 @@
 
 const VERSIONS = [
     {
+        version: '1.11.3',
+        date: '2026-11-23',
+        title: 'Month follows the end date on Projects and Tasks',
+        changes: [
+            { type: 'fixed', area: 'Projects', text: 'The Month column on Projects is now the month of the project end date (the same date the Financial Year uses), and "00" while work is still open. Before it was the month the request was raised, so filtering a month also showed projects that ended in other months.' },
+            { type: 'fixed', area: 'Tasks', text: 'Filtering the Month column on Tasks (for example "April") now works. Before it always returned no rows.' },
+            { type: 'api', area: 'API', text: 'GET /datatable/admin/projectsdetails/data: month = month name of the last end date of the project\'s tasks and changes, \'00\' when fy is \'00\' (was MONTH(work_requests.created_at)). GET /datatable/admin/taskdetails/data: the month column filter compares the month name (DATE_FORMAT(end_date, \'%M\')) instead of MONTH(end_date).' }
+        ]
+    },
+    {
         version: '1.11.2',
         date: '2026-11-23',
         title: 'Pages are always entered when work is submitted',
