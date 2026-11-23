@@ -2570,9 +2570,10 @@ const submitIssue = async (req, res) => {
         //     }
         // }
 
-        // Pages are required (owner's rule, 2026-11-05): the submitted value, or the count already
-        // on the change; it must be a whole number >= 1 (before, 0 or text were saved silently).
-        const submittedPages = task_count !== undefined && task_count !== null && String(task_count).trim() !== '' ? parsePageCount(task_count) : parsePageCount(issueAssignment.task_count);
+        // Pages are required (owner's rule, 2026-11-05; 2026-11-23: the artist who did the work
+        // always sends them, like on task submit, no fallback to the count stored on the change):
+        // a whole number >= 1 (before, 0 or text were saved silently).
+        const submittedPages = parsePageCount(task_count);
         if (!submittedPages) {
             return res.status(400).json({ success: false, error: 'task_count (number of pages) must be a whole number of at least 1' });
         }

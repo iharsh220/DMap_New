@@ -16,6 +16,15 @@
 
 const VERSIONS = [
     {
+        version: '1.11.2',
+        date: '2026-11-23',
+        title: 'Pages are always entered when work is submitted',
+        changes: [
+            { type: 'fixed', area: 'Changes', text: 'When you submit a change request you always enter the number of pages you worked on (at least 1), like on tasks. The number the requester gave when raising the change is no longer used instead.' },
+            { type: 'api', area: 'API', text: 'PUT /users/issues/:id/submit: task_count is required (whole number >= 1); 400 when it is missing, as on POST /users/tasks/submit. Before, a missing task_count fell back to the count stored on the change.' }
+        ]
+    },
+    {
         version: '1.11.1',
         date: '2026-11-19',
         title: 'Changes go only to your own artists',
