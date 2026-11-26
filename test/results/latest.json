@@ -1,0 +1,1686 @@
+{
+  "ranAt": "2026-11-26T15:25:16.223Z",
+  "suites": 8,
+  "totalChecks": 203,
+  "passed": 166,
+  "failed": 37,
+  "findingsCount": 37,
+  "results": [
+    {
+      "suite": "01-project-and-task-lifecycle",
+      "total": 25,
+      "passed": 23,
+      "failed": 2,
+      "durationMs": 1743,
+      "checks": [
+        {
+          "suite": "01-project-and-task-lifecycle",
+          "name": "PMT creates work request",
+          "passed": true,
+          "details": "HTTP 201"
+        },
+        {
+          "suite": "01-project-and-task-lifecycle",
+          "name": "New work request starts in pending status",
+          "passed": true,
+          "details": "status=pending"
+        },
+        {
+          "suite": "01-project-and-task-lifecycle",
+          "name": "CM A sees new project in assigned-work-requests",
+          "passed": true,
+          "details": "count=1"
+        },
+        {
+          "suite": "01-project-and-task-lifecycle",
+          "name": "CM B does not see CM A project",
+          "passed": true,
+          "details": "count=0"
+        },
+        {
+          "suite": "01-project-and-task-lifecycle",
+          "name": "Non-assigned manager (CM B) cannot accept project",
+          "passed": true,
+          "details": "HTTP 404"
+        },
+        {
+          "suite": "01-project-and-task-lifecycle",
+          "name": "CM A accepts work request",
+          "passed": true,
+          "details": "HTTP 200"
+        },
+        {
+          "suite": "01-project-and-task-lifecycle",
+          "name": "Accepting work request twice returns 400",
+          "passed": true,
+          "details": "HTTP 400"
+        },
+        {
+          "suite": "01-project-and-task-lifecycle",
+          "name": "CM A creates task for Artist A",
+          "passed": true,
+          "details": "HTTP 201"
+        },
+        {
+          "suite": "01-project-and-task-lifecycle",
+          "name": "New task defaults to version V1",
+          "passed": true,
+          "details": "version=V1"
+        },
+        {
+          "suite": "01-project-and-task-lifecycle",
+          "name": "Artist A accepts task with start_date=today -> in_progress",
+          "passed": true,
+          "details": "HTTP 200 status=in_progress"
+        },
+        {
+          "suite": "01-project-and-task-lifecycle",
+          "name": "Work request status updates to in_progress when task starts (without waiting for midnight cron)",
+          "passed": false,
+          "details": "work_requests.status=accepted"
+        },
+        {
+          "suite": "01-project-and-task-lifecycle",
+          "name": "Artist A submits task with task_count=3 and file",
+          "passed": true,
+          "details": "HTTP 200 \"\""
+        },
+        {
+          "suite": "01-project-and-task-lifecycle",
+          "name": "Submitted task has status=completed, start_date, end_date, task_count=3",
+          "passed": true,
+          "details": "{\"status\":\"completed\",\"start_date\":\"2026-11-26\",\"end_date\":\"2026-11-26\",\"task_count\":3,\"review_stage\":\"manager_review\"}"
+        },
+        {
+          "suite": "01-project-and-task-lifecycle",
+          "name": "CM A sends task back for rework",
+          "passed": true,
+          "details": "HTTP 200"
+        },
+        {
+          "suite": "01-project-and-task-lifecycle",
+          "name": "Reworked task returns to in_progress and clears end_date",
+          "passed": true,
+          "details": "{\"status\":\"in_progress\",\"end_date\":null}"
+        },
+        {
+          "suite": "01-project-and-task-lifecycle",
+          "name": "Artist A resubmits reworked task with task_count=4",
+          "passed": true,
+          "details": "HTTP 200"
+        },
+        {
+          "suite": "01-project-and-task-lifecycle",
+          "name": "CM A approves task -> review_stage=pm_review",
+          "passed": true,
+          "details": "HTTP 200"
+        },
+        {
+          "suite": "01-project-and-task-lifecycle",
+          "name": "PMT cannot approve task before share-for-client-review (400)",
+          "passed": true,
+          "details": "HTTP 400"
+        },
+        {
+          "suite": "01-project-and-task-lifecycle",
+          "name": "CM A shares task for client review",
+          "passed": true,
+          "details": "HTTP 200"
+        },
+        {
+          "suite": "01-project-and-task-lifecycle",
+          "name": "PMT sees project & task in my-requests with task_count and dates",
+          "passed": true,
+          "details": "{\"foundWr\":true,\"task_count\":4,\"start_date\":\"2026-11-26\",\"end_date\":\"2026-11-26\"}"
+        },
+        {
+          "suite": "01-project-and-task-lifecycle",
+          "name": "PMT approves task and auto-completes project",
+          "passed": true,
+          "details": "HTTP 200 completed=true"
+        },
+        {
+          "suite": "01-project-and-task-lifecycle",
+          "name": "Linked view confirms project status=completed",
+          "passed": true,
+          "details": "status=completed"
+        },
+        {
+          "suite": "01-project-and-task-lifecycle",
+          "name": "Admin Projects grid shows completed status & non-zero task_no_of_work_pages",
+          "passed": true,
+          "details": "{\"status\":\"completed\",\"pages\":\"4\",\"tasks\":1,\"compTs\":\"N/A\"}"
+        },
+        {
+          "suite": "01-project-and-task-lifecycle",
+          "name": "Admin Projects grid populates project_completion_timestamp after auto-completion",
+          "passed": false,
+          "details": "project_completion_timestamp=N/A"
+        },
+        {
+          "suite": "01-project-and-task-lifecycle",
+          "name": "Work request history contains created, manager_accepted, pm_approved_task, auto_completed",
+          "passed": true,
+          "details": "actions=created,manager_accepted,shared_for_client_review,pm_approved_task,auto_completed"
+        }
+      ],
+      "findings": [
+        {
+          "suite": "01-project-and-task-lifecycle",
+          "check": "Work request status updates to in_progress when task starts (without waiting for midnight cron)",
+          "severity": "Medium",
+          "area": "Work Request Status Transition",
+          "expected": "When an artist accepts/starts a task (status becomes in_progress), the parent work request status should reflect in_progress immediately (or on submit).",
+          "actual": "work_requests.status remained \"accepted\" even after task became in_progress.",
+          "rootCause": "controller/userController/userController.js (acceptTask / submitTask) never updates WorkRequests.status; only the 00:01 AM cron in services/taskSchedulerService.js moves work_requests from accepted to in_progress.",
+          "observed": "work_requests.status=accepted"
+        },
+        {
+          "suite": "01-project-and-task-lifecycle",
+          "check": "Admin Projects grid populates project_completion_timestamp after auto-completion",
+          "severity": "Low",
+          "area": "Admin Dashboard / Reporting",
+          "expected": "When a project auto-completes on final PMT approval, project_completion_timestamp / project_marked_completed_timestamp in Projects grid should show the completion timestamp.",
+          "actual": "project_completion_timestamp is \"N/A\".",
+          "rootCause": "controller/adminController.js (getAdminData lines 1828, 1844, 1859, 1881, 1900) filters work_request_history by action = 'completed', whereas automatic project completion in services/workRequestCompletionService.js writes action = 'auto_completed'.",
+          "observed": "project_completion_timestamp=N/A"
+        }
+      ]
+    },
+    {
+      "suite": "02-changes-issues-and-versions",
+      "total": 19,
+      "passed": 16,
+      "failed": 3,
+      "durationMs": 2349,
+      "checks": [
+        {
+          "suite": "02-changes-issues-and-versions",
+          "name": "PMT pm-reject creates change request V2",
+          "passed": true,
+          "details": "HTTP 200 version=V2"
+        },
+        {
+          "suite": "02-changes-issues-and-versions",
+          "name": "Task reopened to in_progress by pm-reject clears end_date (no open task with end_date)",
+          "passed": false,
+          "details": "status=in_progress end_date=2026-11-26"
+        },
+        {
+          "suite": "02-changes-issues-and-versions",
+          "name": "V2 appears in manager issue-assignments and PMT is NOT listed in assignedUsers",
+          "passed": true,
+          "details": "found=true assignedUsers=[]"
+        },
+        {
+          "suite": "02-changes-issues-and-versions",
+          "name": "CM A accepts V2 (m_pending -> m_accepted)",
+          "passed": true,
+          "details": "HTTP 200"
+        },
+        {
+          "suite": "02-changes-issues-and-versions",
+          "name": "Manager cannot assign change V2 to PMT (403)",
+          "passed": true,
+          "details": "HTTP 403"
+        },
+        {
+          "suite": "02-changes-issues-and-versions",
+          "name": "CM A assigns V2 to Artist A -> u_pending",
+          "passed": true,
+          "details": "HTTP 200"
+        },
+        {
+          "suite": "02-changes-issues-and-versions",
+          "name": "Artist A accepts V2 -> in_progress",
+          "passed": true,
+          "details": "HTTP 200"
+        },
+        {
+          "suite": "02-changes-issues-and-versions",
+          "name": "Artist A submits V2 with task_count=2",
+          "passed": true,
+          "details": "HTTP 200"
+        },
+        {
+          "suite": "02-changes-issues-and-versions",
+          "name": "submitIssue response task_count type/value matches submitted integer (2)",
+          "passed": true,
+          "details": "typeof=string val=2"
+        },
+        {
+          "suite": "02-changes-issues-and-versions",
+          "name": "CM A approves V2 -> pm_review",
+          "passed": true,
+          "details": "HTTP 200"
+        },
+        {
+          "suite": "02-changes-issues-and-versions",
+          "name": "CM A shares V2 for client review",
+          "passed": true,
+          "details": "HTTP 200"
+        },
+        {
+          "suite": "02-changes-issues-and-versions",
+          "name": "PMT pm-reject on V2 creates V3 (version=V3, issue_id=V2)",
+          "passed": true,
+          "details": "HTTP 200 version=V3 parent=1857"
+        },
+        {
+          "suite": "02-changes-issues-and-versions",
+          "name": "PMT approves V3 and auto-completes project",
+          "passed": true,
+          "details": "HTTP 200 completed=true"
+        },
+        {
+          "suite": "02-changes-issues-and-versions",
+          "name": "After V3 approval, project=completed, T1=completed+final_approved, V2=completed+final_approved, V3=completed+final_approved",
+          "passed": true,
+          "details": "{\"wr\":\"completed\",\"t1\":[\"completed\",\"final_approved\"],\"v2\":[\"completed\",\"final_approved\"],\"v3\":[\"completed\",\"final_approved\"]}"
+        },
+        {
+          "suite": "02-changes-issues-and-versions",
+          "name": "PMT creates V4 via multipart POST /issue-register/assignment with file",
+          "passed": true,
+          "details": "HTTP 201"
+        },
+        {
+          "suite": "02-changes-issues-and-versions",
+          "name": "V4 has pmt_documents populated and PMT excluded from assignedUsers",
+          "passed": true,
+          "details": "pmt_docs=1 assigned=0"
+        },
+        {
+          "suite": "02-changes-issues-and-versions",
+          "name": "Manager cancels V4",
+          "passed": true,
+          "details": "HTTP 200"
+        },
+        {
+          "suite": "02-changes-issues-and-versions",
+          "name": "POST /issue-register/assignment rejects version=\"V1\" (changes must start from V2)",
+          "passed": false,
+          "details": "HTTP 201 version=V1"
+        },
+        {
+          "suite": "02-changes-issues-and-versions",
+          "name": "POST /work-requests/pm-reject rejects or prevents version=\"V1\" override",
+          "passed": false,
+          "details": "HTTP 200 version=V1"
+        }
+      ],
+      "findings": [
+        {
+          "suite": "02-changes-issues-and-versions",
+          "check": "Task reopened to in_progress by pm-reject clears end_date (no open task with end_date)",
+          "severity": "Medium",
+          "area": "Task Dates / PM Reject",
+          "expected": "When pm-reject puts a completed task back to in_progress (like manager rework does), end_date should be cleared (null) because open items should not hold a stale end_date.",
+          "actual": "task.status became \"in_progress\" while task.end_date remained \"2026-11-26\".",
+          "rootCause": "controller/workRequestController/workRequestController.js (pmRejectTask lines 2407-2413 and 2516-2522) sets status: \"in_progress\" without resetting end_date: null.",
+          "observed": "status=in_progress end_date=2026-11-26"
+        },
+        {
+          "suite": "02-changes-issues-and-versions",
+          "check": "POST /issue-register/assignment rejects version=\"V1\" (changes must start from V2)",
+          "severity": "Medium",
+          "area": "Version Rules (Task = V1, Changes >= V2)",
+          "expected": "Task is V1 and change requests must start from V2 (V2, V3, ...); creating a change request with version=\"V1\" should be rejected or auto-normalized to V2+.",
+          "actual": "POST /issue-register/assignment returned HTTP 201 and saved a change request with version=\"V1\".",
+          "rootCause": "controller/issueRegisterController/issueRegisterController.js (createIssueAssignment lines 113, 238) accepts any non-empty version string from req.body without enforcing >= V2.",
+          "observed": "HTTP 201 version=V1"
+        },
+        {
+          "suite": "02-changes-issues-and-versions",
+          "check": "POST /work-requests/pm-reject rejects or prevents version=\"V1\" override",
+          "severity": "Medium",
+          "area": "Version Rules (Task = V1, Changes >= V2)",
+          "expected": "pm-reject should enforce that change versions start from V2 even if the caller passes version=\"V1\".",
+          "actual": "POST /work-requests/pm-reject returned HTTP 200 with version=\"V1\".",
+          "rootCause": "controller/workRequestController/workRequestController.js (pmRejectTask line 2353) uses /^V\\d+$/i.test(req.body.version), which allows \"V1\" (and \"V0\") to override the auto-incremented V2+ version.",
+          "observed": "HTTP 200 version=V1"
+        }
+      ]
+    },
+    {
+      "suite": "03-cross-manager-delegation",
+      "total": 22,
+      "passed": 17,
+      "failed": 5,
+      "durationMs": 3631,
+      "checks": [
+        {
+          "suite": "03-cross-manager-delegation",
+          "name": "CM A creates T1 (Artist A) and T2 (delegated to CM B)",
+          "passed": true,
+          "details": "T1=3787 T2=3788"
+        },
+        {
+          "suite": "03-cross-manager-delegation",
+          "name": "CM A cannot assign task directly to Artist B (403)",
+          "passed": true,
+          "details": "HTTP 403"
+        },
+        {
+          "suite": "03-cross-manager-delegation",
+          "name": "CM B can view delegated task T2 before assigning to Artist B",
+          "passed": true,
+          "details": "HTTP 200"
+        },
+        {
+          "suite": "03-cross-manager-delegation",
+          "name": "CM B sees project in GET /manager/assigned-work-requests when a task is delegated to CM B",
+          "passed": false,
+          "details": "found=false"
+        },
+        {
+          "suite": "03-cross-manager-delegation",
+          "name": "CM B cannot assign T2 to Artist A (403)",
+          "passed": true,
+          "details": "HTTP 403"
+        },
+        {
+          "suite": "03-cross-manager-delegation",
+          "name": "CM B assigns delegated task T2 to Artist B",
+          "passed": true,
+          "details": "HTTP 200"
+        },
+        {
+          "suite": "03-cross-manager-delegation",
+          "name": "Both CM A and CM B can view T2 via GET /users/tasks/:id",
+          "passed": true,
+          "details": "CM_A=200 CM_B=200"
+        },
+        {
+          "suite": "03-cross-manager-delegation",
+          "name": "CM B can view project details via GET /manager/assigned-work-requests/:id",
+          "passed": true,
+          "details": "HTTP 200"
+        },
+        {
+          "suite": "03-cross-manager-delegation",
+          "name": "CM B can view tasks via GET /manager/assigned-work-requests/work-request/:id/tasks",
+          "passed": false,
+          "details": "HTTP 404 error=Work request not found or not assigned to you"
+        },
+        {
+          "suite": "03-cross-manager-delegation",
+          "name": "CM A sees delegated task T2 in GET /users/tasks list after CM B assigns to Artist B",
+          "passed": false,
+          "details": "CM_A sees T2 in GET /users/tasks = false"
+        },
+        {
+          "suite": "03-cross-manager-delegation",
+          "name": "Own-team isolation: CM B & Artist B blocked from T1, Artist A blocked from T2 (404)",
+          "passed": true,
+          "details": "CM_B_T1=404 ART_A_T2=404 ART_B_T1=404"
+        },
+        {
+          "suite": "03-cross-manager-delegation",
+          "name": "Delegated manager (CM B) can review T2 task document",
+          "passed": false,
+          "details": "HTTP 404 Document not found or not assigned to you"
+        },
+        {
+          "suite": "03-cross-manager-delegation",
+          "name": "CM A cannot review delegated task T2 (403)",
+          "passed": true,
+          "details": "HTTP 403"
+        },
+        {
+          "suite": "03-cross-manager-delegation",
+          "name": "CM B approves delegated task T2",
+          "passed": true,
+          "details": "HTTP 200"
+        },
+        {
+          "suite": "03-cross-manager-delegation",
+          "name": "CM A cannot share delegated task T2 (403)",
+          "passed": true,
+          "details": "HTTP 403"
+        },
+        {
+          "suite": "03-cross-manager-delegation",
+          "name": "CM B shares delegated task T2 for client review",
+          "passed": true,
+          "details": "HTTP 200"
+        },
+        {
+          "suite": "03-cross-manager-delegation",
+          "name": "Approving T1 alone does not complete project while T2 is open",
+          "passed": true,
+          "details": "completed=false"
+        },
+        {
+          "suite": "03-cross-manager-delegation",
+          "name": "PMT creates change V2 on delegated task T2",
+          "passed": true,
+          "details": "V2=1862"
+        },
+        {
+          "suite": "03-cross-manager-delegation",
+          "name": "CM B accepts V2 on delegated task T2; CM A gets 403",
+          "passed": true,
+          "details": "CM_B=200 CM_A=403"
+        },
+        {
+          "suite": "03-cross-manager-delegation",
+          "name": "Both CM A and CM B see V2 in issue-assignments",
+          "passed": true,
+          "details": "inA=true inB=true"
+        },
+        {
+          "suite": "03-cross-manager-delegation",
+          "name": "Delegated manager (CM B) can review V2 issue document",
+          "passed": false,
+          "details": "HTTP 404 Issue document not found or not assigned to you"
+        },
+        {
+          "suite": "03-cross-manager-delegation",
+          "name": "PMT approves V2 -> project auto-completes once both T1 and T2/V2 are approved",
+          "passed": true,
+          "details": "HTTP 200 completed=true"
+        }
+      ],
+      "findings": [
+        {
+          "suite": "03-cross-manager-delegation",
+          "check": "CM B sees project in GET /manager/assigned-work-requests when a task is delegated to CM B",
+          "severity": "High",
+          "area": "Cross-Manager Delegation Visibility",
+          "expected": "When Manager A delegates a task to Manager B, Manager B should be able to see the project/task in their manager work-request dashboard list.",
+          "actual": "GET /manager/assigned-work-requests returned 0 matching projects for CM B.",
+          "rootCause": "controller/managerAssignedController/managerAssignedController.js (getAssignedWorkRequests line 455) enforces an inner join on work_request_managers (where: { manager_id }) and excludes delegated managers who only appear in task_assignments / task_history.",
+          "observed": "found=false"
+        },
+        {
+          "suite": "03-cross-manager-delegation",
+          "check": "CM B can view tasks via GET /manager/assigned-work-requests/work-request/:id/tasks",
+          "severity": "High",
+          "area": "Cross-Manager Delegation Visibility",
+          "expected": "Delegated manager (CM B) should be able to fetch tasks of the work request where they have delegated tasks.",
+          "actual": "GET /manager/assigned-work-requests/work-request/2991/tasks returned HTTP 404 (Work request not found or not assigned to you).",
+          "rootCause": "controller/managerAssignedController/managerAssignedController.js (getTasksByWorkRequestId lines 2105-2123) filters solely by WorkRequestManagers where manager_id = req.user.id, blocking delegated managers.",
+          "observed": "HTTP 404 error=Work request not found or not assigned to you"
+        },
+        {
+          "suite": "03-cross-manager-delegation",
+          "check": "CM A sees delegated task T2 in GET /users/tasks list after CM B assigns to Artist B",
+          "severity": "Medium",
+          "area": "Cross-Manager Delegation Visibility",
+          "expected": "Both managers (project manager CM A who delegated the task and CM B who received/assigned it) should be able to see the task in their task list.",
+          "actual": "Once CM B assigns T2 to Artist B, CM A no longer sees T2 in GET /users/tasks because getAssignedTasks only queries tasks assigned to users in CM A’s own divisions.",
+          "rootCause": "controller/userController/userController.js (getAssignedTasks lines 65-91 & 302-314) builds userIds only from manager own UserDivisions rather than also including tasks on WorkRequestManagers.",
+          "observed": "CM_A sees T2 in GET /users/tasks = false"
+        },
+        {
+          "suite": "03-cross-manager-delegation",
+          "check": "Delegated manager (CM B) can review T2 task document",
+          "severity": "High",
+          "area": "Delegated Manager Document Review",
+          "expected": "CM B (who manages delegated task T2 and Artist B) should be able to approve/review documents submitted on T2.",
+          "actual": "PUT /manager/assigned-work-requests/documents/4913/review returned HTTP 404 (Document not found or not assigned to you).",
+          "rootCause": "controller/managerAssignedController/managerAssignedController.js (reviewTaskDocument lines 3715-3720) still requires WorkRequestManagers.manager_id = req.user.id instead of using canActOnTask(req.user, task.id).",
+          "observed": "HTTP 404 Document not found or not assigned to you"
+        },
+        {
+          "suite": "03-cross-manager-delegation",
+          "check": "Delegated manager (CM B) can review V2 issue document",
+          "severity": "High",
+          "area": "Delegated Manager Document Review",
+          "expected": "CM B (delegated manager) should be able to review issue documents on V2.",
+          "actual": "PUT /manager/assigned-work-requests/issue-documents/2408/review returned HTTP 404 (Issue document not found or not assigned to you).",
+          "rootCause": "controller/managerAssignedController/managerAssignedController.js (reviewIssueDocument lines 3814-3819) still requires WorkRequestManagers.manager_id = req.user.id instead of canActOnTask(req.user, task.id).",
+          "observed": "HTTP 404 Issue document not found or not assigned to you"
+        }
+      ]
+    },
+    {
+      "suite": "04-task-count-and-date-validations",
+      "total": 62,
+      "passed": 58,
+      "failed": 4,
+      "durationMs": 3509,
+      "checks": [
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "createTask rejects impossible deadline 2026-02-31 (400)",
+          "passed": true,
+          "details": "HTTP 400"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "createTask allows creating task with past deadline (or note behavior)",
+          "passed": true,
+          "details": "HTTP 201"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Task accepted without start_date when deadline is in past still gets a start_date (not NULL)",
+          "passed": false,
+          "details": "HTTP 200 status=accepted start_date=null"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Completed task must NEVER have start_date=NULL",
+          "passed": false,
+          "details": "HTTP 200 status=completed start_date=null end_date=2026-11-26"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "PUT /manager/assigned-work-requests/tasks/:id rejects impossible deadline 2026-02-31 with 400 (not 500)",
+          "passed": false,
+          "details": "HTTP 500 {\"success\":false,\"error\":\"Something went wrong. Please try again later.\",\"message\":\"Failed to update task\"}"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Task accept rejects text start_date -> 400",
+          "passed": true,
+          "details": "HTTP 400"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Task accept rejects impossible date start_date -> 400",
+          "passed": true,
+          "details": "HTTP 400"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Task accept rejects yesterday start_date -> 400",
+          "passed": true,
+          "details": "HTTP 400"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Task accept with future start_date (+2d) -> accepted",
+          "passed": true,
+          "details": "HTTP 200"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Task submit today when start_date is +2d -> 400 (start > end)",
+          "passed": true,
+          "details": "HTTP 400 End date cannot be before start date"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Task accept with today start_date -> in_progress",
+          "passed": true,
+          "details": "HTTP 200"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Task submit rejects missing task_count -> 400",
+          "passed": true,
+          "details": "HTTP 400"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Task submit rejects empty task_count -> 400",
+          "passed": true,
+          "details": "HTTP 400"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Task submit rejects \"0\" task_count -> 400",
+          "passed": true,
+          "details": "HTTP 400"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Task submit rejects 0 task_count -> 400",
+          "passed": true,
+          "details": "HTTP 400"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Task submit rejects negative task_count -> 400",
+          "passed": true,
+          "details": "HTTP 400"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Task submit rejects decimal task_count -> 400",
+          "passed": true,
+          "details": "HTTP 400"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Task submit rejects non-numeric task_count -> 400",
+          "passed": true,
+          "details": "HTTP 400"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Task submit rejects >100000 task_count -> 400",
+          "passed": true,
+          "details": "HTTP 400"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Task submit rejects future end_date -> 400",
+          "passed": true,
+          "details": "HTTP 400 End date cannot be in the future"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Task submit rejects end_date before stored start_date -> 400",
+          "passed": true,
+          "details": "HTTP 400 End date cannot be before start date"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Task submit rejects explicit start_date after end_date -> 400",
+          "passed": true,
+          "details": "HTTP 400 End date cannot be before start date"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Task submit rejects past start_date after end_date -> 400",
+          "passed": true,
+          "details": "HTTP 400 End date cannot be before start date"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Task submit rejects impossible start_date -> 400",
+          "passed": true,
+          "details": "HTTP 400 Invalid start_date format. Use YYYY-MM-DD format."
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Task submit rejects impossible end_date -> 400",
+          "passed": true,
+          "details": "HTTP 400 Invalid end_date. Use YYYY-MM-DD format."
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Task submit rejects invalid end_date -> 400",
+          "passed": true,
+          "details": "HTTP 400 Invalid end_date. Use YYYY-MM-DD format."
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Complete-all refuses when any task has 0 pages (400)",
+          "passed": true,
+          "details": "HTTP 400 Add the number of pages before completing: task \"Validation Task\" (#3790), task \"Zero Pages Task\" (#3791)"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Task submit succeeds with valid start_date <= end_date <= today and task_count=3",
+          "passed": true,
+          "details": "HTTP 200"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Admin edit task rejects completed without end_date -> 400",
+          "passed": true,
+          "details": "HTTP 400 A completed task needs an end date"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Admin edit task rejects completed without start_date -> 400",
+          "passed": true,
+          "details": "HTTP 400 A completed task needs a start date"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Admin edit task rejects start_date after end_date -> 400",
+          "passed": true,
+          "details": "HTTP 400 End date cannot be before start date"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Admin edit task rejects completed with 0 pages -> 400",
+          "passed": true,
+          "details": "HTTP 400 A completed task needs at least 1 page"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Admin edit task rejects open task with end_date still set -> 400",
+          "passed": true,
+          "details": "HTTP 400 Only a completed, cancelled or rejected task can have an end date"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Admin edit task rejects impossible deadline -> 400",
+          "passed": true,
+          "details": "HTTP 400 Deadline is not a valid date (use YYYY-MM-DD)"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "pm-reject rejects start_date > end_date -> 400",
+          "passed": true,
+          "details": "HTTP 400"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "issue-register/assignment rejects start_date > end_date -> 400",
+          "passed": true,
+          "details": "HTTP 400"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "issue-register/assignment rejects impossible deadline 2026-02-31 with 400 (not 500)",
+          "passed": false,
+          "details": "HTTP 500 {\"success\":false,\"error\":\"Something went wrong. Please try again later.\",\"message\":\"Failed to create issue assignment\"}"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Create V2 for issue validation",
+          "passed": true,
+          "details": "HTTP 201"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Issue accept rejects text start_date -> 400",
+          "passed": true,
+          "details": "HTTP 400"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Issue accept rejects impossible date start_date -> 400",
+          "passed": true,
+          "details": "HTTP 400"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Issue accept rejects yesterday start_date -> 400",
+          "passed": true,
+          "details": "HTTP 400"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Issue accept with future start (+3d) -> u_accepted",
+          "passed": true,
+          "details": "HTTP 200"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Issue submit rejects missing (despite stored=3) task_count -> 400",
+          "passed": true,
+          "details": "HTTP 400"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Issue submit rejects empty task_count -> 400",
+          "passed": true,
+          "details": "HTTP 400"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Issue submit rejects \"0\" task_count -> 400",
+          "passed": true,
+          "details": "HTTP 400"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Issue submit rejects 0 task_count -> 400",
+          "passed": true,
+          "details": "HTTP 400"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Issue submit rejects negative task_count -> 400",
+          "passed": true,
+          "details": "HTTP 400"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Issue submit rejects decimal task_count -> 400",
+          "passed": true,
+          "details": "HTTP 400"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Issue submit rejects text task_count -> 400",
+          "passed": true,
+          "details": "HTTP 400"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Issue submit rejects >100000 task_count -> 400",
+          "passed": true,
+          "details": "HTTP 400"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Issue submit rejects future end_date -> 400",
+          "passed": true,
+          "details": "HTTP 400 End date cannot be in the future"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Issue submit rejects explicit start_date > end_date -> 400",
+          "passed": true,
+          "details": "HTTP 400 End date cannot be before start date"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Issue submit rejects past start_date > end_date -> 400",
+          "passed": true,
+          "details": "HTTP 400 End date cannot be before start date"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Issue submit rejects impossible start_date -> 400",
+          "passed": true,
+          "details": "HTTP 400 Invalid start_date. Use YYYY-MM-DD format."
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Issue submit rejects impossible end_date -> 400",
+          "passed": true,
+          "details": "HTTP 400 Invalid end_date. Use YYYY-MM-DD format."
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Issue submit succeeds with task_count=2",
+          "passed": true,
+          "details": "HTTP 200"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Completed issue has start_date <= end_date and task_count=2",
+          "passed": true,
+          "details": "{\"status\":\"completed\",\"start\":\"2026-11-26\",\"end\":\"2026-11-26\",\"count\":2}"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Admin edit issue rejects completed without end_date -> 400",
+          "passed": true,
+          "details": "HTTP 400 A completed change needs an end date"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Admin edit issue rejects completed without start_date -> 400",
+          "passed": true,
+          "details": "HTTP 400 A completed change needs a start date"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Admin edit issue rejects start_date after end_date -> 400",
+          "passed": true,
+          "details": "HTTP 400 End date cannot be before start date"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Admin edit issue rejects completed with 0 pages -> 400",
+          "passed": true,
+          "details": "HTTP 400 A completed change needs at least 1 page"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "name": "Admin edit issue rejects open change with end_date still set -> 400",
+          "passed": true,
+          "details": "HTTP 400 Only a completed, cancelled or rejected change can have an end date"
+        }
+      ],
+      "findings": [
+        {
+          "suite": "04-task-count-and-date-validations",
+          "check": "Task accepted without start_date when deadline is in past still gets a start_date (not NULL)",
+          "severity": "High",
+          "area": "Task Start/End Date Validation",
+          "expected": "Every accepted/completed task must have a valid start_date; if acceptTask is called without start_date on a task whose deadline is in the past, start_date must still be populated (e.g. today) or required.",
+          "actual": "acceptTask succeeded (HTTP 200) with start_date=null (NULL).",
+          "rootCause": "controller/userController/userController.js (acceptTask lines 1207-1225): when isDeadlineTodayOrFuture is false and start_date is omitted, neither branch sets updateData.start_date.",
+          "observed": "HTTP 200 status=accepted start_date=null"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "check": "Completed task must NEVER have start_date=NULL",
+          "severity": "High",
+          "area": "Task Start/End Date Validation",
+          "expected": "A task must not be completed without both start_date and end_date.",
+          "actual": "submitTask completed task #3789 with start_date=null and end_date=2026-11-26.",
+          "rootCause": "controller/userController/userController.js (submitTask lines 1442-1453) only checks providedStartDate if truthy, allowing completion when both task.start_date and req.body.start_date are null.",
+          "observed": "HTTP 200 status=completed start_date=null end_date=2026-11-26"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "check": "PUT /manager/assigned-work-requests/tasks/:id rejects impossible deadline 2026-02-31 with 400 (not 500)",
+          "severity": "Medium",
+          "area": "Date Validation (updateTask)",
+          "expected": "Invalid calendar dates like 2026-02-31 should be rejected with HTTP 400.",
+          "actual": "PUT /manager/assigned-work-requests/tasks/3790 returned HTTP 500 ({\"success\":false,\"error\":\"Something went wrong. Please try again later.\",\"message\":\"Failed to update task\"}).",
+          "rootCause": "controller/managerAssignedController/managerAssignedController.js (updateTask lines 3518-3533) checks day <= 31 and new Date(\"2026-02-31\"), which JS silently rolls over to March 3, causing a DB error (500) instead of 400.",
+          "observed": "HTTP 500 {\"success\":false,\"error\":\"Something went wrong. Please try again later.\",\"message\":\"Failed to update task\"}"
+        },
+        {
+          "suite": "04-task-count-and-date-validations",
+          "check": "issue-register/assignment rejects impossible deadline 2026-02-31 with 400 (not 500)",
+          "severity": "Medium",
+          "area": "Date Validation (Changes / Issue Creation)",
+          "expected": "Invalid calendar deadline 2026-02-31 should return HTTP 400 with a clear error message.",
+          "actual": "POST /issue-register/assignment returned HTTP 500 ({\"success\":false,\"error\":\"Something went wrong. Please try again later.\",\"message\":\"Failed to create issue assignment\"}).",
+          "rootCause": "controller/issueRegisterController/issueRegisterController.js (createIssueAssignment lines 133, 240) validates start_date/end_date via parseDateRange but passes deadline straight to IssueAssignments.create without parseDateOnly.",
+          "observed": "HTTP 500 {\"success\":false,\"error\":\"Something went wrong. Please try again later.\",\"message\":\"Failed to create issue assignment\"}"
+        }
+      ]
+    },
+    {
+      "suite": "05-completion-and-reopen",
+      "total": 13,
+      "passed": 10,
+      "failed": 3,
+      "durationMs": 2165,
+      "checks": [
+        {
+          "suite": "05-completion-and-reopen",
+          "name": "Created T1 and T2",
+          "passed": true,
+          "details": "T1=3792 T2=3793"
+        },
+        {
+          "suite": "05-completion-and-reopen",
+          "name": "Project stays non-completed while T2 is pending approval",
+          "passed": true,
+          "details": "completed=false"
+        },
+        {
+          "suite": "05-completion-and-reopen",
+          "name": "Project auto-completes once T1 and T2 are both approved",
+          "passed": true,
+          "details": "completed=true"
+        },
+        {
+          "suite": "05-completion-and-reopen",
+          "name": "Manager creates T3 on completed project",
+          "passed": true,
+          "details": "HTTP 201 T3=3794"
+        },
+        {
+          "suite": "05-completion-and-reopen",
+          "name": "Completed project is no longer completed after creating T3",
+          "passed": true,
+          "details": "status=accepted"
+        },
+        {
+          "suite": "05-completion-and-reopen",
+          "name": "Completed project becomes in_progress when manager creates a new task (user business rule)",
+          "passed": false,
+          "details": "status=accepted"
+        },
+        {
+          "suite": "05-completion-and-reopen",
+          "name": "Project status is in_progress after reopened task T3 is accepted/started by artist",
+          "passed": false,
+          "details": "status=accepted"
+        },
+        {
+          "suite": "05-completion-and-reopen",
+          "name": "Admin edit blocks marking project completed while T3 is open (400)",
+          "passed": true,
+          "details": "HTTP 400"
+        },
+        {
+          "suite": "05-completion-and-reopen",
+          "name": "Project auto-completes again after T3 is approved",
+          "passed": true,
+          "details": "completed=true"
+        },
+        {
+          "suite": "05-completion-and-reopen",
+          "name": "Raising change via issue-register/assignment reopens completed project",
+          "passed": true,
+          "details": "status=accepted"
+        },
+        {
+          "suite": "05-completion-and-reopen",
+          "name": "Project completes again after post-completion change V2 is approved",
+          "passed": true,
+          "details": "completed=true"
+        },
+        {
+          "suite": "05-completion-and-reopen",
+          "name": "If pm-reject runs on a completed project, project must reopen (not remain completed with open task/change)",
+          "passed": false,
+          "details": "pmReject HTTP=200 projectStatus=completed taskStatus=in_progress"
+        },
+        {
+          "suite": "05-completion-and-reopen",
+          "name": "Work request history recorded reopened events",
+          "passed": true,
+          "details": "reopenedCount=2"
+        }
+      ],
+      "findings": [
+        {
+          "suite": "05-completion-and-reopen",
+          "check": "Completed project becomes in_progress when manager creates a new task (user business rule)",
+          "severity": "High",
+          "area": "Project Re-open Status (completed -> in_progress)",
+          "expected": "When a manager creates a new task after a project is completed, the project status should become \"in_progress\" again.",
+          "actual": "createTask set work_requests.status to \"accepted\" instead of \"in_progress\".",
+          "rootCause": "controller/managerAssignedController/managerAssignedController.js (createTask line 1968) updates WorkRequests to { status: \"accepted\" } instead of \"in_progress\" (and acceptTask does not move it to in_progress either).",
+          "observed": "status=accepted"
+        },
+        {
+          "suite": "05-completion-and-reopen",
+          "check": "Project status is in_progress after reopened task T3 is accepted/started by artist",
+          "severity": "Medium",
+          "area": "Project Re-open Status",
+          "expected": "Once the reopened task starts (task status = in_progress), the work request status should be in_progress.",
+          "actual": "work_requests.status stayed \"accepted\" after T3 started.",
+          "rootCause": "controller/userController/userController.js (acceptTask) does not transition WorkRequests from accepted to in_progress when a task starts immediately.",
+          "observed": "status=accepted"
+        },
+        {
+          "suite": "05-completion-and-reopen",
+          "check": "If pm-reject runs on a completed project, project must reopen (not remain completed with open task/change)",
+          "severity": "High",
+          "area": "Project Re-open / Data Integrity",
+          "expected": "Either pm-reject is disallowed on an already final_approved/completed project, OR it reopens work_requests out of completed status so a completed project never holds open tasks/changes.",
+          "actual": "pm-reject succeeded (HTTP 200), set task #3792 back to \"in_progress\" and created an m_pending change, while work_requests.status stayed \"completed\".",
+          "rootCause": "controller/workRequestController/workRequestController.js (pmRejectTask lines 2379-2472) checks only intimate_client === 1 and neither rejects final_approved items nor reopens a completed WorkRequest.",
+          "observed": "pmReject HTTP=200 projectStatus=completed taskStatus=in_progress"
+        }
+      ]
+    },
+    {
+      "suite": "06-edge-cases-access-and-data",
+      "total": 13,
+      "passed": 6,
+      "failed": 7,
+      "durationMs": 2256,
+      "checks": [
+        {
+          "suite": "06-edge-cases-access-and-data",
+          "name": "Assigned manager can fetch project via GET /work-requests/:id",
+          "passed": false,
+          "details": "HTTP 404 Work request not found"
+        },
+        {
+          "suite": "06-edge-cases-access-and-data",
+          "name": "GET /manager/assigned-work-requests/work-request/:id/tasks includes task status, task_count, start_date, end_date",
+          "passed": false,
+          "details": "keys=id,task_name,deadline,requestType,taskType,dependencies,assignedUsers,issueAssignments"
+        },
+        {
+          "suite": "06-edge-cases-access-and-data",
+          "name": "POST /issue-register/assignment blocks requesting changes on a task that has not been completed/submitted yet",
+          "passed": false,
+          "details": "HTTP 201 id=1866"
+        },
+        {
+          "suite": "06-edge-cases-access-and-data",
+          "name": "Create task with both Artist A and CM B succeeds",
+          "passed": true,
+          "details": "HTTP 201"
+        },
+        {
+          "suite": "06-edge-cases-access-and-data",
+          "name": "When CM B reassigns their part of a multi-assignee task, Artist A assignment is not silently wiped out",
+          "passed": false,
+          "details": "assignHTTP=200 assigneesAfter=\"Mangesh Khale\""
+        },
+        {
+          "suite": "06-edge-cases-access-and-data",
+          "name": "POST /work-requests/pm-reject rejects impossible deadline 2026-02-31 with 400 (not 500)",
+          "passed": false,
+          "details": "HTTP 500 {\"success\":false,\"error\":\"Something went wrong. Please try again later.\",\"message\":\"Failed to reject task or issue by PM\"}"
+        },
+        {
+          "suite": "06-edge-cases-access-and-data",
+          "name": "First pm-approve of T1 succeeds",
+          "passed": true,
+          "details": "HTTP 200"
+        },
+        {
+          "suite": "06-edge-cases-access-and-data",
+          "name": "Duplicate pm-approve on already final_approved task is rejected (400/409)",
+          "passed": false,
+          "details": "HTTP 200"
+        },
+        {
+          "suite": "06-edge-cases-access-and-data",
+          "name": "Open project (with pending T_open) does not show a finished project_end_date in Admin Projects grid",
+          "passed": false,
+          "details": "status=accepted project_end_date=2026-11-26 fy=00 month=00"
+        },
+        {
+          "suite": "06-edge-cases-access-and-data",
+          "name": "Cancel preview returns valid breakdown",
+          "passed": true,
+          "details": "HTTP 200"
+        },
+        {
+          "suite": "06-edge-cases-access-and-data",
+          "name": "Cancel project rejects short reason (<5 chars) -> 400",
+          "passed": true,
+          "details": "HTTP 400"
+        },
+        {
+          "suite": "06-edge-cases-access-and-data",
+          "name": "Cancel project succeeds with valid reason",
+          "passed": true,
+          "details": "HTTP 200"
+        },
+        {
+          "suite": "06-edge-cases-access-and-data",
+          "name": "Cancelled project is read-only (creating task -> 400)",
+          "passed": true,
+          "details": "HTTP 400"
+        }
+      ],
+      "findings": [
+        {
+          "suite": "06-edge-cases-access-and-data",
+          "check": "Assigned manager can fetch project via GET /work-requests/:id",
+          "severity": "Medium",
+          "area": "API Access / Work Request Read",
+          "expected": "getWorkRequestById checks isCreator || isManager and should return the work request when an assigned manager calls it.",
+          "actual": "GET /work-requests/2994 returned HTTP 404 (Work request not found).",
+          "rootCause": "controller/workRequestController/workRequestController.js (getWorkRequestById lines 1031-1039) allows isManager past the auth check, then immediately queries workRequestService.getAll({ where: { id, user_id } }) using the caller id instead of omitting user_id.",
+          "observed": "HTTP 404 Work request not found"
+        },
+        {
+          "suite": "06-edge-cases-access-and-data",
+          "check": "GET /manager/assigned-work-requests/work-request/:id/tasks includes task status, task_count, start_date, end_date",
+          "severity": "Medium",
+          "area": "Missing Task Fields in API Response",
+          "expected": "Task list endpoint should include status, task_count, start_date, and end_date on each task.",
+          "actual": "Returned task keys only: id, task_name, deadline, requestType, taskType, dependencies, assignedUsers, issueAssignments.",
+          "rootCause": "controller/managerAssignedController/managerAssignedController.js (getTasksByWorkRequestId lines 2128, 2194-2207) selects only [id, task_name, deadline] and omits status, task_count, start_date, end_date, version.",
+          "observed": "keys=id,task_name,deadline,requestType,taskType,dependencies,assignedUsers,issueAssignments"
+        },
+        {
+          "suite": "06-edge-cases-access-and-data",
+          "check": "POST /issue-register/assignment blocks requesting changes on a task that has not been completed/submitted yet",
+          "severity": "Medium",
+          "area": "Workflow Guard (Changes on Unsubmitted Work)",
+          "expected": "Changes (V2+) should only be requested after a task has been completed/shared for review, not while still pending/unstarted.",
+          "actual": "POST /issue-register/assignment succeeded (HTTP 201) on a pending task.",
+          "rootCause": "controller/issueRegisterController/issueRegisterController.js (createIssueAssignment lines 174-180) only rejects tasks in [cancelled, rejected].",
+          "observed": "HTTP 201 id=1866"
+        },
+        {
+          "suite": "06-edge-cases-access-and-data",
+          "check": "When CM B reassigns their part of a multi-assignee task, Artist A assignment is not silently wiped out",
+          "severity": "Medium",
+          "area": "Multi-Assignee / Delegation",
+          "expected": "Reassigning by a delegated manager should replace only the delegating manager’s assignment, or multi-assignee delegation should be blocked cleanly.",
+          "actual": "POST /users/assign-task deleted ALL TaskAssignments for task #3796, silently removing Nikhil Nadkar and leaving only \"Mangesh Khale\".",
+          "rootCause": "controller/userController/userController.js (assignTaskToUser lines 735-738) executes TaskAssignments.destroy({ where: { task_id: taskId } }), wiping every existing assignee on the task.",
+          "observed": "assignHTTP=200 assigneesAfter=\"Mangesh Khale\""
+        },
+        {
+          "suite": "06-edge-cases-access-and-data",
+          "check": "POST /work-requests/pm-reject rejects impossible deadline 2026-02-31 with 400 (not 500)",
+          "severity": "Medium",
+          "area": "Date Validation (pm-reject)",
+          "expected": "pm-reject should validate deadline with parseDateOnly and return HTTP 400 for 2026-02-31.",
+          "actual": "POST /work-requests/pm-reject returned HTTP 500 ({\"success\":false,\"error\":\"Something went wrong. Please try again later.\",\"message\":\"Failed to reject task or issue by PM\"}).",
+          "rootCause": "controller/workRequestController/workRequestController.js (pmRejectTask line 2355) passes req.body.deadline unvalidated to IssueAssignments.create.",
+          "observed": "HTTP 500 {\"success\":false,\"error\":\"Something went wrong. Please try again later.\",\"message\":\"Failed to reject task or issue by PM\"}"
+        },
+        {
+          "suite": "06-edge-cases-access-and-data",
+          "check": "Duplicate pm-approve on already final_approved task is rejected (400/409)",
+          "severity": "Low",
+          "area": "Status Guard / Idempotency (pm-approve)",
+          "expected": "Calling pm-approve on a task that is already approved + final_approved should be rejected (or no-op without writing duplicate history).",
+          "actual": "Second pm-approve returned HTTP 200 and appended duplicate pm_approved / pm_approved_task history entries.",
+          "rootCause": "controller/workRequestController/workRequestController.js (pmApproveTask lines 1926-1938 and handleIssuePmApproval lines 2067-2073) checks only status === \"completed\" and not review_stage !== \"final_approved\".",
+          "observed": "HTTP 200"
+        },
+        {
+          "suite": "06-edge-cases-access-and-data",
+          "check": "Open project (with pending T_open) does not show a finished project_end_date in Admin Projects grid",
+          "severity": "Medium",
+          "area": "Admin Dashboard / Project End Date",
+          "expected": "While a project still has open/uncompleted tasks, project_end_date should be null/empty (just like fy=\"00\" and month=\"00\").",
+          "actual": "project_end_date showed \"2026-11-26\" (from T1) even though T_open is still pending and project status is \"accepted\".",
+          "rootCause": "controller/adminController.js (getAdminData lines 1553-1576) computes project_end_date as MAX(end_date) across tasks/changes without checking if any live task/change has end_date IS NULL (unlike fy and month).",
+          "observed": "status=accepted project_end_date=2026-11-26 fy=00 month=00"
+        }
+      ]
+    },
+    {
+      "suite": "07-visibility-filters-and-data",
+      "total": 36,
+      "passed": 30,
+      "failed": 6,
+      "durationMs": 3511,
+      "checks": [
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "Setup created all visibility test tasks",
+          "passed": true,
+          "details": "{\"tPend\":3798,\"tProg\":3799,\"tMgrRev\":3800,\"tPmRev\":3801,\"tOverdue\":3802,\"tCmASelfPend\":3803,\"tCmASelfProg\":3804,\"tCmBDelegSelf\":3805,\"tArtBDeleg\":3806}"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "Setup created 3 issue states (u_pending, in_progress, completed)",
+          "passed": true,
+          "details": "{\"iPend\":1867,\"iProg\":1868,\"iDone\":1869}"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "Artist A sees all 5 own tasks across statuses and does NOT see Artist B or CM A self tasks",
+          "passed": true,
+          "details": "ids=3801,3798,3800,3799,3802"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "Artist B sees only delegated Artist B task and not Artist A tasks",
+          "passed": true,
+          "details": "ids=3806"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "PMT cannot call GET /users/tasks (403)",
+          "passed": true,
+          "details": "HTTP 403"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "Artist A default GET /users/issues (no status filter) returns active/completed issues too (not hardcoded to u_pending only)",
+          "passed": false,
+          "details": "found u_pending=true, in_progress=false, completed=false, total=2"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "Artist A sees own/team in-progress work in GET /users/my-team",
+          "passed": true,
+          "details": "HTTP 200 count=13"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "CM A sees BOTH team tasks (Artist A) and own self-assigned tasks in GET /users/tasks",
+          "passed": true,
+          "details": "found=7 ids=3801,3798,3803,3804,3800,3799,3802"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "CM A GET /users/tasks?assigned_to=self returns ONLY CM A self-assigned tasks (excludes Artist A team tasks)",
+          "passed": true,
+          "details": "selfIds=3803,3804"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "CM A sees self-assigned tasks in GET /manager/assigned-work-requests/my-tasks (pending default & status=in_progress)",
+          "passed": true,
+          "details": "hasSelfPend=true hasSelfProg=true"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "Delegated manager (CM B) sees delegated self-assigned task in GET /users/tasks?assigned_to=self",
+          "passed": false,
+          "details": "allHasDeleg=true selfFilterHasDeleg=false"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "CM B sees delegated self-assigned task in GET /manager/assigned-work-requests/my-tasks",
+          "passed": true,
+          "details": "HTTP 200 found=true"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "GET /manager/assigned-work-requests/my-team returns only creative subordinates (not self) and respects pagination limit=1",
+          "passed": false,
+          "details": "returnedMembers=6 containsSelf=true hasPagination=false roles=4,2"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "GET /manager/assigned-work-requests/user/:user_id/tasks populates workRequest object on each task",
+          "passed": false,
+          "details": "HTTP 200 tasks=13 workRequest=null"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "Filter GET /users/tasks?status=pending returns only pending tasks",
+          "passed": true,
+          "details": "count=2 statuses=pending"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "Filter GET /users/tasks?status=in_progress returns only in_progress tasks",
+          "passed": true,
+          "details": "count=1 statuses=in_progress"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "Filter GET /users/tasks?status=completed returns only completed tasks (T_MgrRev & T_PmRev)",
+          "passed": true,
+          "details": "count=2"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "Filter GET /users/tasks?review_stages=manager_review returns T_MgrRev and excludes T_PmRev",
+          "passed": true,
+          "details": "ids=3800"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "Filter GET /users/tasks?review_stages=pm_review returns T_PmRev and excludes T_MgrRev",
+          "passed": true,
+          "details": "ids=3801"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "Combined filter GET /users/tasks?search=...&status=overdue preserves the search query (does not clobber Op.or)",
+          "passed": false,
+          "details": "returned=13 allMatchSearch=false names=WF7_1795706711710_ART_A_OVERDUE | Frontend - Carb Overload Calculator | Backend - Carb Overload Calculator"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "GET /users/tasks?page=1&limit=1 returns at most 1 task row cleanly",
+          "passed": true,
+          "details": "len1=1 lenAll=1 totalItems=undefined"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "Filter GET /users/issues?status=u_pending/in_progress/completed separates Artist A issues cleanly",
+          "passed": true,
+          "details": "u_pending=2(has=true) in_progress=2(has=true) completed=12(has=true)"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "GET /users/issues supports pagination metadata (limit/page)",
+          "passed": false,
+          "details": "hasPagination=false lenPend=2 lenProg=2"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "PMT GET /work-requests/my-requests filters by search + status=accepted",
+          "passed": true,
+          "details": "HTTP 200 count=1"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "PMT GET /work-requests/my-requests?status=completed excludes open accepted project",
+          "passed": true,
+          "details": "HTTP 200 count=0"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "PMT GET /work-requests/my-requests?artist_id=... finds project assigned to Artist A",
+          "passed": true,
+          "details": "HTTP 200 count=1"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "PMT GET /work-requests/my-requests?artist_id=999999 returns 0 projects cleanly (no 500)",
+          "passed": true,
+          "details": "HTTP 200 count=0"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "CM A GET /manager/assigned-work-requests?status=accepted&search=... returns WR cleanly",
+          "passed": true,
+          "details": "HTTP 200 count=1"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "CM A GET /manager/assigned-work-requests/requests?status=accepted works cleanly",
+          "passed": true,
+          "details": "HTTP 200 count=20"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "CM A GET /manager/assigned-work-requests/issue-assignments?status=in_progress finds I_Prog and excludes I_Pend/I_Done",
+          "passed": true,
+          "details": "HTTP 200 count=4"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "PMT GET /issue-register/assignments?task_id=... returns all 3 V2 issues for task",
+          "passed": true,
+          "details": "HTTP 200 groups=1 issueIds=1867,1868,1869"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "Linked project API returns complete, well-formed project/task/issue data",
+          "passed": true,
+          "details": "tasks=9 changesOnPmRev=3 bad=[]"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "Admin projectsdetails grid shows accurate aggregated counts & non-null metadata for WR",
+          "passed": true,
+          "details": "{\"http\":200,\"tasks\":9,\"taskPages\":\"5\",\"issuePages\":\"2\"}"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "Admin taskdetails grid returns WF7 tasks with manager, creative user, count, and dates",
+          "passed": true,
+          "details": "{\"http\":200,\"rows\":9,\"pmRevUser\":\"Nikhil Nadkar\",\"pmRevPages\":3,\"delegMgr\":\"Bhagwan Parab\"}"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "Admin issuedetails grid returns WF7 issues with non-null task_manager, version, task_count, and dates",
+          "passed": true,
+          "details": "{\"http\":200,\"rows\":3,\"donePages\":2,\"start\":\"2026-11-26\",\"end\":\"2026-11-26\",\"ver\":\"V2\",\"mgr\":\"Kiran Thekootu, Mohanish Mohan Padwal\",\"cu\":\"Nikhil Nadkar\"}"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "name": "Admin overview dashboard data loads without 500 or missing KPI object",
+          "passed": true,
+          "details": "HTTP 200 keys=range,scope,work_requests,tasks,changes,clients"
+        }
+      ],
+      "findings": [
+        {
+          "suite": "07-visibility-filters-and-data",
+          "check": "Artist A default GET /users/issues (no status filter) returns active/completed issues too (not hardcoded to u_pending only)",
+          "severity": "High",
+          "area": "User Issue Visibility / Default Filter",
+          "expected": "Calling GET /users/issues without a ?status= filter should return the user’s assigned issues across active/completed statuses, not silently hide accepted/in_progress/completed items.",
+          "actual": "Default GET /users/issues returned u_pending=true, in_progress=false, completed=false (total=2) because it forces status=\"u_pending\" when status is omitted.",
+          "rootCause": "controller/userController/userController.js (getAssignedIssues line 2121): `else { whereCondition.status = \"u_pending\"; }` hides u_accepted, in_progress, and completed issues unless status is passed explicitly.",
+          "observed": "found u_pending=true, in_progress=false, completed=false, total=2"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "check": "Delegated manager (CM B) sees delegated self-assigned task in GET /users/tasks?assigned_to=self",
+          "severity": "High",
+          "area": "Manager Self Tasks / Delegated Task Filter",
+          "expected": "When CM B is directly assigned a delegated task on CM A’s project, ?assigned_to=self should still return that task alongside CM B’s own projects.",
+          "actual": "allHasDeleg=true, selfFilterHasDeleg=false.",
+          "rootCause": "controller/userController/userController.js (getAssignedTasks lines 53-63, 224-226): assigned_to=self queries WorkRequestManagers and applies work_request_id IN selfWorkRequestIds, filtering out delegated tasks on projects managed by another manager.",
+          "observed": "allHasDeleg=true selfFilterHasDeleg=false"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "check": "GET /manager/assigned-work-requests/my-team returns only creative subordinates (not self) and respects pagination limit=1",
+          "severity": "Low",
+          "area": "Manager My-Team Endpoint / Pagination & Role Filtering",
+          "expected": "my-team should exclude the manager themselves, list creative subordinates only (roles 3/4), and honor paginationMiddleware limit/page.",
+          "actual": "Returned 6 members for limit=1; containsManagerSelf=true; pagination=undefined.",
+          "rootCause": "controller/managerAssignedController/managerAssignedController.js (getMyTeam lines 2504-2508) has id != manager_id and job_role_id IN [3,4] commented out, and the handler never applies req.pagination.",
+          "observed": "returnedMembers=6 containsSelf=true hasPagination=false roles=4,2"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "check": "GET /manager/assigned-work-requests/user/:user_id/tasks populates workRequest object on each task",
+          "severity": "Medium",
+          "area": "Manager Team Member Tasks / Broken Association Mapping",
+          "expected": "getUserTask should include workRequest project metadata (id, project_name, brand, status) on every task.",
+          "actual": "workRequest is null on returned task(s) (13 tasks checked).",
+          "rootCause": "controller/managerAssignedController/managerAssignedController.js (getUserTask lines 3261-3275, 3369-3374) reads taskData.WorkRequests (plural) instead of Sequelize’s taskData.WorkRequest (singular).",
+          "observed": "HTTP 200 tasks=13 workRequest=null"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "check": "Combined filter GET /users/tasks?search=...&status=overdue preserves the search query (does not clobber Op.or)",
+          "severity": "High",
+          "area": "Task Filters / Search + Overdue Clobber",
+          "expected": "Passing ?search=... together with ?status=overdue should AND both conditions (overdue tasks matching the search term).",
+          "actual": "Returned 13 tasks and allMatchSearch=false because status=overdue overwrites whereCondition[Op.or] created by searchMiddleware.",
+          "rootCause": "controller/userController/userController.js (getAssignedTasks lines 124-177, 210-219) sets whereCondition[Op.or] for search, then status===\"overdue\" reassigns whereCondition[Op.or] instead of pushing into Op.and.",
+          "observed": "returned=13 allMatchSearch=false names=WF7_1795706711710_ART_A_OVERDUE | Frontend - Carb Overload Calculator | Backend - Carb Overload Calculator"
+        },
+        {
+          "suite": "07-visibility-filters-and-data",
+          "check": "GET /users/issues supports pagination metadata (limit/page)",
+          "severity": "Low",
+          "area": "User Issues Pagination & Search",
+          "expected": "GET /users/issues mounts paginationMiddleware, so it should slice by limit/offset and return pagination metadata (plus support search).",
+          "actual": "pagination field is undefined and IssueAssignments.findAll ignores req.pagination (returned 2 rows for limit=1); searchMiddleware is also not mounted.",
+          "rootCause": "controller/userController/userController.js (getAssignedIssues lines 2125, 2313-2318) ignores req.pagination and never returns pagination; routes/userRoutes/userRoutes.js line 39 omits filterMiddleware and searchMiddleware.",
+          "observed": "hasPagination=false lenPend=2 lenProg=2"
+        }
+      ]
+    },
+    {
+      "suite": "08-logs-and-email-audit",
+      "total": 13,
+      "passed": 6,
+      "failed": 7,
+      "durationMs": 2102,
+      "checks": [
+        {
+          "suite": "08-logs-and-email-audit",
+          "name": "PMT updates pending work request",
+          "passed": true,
+          "details": "HTTP 200"
+        },
+        {
+          "suite": "08-logs-and-email-audit",
+          "name": "Work request \"resubmitted/updated\" history entry preserves old description & priority in previous_data (not post-update value)",
+          "passed": false,
+          "details": "action=resubmitted prevDesc=\"Updated description 1795706715270\" prevPrio=\"high\""
+        },
+        {
+          "suite": "08-logs-and-email-audit",
+          "name": "Deleted task retains accessible task_history with action=deleted and previous_status -> new_status transition",
+          "passed": false,
+          "details": "HTTP 200 rows=2 delEntry={\"action\":\"deleted\",\"prev\":null,\"next\":null}"
+        },
+        {
+          "suite": "08-logs-and-email-audit",
+          "name": "Task history on pm-approve logs accurate previous_review_stage=\"pm_review\" (not overwritten with \"final_approved\")",
+          "passed": false,
+          "details": "action=pm_approved prevReview=approved -> newReview=approved | prevStage=final_approved -> newStage=final_approved"
+        },
+        {
+          "suite": "08-logs-and-email-audit",
+          "name": "Both user and manager task history endpoints return full lifecycle actions on T1",
+          "passed": true,
+          "details": "userRows=8 mgrRows=8 actions=manager_approved,shared_for_client_review,pm_rejected,created,accepted,submitted,manager_change_requested,submitted"
+        },
+        {
+          "suite": "08-logs-and-email-audit",
+          "name": "Manager rework task_history entry has consistent new_review vs changes.review (no contradictory state)",
+          "passed": false,
+          "details": "new_review=pending changes={\"review\":\"change_request\",\"review_stage\":\"manager_review\",\"status\":\"in_progress\"}"
+        },
+        {
+          "suite": "08-logs-and-email-audit",
+          "name": "Task history on pm-reject logs previous_status=\"completed\" and previous_review_stage=\"pm_review\" (not post-update values)",
+          "passed": false,
+          "details": "action=pm_rejected prevStatus=in_progress newStatus=in_progress prevStage=change_requested newStage=change_requested"
+        },
+        {
+          "suite": "08-logs-and-email-audit",
+          "name": "Both user and manager issue history endpoints record V2 lifecycle steps",
+          "passed": true,
+          "details": "userRows=7 mgrRows=7"
+        },
+        {
+          "suite": "08-logs-and-email-audit",
+          "name": "issue-register/assignment with issue_id only logs non-null task_id in issue_history (derived from rootTaskId)",
+          "passed": false,
+          "details": "v3Id=1871 task_id=null expectedTaskId=3807 prevStage=null"
+        },
+        {
+          "suite": "08-logs-and-email-audit",
+          "name": "POST /manager/assigned-work-requests/share-for-client-review exposes email_sent status cleanly",
+          "passed": true,
+          "details": "HTTP 200 email_sent=true email_error=undefined"
+        },
+        {
+          "suite": "08-logs-and-email-audit",
+          "name": "POST /manager/assigned-work-requests/assign-issue-to-user returns delivery result (or non-error email metadata)",
+          "passed": true,
+          "details": "HTTP 200 email_sent=true"
+        },
+        {
+          "suite": "08-logs-and-email-audit",
+          "name": "Project cancellation writes cancelled audit history row and reports email_status",
+          "passed": true,
+          "details": "cancelHTTP=200 histAction=cancelled email_status=queued"
+        },
+        {
+          "suite": "08-logs-and-email-audit",
+          "name": "System tracks email delivery status / audit logs (who received mail & when) across workflow steps including pm-approve/pm-reject",
+          "passed": false,
+          "details": "mailLogsHTTP=404 pmApproveEmailField=undefined pmRejectEmailField=undefined assignEmailField=undefined cancelEmailStatus=queued"
+        }
+      ],
+      "findings": [
+        {
+          "suite": "08-logs-and-email-audit",
+          "check": "Work request \"resubmitted/updated\" history entry preserves old description & priority in previous_data (not post-update value)",
+          "severity": "Low",
+          "area": "Audit Log Integrity / Work Request Update History",
+          "expected": "When a PMT updates a work request, work_request_history.previous_data should capture description & priority BEFORE update.",
+          "actual": "previous_data captured \"Updated description 1795706715270\" / priority=\"high\" (already mutated to new values).",
+          "rootCause": "controller/workRequestController/workRequestController.js (updateWorkRequest line 495 calls await workRequest.update(updateData) before line 661 recordWorkRequestHistory({ previousData: workRequest })).",
+          "observed": "action=resubmitted prevDesc=\"Updated description 1795706715270\" prevPrio=\"high\""
+        },
+        {
+          "suite": "08-logs-and-email-audit",
+          "check": "Deleted task retains accessible task_history with action=deleted and previous_status -> new_status transition",
+          "severity": "Low",
+          "area": "Audit Log Completeness / Task Delete History",
+          "expected": "Soft-deleting a task should preserve/record task_history with previousStatus, newStatus (\"deleted\" or previous), and child issue delete logs.",
+          "actual": "HTTP 200, deletedEntry={\"id\":12492,\"task_id\":3809,\"work_request_id\":2996,\"action\":\"deleted\",\"actor_id\":21,\"actor_type\":\"manager\",\"actor_name\":\"Kiran Thekootu\",\"actor_email\":\"kiran.thekootu@alembic.co.in\",\"previous_status\":null,\"new_status\":null,\"previous_review\":null,\"new_review\":null,\"previous_review_stage\":null,\"new_review_stage\":null,\"previous_data\":\"{\\\"id\\\":3809,\\\"task_name\\\":\\\"WF8_1795706715270_TDEL\\\",\\\"description\\\":\\\"Delete log check\\\",\\\"request_type_id\\\":4,\\\"task_type_id\\\":74,\\\"work_request_id\\\":2996,\\\"deadline\\\":\\\"2026-12-03\\\",\\\"status\\\":\\\"pending\\\",\\\"version\\\":\\\"V1\\\",\\\"review\\\":\\\"pending\\\",\\\"review_stage\\\":\\\"not_started\\\",\\\"assignment_type\\\":\\\"new\\\",\\\"intimate_team\\\":1,\\\"intimate_client\\\":0,\\\"shared_with_client_at\\\":null,\\\"task_count\\\":0,\\\"link\\\":null,\\\"start_date\\\":null,\\\"end_date\\\":null,\\\"no_of_options_provided\\\":0,\\\"no_of_words_written\\\":0,\\\"options_submitted\\\":0,\\\"concept_work\\\":0,\\\"resize_work\\\":0,\\\"no_of_concepts\\\":0,\\\"duration_minutes\\\":0,\\\"duration_seconds\\\":0,\\\"product_shoot\\\":0,\\\"no_of_products_shot\\\":0,\\\"shoot_setup\\\":0,\\\"no_of_resize\\\":0,\\\"responsive_screen\\\":0,\\\"no_of_responsive_screen\\\":0,\\\"created_at\\\":\\\"2026-11-26 20:55:15\\\",\\\"updated_at\\\":\\\"2026-11-26 20:55:15\\\",\\\"no_of_images_videos_audio\\\":0,\\\"comments\\\":null,\\\"notification_alert\\\":1,\\\"is_deleted\\\":0,\\\"WorkRequest\\\":{\\\"id\\\":2996,\\\"user_id\\\":68,\\\"project_name\\\":\\\"TEST_WF8_LOGS_1795706715270\\\",\\\"brand\\\":\\\"UAT-LogsMail\\\",\\\"request_type_id\\\":4,\\\"project_id\\\":20,\\\"description\\\":\\\"Updated description 1795706715270\\\",\\\"about_project\\\":\\\"{\\\\\\\"output_devices\\\\\\\":[\\\\\\\"Desktop\\\\\\\"],\\\\\\\"target_audience\\\\\\\":[\\\\\\\"Doctors\\\\\\\"]}\\\",\\\"priority\\\":\\\"high\\\",\\\"status\\\":\\\"accepted\\\",\\\"requested_at\\\":\\\"2026-11-26 20:55:15\\\",\\\"remarks\\\":null,\\\"notification_alert\\\":1,\\\"is_deleted\\\":0,\\\"created_at\\\":\\\"2026-11-26 20:55:15\\\",\\\"updated_at\\\":\\\"2026-11-26 20:55:15\\\"}}\",\"changes\":\"{\\\"id\\\":{\\\"before\\\":3809,\\\"after\\\":null},\\\"task_name\\\":{\\\"before\\\":\\\"WF8_1795706715270_TDEL\\\",\\\"after\\\":null},\\\"description\\\":{\\\"before\\\":\\\"Delete log check\\\",\\\"after\\\":null},\\\"request_type_id\\\":{\\\"before\\\":4,\\\"after\\\":null},\\\"task_type_id\\\":{\\\"before\\\":74,\\\"after\\\":null},\\\"work_request_id\\\":{\\\"before\\\":2996,\\\"after\\\":null},\\\"deadline\\\":{\\\"before\\\":\\\"2026-12-03\\\",\\\"after\\\":null},\\\"status\\\":{\\\"before\\\":\\\"pending\\\",\\\"after\\\":null},\\\"version\\\":{\\\"before\\\":\\\"V1\\\",\\\"after\\\":null},\\\"review\\\":{\\\"before\\\":\\\"pending\\\",\\\"after\\\":null},\\\"review_stage\\\":{\\\"before\\\":\\\"not_started\\\",\\\"after\\\":null},\\\"assignment_type\\\":{\\\"before\\\":\\\"new\\\",\\\"after\\\":null},\\\"intimate_team\\\":{\\\"before\\\":1,\\\"after\\\":null},\\\"intimate_client\\\":{\\\"before\\\":0,\\\"after\\\":null},\\\"shared_with_client_at\\\":{\\\"before\\\":null,\\\"after\\\":null},\\\"task_count\\\":{\\\"before\\\":0,\\\"after\\\":null},\\\"link\\\":{\\\"before\\\":null,\\\"after\\\":null},\\\"start_date\\\":{\\\"before\\\":null,\\\"after\\\":null},\\\"end_date\\\":{\\\"before\\\":null,\\\"after\\\":null},\\\"no_of_options_provided\\\":{\\\"before\\\":0,\\\"after\\\":null},\\\"no_of_words_written\\\":{\\\"before\\\":0,\\\"after\\\":null},\\\"options_submitted\\\":{\\\"before\\\":0,\\\"after\\\":null},\\\"concept_work\\\":{\\\"before\\\":0,\\\"after\\\":null},\\\"resize_work\\\":{\\\"before\\\":0,\\\"after\\\":null},\\\"no_of_concepts\\\":{\\\"before\\\":0,\\\"after\\\":null},\\\"duration_minutes\\\":{\\\"before\\\":0,\\\"after\\\":null},\\\"duration_seconds\\\":{\\\"before\\\":0,\\\"after\\\":null},\\\"product_shoot\\\":{\\\"before\\\":0,\\\"after\\\":null},\\\"no_of_products_shot\\\":{\\\"before\\\":0,\\\"after\\\":null},\\\"shoot_setup\\\":{\\\"before\\\":0,\\\"after\\\":null},\\\"no_of_resize\\\":{\\\"before\\\":0,\\\"after\\\":null},\\\"responsive_screen\\\":{\\\"before\\\":0,\\\"after\\\":null},\\\"no_of_responsive_screen\\\":{\\\"before\\\":0,\\\"after\\\":null},\\\"created_at\\\":{\\\"before\\\":\\\"2026-11-26 20:55:15\\\",\\\"after\\\":null},\\\"updated_at\\\":{\\\"before\\\":\\\"2026-11-26 20:55:15\\\",\\\"after\\\":null},\\\"no_of_images_videos_audio\\\":{\\\"before\\\":0,\\\"after\\\":null},\\\"comments\\\":{\\\"before\\\":null,\\\"after\\\":null},\\\"notification_alert\\\":{\\\"before\\\":1,\\\"after\\\":null},\\\"is_deleted\\\":{\\\"before\\\":0,\\\"after\\\":null},\\\"WorkRequest\\\":{\\\"before\\\":{\\\"id\\\":2996,\\\"user_id\\\":68,\\\"project_name\\\":\\\"TEST_WF8_LOGS_1795706715270\\\",\\\"brand\\\":\\\"UAT-LogsMail\\\",\\\"request_type_id\\\":4,\\\"project_id\\\":20,\\\"description\\\":\\\"Updated description 1795706715270\\\",\\\"about_project\\\":\\\"{\\\\\\\"output_devices\\\\\\\":[\\\\\\\"Desktop\\\\\\\"],\\\\\\\"target_audience\\\\\\\":[\\\\\\\"Doctors\\\\\\\"]}\\\",\\\"priority\\\":\\\"high\\\",\\\"status\\\":\\\"accepted\\\",\\\"requested_at\\\":\\\"2026-11-26 20:55:15\\\",\\\"remarks\\\":null,\\\"notification_alert\\\":1,\\\"is_deleted\\\":0,\\\"created_at\\\":\\\"2026-11-26 20:55:15\\\",\\\"updated_at\\\":\\\"2026-11-26 20:55:15\\\"},\\\"after\\\":null}}\",\"next_data\":null,\"comments\":\"Task soft deleted by manager\",\"related_user_id\":null,\"related_user_name\":null,\"assigned_to_user_id\":null,\"assigned_to_user_name\":null,\"related_issue_id\":null,\"created_at\":\"2026-11-26 20:55:15\",\"updated_at\":\"2026-11-26 20:55:15\"}.",
+          "rootCause": "controller/managerAssignedController/managerAssignedController.js (deleteTask lines 2905-2920) logs task_history without nextData/newStatus and does not write any issue_history entries for soft-deleted child issues.",
+          "observed": "HTTP 200 rows=2 delEntry={\"action\":\"deleted\",\"prev\":null,\"next\":null}"
+        },
+        {
+          "suite": "08-logs-and-email-audit",
+          "check": "Task history on pm-approve logs accurate previous_review_stage=\"pm_review\" (not overwritten with \"final_approved\")",
+          "severity": "Medium",
+          "area": "Audit Log Integrity / PM Approve History",
+          "expected": "When PMT approves a task, task_history should record previous_review_stage=\"pm_review\" and new_review_stage=\"final_approved\".",
+          "actual": "previous_review_stage was logged as \"final_approved\" (same as new_review_stage=\"final_approved\").",
+          "rootCause": "controller/workRequestController/workRequestController.js (pmApproveTask lines 1934 vs 1965-1985) calls await task.update(...) BEFORE recordTaskHistory, mutating task.review and task.review_stage in place first.",
+          "observed": "action=pm_approved prevReview=approved -> newReview=approved | prevStage=final_approved -> newStage=final_approved"
+        },
+        {
+          "suite": "08-logs-and-email-audit",
+          "check": "Manager rework task_history entry has consistent new_review vs changes.review (no contradictory state)",
+          "severity": "Low",
+          "area": "Audit Log Consistency / Manager Rework",
+          "expected": "Task history and TaskReviewHistory should agree on whether review state became \"change_request\" or \"pending\".",
+          "actual": "task_history logged new_review=\"pending\" while changes.review=\"change_request\" (and TaskReviewHistory logs action=\"change_request\").",
+          "rootCause": "controller/managerAssignedController/managerAssignedController.js (reviewTask lines 4027, 4062, 4121) updates task.review to \"pending\" while logging changes.review=\"change_request\".",
+          "observed": "new_review=pending changes={\"review\":\"change_request\",\"review_stage\":\"manager_review\",\"status\":\"in_progress\"}"
+        },
+        {
+          "suite": "08-logs-and-email-audit",
+          "check": "Task history on pm-reject logs previous_status=\"completed\" and previous_review_stage=\"pm_review\" (not post-update values)",
+          "severity": "Medium",
+          "area": "Audit Log Integrity / PM Reject History",
+          "expected": "When pm-reject moves a task from completed/pm_review to in_progress/change_requested, task_history should record previous_status=\"completed\" and previous_review_stage=\"pm_review\".",
+          "actual": "previous_status was logged as \"in_progress\" and previous_review_stage as \"change_requested\".",
+          "rootCause": "controller/workRequestController/workRequestController.js (pmRejectTask lines 2415 vs 2429-2471) calls await task.update(nextTaskData) BEFORE recordTaskHistory, mutating task properties before logging previous values.",
+          "observed": "action=pm_rejected prevStatus=in_progress newStatus=in_progress prevStage=change_requested newStage=change_requested"
+        },
+        {
+          "suite": "08-logs-and-email-audit",
+          "check": "issue-register/assignment with issue_id only logs non-null task_id in issue_history (derived from rootTaskId)",
+          "severity": "Medium",
+          "area": "Audit Log Integrity / Issue Register Chained History",
+          "expected": "When creating V3 with only issue_id (no task_id in body), issue_history.task_id and work_request_history.related_task_id should log the resolved rootTaskId.",
+          "actual": "issue_history.task_id=null (expected 3807) and previous_review_stage=\"null\".",
+          "rootCause": "controller/issueRegisterController/issueRegisterController.js (createIssueAssignment lines 263, 278, 294-297) reads req.body.task_id || null instead of rootTaskId and hardcodes previousReview=\"pending\" / previousReviewStage=\"final_approved\".",
+          "observed": "v3Id=1871 task_id=null expectedTaskId=3807 prevStage=null"
+        },
+        {
+          "suite": "08-logs-and-email-audit",
+          "check": "System tracks email delivery status / audit logs (who received mail & when) across workflow steps including pm-approve/pm-reject",
+          "severity": "High",
+          "area": "Email Tracking & Workflow Mail Gaps",
+          "expected": "Workflow steps (pm-approve, pm-reject, project auto-complete, issue-register creation) should trigger notifications to the right recipients AND record an email audit log (recipient, template, status, timestamp).",
+          "actual": "No mail audit endpoint/table exists (console-only BullMQ logs), and pm-approve, pm-reject, updateWorkRequest, createIssueAssignment, and workRequestCompletionService auto-completion send zero emails.",
+          "rootCause": "services/mailService.js logs only to console with zero DB persistence; pmApproveTask, handleIssuePmApproval, pmRejectTask, createIssueAssignment, and workRequestCompletionService never call sendMail (and submitIssue sends manager template to PMT while submitTask emails only WorkRequestManagers[0]).",
+          "observed": "mailLogsHTTP=404 pmApproveEmailField=undefined pmRejectEmailField=undefined assignEmailField=undefined cancelEmailStatus=queued"
+        }
+      ]
+    }
+  ]
+}
