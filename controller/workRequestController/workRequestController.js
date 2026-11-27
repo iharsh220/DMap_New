@@ -2351,6 +2351,19 @@ const pmRejectTask = async (req, res) => {
             return res.status(400).json({ success: false, error: changeDates.error });
         }
 
+        const hasDeadline = deadline !== undefined && deadline !== null && String(deadline).trim() !== '';
+        const parsedDeadline = hasDeadline ? parseDateOnly(deadline) : null;
+        if (hasDeadline && !parsedDeadline) {
+            return res.status(400).json({ success: false, error: 'Invalid deadline. Use YYYY-MM-DD format.' });
+        }
+
+        const requestedVersion = req.body.version !== undefined && req.body.version !== null ? String(req.body.version).trim() : '';
+        if (requestedVersion !== '') {
+            if (!/^V\d+$/i.test(requestedVersion) || parseInt(requestedVersion.slice(1), 10) < 2) {
+                return res.status(400).json({ success: false, error: 'Change requests must be version V2 or higher' });
+            }
+        }
+
         const createChangeRequestIssue = async (targetTaskId, parentIssueId) => {
             // Version rule (owner): the task itself is V1, its first change V2, the next V3, ... for the
             // whole task, also for a change requested on a change (before: V1 every time, UAT ISSUES #1)
@@ -2366,9 +2379,9 @@ const pmRejectTask = async (req, res) => {
                 requested_by_user_id: manager.id,
                 assignment_type: 'mod',
                 // the version sent by the frontend (V2, V3, ...) wins; otherwise the next one of the task
-                version: /^V\d+$/i.test(String(req.body.version || '').trim()) ? String(req.body.version).trim().toUpperCase() : `V${versionCount + 1}`,
+                version: requestedVersion ? requestedVersion.toUpperCase() : `V${versionCount + 1}`,
                 description: issue_description || comments || 'PM change request',
-                deadline,
+                deadline: parsedDeadline,
                 start_date: changeDates.start,
                 end_date: changeDates.end,
                 link,
@@ -2402,7 +2415,7 @@ const pmRejectTask = async (req, res) => {
                 include: [
                     {
                         model: WorkRequests,
-                        attributes: ['id', 'project_name', 'brand', 'user_id']
+                        attributes: ['id', 'project_name', 'brand', 'user_id', 'status']
                     }
                 ]
             });
@@ -2419,9 +2432,11 @@ const pmRejectTask = async (req, res) => {
                 return res.status(400).json({ success: false, error: 'Task is not marked for client review (intimate_client must be 1)' });
             }
 
+            const taskBefore = task.toJSON();
             const changeRequestIssue = await createChangeRequestIssue(taskId, null);
             const nextTaskData = {
                 status: 'in_progress',
+                end_date: null,
                 review: 'change_request',
                 review_stage: 'change_requested',
                 notification_alert: 1,
@@ -2432,13 +2447,30 @@ const pmRejectTask = async (req, res) => {
                 ...nextTaskData
             });
 
+            if (task.WorkRequest.status === 'completed') {
+                await WorkRequests.update(
+                    { status: 'in_progress' },
+                    { where: { id: task.work_request_id, status: 'completed' } }
+                );
+                await recordWorkRequestHistory({
+                    req,
+                    workRequestId: task.work_request_id,
+                    action: 'reopened',
+                    previousStatus: 'completed',
+                    newStatus: 'in_progress',
+                    relatedTaskId: taskId,
+                    relatedIssueId: changeRequestIssue.id,
+                    comments: 'Work request re-opened: PM requested changes on task'
+                });
+            }
+
             await TaskReviewHistory.create({
                 task_id: taskId,
                 reviewer_id: manager.id,
                 reviewer_type: 'project_manager',
                 action: 'change_request',
                 comments: comments || 'PM rejected task and created change request issue',
-                previous_stage: task.review_stage || 'pm_review',
+                previous_stage: taskBefore.review_stage || 'pm_review',
                 new_stage: 'change_requested'
             });
 
@@ -2447,13 +2479,13 @@ const pmRejectTask = async (req, res) => {
                 taskId,
                 workRequestId: task.work_request_id,
                 action: 'pm_rejected',
-                previousData: task,
+                previousData: taskBefore,
                 nextData: nextTaskData,
-                previousStatus: task.status,
+                previousStatus: taskBefore.status,
                 newStatus: 'in_progress',
-                previousReview: task.review,
+                previousReview: taskBefore.review,
                 newReview: 'change_request',
-                previousReviewStage: task.review_stage,
+                previousReviewStage: taskBefore.review_stage,
                 newReviewStage: 'change_requested',
                 comments: comments || 'PM rejected task and created change request issue',
                 relatedIssueId: changeRequestIssue.id
@@ -2475,11 +2507,11 @@ const pmRejectTask = async (req, res) => {
                 req,
                 workRequestId: task.work_request_id,
                 action: 'pm_rejected_task',
-                previousStatus: task.status,
+                previousStatus: taskBefore.status,
                 newStatus: 'in_progress',
-                previousReview: task.review,
+                previousReview: taskBefore.review,
                 newReview: 'change_request',
-                previousReviewStage: task.review_stage,
+                previousReviewStage: taskBefore.review_stage,
                 newReviewStage: 'change_requested',
                 relatedTaskId: taskId,
                 relatedIssueId: changeRequestIssue.id,
@@ -2509,7 +2541,7 @@ const pmRejectTask = async (req, res) => {
                     as: 'task',
                     attributes: ['id', 'task_name', 'work_request_id'],
                     include: [
-                        { model: WorkRequests, attributes: ['id', 'project_name', 'brand', 'user_id'] }
+                        { model: WorkRequests, attributes: ['id', 'project_name', 'brand', 'user_id', 'status'] }
                     ]
                 }
             ]
@@ -2528,9 +2560,11 @@ const pmRejectTask = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Issue is not marked for client review (intimate_client must be 1)' });
         }
 
+        const issueBefore = issueAssignment.toJSON();
         const changeRequestIssue = await createChangeRequestIssue(issueAssignment.task_id, issueId);
         const nextIssueData = {
             status: 'in_progress',
+            end_date: null,
             review: 'change_request',
             review_stage: 'change_requested',
             notification_alert: 1,
@@ -2538,6 +2572,23 @@ const pmRejectTask = async (req, res) => {
         };
 
         await issueAssignment.update(nextIssueData);
+
+        if (issueWorkRequest.status === 'completed') {
+            await WorkRequests.update(
+                { status: 'in_progress' },
+                { where: { id: issueWorkRequest.id, status: 'completed' } }
+            );
+            await recordWorkRequestHistory({
+                req,
+                workRequestId: issueWorkRequest.id,
+                action: 'reopened',
+                previousStatus: 'completed',
+                newStatus: 'in_progress',
+                relatedTaskId: issueAssignment.task_id,
+                relatedIssueId: changeRequestIssue.id,
+                comments: 'Work request re-opened: PM requested changes on issue'
+            });
+        }
 
         if (issueAssignment.issue_id) {
             await IssueAssignments.update(
@@ -2553,7 +2604,7 @@ const pmRejectTask = async (req, res) => {
                 reviewer_type: 'project_manager',
                 action: 'change_request',
                 comments: comments || 'PM rejected issue and created change request issue',
-                previous_stage: issueAssignment.review_stage || 'pm_review',
+                previous_stage: issueBefore.review_stage || 'pm_review',
                 new_stage: 'change_requested'
             });
         }
@@ -2564,13 +2615,13 @@ const pmRejectTask = async (req, res) => {
             taskId: issueAssignment.task_id,
             workRequestId: issueAssignment.task?.work_request_id,
             action: 'pm_rejected',
-            previousData: issueAssignment,
+            previousData: issueBefore,
             nextData: nextIssueData,
-            previousStatus: issueAssignment.status,
+            previousStatus: issueBefore.status,
             newStatus: 'in_progress',
-            previousReview: issueAssignment.review,
+            previousReview: issueBefore.review,
             newReview: 'change_request',
-            previousReviewStage: issueAssignment.review_stage,
+            previousReviewStage: issueBefore.review_stage,
             newReviewStage: 'change_requested',
             comments: comments || 'PM rejected issue and created change request issue',
             relatedIssueId: changeRequestIssue.id
@@ -2593,11 +2644,11 @@ const pmRejectTask = async (req, res) => {
             req,
             workRequestId: issueAssignment.task?.work_request_id,
             action: 'pm_rejected_issue',
-            previousStatus: issueAssignment.status,
+            previousStatus: issueBefore.status,
             newStatus: 'in_progress',
-            previousReview: issueAssignment.review,
+            previousReview: issueBefore.review,
             newReview: 'change_request',
-            previousReviewStage: issueAssignment.review_stage,
+            previousReviewStage: issueBefore.review_stage,
             newReviewStage: 'change_requested',
             relatedTaskId: issueAssignment.task_id,
             relatedIssueId: issueId,

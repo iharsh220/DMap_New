@@ -27,13 +27,42 @@ const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
 const { recordTaskHistory, recordIssueHistory, recordWorkRequestHistory, getTaskHistory: getTaskHistoryRecords, getIssueHistory: getIssueHistoryRecords } = require('../../services/historyService');
 const { sequelize } = require('../../config/databaseConfig');
-const { canDelegateTask, assignTargetError, isTaskManager, canViewWorkRequest, workRequestIdForTask, workRequestIdForIssue } = require('../../services/accessService');
+const { canDelegateTask, assignTargetError, isTaskManager, canViewWorkRequest, workRequestIdForTask, workRequestIdForIssue, sharesDivision } = require('../../services/accessService');
 const { pickModelFilters, pickModelFields } = require('../../utils/queryFilters');
 const { startWorkRequestIfNeeded } = require('../../services/workRequestCompletionService');
 const { parseId, parseDateOnly, todayDateOnly, safePathSegment, parsePageCount, parseSubmitEndDate } = require('../../utils/validators');
 const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
+
+// Resolve unique manager contacts (delegated task handler first, then work request managers)
+const getTaskManagerContacts = async (taskId, workRequest) => {
+    const byEmail = new Map();
+    if (taskId) {
+        try {
+            const delegatedManagers = await sequelize.query(
+                `SELECT u.id, u.name, u.email
+                 FROM task_history th
+                 JOIN users u ON u.id = th.actor_id AND u.job_role_id IN (2, 3) AND u.account_status = 'active'
+                 WHERE th.task_id = :taskId AND th.action = 'assigned' AND u.email IS NOT NULL AND u.email <> ''
+                 ORDER BY th.created_at DESC`,
+                { replacements: { taskId }, type: sequelize.QueryTypes.SELECT }
+            );
+            for (const m of delegatedManagers) {
+                if (m && m.email && !byEmail.has(m.email)) byEmail.set(m.email, m);
+            }
+        } catch (e) {
+            // Fall back to WorkRequestManagers below if history lookup fails
+        }
+    }
+    for (const wrm of (workRequest?.WorkRequestManagers || [])) {
+        const mgr = wrm.manager;
+        if (mgr?.email && !byEmail.has(mgr.email)) {
+            byEmail.set(mgr.email, mgr);
+        }
+    }
+    return Array.from(byEmail.values());
+};
 
 const getAssignedTasks = async (req, res) => {
     try {
@@ -709,7 +738,7 @@ const assignTaskToUser = async (req, res) => {
 
         // Get user details
         const assignedUser = await User.findByPk(userId, {
-            attributes: ['id', 'name', 'email', 'account_status']
+            attributes: ['id', 'name', 'email', 'job_role_id', 'account_status']
         });
 
         if (!assignedUser) {
@@ -718,6 +747,10 @@ const assignTaskToUser = async (req, res) => {
 
         if (assignedUser.account_status !== 'active') {
             return res.status(400).json({ success: false, error: 'User account is not active' });
+        }
+
+        if (![2, 3, 4].includes(Number(assignedUser.job_role_id))) {
+            return res.status(403).json({ success: false, error: 'Tasks can only be assigned to creative team members, not to a PMT / requester' });
         }
 
         // Owner's rule (R2): a request manager gives the task to an artist of their own team or
@@ -760,22 +793,50 @@ const assignTaskToUser = async (req, res) => {
             statusUpdate.end_date = null;
         }
 
+        // Replace only the caller's own / same-team assignment so co-assignees on a
+        // multi-assignee task (e.g. Artist A + delegated CM B) are never silently wiped out.
+        const existingAssignments = await TaskAssignments.findAll({
+            where: { task_id: taskId },
+            attributes: ['id', 'user_id']
+        });
+
+        let userIdsToReplace = [];
+        if (existingAssignments.some(a => Number(a.user_id) === Number(req.user.id))) {
+            userIdsToReplace = [req.user.id];
+        } else if (existingAssignments.length <= 1) {
+            userIdsToReplace = existingAssignments.map(a => a.user_id);
+        } else {
+            const sameTeam = [];
+            for (const a of existingAssignments) {
+                if (await sharesDivision(req.user.id, a.user_id)) sameTeam.push(a.user_id);
+            }
+            userIdsToReplace = sameTeam.length ? sameTeam : existingAssignments.map(a => a.user_id);
+        }
+
         // Replace the assignment atomically so a failure never leaves the task without an assignee
         await sequelize.transaction(async (transaction) => {
-            await TaskAssignments.destroy({
-                where: { task_id: taskId },
-                transaction
-            });
+            if (userIdsToReplace.length > 0) {
+                await TaskAssignments.destroy({
+                    where: { task_id: taskId, user_id: { [Op.in]: userIdsToReplace } },
+                    transaction
+                });
+            }
 
             await Tasks.update(
                 { ...taskUpdateData, ...statusUpdate, intimate_team: 1 },
                 { where: { id: taskId }, transaction }
             );
 
-            await TaskAssignments.create({
-                task_id: taskId,
-                user_id: userId
-            }, { transaction });
+            const alreadyAssigned = await TaskAssignments.findOne({
+                where: { task_id: taskId, user_id: userId },
+                transaction
+            });
+            if (!alreadyAssigned) {
+                await TaskAssignments.create({
+                    task_id: taskId,
+                    user_id: userId
+                }, { transaction });
+            }
         });
 
         await recordTaskHistory({
@@ -1484,8 +1545,22 @@ const submitTask = async (req, res) => {
             });
         }
 
-        if (link) {
-            taskUpdateData.link = link;
+        if (link && String(link).trim()) {
+            taskUpdateData.link = String(link).trim();
+        }
+
+        // At least one deliverable (a link or an uploaded file) is required; both together are allowed.
+        const hasUploadedTaskFiles = Boolean(
+            req.files && req.files.documents && (!Array.isArray(req.files.documents) || req.files.documents.length > 0)
+        );
+        if (!taskUpdateData.link && !hasUploadedTaskFiles && !task.link) {
+            const existingTaskDocs = await TaskDocuments.count({ where: { task_assignment_id: taskAssignment.id } });
+            if (existingTaskDocs === 0) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Please provide a deliverable link or upload at least one file'
+                });
+            }
         }
 
         // Add comments if provided
@@ -1670,7 +1745,11 @@ const submitTask = async (req, res) => {
             minute: '2-digit'
         });
 
+        const managerContacts = await getTaskManagerContacts(task.id, workRequest);
+        const primaryManager = managerContacts[0] || null;
+
         const emailData = {
+            user_name: primaryManager?.name || user.name,
             project_name: workRequest.project_name,
             brand: workRequest.brand,
             request_type: workRequest.RequestType?.request_type || 'N/A',
@@ -1688,15 +1767,13 @@ const submitTask = async (req, res) => {
 
         const html = renderTemplate('taskCompletionNotification', emailData);
 
-        // Find the creative lead manager (assuming the first manager is the creative lead)
-        const creativeLead = workRequest.WorkRequestManagers && workRequest.WorkRequestManagers.length > 0
-            ? workRequest.WorkRequestManagers[0].manager
-            : null;
-
-        if (creativeLead) {
+        if (managerContacts.length > 0) {
+            const ccSet = new Set(managerContacts.slice(1).map(m => m.email));
+            if (user.email) ccSet.add(user.email);
+            ccSet.delete(primaryManager.email);
             const mailOptions = {
-                to: creativeLead.email,
-                cc: user.email,
+                to: primaryManager.email,
+                cc: ccSet.size > 0 ? Array.from(ccSet).join(',') : undefined,
                 subject: 'Task Completed - D-Map',
                 html
             };
@@ -2578,6 +2655,7 @@ const submitIssue = async (req, res) => {
                     model: Tasks,
                     as: 'task',
                     include: [
+                        { model: TaskType, attributes: ['id', 'task_type'] },
                         {
                             model: WorkRequests,
                             attributes: ['id', 'project_name', 'brand', 'priority', 'user_id', 'status'],
@@ -2687,6 +2765,29 @@ const submitIssue = async (req, res) => {
         // Add comments if provided
         if (comments) {
             issueUpdateData.comments = comments;
+        }
+
+        // At least one deliverable (a link or an uploaded file) is required; both together are allowed.
+        const hasNewIssueLink = Boolean(link && String(link).trim());
+        if (hasNewIssueLink) {
+            issueUpdateData.link = String(link).trim();
+        }
+        const hasUploadedIssueFiles = Boolean(
+            req.files && req.files.documents && (!Array.isArray(req.files.documents) || req.files.documents.length > 0)
+        );
+        if (!hasNewIssueLink && !hasUploadedIssueFiles && !issueAssignment.link) {
+            const existingIssueDocs = await IssueDocuments.count({
+                where: {
+                    issue_user_assignment_id: userIssueAssignment.id,
+                    [Op.or]: [{ uploaded_by: { [Op.ne]: 'pmt' } }, { uploaded_by: null }]
+                }
+            });
+            if (existingIssueDocs === 0) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Please provide a deliverable link or upload at least one file'
+                });
+            }
         }
 
         // Add Content Work fields if provided
@@ -2874,26 +2975,12 @@ const submitIssue = async (req, res) => {
             minute: '2-digit'
         });
 
-        // Get the issue's requester (manager who created the issue)
+        // Get the issue's requester (PMT) for display metadata, and resolve the task/project managers
         const issueRequester = issueAssignment.requester;
-
-        // Collect all unique manager emails from:
-        // 1. Issue requester (the manager who created the issue)
-        // 2. All work request managers
-        const managerEmails = new Set();
-
-        // Add issue requester email if exists
-        if (issueRequester && issueRequester.email) {
+        const managerContacts = await getTaskManagerContacts(task?.id, workRequest);
+        const managerEmails = new Set(managerContacts.map(m => m.email));
+        if (managerEmails.size === 0 && issueRequester && issueRequester.email) {
             managerEmails.add(issueRequester.email);
-        }
-
-        // Add all work request managers
-        if (workRequest && workRequest.WorkRequestManagers) {
-            workRequest.WorkRequestManagers.forEach(wrm => {
-                if (wrm.manager && wrm.manager.email) {
-                    managerEmails.add(wrm.manager.email);
-                }
-            });
         }
 
         // Get issue type details for email
@@ -2913,9 +3000,10 @@ const submitIssue = async (req, res) => {
         }
 
         if (managerEmails.size > 0) {
+            const primaryManager = managerContacts[0] || issueRequester;
             // Prepare email data for issueAssignmentNotification template
             const emailData = {
-                manager_name: issueRequester ? issueRequester.name : 'Manager',
+                manager_name: primaryManager ? primaryManager.name : 'Manager',
                 task_id: task ? task.id : null,
                 task_name: task ? task.task_name : 'Issue ' + issueAssignment.version,
                 issue_id: issueAssignment.id,
@@ -2925,7 +3013,7 @@ const submitIssue = async (req, res) => {
                 priority: workRequest ? workRequest.priority : 'N/A',
                 request_type: workRequest?.RequestType?.request_type || 'N/A',
                 issue_version: issueAssignment.version || 'V1',
-                assigned_by: issueRequester ? issueRequester.name : 'System',
+                assigned_by: user ? user.name : 'System',
                 created_at: completedAt,
                 issue_description: description || issueAssignment.description || 'No description provided',
                 issue_registers: issueRegisters,

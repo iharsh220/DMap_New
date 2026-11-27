@@ -1663,7 +1663,7 @@ const deferWorkRequest = async (req, res) => {
                     user_name: user.name,
                     user_email: user.email,
                     user_department: user.Department?.department_name || 'Not specified',
-                    user_division: user.Division?.title || 'Not specified',
+                    user_division: user.Divisions?.[0]?.title || 'Not specified',
                     user_job_role: user.JobRole?.role_title || 'Not specified',
                     user_location: user.Location?.location_name || 'Not specified',
                     user_designation: user.Designation?.designation_name || 'Not specified',
@@ -1901,7 +1901,7 @@ const createTask = async (req, res) => {
         // All assignees must exist and be active
         const assignedUsers = await User.findAll({
             where: { id: { [Op.in]: assigned_to_ids }, account_status: 'active' },
-            attributes: ['id', 'name', 'email']
+            attributes: ['id', 'name', 'email', 'job_role_id']
         });
 
         if (assignedUsers.length !== assigned_to_ids.length) {
@@ -1909,6 +1909,15 @@ const createTask = async (req, res) => {
             return res.status(400).json({
                 success: false,
                 error: `Assigned users not found or inactive: ${assigned_to_ids.filter(id => !foundIds.has(id)).join(', ')}`
+            });
+        }
+
+        // A task can only be assigned to creative team members (Creative Manager / Lead / User), never to PMT / requester
+        const nonCreativeAssignees = assignedUsers.filter(u => ![2, 3, 4].includes(Number(u.job_role_id)));
+        if (nonCreativeAssignees.length > 0) {
+            return res.status(403).json({
+                success: false,
+                error: `Tasks can only be assigned to creative team members, not to a PMT / requester (user ${nonCreativeAssignees.map(u => u.id).join(', ')})`
             });
         }
 
@@ -3539,39 +3548,15 @@ const updateTask = async (req, res) => {
         }
 
         if (deadline) {
-            // Validate date format
-            const dateRegex = /^\d{4}-\d{1,2}-\d{1,2}$/;
-            if (!dateRegex.test(deadline)) {
+            const parsedDeadline = parseDateOnly(deadline);
+            if (!parsedDeadline) {
                 return res.status(400).json({
                     success: false,
-                    error: 'Deadline must be in YYYY-MM-DD format'
+                    error: 'Invalid deadline. Use YYYY-MM-DD format.'
                 });
             }
 
-            // Parse and validate the date
-            const dateParts = deadline.split('-');
-            const year = parseInt(dateParts[0]);
-            const month = parseInt(dateParts[1]);
-            const day = parseInt(dateParts[2]);
-
-            if (month < 1 || month > 12 || day < 1 || day > 31) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Invalid date components in deadline'
-                });
-            }
-
-            const formattedDeadline = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-            const testDate = new Date(formattedDeadline);
-
-            if (isNaN(testDate.getTime())) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Invalid date provided for deadline'
-                });
-            }
-
-            taskUpdateData.deadline = formattedDeadline;
+            taskUpdateData.deadline = parsedDeadline;
         }
 
         if (description !== undefined) {
@@ -3751,15 +3736,7 @@ const reviewTaskDocument = async (req, res) => {
                             include: [
                                 {
                                     model: WorkRequests,
-                                    required: true,
-                                    include: [
-                                        {
-                                            model: WorkRequestManagers,
-                                            where: { manager_id: manager_id },
-                                            required: true,
-                                            attributes: []
-                                        }
-                                    ]
+                                    required: true
                                 }
                             ]
                         }
@@ -3768,7 +3745,7 @@ const reviewTaskDocument = async (req, res) => {
             ]
         });
 
-        if (!document) {
+        if (!document || !(await canActOnTask(req.user, document.TaskAssignments.Task.id))) {
             return res.status(404).json({
                 success: false,
                 error: 'Document not found or not assigned to you'
@@ -3829,7 +3806,6 @@ const reviewIssueDocument = async (req, res) => {
         }
 
         // Find the document with its issue user assignment and verify manager access
-        // IssueDocuments -> IssueUserAssignments -> IssueAssignments -> Tasks -> WorkRequests -> WorkRequestManagers
         const document = await IssueDocuments.findByPk(documentId, {
             include: [
                 {
@@ -3849,15 +3825,7 @@ const reviewIssueDocument = async (req, res) => {
                                     include: [
                                         {
                                             model: WorkRequests,
-                                            required: true,
-                                            include: [
-                                                {
-                                                    model: WorkRequestManagers,
-                                                    where: { manager_id: manager_id },
-                                                    required: true,
-                                                    attributes: []
-                                                }
-                                            ]
+                                            required: true
                                         }
                                     ]
                                 }
@@ -3868,7 +3836,7 @@ const reviewIssueDocument = async (req, res) => {
             ]
         });
 
-        if (!document) {
+        if (!document || !(await canActOnTask(req.user, document.issueUserAssignment.issueAssignment.task.id))) {
             return res.status(404).json({
                 success: false,
                 error: 'Issue document not found or not assigned to you'
@@ -4497,7 +4465,26 @@ const reviewTask = async (req, res) => {
 const shareForClientReview = async (req, res) => {
     try {
         const manager_id = req.user.id;
-        const { work_request_id, task_ids, issue_ids, task_document_ids, issue_document_ids } = req.body;
+        const { work_request_id, task_ids, issue_ids, task_document_ids, issue_document_ids, share_link } = req.body;
+        const shouldShareLink = share_link !== false && share_link !== 'false' && share_link !== 0 && share_link !== '0';
+        const hasExplicitTaskDocs = task_document_ids !== undefined && task_document_ids !== null;
+        const hasExplicitIssueDocs = issue_document_ids !== undefined && issue_document_ids !== null;
+
+        if (hasExplicitTaskDocs && !Array.isArray(task_document_ids)) {
+            return res.status(400).json({ success: false, error: 'task_document_ids must be an array' });
+        }
+        if (hasExplicitIssueDocs && !Array.isArray(issue_document_ids)) {
+            return res.status(400).json({ success: false, error: 'issue_document_ids must be an array' });
+        }
+        if (!shouldShareLink
+            && (!hasExplicitTaskDocs || task_document_ids.length === 0)
+            && (!hasExplicitIssueDocs || issue_document_ids.length === 0)
+            && (hasExplicitTaskDocs || hasExplicitIssueDocs)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Select at least one document or link to share with client'
+            });
+        }
 
         // Check if either task_ids or issue_ids is provided
         if ((!task_ids || !Array.isArray(task_ids) || task_ids.length === 0) &&
@@ -4643,25 +4630,32 @@ const shareForClientReview = async (req, res) => {
                 });
                 const taskAssignmentIds = taskAssignments.map(ta => ta.id);
 
-                // Get documents for this task
+                // Get documents for this task: when task_document_ids is explicitly passed (even []),
+                // honour that exact selection so the manager can share only link, only files, or both.
                 let taskDocuments = [];
-                if (task_document_ids && task_document_ids.length > 0 && taskAssignmentIds.length > 0) {
+                if (hasExplicitTaskDocs) {
+                    if (task_document_ids.length > 0 && taskAssignmentIds.length > 0) {
+                        taskDocuments = await TaskDocuments.findAll({
+                            where: {
+                                id: { [Op.in]: task_document_ids },
+                                task_assignment_id: { [Op.in]: taskAssignmentIds }
+                            },
+                            attributes: ['id', 'document_name', 'document_path']
+                        });
+                    }
+                } else if (taskAssignmentIds.length > 0) {
                     taskDocuments = await TaskDocuments.findAll({
                         where: {
-                            id: { [Op.in]: task_document_ids },
                             task_assignment_id: { [Op.in]: taskAssignmentIds }
                         },
                         attributes: ['id', 'document_name', 'document_path']
                     });
                 }
 
-                // If no specific task_document_ids provided, get all approved documents for the task
-                if ((!task_document_ids || task_document_ids.length === 0) && taskAssignmentIds.length > 0) {
-                    taskDocuments = await TaskDocuments.findAll({
-                        where: {
-                            task_assignment_id: { [Op.in]: taskAssignmentIds }
-                        },
-                        attributes: ['id', 'document_name', 'document_path']
+                if (hasExplicitTaskDocs && taskDocuments.length === 0 && (!shouldShareLink || !task.link)) {
+                    return res.status(400).json({
+                        success: false,
+                        error: `Task "${task.task_name}" has no deliverable link to share; select at least one document`
                     });
                 }
 
@@ -4669,7 +4663,8 @@ const shareForClientReview = async (req, res) => {
                     type: 'task',
                     id: task.id,
                     name: task.task_name,
-                    deadline: task.deadline
+                    deadline: task.deadline,
+                    link: shouldShareLink ? (task.link || null) : null
                 });
 
                 allDocuments = [...allDocuments, ...taskDocuments];
@@ -4689,7 +4684,7 @@ const shareForClientReview = async (req, res) => {
                     workRequestId: work_request_id,
                     action: 'shared_for_client_review',
                     previousData: task,
-                    nextData: { intimate_client: 1, shared_with_client_at: new Date() },
+                    nextData: { intimate_client: 1, shared_with_client_at: new Date(), share_link: shouldShareLink, shared_document_ids: taskDocuments.map(d => d.id) },
                     previousStatus: task.status,
                     newStatus: task.status,
                     previousReviewStage: task.review_stage,
@@ -4777,12 +4772,24 @@ const shareForClientReview = async (req, res) => {
                 });
                 const issueUserAssignmentIds = issueUserAssignments.map(iua => iua.id);
 
-                // Get documents for this issue
+                // Get documents for this issue: when issue_document_ids is explicitly passed (even []),
+                // honour that exact selection so the manager can share only link, only files, or both.
                 let issueDocuments = [];
-                if (issue_document_ids && issue_document_ids.length > 0 && issueUserAssignmentIds.length > 0) {
+                if (hasExplicitIssueDocs) {
+                    if (issue_document_ids.length > 0 && issueUserAssignmentIds.length > 0) {
+                        issueDocuments = await IssueDocuments.findAll({
+                            where: {
+                                id: { [Op.in]: issue_document_ids },
+                                issue_user_assignment_id: { [Op.in]: issueUserAssignmentIds },
+                                // the PMT's own reference files are never shared back as output (B-09)
+                                [Op.or]: [{ uploaded_by: { [Op.ne]: 'pmt' } }, { uploaded_by: null }],
+                            },
+                            attributes: ['id', 'document_name', 'document_path']
+                        });
+                    }
+                } else if (issueUserAssignmentIds.length > 0) {
                     issueDocuments = await IssueDocuments.findAll({
                         where: {
-                            id: { [Op.in]: issue_document_ids },
                             issue_user_assignment_id: { [Op.in]: issueUserAssignmentIds },
                             // the PMT's own reference files are never shared back as output (B-09)
                             [Op.or]: [{ uploaded_by: { [Op.ne]: 'pmt' } }, { uploaded_by: null }],
@@ -4791,15 +4798,10 @@ const shareForClientReview = async (req, res) => {
                     });
                 }
 
-                // If no specific issue_document_ids provided, get all documents for the issue
-                if ((!issue_document_ids || issue_document_ids.length === 0) && issueUserAssignmentIds.length > 0) {
-                    issueDocuments = await IssueDocuments.findAll({
-                        where: {
-                            issue_user_assignment_id: { [Op.in]: issueUserAssignmentIds },
-                            // the PMT's own reference files are never shared back as output (B-09)
-                            [Op.or]: [{ uploaded_by: { [Op.ne]: 'pmt' } }, { uploaded_by: null }],
-                        },
-                        attributes: ['id', 'document_name', 'document_path']
+                if (hasExplicitIssueDocs && issueDocuments.length === 0 && (!shouldShareLink || !issueAssignment.link)) {
+                    return res.status(400).json({
+                        success: false,
+                        error: `Issue ${issueAssignment.version || issueAssignment.id} has no deliverable link to share; select at least one document`
                     });
                 }
 
@@ -4808,7 +4810,8 @@ const shareForClientReview = async (req, res) => {
                     id: issueAssignment.id,
                     name: issueAssignment.version ? `Issue ${issueAssignment.version}` : `Issue ${issueAssignment.id}`,
                     description: issueAssignment.description,
-                    deadline: issueAssignment.deadline
+                    deadline: issueAssignment.deadline,
+                    link: shouldShareLink ? (issueAssignment.link || null) : null
                 });
 
                 allDocuments = [...allDocuments, ...issueDocuments];
@@ -4829,7 +4832,7 @@ const shareForClientReview = async (req, res) => {
                     workRequestId: issueAssignment.task?.work_request_id || work_request_id,
                     action: 'shared_for_client_review',
                     previousData: issueAssignment,
-                    nextData: { intimate_client: 1, shared_with_client_at: new Date() },
+                    nextData: { intimate_client: 1, shared_with_client_at: new Date(), share_link: shouldShareLink, shared_document_ids: issueDocuments.map(d => d.id) },
                     previousStatus: issueAssignment.status,
                     newStatus: issueAssignment.status,
                     previousReviewStage: issueAssignment.review_stage,
@@ -4882,7 +4885,7 @@ const shareForClientReview = async (req, res) => {
                 }) : 'Not set',
             documents: allDocuments.map(doc => ({
                 document_name: doc.document_name,
-                document_path: `${process.env.BACKEND_URL}/${doc.document_path}`
+                document_path: `${String(process.env.BACKEND_URL || '').replace(/\/+$/, '')}/${String(doc.document_path || '').replace(/^\/+/, '')}`
             })),
             frontend_url: process.env.FRONTEND_URL
         });

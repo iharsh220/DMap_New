@@ -44,11 +44,11 @@ const { sql, api, check, done, form, today, plus } = require('./lib');
         r = await api(t.user_id, 'POST', 'users/tasks/submit', form({ task_id: t.id, task_count: '2', start_date: plus(-1), end_date: plus(-2) }));
         check('task submit with start_date after end_date -> 400', r.status === 400, r.status + ' ' + r.body.error);
         check('refused submits wrote nothing', (await taskRow(t.id)).status === 'in_progress');
-        r = await api(t.user_id, 'POST', 'users/tasks/submit', form({ task_id: t.id, task_count: '2', end_date: plus(-2) }));
+        r = await api(t.user_id, 'POST', 'users/tasks/submit', form({ task_id: t.id, task_count: '2', end_date: plus(-2), link: 'https://example.com' }));
         tr = await taskRow(t.id);
         check('task submit with a picked end_date -> saved as picked', r.status === 200 && tr.status === 'completed' && tr.start_date === plus(-5) && tr.end_date === plus(-2), r.status + ' ' + JSON.stringify(tr));
         await sql(`UPDATE tasks SET status = 'in_progress', start_date = ?, end_date = NULL WHERE id = ?`, [plus(-5), t.id]);
-        r = await api(t.user_id, 'POST', 'users/tasks/submit', form({ task_id: t.id, task_count: '2' }));
+        r = await api(t.user_id, 'POST', 'users/tasks/submit', form({ task_id: t.id, task_count: '2', link: 'https://example.com' }));
         tr = await taskRow(t.id);
         check('task submit without end_date -> end = today (unchanged behaviour)', r.status === 200 && tr.end_date === today(), r.status + ' ' + JSON.stringify(tr));
 

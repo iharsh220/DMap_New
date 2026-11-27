@@ -538,9 +538,12 @@ const updateIssue = async (req, res) => {
             }
         );
         const [next] = await sequelize.query('SELECT * FROM issue_assignments WHERE id = :id', { replacements: { id }, type: sequelize.QueryTypes.SELECT });
+        const [parentTask] = current.task_id
+            ? await sequelize.query('SELECT work_request_id FROM tasks WHERE id = :taskId', { replacements: { taskId: current.task_id }, type: sequelize.QueryTypes.SELECT })
+            : [];
         await recordIssueHistory({
             req, issueAssignmentId: Number(id), taskId: current.task_id,
-            workRequestId: null,
+            workRequestId: parentTask ? parentTask.work_request_id : null,
             action: 'admin_updated', previousData: current, nextData: next,
             previousStatus: current.status, newStatus: next ? next.status : null,
             comments: 'Edited in the admin panel'
@@ -644,7 +647,26 @@ const getDeletePreview = async (req, res) => {
 
 const deleteProject = async (req, res) => {
     try {
+        const { id } = req.params;
+        const [wr] = await sequelize.query('SELECT * FROM work_requests WHERE id = :id', { replacements: { id }, type: sequelize.QueryTypes.SELECT });
+        const tasksBefore = await sequelize.query('SELECT * FROM tasks WHERE work_request_id = :id AND is_deleted = 0', { replacements: { id }, type: sequelize.QueryTypes.SELECT });
         await getClientDeleteQueries(req, res);
+        if (wr) {
+            await recordWorkRequestHistory({
+                req, workRequestId: Number(id), action: 'admin_deleted',
+                previousData: wr, nextData: { is_deleted: 1 },
+                previousStatus: wr.status, newStatus: wr.status,
+                relatedUserId: wr.user_id, comments: 'Deleted in the admin panel'
+            });
+            for (const t of tasksBefore) {
+                await recordTaskHistory({
+                    req, taskId: t.id, workRequestId: Number(id), action: 'deleted_with_project',
+                    previousData: t, nextData: { is_deleted: 1 },
+                    previousStatus: t.status, newStatus: t.status,
+                    comments: 'Task soft-deleted with project in the admin panel'
+                });
+            }
+        }
         res.json({ success: true, message: 'Project and all related data deleted successfully' });
     } catch (error) {
         console.error('Error deleting project:', error);
@@ -654,7 +676,26 @@ const deleteProject = async (req, res) => {
 
 const deleteClient = async (req, res) => {
     try {
+        const { id } = req.params;
+        const [wr] = await sequelize.query('SELECT * FROM work_requests WHERE id = :id', { replacements: { id }, type: sequelize.QueryTypes.SELECT });
+        const tasksBefore = await sequelize.query('SELECT * FROM tasks WHERE work_request_id = :id AND is_deleted = 0', { replacements: { id }, type: sequelize.QueryTypes.SELECT });
         await getClientDeleteQueries(req, res);
+        if (wr) {
+            await recordWorkRequestHistory({
+                req, workRequestId: Number(id), action: 'admin_deleted',
+                previousData: wr, nextData: { is_deleted: 1 },
+                previousStatus: wr.status, newStatus: wr.status,
+                relatedUserId: wr.user_id, comments: 'Client request deleted in the admin panel'
+            });
+            for (const t of tasksBefore) {
+                await recordTaskHistory({
+                    req, taskId: t.id, workRequestId: Number(id), action: 'deleted_with_project',
+                    previousData: t, nextData: { is_deleted: 1 },
+                    previousStatus: t.status, newStatus: t.status,
+                    comments: 'Task soft-deleted with client request in the admin panel'
+                });
+            }
+        }
         res.json({ success: true, message: 'Client request and all related data deleted successfully' });
     } catch (error) {
         console.error('Error deleting client request:', error);
@@ -665,8 +706,26 @@ const deleteClient = async (req, res) => {
 const deleteTask = async (req, res) => {
     try {
         const { id } = req.params;
+        const [taskBefore] = await sequelize.query('SELECT * FROM tasks WHERE id = :id', { replacements: { id }, type: sequelize.QueryTypes.SELECT });
+        const issuesBefore = await sequelize.query('SELECT * FROM issue_assignments WHERE task_id = :id AND is_deleted = 0', { replacements: { id }, type: sequelize.QueryTypes.SELECT });
         await Tasks.update({ is_deleted: 1 }, { where: { id } });
         await IssueAssignments.update({ is_deleted: 1 }, { where: { task_id: id } });
+        if (taskBefore) {
+            await recordTaskHistory({
+                req, taskId: Number(id), workRequestId: taskBefore.work_request_id, action: 'admin_deleted',
+                previousData: taskBefore, nextData: { is_deleted: 1 },
+                previousStatus: taskBefore.status, newStatus: taskBefore.status,
+                comments: 'Task soft-deleted in the admin panel'
+            });
+            for (const ia of issuesBefore) {
+                await recordIssueHistory({
+                    req, issueAssignmentId: ia.id, taskId: Number(id), workRequestId: taskBefore.work_request_id,
+                    action: 'deleted_with_task', previousData: ia, nextData: { is_deleted: 1 },
+                    previousStatus: ia.status, newStatus: ia.status,
+                    comments: 'Issue soft-deleted with task in the admin panel'
+                });
+            }
+        }
         res.json({ success: true, message: 'Task soft deleted successfully' });
     } catch (error) {
         console.error('Error deleting task:', error);
@@ -677,7 +736,20 @@ const deleteTask = async (req, res) => {
 const deleteIssue = async (req, res) => {
     try {
         const { id } = req.params;
+        const [issueBefore] = await sequelize.query(
+            `SELECT ia.*, t.work_request_id FROM issue_assignments ia LEFT JOIN tasks t ON t.id = ia.task_id WHERE ia.id = :id`,
+            { replacements: { id }, type: sequelize.QueryTypes.SELECT }
+        );
         await IssueAssignments.update({ is_deleted: 1 }, { where: { id } });
+        if (issueBefore) {
+            await recordIssueHistory({
+                req, issueAssignmentId: Number(id), taskId: issueBefore.task_id,
+                workRequestId: issueBefore.work_request_id || null, action: 'admin_deleted',
+                previousData: issueBefore, nextData: { is_deleted: 1 },
+                previousStatus: issueBefore.status, newStatus: issueBefore.status,
+                comments: 'Issue soft-deleted in the admin panel'
+            });
+        }
         res.json({ success: true, message: 'Issue soft deleted successfully' });
     } catch (error) {
         console.error('Error deleting issue:', error);
@@ -1551,22 +1623,28 @@ const getAdminData = async (req, res) => {
                    ================================================== */
 
                 (
-                    SELECT MAX(
-                        CASE
-                            WHEN t6.end_date IS NOT NULL
-                                 AND ia3.end_date IS NOT NULL
-                            THEN GREATEST(
-                                t6.end_date,
-                                ia3.end_date
-                            )
+                    SELECT CASE
+                        WHEN COUNT(*) = 0
+                          OR SUM(t6.status NOT IN ('cancelled', 'rejected') AND t6.end_date IS NULL) > 0
+                          OR SUM(ia3.id IS NOT NULL AND ia3.status NOT IN ('cancelled', 'rejected') AND ia3.end_date IS NULL) > 0
+                        THEN NULL
+                        ELSE MAX(
+                            CASE
+                                WHEN t6.end_date IS NOT NULL
+                                     AND ia3.end_date IS NOT NULL
+                                THEN GREATEST(
+                                    t6.end_date,
+                                    ia3.end_date
+                                )
 
-                            WHEN t6.end_date IS NOT NULL
-                            THEN t6.end_date
+                                WHEN t6.end_date IS NOT NULL
+                                THEN t6.end_date
 
-                            WHEN ia3.end_date IS NOT NULL
-                            THEN ia3.end_date
-                        END
-                    )
+                                WHEN ia3.end_date IS NOT NULL
+                                THEN ia3.end_date
+                            END
+                        )
+                    END
                     FROM tasks t6
                     LEFT JOIN issue_assignments ia3
                         ON ia3.task_id = t6.id
@@ -1856,7 +1934,7 @@ const getAdminData = async (req, res) => {
                         SELECT wrh_comp_ts.created_at
                         FROM work_request_history wrh_comp_ts
                         WHERE wrh_comp_ts.work_request_id = wr.id
-                          AND wrh_comp_ts.action = 'completed'
+                          AND wrh_comp_ts.action IN ('completed', 'auto_completed')
                         ORDER BY wrh_comp_ts.created_at DESC
                         LIMIT 1
                     ),
@@ -1878,7 +1956,7 @@ const getAdminData = async (req, res) => {
                         WHERE wrh_ptat2.work_request_id = wr.id
                           AND wrh_ptat2.action = 'manager_accepted'
                           AND wrh_ptat2.actor_type = 'manager'
-                          AND wrh_ptat3.action = 'completed'
+                          AND wrh_ptat3.action IN ('completed', 'auto_completed')
                         ORDER BY wrh_ptat2.created_at ASC, wrh_ptat3.created_at DESC
                         LIMIT 1
                     ),
@@ -1897,7 +1975,7 @@ const getAdminData = async (req, res) => {
                         )
                         FROM work_request_history wrh_ptat
                         WHERE wrh_ptat.work_request_id = wr.id
-                          AND wrh_ptat.action = 'completed'
+                          AND wrh_ptat.action IN ('completed', 'auto_completed')
                         ORDER BY wrh_ptat.created_at DESC
                         LIMIT 1
                     ),

@@ -1,6 +1,8 @@
 const { sequelize } = require('../config/databaseConfig');
-const { WorkRequests } = require('../models');
+const { WorkRequests, User, WorkRequestManagers, RequestType, Tasks, IssueAssignments } = require('../models');
 const { recordWorkRequestHistory } = require('./historyService');
+const { sendMail } = require('./mailService');
+const { renderTemplate } = require('./templateService');
 
 // A work request is finished when it has at least one live task and every live task and
 // change request (issue) on it is completed and finally approved by the PM/requester.
@@ -65,6 +67,55 @@ const completeWorkRequests = async (rows, { req = null, actorOverride = null, co
             comments,
             actorOverride
         });
+
+        try {
+            const [workRequest, taskCount, issueCount] = await Promise.all([
+                WorkRequests.findByPk(row.id, {
+                    include: [
+                        { model: User, as: 'users', attributes: ['id', 'name', 'email'] },
+                        { model: RequestType, attributes: ['request_type'] },
+                        { model: WorkRequestManagers, include: [{ model: User, as: 'manager', attributes: ['email'] }] }
+                    ]
+                }),
+                Tasks.count({ where: { work_request_id: row.id, is_deleted: 0 } }),
+                IssueAssignments.count({
+                    where: { is_deleted: 0 },
+                    include: [{ model: Tasks, as: 'task', where: { work_request_id: row.id, is_deleted: 0 }, attributes: [], required: true }]
+                })
+            ]);
+            const requester = workRequest?.users;
+            if (requester?.email) {
+                const ccList = [...new Set((workRequest.WorkRequestManagers || []).map(m => m.manager?.email).filter(Boolean))];
+                const html = renderTemplate('workRequestCompletionNotification', {
+                    user_name: requester.name || 'User',
+                    project_name: workRequest.project_name || 'N/A',
+                    brand: workRequest.brand || 'N/A',
+                    request_type: workRequest.RequestType?.request_type || 'N/A',
+                    priority: workRequest.priority || 'N/A',
+                    request_id: workRequest.id,
+                    completed_at: new Date().toLocaleDateString('en-IN', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }),
+                    description: 'All tasks and change requests have been completed and approved.',
+                    completed_by: req?.user?.name || actorOverride?.name || 'System',
+                    task_count: taskCount,
+                    issue_count: issueCount,
+                    frontend_url: process.env.FRONTEND_URL
+                });
+                await sendMail({
+                    to: requester.email,
+                    cc: ccList.length ? ccList.join(',') : undefined,
+                    subject: `Project Completed - Work Request #${workRequest.id} - ${workRequest.project_name}`,
+                    html
+                });
+            }
+        } catch (emailError) {
+            console.error('Error sending auto-completion email:', emailError);
+        }
     }
     return completedIds;
 };

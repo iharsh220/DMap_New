@@ -4,7 +4,7 @@ const fs = require('fs');
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
 const { recordTaskHistory, recordIssueHistory, recordWorkRequestHistory, recordTaskReviewHistory } = require('../../services/historyService');
-const { parseId, parseIdList, safePathSegment, parseDateRange } = require('../../utils/validators');
+const { parseId, parseIdList, safePathSegment, parseDateRange, parseDateOnly } = require('../../utils/validators');
 const { viewableWorkRequestIdsSubquery, canActAsRequester, isSuperAdmin } = require('../../services/accessService');
 const { sequelize } = require('../../config/databaseConfig');
 const {
@@ -120,6 +120,12 @@ const createIssueAssignment = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Missing required fields: requested_by_user_id, assignment_type, version' });
         }
 
+        // Task is V1; change requests must start at V2+
+        const normalizedVersion = String(version).trim().toUpperCase();
+        if (!/^V\d+$/.test(normalizedVersion) || parseInt(normalizedVersion.slice(1), 10) < 2) {
+            return res.status(400).json({ success: false, error: 'Change requests must be version V2 or higher' });
+        }
+
         // issue_register_ids arrives as an array (JSON) or a string (multipart with files);
         // validate before anything is written so a bad value never leaves a half-created issue
         const issueRegisterIds = parseIdList(req.body['issue_register_ids[]'] ?? issue_register_ids);
@@ -133,6 +139,11 @@ const createIssueAssignment = async (req, res) => {
         const changeDates = parseDateRange(start_date, end_date);
         if (changeDates.error) {
             return res.status(400).json({ success: false, error: changeDates.error });
+        }
+        const hasDeadline = deadline !== undefined && deadline !== null && String(deadline).trim() !== '';
+        const parsedDeadline = hasDeadline ? parseDateOnly(deadline) : null;
+        if (hasDeadline && !parsedDeadline) {
+            return res.status(400).json({ success: false, error: 'Invalid deadline. Use YYYY-MM-DD format.' });
         }
 
         const actor = req.user || {};
@@ -177,6 +188,9 @@ const createIssueAssignment = async (req, res) => {
         }
         if (closedStatuses.includes(rootTask.WorkRequest.status)) {
             return res.status(400).json({ success: false, error: `Changes cannot be requested on a project that is ${rootTask.WorkRequest.status}` });
+        }
+        if (rootTask.status !== 'completed') {
+            return res.status(400).json({ success: false, error: `Changes can only be requested on a completed task (current status: ${rootTask.status})` });
         }
         workRequestId = rootTask.work_request_id;
 
@@ -235,9 +249,9 @@ const createIssueAssignment = async (req, res) => {
                 task_id: rootTaskId,
                 requested_by_user_id,
                 assignment_type,
-                version,
+                version: normalizedVersion,
                 description,
-                deadline,
+                deadline: parsedDeadline,
                 start_date: changeDates.start,
                 end_date: changeDates.end,
                 link,
