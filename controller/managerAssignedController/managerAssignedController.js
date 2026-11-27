@@ -34,7 +34,7 @@ const {
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
 const { recordWorkRequestHistory, recordTaskHistory, recordIssueHistory, getTaskHistory: getTaskHistoryRecords, getIssueHistory: getIssueHistoryRecords } = require('../../services/historyService');
-const { isSuperAdmin, isTaskManager, canActOnTask, isDelegatedAway, managedTaskIdsSubquery, managerProjectIdsSql, sharesDivision, assignTargetError, canViewWorkRequest, workRequestIdForTask, workRequestIdForIssue } = require('../../services/accessService');
+const { isSuperAdmin, hasManagerAccessForWorkItem, canActOnTask, isDelegatedAway, managedTaskIdsSubquery, managerProjectIdsSql, sharesDivision, assignTargetError, canViewWorkRequest, workRequestIdForTask, workRequestIdForIssue } = require('../../services/accessService');
 const { pickModelFilters, pickModelFields } = require('../../utils/queryFilters');
 const { parseId, parseIdArray, parseDateOnly, safePathSegment, parsePageCount, todayDateOnly } = require('../../utils/validators');
 const projectCancellation = require('../../services/projectCancellationService');
@@ -3745,7 +3745,7 @@ const reviewTaskDocument = async (req, res) => {
             ]
         });
 
-        if (!document || !(await canActOnTask(req.user, document.TaskAssignments.Task.id))) {
+        if (!document || !(await canActOnTask(req.user, document.TaskAssignments.Task.id, [document.TaskAssignments.user_id]))) {
             return res.status(404).json({
                 success: false,
                 error: 'Document not found or not assigned to you'
@@ -3836,7 +3836,7 @@ const reviewIssueDocument = async (req, res) => {
             ]
         });
 
-        if (!document || !(await canActOnTask(req.user, document.issueUserAssignment.issueAssignment.task.id))) {
+        if (!document || !(await canActOnTask(req.user, document.issueUserAssignment.issueAssignment.task.id, [document.issueUserAssignment.user_id]))) {
             return res.status(404).json({
                 success: false,
                 error: 'Issue document not found or not assigned to you'
@@ -3956,34 +3956,10 @@ const reviewTask = async (req, res) => {
                     });
                 }
 
-                // Verify manager access - check if manager is assigned to work request or is creative manager in same division
-                let hasManagerAccess = false;
+                // Verify manager access - super admin, assigned to work request, or manager/lead of assigned users
                 const workRequestIdTask = task.work_request_id;
-
-                // Check if manager is in WorkRequestManagers
-                const managerCheckTask = await WorkRequestManagers.findOne({
-                    where: { work_request_id: workRequestIdTask, manager_id: manager_id }
-                });
-                if (managerCheckTask) {
-                    hasManagerAccess = true;
-                } else {
-                    // Check if manager is creative manager in same division as assigned users
-                    const assignedUserIdsTask = task.assignedUsers ? task.assignedUsers.map(u => u.id) : [];
-                    if (assignedUserIdsTask.length > 0) {
-                        const divisionManagerCheckTask = await sequelize.query(
-                            `SELECT COUNT(*) AS cnt
-                             FROM user_divisions ud_assignee
-                             JOIN user_divisions ud_manager ON ud_manager.division_id = ud_assignee.division_id AND ud_manager.user_id = :userId
-                             JOIN users u ON u.id = ud_manager.user_id
-                             JOIN job_role jr ON jr.id = u.job_role_id AND jr.role_title = 'creative manager'
-                             WHERE ud_assignee.user_id IN (:assignedUserIds)`,
-                            { replacements: { userId: manager_id, assignedUserIds: assignedUserIdsTask }, type: sequelize.QueryTypes.SELECT }
-                        );
-                        if (divisionManagerCheckTask[0].cnt > 0) {
-                            hasManagerAccess = true;
-                        }
-                    }
-                }
+                const assignedUserIdsTask = task.assignedUsers ? task.assignedUsers.map(u => u.id) : [];
+                const hasManagerAccess = await hasManagerAccessForWorkItem(req.user, workRequestIdTask, assignedUserIdsTask);
 
                 if (!hasManagerAccess) {
                     return res.status(404).json({
@@ -3991,8 +3967,8 @@ const reviewTask = async (req, res) => {
                         error: 'Task not found or not assigned to you'
                     });
                 }
-                // delegated to another manager: only that manager reviews it (owner's rule, 2026-11-06)
-                if (await isDelegatedAway(req.user, task.id)) {
+                // delegated to another manager: only the manager(s) of whoever is doing the task review it
+                if (await isDelegatedAway(req.user, task.id, assignedUserIdsTask)) {
                     return res.status(403).json({ success: false, error: 'This task was delegated to another manager; only that manager can review it' });
                 }
 
@@ -4229,36 +4205,13 @@ const reviewTask = async (req, res) => {
                 });
             }
 
-            // Verify manager access - check if manager is assigned to work request or is creative manager in same division
-            let hasIssueManagerAccess = false;
+            // Verify manager access - super admin, assigned to work request, or manager/lead of assigned issue users
             const issueWorkRequestId = issueAssignment.task?.work_request_id;
-
-            if (issueWorkRequestId) {
-                // Check if manager is in WorkRequestManagers
-                const issueManagerCheck = await WorkRequestManagers.findOne({
-                    where: { work_request_id: issueWorkRequestId, manager_id: manager_id }
-                });
-                if (issueManagerCheck) {
-                    hasIssueManagerAccess = true;
-                } else {
-                    // Check if manager is creative manager in same division as assigned users
-                    const assignedIssueUserIds = issueAssignment.userAssignments ? issueAssignment.userAssignments.map(iua => iua.user_id) : [];
-                    if (assignedIssueUserIds.length > 0) {
-                        const divisionIssueManagerCheck = await sequelize.query(
-                            `SELECT COUNT(*) AS cnt
-                             FROM user_divisions ud_assignee
-                             JOIN user_divisions ud_manager ON ud_manager.division_id = ud_assignee.division_id AND ud_manager.user_id = :userId
-                             JOIN users u ON u.id = ud_manager.user_id
-                             JOIN job_role jr ON jr.id = u.job_role_id AND jr.role_title = 'creative manager'
-                             WHERE ud_assignee.user_id IN (:assignedUserIds)`,
-                            { replacements: { userId: manager_id, assignedUserIds: assignedIssueUserIds }, type: sequelize.QueryTypes.SELECT }
-                        );
-                        if (divisionIssueManagerCheck[0].cnt > 0) {
-                            hasIssueManagerAccess = true;
-                        }
-                    }
-                }
-            }
+            const requesterId = issueAssignment.requested_by_user_id ? Number(issueAssignment.requested_by_user_id) : null;
+            const assignedIssueUserIds = (issueAssignment.userAssignments || [])
+                .map(iua => Number(iua.user_id))
+                .filter(uid => uid && uid !== requesterId);
+            const hasIssueManagerAccess = await hasManagerAccessForWorkItem(req.user, issueWorkRequestId, assignedIssueUserIds);
 
             if (!hasIssueManagerAccess) {
                 return res.status(404).json({
@@ -4266,8 +4219,8 @@ const reviewTask = async (req, res) => {
                     error: 'Issue not found or not assigned to you'
                 });
             }
-            // change on a task delegated to another manager: only that manager reviews it
-            if (issueAssignment.task_id && await isDelegatedAway(req.user, issueAssignment.task_id)) {
+            // Whoever is doing the change (or parent task if unassigned), their manager may review it
+            if (issueAssignment.task_id && await isDelegatedAway(req.user, issueAssignment.task_id, assignedIssueUserIds)) {
                 return res.status(403).json({ success: false, error: 'This task was delegated to another manager; only that manager can review its changes' });
             }
 
@@ -4509,19 +4462,29 @@ const shareForClientReview = async (req, res) => {
         if (parsedShareTaskIds.includes(null) || parsedShareIssueIds.includes(null)) {
             return res.status(400).json({ success: false, error: 'task_ids and issue_ids must contain valid IDs' });
         }
-        const shareTaskIds = new Set(parsedShareTaskIds);
-        if (parsedShareIssueIds.length > 0) {
-            const shareIssues = await IssueAssignments.findAll({ where: { id: { [Op.in]: parsedShareIssueIds } }, attributes: ['id', 'task_id'], raw: true });
-            if (shareIssues.length !== new Set(parsedShareIssueIds).size) {
-                return res.status(404).json({ success: false, error: 'Issue not found' });
-            }
-            shareIssues.forEach(issue => shareTaskIds.add(issue.task_id));
-        }
-        let hasAccess = shareTaskIds.size > 0;
-        for (const shareTaskId of shareTaskIds) {
+        let hasAccess = parsedShareTaskIds.length > 0 || parsedShareIssueIds.length > 0;
+        for (const shareTaskId of new Set(parsedShareTaskIds)) {
             if (!shareTaskId || !(await canActOnTask(req.user, shareTaskId))) {
                 hasAccess = false;
                 break;
+            }
+        }
+        if (hasAccess && parsedShareIssueIds.length > 0) {
+            const shareIssues = await IssueAssignments.findAll({
+                where: { id: { [Op.in]: [...new Set(parsedShareIssueIds)] } },
+                attributes: ['id', 'task_id', 'requested_by_user_id'],
+                include: [{ model: IssueUserAssignments, as: 'userAssignments', attributes: ['user_id'] }]
+            });
+            if (shareIssues.length !== new Set(parsedShareIssueIds).size) {
+                return res.status(404).json({ success: false, error: 'Issue not found' });
+            }
+            for (const issue of shareIssues) {
+                const reqId = issue.requested_by_user_id ? Number(issue.requested_by_user_id) : null;
+                const issueWorkers = (issue.userAssignments || []).map(u => Number(u.user_id)).filter(uid => uid && uid !== reqId);
+                if (!issue.task_id || !(await canActOnTask(req.user, issue.task_id, issueWorkers))) {
+                    hasAccess = false;
+                    break;
+                }
             }
         }
 

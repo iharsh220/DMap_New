@@ -204,18 +204,56 @@ const delegatedHandler = async (taskId) => {
     return Number(rows[0].handler);
 };
 
-// The task was delegated to another manager than `user` (so `user` may only view it)
-const isDelegatedAway = async (user, taskId) => {
+// True when `user` (manager role 2 or 3) is directly in `userIds` or shares at least one division
+// with one of the users in `userIds` (the manager of whoever is doing the task/change).
+const isManagerOfAssignedUsers = async (user, userIds = []) => {
+    if (!user || !isManagerRole(user)) return false;
+    const cleanIds = [...new Set((userIds || []).map(Number).filter(n => Number.isSafeInteger(n) && n > 0))];
+    if (cleanIds.length === 0) return false;
+    if (cleanIds.includes(Number(user.id))) return true;
+    const rows = await sequelize.query(
+        `SELECT 1 AS ok
+         FROM user_divisions ud_assignee
+         JOIN user_divisions ud_manager ON ud_manager.division_id = ud_assignee.division_id
+         WHERE ud_assignee.user_id IN (:assigneeIds)
+           AND ud_manager.user_id = :managerId
+         LIMIT 1`,
+        { replacements: { assigneeIds: cleanIds, managerId: Number(user.id) }, type: sequelize.QueryTypes.SELECT }
+    );
+    return rows.length > 0;
+};
+
+// The task (or specific change assignees) was delegated to another manager than `user` (so `user`
+// may only view it). Any manager (role 2 or 3) managing the active assignee(s) may always act.
+const isDelegatedAway = async (user, taskId, assigneeUserIds = null) => {
     if (!user || isSuperAdmin(user)) return false;
+    let activeIds = Array.isArray(assigneeUserIds) ? assigneeUserIds : null;
+    if (!activeIds || activeIds.length === 0) {
+        const rows = await TaskAssignments.findAll({
+            where: { task_id: taskId },
+            attributes: ['user_id'],
+            raw: true
+        });
+        activeIds = rows.map(r => r.user_id);
+    }
+    if (await isManagerOfAssignedUsers(user, activeIds)) return false;
     const handler = await delegatedHandler(taskId);
     return handler !== null && handler !== Number(user.id);
 };
 
 // Manager-level ACTION on a task: a task manager (see isTaskManager) that the task was not
 // delegated away from. Viewing still uses isTaskManager / canViewWorkRequest.
-const canActOnTask = async (user, taskId) => {
+const canActOnTask = async (user, taskId, assigneeUserIds = null) => {
     if (!(await isTaskManager(user, taskId))) return false;
-    return !(await isDelegatedAway(user, taskId));
+    return !(await isDelegatedAway(user, taskId, assigneeUserIds));
+};
+
+// Shared review-access gate: super admin, work request manager, or manager/lead of the assigned worker(s).
+const hasManagerAccessForWorkItem = async (user, workRequestId, assigneeUserIds = []) => {
+    if (!user || !workRequestId) return false;
+    if (isSuperAdmin(user)) return true;
+    if (await isWorkRequestManager(user.id, workRequestId)) return true;
+    return isManagerOfAssignedUsers(user, assigneeUserIds);
 };
 
 // Subquery of the task ids this manager may act on (null = no restriction, super admin)
@@ -311,7 +349,9 @@ module.exports = {
     managerProjectIdsSql,
     isTaskManager,
     canActOnTask,
+    hasManagerAccessForWorkItem,
     isDelegatedAway,
+    isManagerOfAssignedUsers,
     delegatedHandler,
     managedTaskIdsSubquery,
     sharesDivision,
