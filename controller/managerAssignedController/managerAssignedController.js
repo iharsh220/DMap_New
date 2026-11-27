@@ -5875,6 +5875,7 @@ const assignIssueToUser = async (req, res) => {
             return res.status(400).json({ success: false, error: 'issue_assignment_id and user_id are required and must be valid IDs' });
         }
 
+        const hasDeadlineField = Object.prototype.hasOwnProperty.call(req.body, 'deadline');
         let deadline = null;
         if (req.body.deadline) {
             deadline = parseDateOnly(req.body.deadline);
@@ -5965,8 +5966,12 @@ const assignIssueToUser = async (req, res) => {
             order: [['id', 'ASC']]
         });
 
+        const isSameUser = Boolean(
+            existingAssignmentForIssue && Number(existingAssignmentForIssue.user_id) === Number(user_id)
+        );
+
         if (existingAssignmentForIssue) {
-            if (existingAssignmentForIssue.user_id !== user_id) {
+            if (!isSameUser) {
                 await existingAssignmentForIssue.update({ user_id });
             }
             issueUserAssignment = existingAssignmentForIssue;
@@ -5977,9 +5982,69 @@ const assignIssueToUser = async (req, res) => {
             });
         }
 
-        // Update issue_assignment status to 'u_pending', intimate_team to 1, and notification_alert to 1
+        const nextDeadline = hasDeadlineField
+            ? deadline
+            : (isSameUser ? issueAssignment.deadline : null);
+
+        // If the same user is already assigned (e.g. manager only updated the deadline after
+        // the artist accepted), keep their current status/progress and only update the fields;
+        // never send it back to 'u_pending' as a fresh request.
+        if (isSameUser) {
+            await IssueAssignments.update(
+                { deadline: nextDeadline },
+                { where: { id: issue_assignment_id } }
+            );
+
+            await recordIssueHistory({
+                req,
+                issueAssignmentId: issue_assignment_id,
+                taskId: issueAssignment.task?.id,
+                workRequestId: issueAssignment.task?.work_request_id,
+                action: 'updated',
+                previousData: { deadline: issueAssignment.deadline },
+                nextData: { deadline: nextDeadline },
+                previousStatus: issueAssignment.status,
+                newStatus: issueAssignment.status,
+                comments: 'Issue deadline/details updated by manager',
+                relatedUserId: manager_id,
+                assignedToUserId: user_id,
+                assignedToUserName: assignedUser.name
+            });
+
+            return res.json({
+                success: true,
+                data: {
+                    id: issueUserAssignment.id,
+                    issue_assignment_id: issueUserAssignment.issue_assignment_id,
+                    user_id: issueUserAssignment.user_id,
+                    deadline: nextDeadline,
+                    status: issueAssignment.status,
+                    user: {
+                        id: assignedUser.id,
+                        name: assignedUser.name,
+                        email: assignedUser.email
+                    },
+                    email_sent: false
+                },
+                message: 'Issue updated successfully'
+            });
+        }
+
+        // New assignment or reassigned to a different user: move to 'u_pending' so the new
+        // artist accepts it fresh (clear any previous artist's start/end dates on handoff).
+        const newAssignUpdate = {
+            status: 'u_pending',
+            intimate_team: 1,
+            deadline: nextDeadline,
+            notification_alert: 1
+        };
+        if (existingAssignmentForIssue && ['u_accepted', 'in_progress'].includes(issueAssignment.status)) {
+            newAssignUpdate.start_date = null;
+            newAssignUpdate.end_date = null;
+        }
+
         await IssueAssignments.update(
-            { status: 'u_pending', intimate_team: 1, deadline: deadline || null, notification_alert: 1 },
+            newAssignUpdate,
             { where: { id: issue_assignment_id } }
         );
 
