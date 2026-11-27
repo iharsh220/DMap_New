@@ -1623,28 +1623,22 @@ const getAdminData = async (req, res) => {
                    ================================================== */
 
                 (
-                    SELECT CASE
-                        WHEN COUNT(*) = 0
-                          OR SUM(t6.status NOT IN ('cancelled', 'rejected') AND t6.end_date IS NULL) > 0
-                          OR SUM(ia3.id IS NOT NULL AND ia3.status NOT IN ('cancelled', 'rejected') AND ia3.end_date IS NULL) > 0
-                        THEN NULL
-                        ELSE MAX(
-                            CASE
-                                WHEN t6.end_date IS NOT NULL
-                                     AND ia3.end_date IS NOT NULL
-                                THEN GREATEST(
-                                    t6.end_date,
-                                    ia3.end_date
-                                )
+                    SELECT MAX(
+                        CASE
+                            WHEN t6.end_date IS NOT NULL
+                                 AND ia3.end_date IS NOT NULL
+                            THEN GREATEST(
+                                t6.end_date,
+                                ia3.end_date
+                            )
 
-                                WHEN t6.end_date IS NOT NULL
-                                THEN t6.end_date
+                            WHEN t6.end_date IS NOT NULL
+                            THEN t6.end_date
 
-                                WHEN ia3.end_date IS NOT NULL
-                                THEN ia3.end_date
-                            END
-                        )
-                    END
+                            WHEN ia3.end_date IS NOT NULL
+                            THEN ia3.end_date
+                        END
+                    )
                     FROM tasks t6
                     LEFT JOIN issue_assignments ia3
                         ON ia3.task_id = t6.id
@@ -2328,53 +2322,69 @@ const getAdminData = async (req, res) => {
                    MONTH
                    ================================================== */
 
-                /* Owner, 2026-11-23: month of the same LAST end date as the fy column below (tasks +
-                   their changes), '00' while the project has no task or any task / change has no
-                   end date. Before: month of wr.created_at, so filtering a month showed projects
-                   that ended in other months. */
-                (
-                    SELECT CASE
-                        WHEN COUNT(*) = 0
-                          OR SUM(t_mo.end_date IS NULL) > 0
-                          OR SUM(ia_mo.id IS NOT NULL AND ia_mo.end_date IS NULL) > 0
-                        THEN '00'
-                        ELSE DATE_FORMAT(GREATEST(MAX(t_mo.end_date), COALESCE(MAX(ia_mo.end_date), MAX(t_mo.end_date))), '%M')
-                    END
-                    FROM tasks t_mo
-                    LEFT JOIN issue_assignments ia_mo
-                        ON ia_mo.task_id = t_mo.id
-                       AND ia_mo.is_deleted = 0
-                    WHERE t_mo.work_request_id = wr.id
-                      AND t_mo.is_deleted = 0
+                /* ==================================================
+                   MONTH
+                   ================================================== */
+
+                /* Month of the latest end date (tasks + their changes), regardless of status;
+                   '00' only when no task/change has an end date yet. */
+                COALESCE(
+                    (
+                        SELECT DATE_FORMAT(
+                            MAX(
+                                CASE
+                                    WHEN t_mo.end_date IS NOT NULL AND ia_mo.end_date IS NOT NULL THEN GREATEST(t_mo.end_date, ia_mo.end_date)
+                                    WHEN t_mo.end_date IS NOT NULL THEN t_mo.end_date
+                                    WHEN ia_mo.end_date IS NOT NULL THEN ia_mo.end_date
+                                END
+                            ),
+                            '%M'
+                        )
+                        FROM tasks t_mo
+                        LEFT JOIN issue_assignments ia_mo
+                            ON ia_mo.task_id = t_mo.id
+                           AND ia_mo.is_deleted = 0
+                        WHERE t_mo.work_request_id = wr.id
+                          AND t_mo.is_deleted = 0
+                    ),
+                    '00'
                 ) AS month,
 
 
                 /* ==================================================
-                   FINANCIAL YEAR (owner, 2026-11-05): FY (April-March) of the LAST end date of
-                   the project's tasks and their changes. '00' while the project has no task or
-                   any (non-deleted) task / change has no end date yet. Before: FY of created_at.
-                   DATE_SUB(.., 3 MONTH) maps April-March onto one calendar year.
+                   FINANCIAL YEAR
+                   FY (April-March) of the latest end date (tasks + their changes), regardless of
+                   status; '00' only when no task/change has an end date yet.
                    ================================================== */
 
-                (
-                    SELECT CASE
-                        WHEN COUNT(*) = 0
-                          OR SUM(t_fy.end_date IS NULL) > 0
-                          OR SUM(ia_fy.id IS NOT NULL AND ia_fy.end_date IS NULL) > 0
-                        THEN '00'
-                        ELSE CONCAT(
+                COALESCE(
+                    (
+                        SELECT CONCAT(
                             'FY ',
-                            YEAR(DATE_SUB(GREATEST(MAX(t_fy.end_date), COALESCE(MAX(ia_fy.end_date), MAX(t_fy.end_date))), INTERVAL 3 MONTH)),
+                            YEAR(DATE_SUB(MAX(
+                                CASE
+                                    WHEN t_fy.end_date IS NOT NULL AND ia_fy.end_date IS NOT NULL THEN GREATEST(t_fy.end_date, ia_fy.end_date)
+                                    WHEN t_fy.end_date IS NOT NULL THEN t_fy.end_date
+                                    WHEN ia_fy.end_date IS NOT NULL THEN ia_fy.end_date
+                                END
+                            ), INTERVAL 3 MONTH)),
                             '-',
-                            RIGHT(YEAR(DATE_SUB(GREATEST(MAX(t_fy.end_date), COALESCE(MAX(ia_fy.end_date), MAX(t_fy.end_date))), INTERVAL 3 MONTH)) + 1, 2)
+                            RIGHT(YEAR(DATE_SUB(MAX(
+                                CASE
+                                    WHEN t_fy.end_date IS NOT NULL AND ia_fy.end_date IS NOT NULL THEN GREATEST(t_fy.end_date, ia_fy.end_date)
+                                    WHEN t_fy.end_date IS NOT NULL THEN t_fy.end_date
+                                    WHEN ia_fy.end_date IS NOT NULL THEN ia_fy.end_date
+                                END
+                            ), INTERVAL 3 MONTH)) + 1, 2)
                         )
-                    END
-                    FROM tasks t_fy
-                    LEFT JOIN issue_assignments ia_fy
-                        ON ia_fy.task_id = t_fy.id
-                       AND ia_fy.is_deleted = 0
-                    WHERE t_fy.work_request_id = wr.id
-                      AND t_fy.is_deleted = 0
+                        FROM tasks t_fy
+                        LEFT JOIN issue_assignments ia_fy
+                            ON ia_fy.task_id = t_fy.id
+                           AND ia_fy.is_deleted = 0
+                        WHERE t_fy.work_request_id = wr.id
+                          AND t_fy.is_deleted = 0
+                    ),
+                    '00'
                 ) AS fy
 
 
@@ -2817,44 +2827,24 @@ const getClientsData = async (req, res) => {
                    PROJECT END DATE
                    ===================================================== */
 
-                CASE
-                    WHEN EXISTS (
-                        SELECT 1
+                COALESCE(
+                    (
+                        SELECT MAX(
+                            CASE
+                                WHEN t2.end_date IS NOT NULL AND ia2.end_date IS NOT NULL THEN GREATEST(t2.end_date, ia2.end_date)
+                                WHEN t2.end_date IS NOT NULL THEN t2.end_date
+                                WHEN ia2.end_date IS NOT NULL THEN ia2.end_date
+                            END
+                        )
                         FROM tasks t2
+                        LEFT JOIN issue_assignments ia2
+                            ON ia2.task_id = t2.id
+                           AND ia2.is_deleted = 0
                         WHERE t2.work_request_id = wr.id
                           AND t2.is_deleted = 0
-                          AND t2.end_date IS NULL
-                    )
-                    OR EXISTS (
-                        SELECT 1
-                        FROM issue_assignments ia2
-                        JOIN tasks t3
-                            ON t3.id = ia2.task_id
-                           AND t3.is_deleted = 0
-                        WHERE t3.work_request_id = wr.id
-                          AND ia2.is_deleted = 0
-                          AND ia2.end_date IS NULL
-                    )
-                    THEN NULL
-                    ELSE COALESCE(
-                        (
-                            SELECT MAX(
-                                CASE
-                                    WHEN t2.end_date IS NOT NULL AND ia2.end_date IS NOT NULL THEN GREATEST(t2.end_date, ia2.end_date)
-                                    WHEN t2.end_date IS NOT NULL THEN t2.end_date
-                                    WHEN ia2.end_date IS NOT NULL THEN ia2.end_date
-                                END
-                            )
-                            FROM tasks t2
-                            LEFT JOIN issue_assignments ia2
-                                ON ia2.task_id = t2.id
-                               AND ia2.is_deleted = 0
-                            WHERE t2.work_request_id = wr.id
-                              AND t2.is_deleted = 0
-                        ),
-                        NULL
-                    )
-                END AS project_end_date,
+                    ),
+                    NULL
+                ) AS project_end_date,
 
                 /* =====================================================
                    POWER BI DATE/TIME
@@ -5802,44 +5792,24 @@ const getWorkRequestTasksData = async (req, res) => {
                    PROJECT END DATE
                    ===================================================== */
 
-                CASE
-                    WHEN EXISTS (
-                        SELECT 1
+                COALESCE(
+                    (
+                        SELECT MAX(
+                            CASE
+                                WHEN t2.end_date IS NOT NULL AND ia2.end_date IS NOT NULL THEN GREATEST(t2.end_date, ia2.end_date)
+                                WHEN t2.end_date IS NOT NULL THEN t2.end_date
+                                WHEN ia2.end_date IS NOT NULL THEN ia2.end_date
+                            END
+                        )
                         FROM tasks t2
+                        LEFT JOIN issue_assignments ia2
+                            ON ia2.task_id = t2.id
+                           AND ia2.is_deleted = 0
                         WHERE t2.work_request_id = wr.id
                           AND t2.is_deleted = 0
-                          AND t2.end_date IS NULL
-                    )
-                    OR EXISTS (
-                        SELECT 1
-                        FROM issue_assignments ia2
-                        JOIN tasks t3
-                            ON t3.id = ia2.task_id
-                           AND t3.is_deleted = 0
-                        WHERE t3.work_request_id = wr.id
-                          AND ia2.is_deleted = 0
-                          AND ia2.end_date IS NULL
-                    )
-                    THEN NULL
-                    ELSE COALESCE(
-                        (
-                            SELECT MAX(
-                                CASE
-                                    WHEN t2.end_date IS NOT NULL AND ia2.end_date IS NOT NULL THEN GREATEST(t2.end_date, ia2.end_date)
-                                    WHEN t2.end_date IS NOT NULL THEN t2.end_date
-                                    WHEN ia2.end_date IS NOT NULL THEN ia2.end_date
-                                END
-                            )
-                            FROM tasks t2
-                            LEFT JOIN issue_assignments ia2
-                                ON ia2.task_id = t2.id
-                               AND ia2.is_deleted = 0
-                            WHERE t2.work_request_id = wr.id
-                              AND t2.is_deleted = 0
-                        ),
-                        NULL
-                    )
-                END AS project_end_date,
+                    ),
+                    NULL
+                ) AS project_end_date,
 
 
                 /* =====================================================
