@@ -14,8 +14,16 @@ const { getAdminData, getAllFeedback, getClientsData,getTaskDetailsData, getTask
 // keyed by a random job id) are served without one.
 const PUBLIC_ADMIN_GET_PATHS = /^\/admin\/(login|overview|master-data|whats-new|clients|projectsdetails|taskdetails|issuedetails|workrequesttasks|powerbi|leaves|master-card|feedback|reports|dmap-theme\.css|admin-app\.js)$|^\/admin\/(leaves|master-card)\/upload\/progress\/[^/]+$/;
 
+// Power BI / reporting feeds: these three read-only data endpoints work without a token,
+// while still running authenticateToken when an Authorization header is sent (so Super Admin
+// keeps cost columns in the admin UI).
+const OPTIONAL_AUTH_ADMIN_DATA_PATHS = /^\/admin\/(projectsdetails|taskdetails|issuedetails)\/data$/;
+
 router.use((req, res, next) => {
     if (req.method === 'GET' && PUBLIC_ADMIN_GET_PATHS.test(req.path)) {
+        return next();
+    }
+    if (req.method === 'GET' && OPTIONAL_AUTH_ADMIN_DATA_PATHS.test(req.path) && !req.headers.authorization) {
         return next();
     }
     return authenticateToken(req, res, next);
@@ -250,7 +258,7 @@ router.get('/admin/whats-new', (req, res) => {
 router.get('/admin/whats-new/data', async (req, res) => {
     try {
         const versions = whatsNew.forUser(req.user);
-        const seen = await whatsNew.getSeen(req.user.id);
+        const seen = req.user && req.user.id ? await whatsNew.getSeen(req.user.id) : null;
         res.json({ success: true, data: { current: whatsNew.CURRENT, seen, canSeeApi: whatsNew.canSeeApi(req.user), unseen: whatsNew.unseenFor(versions, seen).map(v => v.version), versions } });
     } catch (err) {
         console.error('whats-new data:', err);
@@ -258,6 +266,9 @@ router.get('/admin/whats-new/data', async (req, res) => {
     }
 });
 router.post('/admin/whats-new/seen', async (req, res) => {
+    if (!req.user || !req.user.id) {
+        return res.status(401).json({ success: false, error: 'Access token required' });
+    }
     const version = String((req.body && req.body.version) || '');
     if (!/^\d+\.\d+\.\d+$/.test(version) || whatsNew.compareVersions(version, whatsNew.CURRENT) > 0) {
         return res.status(400).json({ success: false, error: 'Invalid version' });
