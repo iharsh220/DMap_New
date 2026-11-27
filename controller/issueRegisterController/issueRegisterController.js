@@ -260,7 +260,7 @@ const createIssueAssignment = async (req, res) => {
                 req,
                 transaction,
                 issueAssignmentId: issueAssignment.id,
-                taskId: task_id || null,
+                taskId: rootTaskId, // also when only issue_id was sent (was null then)
                 workRequestId,
                 action: 'created',
                 previousStatus: null,
@@ -275,14 +275,17 @@ const createIssueAssignment = async (req, res) => {
                 transaction,
                     workRequestId,
                     action: 'change_request_issue_created',
-                    relatedTaskId: task_id || null,
+                    relatedTaskId: rootTaskId,
                     relatedIssueId: issueAssignment.id,
                     comments: 'Change request issue created',
                     actorOverride
                 });
             }
 
+            // History logs the values the task / parent change really had (before: hard-coded
+            // 'pending' / 'final_approved'); only `review` changes, the review stage stays as it is.
             if (task_id) {
+                const taskBefore = await Tasks.findByPk(task_id, { attributes: ['review', 'review_stage'], transaction });
                 await Tasks.update({ review: 'change_request' }, { where: { id: task_id }, transaction });
 
                 await recordTaskHistory({
@@ -291,10 +294,10 @@ const createIssueAssignment = async (req, res) => {
                     taskId: task_id,
                     workRequestId,
                     action: 'change_request_created',
-                    previousReview: 'pending',
+                    previousReview: taskBefore?.review ?? null,
                     newReview: 'change_request',
-                    previousReviewStage: 'final_approved',
-                    newReviewStage: 'change_requested',
+                    previousReviewStage: taskBefore?.review_stage ?? null,
+                    newReviewStage: taskBefore?.review_stage ?? null,
                     relatedIssueId: issueAssignment.id,
                     comments: `New issue request created - ${version}`,
                     actorOverride
@@ -306,28 +309,27 @@ const createIssueAssignment = async (req, res) => {
                     reviewer_type: 'project_manager',
                     action: 'change_request',
                     comments: `New issue request created - ${version}`,
-                    previous_stage: 'final_approved',
-                    new_stage: 'change_requested',
+                    previous_stage: taskBefore?.review_stage ?? null,
+                    new_stage: taskBefore?.review_stage ?? null,
                     transaction
                 });
             }
 
             if (issue_id) {
+                const parentIssue = await IssueAssignments.findByPk(issue_id, { attributes: ['task_id', 'review', 'review_stage'], transaction });
                 await IssueAssignments.update({ review: 'change_request' }, { where: { id: issue_id }, transaction });
-
-                const parentIssue = await IssueAssignments.findByPk(issue_id, { attributes: ['task_id'], transaction });
 
                 await recordIssueHistory({
                     req,
                 transaction,
                     issueAssignmentId: issue_id,
-                    taskId: parentIssue?.task_id || null,
+                    taskId: parentIssue?.task_id || rootTaskId,
                     workRequestId,
                     action: 'child_change_request_created',
-                    previousReview: 'pending',
+                    previousReview: parentIssue?.review ?? null,
                     newReview: 'change_request',
-                    previousReviewStage: 'final_approved',
-                    newReviewStage: 'change_requested',
+                    previousReviewStage: parentIssue?.review_stage ?? null,
+                    newReviewStage: parentIssue?.review_stage ?? null,
                     relatedIssueId: issueAssignment.id,
                     comments: `New issue request created for issue - ${version}`,
                     actorOverride
@@ -340,8 +342,8 @@ const createIssueAssignment = async (req, res) => {
                         reviewer_type: 'project_manager',
                         action: 'change_request',
                         comments: `New issue request created for issue - ${version}`,
-                        previous_stage: 'final_approved',
-                        new_stage: 'change_requested',
+                        previous_stage: parentIssue.review_stage ?? null,
+                        new_stage: parentIssue.review_stage ?? null,
                         transaction
                     });
                 }

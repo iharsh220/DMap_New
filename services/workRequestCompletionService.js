@@ -93,8 +93,40 @@ const completeAllFinishedWorkRequests = async () => {
     return { success: true, checked: rows.length, completed: completedIds.length, workRequestIds: completedIds };
 };
 
+// Owner's rule (2026-11-27): a project is in progress as soon as one of its tasks or change requests
+// starts; before, it stayed 'accepted' until the 00:01 job (which stays as a fallback).
+// Guarded by the current status, so pending, completed, cancelled or deferred projects are never moved.
+const WORK_REQUEST_STATUSES_TO_START = ['accepted', 'assigned'];
+
+const startWorkRequestIfNeeded = async (workRequestId, { req = null, relatedTaskId = null, relatedIssueId = null, transaction = null } = {}) => {
+    if (!workRequestId) return false;
+    const workRequest = await WorkRequests.findByPk(workRequestId, { attributes: ['id', 'status', 'is_deleted'], transaction });
+    if (!workRequest || workRequest.is_deleted || !WORK_REQUEST_STATUSES_TO_START.includes(workRequest.status)) return false;
+
+    const [count] = await WorkRequests.update(
+        { status: 'in_progress' },
+        { where: { id: workRequestId, status: workRequest.status, is_deleted: 0 }, transaction }
+    );
+    if (count === 0) return false;
+
+    await recordWorkRequestHistory({
+        req,
+        transaction,
+        workRequestId,
+        action: 'work_started',
+        previousStatus: workRequest.status,
+        newStatus: 'in_progress',
+        changes: { status: { before: workRequest.status, after: 'in_progress' } },
+        relatedTaskId,
+        relatedIssueId,
+        comments: relatedIssueId ? 'Project in progress: a change request was started' : 'Project in progress: a task was started'
+    });
+    return true;
+};
+
 module.exports = {
     finishedWorkRequests,
     completeWorkRequestIfFinished,
-    completeAllFinishedWorkRequests
+    completeAllFinishedWorkRequests,
+    startWorkRequestIfNeeded
 };

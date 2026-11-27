@@ -29,6 +29,7 @@ const { recordTaskHistory, recordIssueHistory, recordWorkRequestHistory, getTask
 const { sequelize } = require('../../config/databaseConfig');
 const { canDelegateTask, assignTargetError, isTaskManager, canViewWorkRequest, workRequestIdForTask, workRequestIdForIssue } = require('../../services/accessService');
 const { pickModelFilters, pickModelFields } = require('../../utils/queryFilters');
+const { startWorkRequestIfNeeded } = require('../../services/workRequestCompletionService');
 const { parseId, parseDateOnly, todayDateOnly, safePathSegment, parsePageCount, parseSubmitEndDate } = require('../../utils/validators');
 const path = require('path');
 const fs = require('fs');
@@ -212,9 +213,15 @@ const getAssignedTasks = async (req, res) => {
                 whereCondition.status = { [Op.notIn]: ['completed', 'cancelled'] };
                 whereCondition.review = { [Op.ne]: 'approved' };
                 whereCondition.review_stage = { [Op.ne]: 'final_approved' };
-                whereCondition[Op.or] = [
-                    { review: { [Op.ne]: 'change_request' } },
-                    { review_stage: { [Op.ne]: 'pm_review' } }
+                // AND-ed with the search's Op.or (before, this overwrote it and the search was ignored)
+                whereCondition[Op.and] = [
+                    ...(whereCondition[Op.and] || []),
+                    {
+                        [Op.or]: [
+                            { review: { [Op.ne]: 'change_request' } },
+                            { review_stage: { [Op.ne]: 'pm_review' } }
+                        ]
+                    }
                 ];
             }
         }
@@ -307,7 +314,29 @@ const getAssignedTasks = async (req, res) => {
         });
         const assignedTaskIds = assignedTaskAssignments.map(ta => ta.task_id);
 
-        if (assignedTaskIds.length > 0) {
+        // Manager's team view: also the tasks of the projects this manager manages, so a task they
+        // delegated to another vertical's manager stays visible to them (owner rule: creator views it)
+        let managedWorkRequestIds = [];
+        if (isManager && !assigned_to) {
+            const managed = await WorkRequestManagers.findAll({
+                where: { manager_id: user_id },
+                attributes: ['work_request_id'],
+                raw: true
+            });
+            managedWorkRequestIds = managed.map(m => m.work_request_id);
+        }
+
+        if (managedWorkRequestIds.length > 0) {
+            whereCondition[Op.and] = [
+                ...(whereCondition[Op.and] || []),
+                {
+                    [Op.or]: [
+                        { id: { [Op.in]: assignedTaskIds.length > 0 ? assignedTaskIds : [0] } },
+                        { work_request_id: { [Op.in]: managedWorkRequestIds } }
+                    ]
+                }
+            ];
+        } else if (assignedTaskIds.length > 0) {
             whereCondition.id = { [Op.in]: assignedTaskIds };
         } else {
             whereCondition.id = { [Op.in]: [] };
@@ -400,11 +429,12 @@ const getAssignedTasks = async (req, res) => {
                 }
             ],
             attributes: { exclude: [] },
-            limit: req.pagination.limit,
-            offset: req.pagination.offset,
+            // limit=-1 = all rows (a raw LIMIT -1 is a SQL error)
+            ...(req.pagination.limit === -1 ? {} : { limit: req.pagination.limit, offset: req.pagination.offset }),
             order: [
                 ['deadline', sortDirection],
-                ['notification_alert', 'DESC']
+                ['notification_alert', 'DESC'],
+                ['id', sortDirection]
             ]
         });
 
@@ -1203,9 +1233,6 @@ const acceptTask = async (req, res) => {
             }
         }
 
-        // A task without a deadline is treated like one with a future deadline.
-        const isDeadlineTodayOrFuture = !task.deadline || String(task.deadline).slice(0, 10) >= today;
-
         // Prepare update data
         const updateData = {
             status: 'accepted', // Default status
@@ -1213,9 +1240,10 @@ const acceptTask = async (req, res) => {
             notification_alert: 0 // Reset notification alert when task is accepted
         };
 
-        // Set start_date automatically if deadline is today or in the future and no start_date provided
+        // No start_date sent: the task starts today (also when the deadline is already past; before,
+        // such a task kept start_date NULL and could be completed without a start date)
         // (the daily scheduler then moves the task and its work request to in_progress)
-        if (isDeadlineTodayOrFuture && !startDate) {
+        if (!startDate) {
             updateData.start_date = today;
         } else if (startDate) {
             updateData.start_date = startDate;
@@ -1249,6 +1277,10 @@ const acceptTask = async (req, res) => {
             actorOverride: { ...req.user, actor_type: 'user' }
         });
 
+        // The task has started: its project is in progress now, not only after the 00:01 job
+        if (updateData.status === 'in_progress') {
+            await startWorkRequestIfNeeded(task.work_request_id, { req, relatedTaskId: taskId });
+        }
 
         res.json({
             success: true,
@@ -2111,9 +2143,15 @@ const getAssignedIssues = async (req, res) => {
                 whereCondition.status = { [Op.notIn]: ['completed', 'cancelled'] };
                 whereCondition.review = { [Op.ne]: 'approved' };
                 whereCondition.review_stage = { [Op.ne]: 'final_approved' };
-                whereCondition[Op.or] = [
-                    { review: { [Op.ne]: 'change_request' } },
-                    { review_stage: { [Op.ne]: 'pm_review' } }
+                // AND-ed with the search's Op.or (before, this overwrote it and the search was ignored)
+                whereCondition[Op.and] = [
+                    ...(whereCondition[Op.and] || []),
+                    {
+                        [Op.or]: [
+                            { review: { [Op.ne]: 'change_request' } },
+                            { review_stage: { [Op.ne]: 'pm_review' } }
+                        ]
+                    }
                 ];
             }
         } else {
@@ -2121,9 +2159,46 @@ const getAssignedIssues = async (req, res) => {
             whereCondition.status = 'u_pending';
         }
 
+        // Search (the app sends `search`): change description, task name or project name
+        const searchTerm = String(req.query.search || '').trim();
+        if (searchTerm) {
+            const like = `%${searchTerm}%`;
+            const matchingTasks = await Tasks.findAll({
+                attributes: ['id'],
+                where: {
+                    id: { [Op.in]: sequelize.literal(`(SELECT task_id FROM issue_assignments WHERE id IN (${issueAssignmentIds.map(Number).join(',')}))`) },
+                    [Op.or]: [
+                        { task_name: { [Op.like]: like } },
+                        { '$WorkRequest.project_name$': { [Op.like]: like } }
+                    ]
+                },
+                include: [{ model: WorkRequests, attributes: [], required: true }],
+                raw: true
+            });
+            whereCondition[Op.and] = [
+                ...(whereCondition[Op.and] || []),
+                {
+                    [Op.or]: [
+                        { description: { [Op.like]: like } },
+                        { task_id: { [Op.in]: matchingTasks.length > 0 ? matchingTasks.map(t => t.id) : [0] } }
+                    ]
+                }
+            ];
+        }
+
+        // Pagination (`limit=-1` = all rows); total and the alert count are over all matches
+        const { page, limit, offset } = req.pagination || { page: 1, limit: -1, offset: 0 };
+        const sortDirection = String(sort || 'DESC').toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+        const [total, alertTotal] = await Promise.all([
+            IssueAssignments.count({ where: whereCondition }),
+            IssueAssignments.count({ where: { ...whereCondition, notification_alert: 1 } })
+        ]);
+
         // Get issue assignments with full details
         const issueAssignments = await IssueAssignments.findAll({
             where: whereCondition,
+            order: [['created_at', sortDirection], ['id', sortDirection]],
+            ...(limit === -1 ? {} : { limit, offset }),
             include: [
                 {
                     model: Tasks,
@@ -2307,13 +2382,14 @@ const getAssignedIssues = async (req, res) => {
             };
         });
 
-        // Calculate total notification count: count of issue assignments with notification_alert = 1
-        const totalNotificationAlert = issueAssignments.filter(ia => ia.notification_alert == 1).length;
+        // Notification count over all matching issues (not only this page)
+        const totalNotificationAlert = alertTotal;
 
         res.json({
             success: true,
             data: result,
             notification_alert_count: totalNotificationAlert,
+            pagination: { page, limit, total, total_pages: limit === -1 ? 1 : Math.ceil(total / limit) },
             message: 'Assigned issues retrieved successfully'
         });
     } catch (error) {
@@ -2426,6 +2502,11 @@ const acceptIssue = async (req, res) => {
             newStatus,
             comments: 'Issue accepted by assigned user'
         });
+
+        // The change has started: its project is in progress now, not only after the 00:01 job
+        if (newStatus === 'in_progress') {
+            await startWorkRequestIfNeeded(workRequestId, { req, relatedTaskId: taskId, relatedIssueId: issueId });
+        }
 
         res.json({
             success: true,

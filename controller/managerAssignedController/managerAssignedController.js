@@ -34,7 +34,7 @@ const {
 const { sendMail } = require('../../services/mailService');
 const { renderTemplate } = require('../../services/templateService');
 const { recordWorkRequestHistory, recordTaskHistory, recordIssueHistory, getTaskHistory: getTaskHistoryRecords, getIssueHistory: getIssueHistoryRecords } = require('../../services/historyService');
-const { isSuperAdmin, isTaskManager, canActOnTask, isDelegatedAway, managedTaskIdsSubquery, sharesDivision, assignTargetError, canViewWorkRequest, workRequestIdForTask, workRequestIdForIssue } = require('../../services/accessService');
+const { isSuperAdmin, isTaskManager, canActOnTask, isDelegatedAway, managedTaskIdsSubquery, managerProjectIdsSql, sharesDivision, assignTargetError, canViewWorkRequest, workRequestIdForTask, workRequestIdForIssue } = require('../../services/accessService');
 const { pickModelFilters, pickModelFields } = require('../../utils/queryFilters');
 const { parseId, parseIdArray, parseDateOnly, safePathSegment, parsePageCount, todayDateOnly } = require('../../utils/validators');
 const projectCancellation = require('../../services/projectCancellationService');
@@ -164,7 +164,12 @@ const getAssignableUsers = async (req, res) => {
             include: [
                 {
                     model: Tasks,
-                    where: { status: { [Op.in]: ['pending', 'accepted', 'in_progress'] } },
+                    // live tasks of live projects only (soft-deleted tasks made the workload look too high)
+                    where: {
+                        status: { [Op.in]: ['pending', 'accepted', 'in_progress'] },
+                        is_deleted: 0,
+                        work_request_id: { [Op.in]: Tasks.sequelize.literal('(SELECT id FROM work_requests WHERE is_deleted = 0)') }
+                    },
                     attributes: []
                 }
             ],
@@ -443,6 +448,11 @@ const getAssignedWorkRequests = async (req, res) => {
             }
         }
 
+        // The caller's projects: requests they manage, plus requests with a task delegated to them
+        // (Manager -> Manager delegation: they are the task's assignee or in its 'assigned' history).
+        // Before, only work_request_managers counted and the delegated manager never saw the project.
+        andConditions.push({ id: { [Op.in]: literal(managerProjectIdsSql(manager_id)) } });
+
         if (andConditions.length > 0) {
             where[Op.and] = andConditions;
         }
@@ -451,12 +461,6 @@ const getAssignedWorkRequests = async (req, res) => {
             where,
             attributes: { exclude: ['request_type_id', 'requested_manager_link_id', 'updated_at'] },
             include: [
-                {
-                    model: WorkRequestManagers,
-                    where: { manager_id: manager_id },
-                    required: true,
-                    attributes: []
-                },
                 { model: User, as: 'users', foreignKey: 'user_id', attributes: { exclude: ['password', 'created_at', 'updated_at', 'department_id', 'job_role_id', 'location_id', 'designation_id', 'last_login', 'login_attempts', 'lock_until', 'password_changed_at', 'password_expires_at'] } },
                 { model: RequestType, attributes: { exclude: ['division_id', 'created_at', 'updated_at'] }, include: [{ model: Division, through: { attributes: [] }, attributes: { exclude: ['created_at', 'updated_at', 'department_id'] } }] },
                 {
@@ -506,8 +510,8 @@ const getAssignedWorkRequests = async (req, res) => {
                     ]
                 }
             ],
-            limit: req.pagination.limit,
-            offset: req.pagination.offset,
+            // limit=-1 = all rows (a raw LIMIT -1 was a SQL error -> 500)
+            ...(req.pagination.limit === -1 ? {} : { limit: req.pagination.limit, offset: req.pagination.offset }),
             order
         });
 
@@ -1472,6 +1476,8 @@ const deferWorkRequest = async (req, res) => {
                 req,
                 workRequestId: id,
                 action: 'manager_deferred',
+                previousStatus: workRequest.status,
+                newStatus: workRequest.status, // a deferred request keeps its status (see work_request_deferrals)
                 previousData: workRequest,
                 comments: message,
                 relatedUserId: workRequest.user_id,
@@ -1609,6 +1615,8 @@ const deferWorkRequest = async (req, res) => {
                 req,
                 workRequestId: id,
                 action: 'manager_deferred_reassigned',
+                previousStatus: workRequest.status,
+                newStatus: workRequest.status,
                 previousData: workRequest,
                 nextData: {
                     request_type_id: newRequestTypeId,
@@ -1837,6 +1845,13 @@ const createTask = async (req, res) => {
                 return res.status(400).json({
                     success: false,
                     error: 'Deadline must be a valid date in YYYY-MM-DD format'
+                });
+            }
+            // A new task cannot be overdue from the start (the app's calendar already blocks past days)
+            if (formattedDeadline < todayDateOnly()) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Deadline cannot be before today'
                 });
             }
         }
@@ -2101,21 +2116,14 @@ const getTasksByWorkRequestId = async (req, res) => {
 
         const manager_id = req.user.id;
 
-        // Check if work request is assigned to this manager
-        const workRequestResult = await workRequestService.getAll({
-            where: { id: workRequestId },
-            include: [
-                {
-                    model: WorkRequestManagers,
-                    where: { manager_id: manager_id },
-                    required: true,
-                    attributes: []
-                }
-            ],
-            limit: 1
-        });
+        // The request's managers, a manager a task of it was delegated to, and super admin
+        // (before, a delegated manager got 404 here)
+        const allowed = isSuperAdmin(req.user) || (await sequelize.query(
+            `SELECT 1 AS ok FROM work_requests w WHERE w.id = :workRequestId AND w.id IN ${managerProjectIdsSql(manager_id)} LIMIT 1`,
+            { replacements: { workRequestId }, type: sequelize.QueryTypes.SELECT }
+        )).length > 0;
 
-        if (!workRequestResult.success || workRequestResult.data.length === 0) {
+        if (!allowed) {
             return res.status(404).json({
                 success: false,
                 error: 'Work request not found or not assigned to you'
@@ -2125,7 +2133,8 @@ const getTasksByWorkRequestId = async (req, res) => {
         // Get all tasks for this work request with basic details, dependencies, assigned users, request type, and task type
         const tasksResult = await Tasks.findAll({
             where: { work_request_id: workRequestId, is_deleted: 0 },
-            attributes: ['id', 'task_name', 'deadline'],
+            // status, pages and dates added (2026-11-27); the old fields are unchanged
+            attributes: ['id', 'task_name', 'deadline', 'status', 'review', 'review_stage', 'task_count', 'start_date', 'end_date'],
             include: [
                 {
                     model: TaskDependencies,
@@ -2195,6 +2204,12 @@ const getTasksByWorkRequestId = async (req, res) => {
             id: task.id,
             task_name: task.task_name,
             deadline: task.deadline,
+            status: task.status,
+            review: task.review,
+            review_stage: task.review_stage,
+            task_count: task.task_count,
+            start_date: task.start_date,
+            end_date: task.end_date,
             requestType: task.RequestType ? {
                 id: task.RequestType.id,
                 request_type: task.RequestType.request_type,
@@ -2805,6 +2820,8 @@ const deleteWorkRequest = async (req, res) => {
             req,
             workRequestId: id,
             action: 'deleted',
+            previousStatus: workRequest.status,
+            newStatus: workRequest.status, // soft delete: is_deleted = 1, status unchanged
             previousData: workRequest,
             comments: 'Work request deleted by manager',
             relatedUserId: workRequest.user_id,
@@ -2907,10 +2924,31 @@ const deleteTask = async (req, res) => {
             taskId,
             workRequestId: task.WorkRequest?.id,
             action: 'deleted',
+            previousStatus: task.status,
+            newStatus: task.status, // soft delete: is_deleted = 1, status unchanged
             previousData: task,
             comments: 'Task soft deleted by manager',
             relatedManagerId: manager_id
         });
+
+        // The task's live changes are deleted with it: give each one its own history row
+        const liveChanges = await IssueAssignments.findAll({
+            where: { task_id: taskId, is_deleted: 0 },
+            attributes: ['id', 'status', 'review', 'review_stage']
+        });
+        for (const change of liveChanges) {
+            await recordIssueHistory({
+                req,
+                issueAssignmentId: change.id,
+                taskId,
+                workRequestId: task.WorkRequest?.id,
+                action: 'deleted_with_task',
+                previousStatus: change.status,
+                newStatus: change.status,
+                comments: 'Change deleted together with its task',
+                relatedManagerId: manager_id
+            });
+        }
 
         // Soft delete - Set is_deleted flag instead of actually deleting
         await Tasks.update({ is_deleted: 1 }, { where: { id: taskId } });
@@ -3366,11 +3404,12 @@ const getUserTask = async (req, res) => {
                     task_type: taskData.TaskType.task_type,
                     description: taskData.TaskType.description
                 } : null,
-                workRequest: taskData.WorkRequests ? {
-                    id: taskData.WorkRequests.id,
-                    project_name: taskData.WorkRequests.project_name,
-                    brand: taskData.WorkRequests.brand,
-                    status: taskData.WorkRequests.status
+                // Sequelize names the association `WorkRequest` (singular); `WorkRequests` was always undefined
+                workRequest: (taskData.WorkRequest || taskData.WorkRequests) ? {
+                    id: (taskData.WorkRequest || taskData.WorkRequests).id,
+                    project_name: (taskData.WorkRequest || taskData.WorkRequests).project_name,
+                    brand: (taskData.WorkRequest || taskData.WorkRequests).brand,
+                    status: (taskData.WorkRequest || taskData.WorkRequests).status
                 } : null,
                 issues: taskData.issueAssignments && taskData.issueAssignments.length > 0
                     ? taskData.issueAssignments.map(issue => ({
@@ -3657,6 +3696,8 @@ const updateTask = async (req, res) => {
             taskId,
             workRequestId: task.WorkRequest?.id,
             action: 'updated',
+            previousStatus: task.status,
+            newStatus: updatedTask?.status ?? task.status,
             previousData: task,
             nextData: updatedTask,
             comments: 'Task updated by manager',
@@ -4118,7 +4159,13 @@ const reviewTask = async (req, res) => {
                 action: action === 'approved' ? 'manager_approved' : 'manager_change_requested',
                 previousData: task,
                 nextData: updatedTask,
-                changes: { review: action, review_stage: newStage, status: newStatus },
+                // real before/after values (before: `review: action` contradicted new_review)
+                changes: {
+                    manager_action: action,
+                    review: { before: task.review, after: updateData.review !== undefined ? updateData.review : task.review },
+                    review_stage: { before: previousStage, after: newStage },
+                    status: { before: task.status, after: newStatus }
+                },
                 previousStatus: task.status,
                 newStatus,
                 previousReview: task.review,
@@ -4314,10 +4361,13 @@ const reviewTask = async (req, res) => {
 
                 const issueUserAssignmentIds = issueUserAssignments.map(iua => iua.id);
 
-                // Delete all documents for these issue user assignments
+                // Delete the artist's output documents; the PMT's reference files stay
                 if (issueUserAssignmentIds.length > 0) {
                     await IssueDocuments.destroy({
-                        where: { issue_user_assignment_id: { [Op.in]: issueUserAssignmentIds } }
+                        where: {
+                            issue_user_assignment_id: { [Op.in]: issueUserAssignmentIds },
+                            [Op.or]: [{ uploaded_by: { [Op.ne]: 'pmt' } }, { uploaded_by: null }]
+                        }
                     });
                 }
             }
@@ -4398,7 +4448,13 @@ const reviewTask = async (req, res) => {
                 action: action === 'approved' ? 'manager_approved' : 'manager_change_requested',
                 previousData: issueAssignment,
                 nextData: updatedIssue,
-                changes: { review: action, review_stage: newStage, status: newStatus },
+                // real before/after values (before: `review: action` contradicted new_review)
+                changes: {
+                    manager_action: action,
+                    review: { before: issueAssignment.review, after: updateData.review !== undefined ? updateData.review : issueAssignment.review },
+                    review_stage: { before: previousStage, after: newStage },
+                    status: { before: issueAssignment.status, after: newStatus }
+                },
                 previousStatus: issueAssignment.status,
                 newStatus,
                 previousReview: issueAssignment.review,
@@ -4727,7 +4783,9 @@ const shareForClientReview = async (req, res) => {
                     issueDocuments = await IssueDocuments.findAll({
                         where: {
                             id: { [Op.in]: issue_document_ids },
-                            issue_user_assignment_id: { [Op.in]: issueUserAssignmentIds }
+                            issue_user_assignment_id: { [Op.in]: issueUserAssignmentIds },
+                            // the PMT's own reference files are never shared back as output (B-09)
+                            [Op.or]: [{ uploaded_by: { [Op.ne]: 'pmt' } }, { uploaded_by: null }],
                         },
                         attributes: ['id', 'document_name', 'document_path']
                     });
@@ -4737,7 +4795,9 @@ const shareForClientReview = async (req, res) => {
                 if ((!issue_document_ids || issue_document_ids.length === 0) && issueUserAssignmentIds.length > 0) {
                     issueDocuments = await IssueDocuments.findAll({
                         where: {
-                            issue_user_assignment_id: { [Op.in]: issueUserAssignmentIds }
+                            issue_user_assignment_id: { [Op.in]: issueUserAssignmentIds },
+                            // the PMT's own reference files are never shared back as output (B-09)
+                            [Op.or]: [{ uploaded_by: { [Op.ne]: 'pmt' } }, { uploaded_by: null }],
                         },
                         attributes: ['id', 'document_name', 'document_path']
                     });
@@ -5889,10 +5949,17 @@ const assignIssueToUser = async (req, res) => {
             }
         }
 
-        // Update existing assignment for this issue_assignment_id if exists, else create new
+        // The artist's row of this change: any row that is not the requester's. The requester (PMT)
+        // row holds the PMT's attachment and stays theirs; before, it was handed to the artist, so
+        // the PMT file became the artist's "output" and was shared back to the client (B-09).
+        // Reassigning updates the artist's row; the first assignment creates it.
         let issueUserAssignment;
         const existingAssignmentForIssue = await IssueUserAssignments.findOne({
-            where: { issue_assignment_id }
+            where: {
+                issue_assignment_id,
+                ...(issueAssignment.requested_by_user_id ? { user_id: { [Op.ne]: issueAssignment.requested_by_user_id } } : {})
+            },
+            order: [['id', 'ASC']]
         });
 
         if (existingAssignmentForIssue) {

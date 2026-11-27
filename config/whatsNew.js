@@ -16,6 +16,21 @@
 
 const VERSIONS = [
     {
+        version: '1.12.0',
+        date: '2026-11-27',
+        title: 'Fixes from the live test: projects, changes, delegation, search',
+        changes: [
+            { type: 'improved', area: 'Projects', text: 'A project now shows "In progress" as soon as the first task or change is started, instead of the next morning.' },
+            { type: 'fixed', area: 'Changes', text: 'The file the client attaches to a change request stays the client\'s reference file. Before, once the change was assigned it showed up as the artist\'s output (twice) and could be shared back to the client.' },
+            { type: 'fixed', area: 'Delegation', text: 'A manager who receives a delegated task now sees its project in their project list and can open its task list. The manager who delegated it still sees the task in their team list.' },
+            { type: 'fixed', area: 'Search', text: 'Searching tasks together with the Overdue filter now returns only matching tasks. Searching changes now works.' },
+            { type: 'fixed', area: 'Tasks', text: 'A new task cannot be created with a deadline in the past. The workload count in the assign list no longer counts deleted tasks.' },
+            { type: 'fixed', area: 'Security', text: 'Logging out now also ends the session on refresh; the email verification code is no longer sent in the login answer.' },
+            { type: 'api', area: 'API', text: 'GET /work-requests/:id: 200 for the request\'s managers (was 404). GET /manager/assigned-work-requests: also projects with a task delegated to the caller; limit=-1 = all rows (was 500). GET /manager/assigned-work-requests/work-request/:id/tasks: allowed for the delegated manager; tasks add status, review, review_stage, task_count, start_date, end_date. GET /manager/assigned-work-requests/user/:id/tasks: workRequest is filled (was always null). GET /users/issues: honours page/limit (limit=-1 = all), adds pagination, supports search, newest first; notification_alert_count over all matches. GET /users/tasks: search is kept with status=overdue; limit=-1 supported; a manager\'s team view also lists tasks of the projects they manage.' },
+            { type: 'api', area: 'API', text: 'POST /manager/assigned-work-requests/tasks: 400 for a deadline before today. POST /manager/assigned-work-requests/assign-issue-to-user: the artist gets their own issue_user_assignments row; the requester\'s (PMT) row and files are never reassigned; share-for-client-review and rework never include / delete PMT files. PUT /users/tasks/:id/accept and PUT /users/issues/:id/accept move the project accepted/assigned -> in_progress (history work_started). PUT /users/tasks/:id/accept without start_date starts today (also when the deadline is past). POST /work-requests/pm-approve on an already approved task writes nothing. POST /auth/logout revokes the user\'s refresh tokens; login / refresh / profile no longer return latest_verification_token. History rows now keep real before/after values (pm-approve, rework, change created, project update, defer, delete, update).' }
+        ]
+    },
+    {
         version: '1.11.3',
         date: '2026-11-23',
         title: 'Month follows the end date on Projects and Tasks',

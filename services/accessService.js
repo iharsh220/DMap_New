@@ -137,6 +137,22 @@ const viewableWorkRequestIdsSubquery = (user) => {
     return `(SELECT w.id FROM work_requests w WHERE ${viewableWorkRequestSql(user)})`;
 };
 
+// Ids of the projects shown in a manager's own project lists (manager app): the requests they
+// manage, plus requests with a task delegated to them (they are a task assignee, or in the task's
+// 'assigned' history as actor or assignee). Narrower than taskManagerSql on purpose: the
+// "artist's manager" part would list every project one of their artists ever worked on.
+const managerProjectIdsSql = (userId) => {
+    const uid = safeUid(userId);
+    return `(
+        SELECT m.work_request_id FROM work_request_managers m WHERE m.manager_id = ${uid}
+        UNION
+        SELECT t.work_request_id FROM tasks t JOIN task_assignments ta ON ta.task_id = t.id WHERE ta.user_id = ${uid} AND t.is_deleted = 0
+        UNION
+        SELECT th.work_request_id FROM task_history th JOIN tasks t ON t.id = th.task_id AND t.is_deleted = 0
+        WHERE th.action = 'assigned' AND (th.actor_id = ${uid} OR th.assigned_to_user_id = ${uid})
+    )`;
+};
+
 // Manager-level action on a task (review, share, accept/assign/cancel its changes, delegate):
 // super admin, or a manager-role user who is a task manager (see taskManagerSql).
 const isTaskManager = async (user, taskId) => {
@@ -292,6 +308,7 @@ module.exports = {
     canViewWorkRequest,
     viewableWorkRequestSql,
     viewableWorkRequestIdsSubquery,
+    managerProjectIdsSql,
     isTaskManager,
     canActOnTask,
     isDelegatedAway,

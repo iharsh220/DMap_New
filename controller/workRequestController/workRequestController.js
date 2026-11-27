@@ -275,6 +275,8 @@ const createWorkRequest = async (req, res) => {
             req,
             workRequestId,
             action: 'created',
+            previousStatus: null,
+            newStatus: isdraft === 'true' ? 'draft' : 'pending',
             previousData: null,
             nextData: result.data,
             changes: {
@@ -490,6 +492,9 @@ const updateWorkRequest = async (req, res) => {
             }
         }
 
+        // Snapshot before the update, so the history row keeps the old values
+        const workRequestBefore = workRequest.toJSON();
+
         // Update the work request
         if (Object.keys(updateData).length > 0) {
             await workRequest.update(updateData);
@@ -658,7 +663,10 @@ const updateWorkRequest = async (req, res) => {
             req,
             workRequestId,
             action: isCreator ? 'resubmitted' : 'updated',
-            previousData: workRequest,
+            previousStatus: workRequestBefore.status,
+            newStatus: workRequest.status,
+            previousData: workRequestBefore,
+            nextData: workRequest,
             comments: isCreator ? 'Work request resubmitted by creator' : 'Work request updated by manager',
             relatedUserId: workRequest.user_id
         });
@@ -1035,8 +1043,9 @@ const getWorkRequestById = async (req, res) => {
             return res.status(403).json({ success: false, error: 'You do not have access to this work request' });
         }
 
+        // Access was checked above (creator or one of the request's managers), so load by id only
         const result = await workRequestService.getAll({
-            where: { id, user_id },
+            where: { id },
             attributes: { exclude: ['request_type_id', 'created_at', 'updated_at'] },
             include: [
                 {
@@ -1930,62 +1939,69 @@ const pmApproveTask = async (req, res) => {
             });
         }
 
-        // Update the task: status stays 'completed', review = 'approved', review_stage = 'final_approved'
-        await task.update({
-            status: 'completed',
-            review: 'approved',
-            review_stage: 'final_approved'
-        });
+        // Snapshot before the update: the history rows must show the values the task had before approval
+        const taskBefore = task.toJSON();
+        // A repeated approval (double click, retry) changes nothing and writes no second history row
+        const alreadyApproved = taskBefore.review === 'approved' && taskBefore.review_stage === 'final_approved';
 
-        // Find all task assignments for this task
-        const taskAssignments = await TaskAssignments.findAll({
-            where: { task_id: task_id }
-        });
-
-        const taskAssignmentIds = taskAssignments.map(ta => ta.id);
-
-        // Find and update all documents for this task where intimate_client = 1
-        if (taskAssignmentIds.length > 0) {
-            await TaskDocuments.update(
-                { review: 'approved' },
-                {
-                    where: {
-                        task_assignment_id: { [Op.in]: taskAssignmentIds },
-                        intimate_client: 1
-                    }
-                }
-            );
-        }
-
-        await recordTaskHistory({
-            req,
-            taskId: task.id,
-            workRequestId: task.work_request_id,
-            action: 'pm_approved',
-            previousData: task,
-            nextData: {
+        if (!alreadyApproved) {
+            // Update the task: status stays 'completed', review = 'approved', review_stage = 'final_approved'
+            await task.update({
                 status: 'completed',
                 review: 'approved',
                 review_stage: 'final_approved'
-            },
-            previousStatus: task.status,
-            newStatus: 'completed',
-            previousReview: task.review,
-            newReview: 'approved',
-            previousReviewStage: task.review_stage,
-            newReviewStage: 'final_approved',
-            comments: 'PM approved task and associated documents'
-        });
+            });
 
-        await recordWorkRequestHistory({
-            req,
-            workRequestId: task.work_request_id,
-            action: 'pm_approved_task',
-            previousStatus: task.status,
-            newStatus: 'completed',
-            relatedTaskId: task.id,
-            comments: 'PM approved task'
-        });
+            // Find all task assignments for this task
+            const taskAssignments = await TaskAssignments.findAll({
+                where: { task_id: task_id }
+            });
+
+            const taskAssignmentIds = taskAssignments.map(ta => ta.id);
+
+            // Find and update all documents for this task where intimate_client = 1
+            if (taskAssignmentIds.length > 0) {
+                await TaskDocuments.update(
+                    { review: 'approved' },
+                    {
+                        where: {
+                            task_assignment_id: { [Op.in]: taskAssignmentIds },
+                            intimate_client: 1
+                        }
+                    }
+                );
+            }
+
+            await recordTaskHistory({
+                req,
+                taskId: task.id,
+                workRequestId: task.work_request_id,
+                action: 'pm_approved',
+                previousData: taskBefore,
+                nextData: {
+                    status: 'completed',
+                    review: 'approved',
+                    review_stage: 'final_approved'
+                },
+                previousStatus: taskBefore.status,
+                newStatus: 'completed',
+                previousReview: taskBefore.review,
+                newReview: 'approved',
+                previousReviewStage: taskBefore.review_stage,
+                newReviewStage: 'final_approved',
+                comments: 'PM approved task and associated documents'
+            });
+
+            await recordWorkRequestHistory({
+                req,
+                workRequestId: task.work_request_id,
+                action: 'pm_approved_task',
+                previousStatus: taskBefore.status,
+                newStatus: 'completed',
+                relatedTaskId: task.id,
+                comments: 'PM approved task'
+            });
+        }
 
         // Was this the last open item? Then the work request is completed (with history)
         const workRequestCompleted = await completeWorkRequestIfFinished(task.work_request_id, { req, relatedTaskId: task.id });

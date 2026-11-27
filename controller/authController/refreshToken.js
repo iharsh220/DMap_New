@@ -37,6 +37,7 @@ const refreshToken = async (req, res) => {
         // Prepare user data like in login
         const userData = user.toJSON();
         delete userData.password;
+        delete userData.latest_verification_token; // one-time email token, never sent to the client
 
         // Remove foreign key IDs
         delete userData.department_id;

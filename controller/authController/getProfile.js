@@ -44,6 +44,7 @@ const getProfile = async (req, res) => {
         const userData = user.toJSON();
         delete userData.password; // Remove sensitive data
         delete userData.reset_token; // If exists
+        delete userData.latest_verification_token; // one-time email token
         delete userData.reset_token_expires; // If exists
         delete userData.login_attempts;
         delete userData.lock_until;

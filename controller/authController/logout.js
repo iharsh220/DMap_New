@@ -1,4 +1,5 @@
 const redisClient = require('../../config/redisConfig');
+const { revokeRefreshTokens } = require('../../middleware/jwtMiddleware');
 
 // Logout
 const logout = async (req, res) => {
@@ -20,6 +21,9 @@ const logout = async (req, res) => {
                 await redisClient.setex(`blacklist:${token}`, ttl, 'true');
             }
         }
+
+        // Refresh tokens issued before this logout stop working (the app does not send its refresh token here)
+        await revokeRefreshTokens(req.user && req.user.id);
 
 
         res.json({ success: true, message: 'Logged out successfully' });

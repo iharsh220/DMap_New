@@ -64,6 +64,7 @@ const generateToken = async (payload, key, expiresIn) => {
   const keyBytes = Uint8Array.from(Buffer.from(key, 'base64'));
   return await new EncryptJWT(payload)
     .setProtectedHeader({ alg: 'dir', enc: 'A256GCM' })
+    .setIssuedAt()
     .setExpirationTime(expiresIn)
     .encrypt(keyBytes);
 };
@@ -86,8 +87,25 @@ const generateRefreshToken = async (user) => {
   return await generateToken(user, process.env.REFRESH_ENCRYPTION_KEY, process.env.REFRESH_TOKEN_EXPIRES_IN || '7d');
 };
 
+// Logout stores `refresh-revoked-before:<userId>` (unix seconds); refresh tokens issued before it are refused.
+const refreshRevokedKey = (userId) => `refresh-revoked-before:${userId}`;
+
 const verifyRefreshToken = async (token) => {
-  return await decryptToken(token, process.env.REFRESH_ENCRYPTION_KEY);
+  const payload = await decryptToken(token, process.env.REFRESH_ENCRYPTION_KEY);
+  if (payload && payload.id) {
+    const revokedBefore = await redisClient.get(refreshRevokedKey(payload.id));
+    if (revokedBefore && (Number(payload.iat) || 0) < Number(revokedBefore)) {
+      throw new Error('Refresh token revoked by logout');
+    }
+  }
+  return payload;
+};
+
+// Called by logout: every refresh token of this user issued until now stops working.
+const revokeRefreshTokens = async (userId) => {
+  if (!userId) return;
+  const ttl = Math.ceil(require('ms')(process.env.REFRESH_TOKEN_EXPIRES_IN || '7d') / 1000);
+  await redisClient.setex(refreshRevokedKey(userId), ttl, String(Math.floor(Date.now() / 1000)));
 };
 
 const generateEmailVerificationToken = async (payload) => {
@@ -123,6 +141,7 @@ module.exports = {
   generateAccessToken,
   generateRefreshToken,
   verifyRefreshToken,
+  revokeRefreshTokens,
   generateEmailVerificationToken,
   verifyEmailVerificationToken,
   generatePasswordResetToken,

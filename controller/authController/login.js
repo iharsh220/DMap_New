@@ -138,6 +138,7 @@ const login = async (req, res) => {
         // Generate tokens
         const userData = user.toJSON();
         delete userData.password;
+        delete userData.latest_verification_token; // one-time email token, never sent to the client
         userData.userType = userType;
 
         // Fetch user divisions
